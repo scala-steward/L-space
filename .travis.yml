@@ -1,0 +1,14 @@
+language: scala
+sudo: false
+scala:
+  - 2.11.12
+  - 2.12.7
+jdk:
+  - oraclejdk8
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+    - node_modules
+install:
+  - npm install jsdom
