@@ -25,7 +25,7 @@ lazy val compilerOptions = Seq(
 
 lazy val projectSettings = Seq(
   organization := "eu.l-space",
-  version := "0.1.9-SNAPSHOT",
+  version := "0.1.9",
 )
 
 lazy val commonSettings = projectSettings ++ Seq(
