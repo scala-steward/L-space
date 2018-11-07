@@ -587,73 +587,67 @@ object P {
   implicit class WithPredicateHList[K <: HList](p: K)(implicit
                                                       val d: LUBConstraint[K, P[_]]) {
 
-    def eqv[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Eqv[T] :: HNil, Out]) =
-      p.:+(P.eqv(value))
-    def neqv[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Neqv[T] :: HNil, Out]) =
-      p.:+(P.neqv(value))
-    def gt[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Gt[T] :: HNil, Out]) =
-      p.:+(P.gt(value))
-    def gte[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Gte[T] :: HNil, Out]) =
-      p.:+(P.gte(value))
-    def lt[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Lt[T] :: HNil, Out]) =
-      p.:+(P.lt(value))
-    def lte[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Lte[T] :: HNil, Out]) =
-      p.:+(P.lte(value))
+    def eqv[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.eqv(value) :: p
+    def neqv[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.neqv(value) :: p
+    def gt[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.gt(value) :: p
+    def gte[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.gte(value) :: p
+    def lt[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.lt(value) :: p
+    def lte[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.lte(value) :: p
     def between[T: RangeHelper, Out <: HList, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0],
-        prepend: Prepend.Aux[K, Between[T] :: HNil, Out]) =
-      p.:+(P.between(lower, upper))
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.between(lower, upper) :: p
     def outside[T: RangeHelper, Out <: HList, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0],
-        prepend: Prepend.Aux[K, Outside[T] :: HNil, Out]) =
-      p.:+(P.outside(lower, upper))
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.outside(lower, upper) :: p
     def inside[T: RangeHelper, Out <: HList, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0],
-        prepend: Prepend.Aux[K, Inside[T] :: HNil, Out]) =
-      p.:+(P.inside(lower, upper))
-    def within[T, Out <: HList](value: T, values: T*)(implicit prepend: Prepend.Aux[K, Within[T] :: HNil, Out]) =
-      p.:+(P.within(value, values: _*))
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.inside(lower, upper) :: p
+    def within[T, Out <: HList](value: T, values: T*) =
+      P.within(value, values: _*) :: p
     //    def within[T, Out <: HList](value: T)(implicit prepend: Prepend.Aux[K, GeoWithin[T] :: HNil, Out]) =
-    //      p.:+(P.within(value))
-    def without[T, Out <: HList](value: T, values: T*)(implicit prepend: Prepend.Aux[K, Without[T] :: HNil, Out]) =
-      p.:+(P.without(value, values: _*))
-    def intersect[T: ObjectHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Intersect[T] :: HNil, Out]) =
-      p.:+(P.intersect(value))
-    def disjoint[T: ObjectHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Disjoint[T] :: HNil, Out]) =
-      p.:+(P.disjoint(value))
-    def contains[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Contains[T] :: HNil, Out]) =
-      p.:+(P.contains(value))
+    //      P.within(value))
+    def without[T, Out <: HList](value: T, values: T*) =
+      P.without(value, values: _*) :: p
+    def intersect[T: ObjectHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.intersect(value) :: p
+    def disjoint[T: ObjectHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.disjoint(value) :: p
+    def contains[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.contains(value) :: p
     //    def contains[T: ObjectHelper, Out <: HList](value: T)(implicit prepend: Prepend.Aux[K, GeoContains[T] :: HNil, Out]) =
-    //      p.:+(P.contains(value))
-    def prefix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Prefix[T] :: HNil, Out]) =
-      p.:+(P.prefix(value))
-    def suffix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Suffix[T] :: HNil, Out]) =
-      p.:+(P.suffix(value))
-    def regex[Out <: HList](value: scala.util.matching.Regex)(implicit prepend: Prepend.Aux[K, Regex :: HNil, Out]) =
-      p.:+(P.regex(value))
-    def fuzzy[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, Fuzzy[T] :: HNil, Out]) =
-      p.:+(P.fuzzy(value))
-    def containsPrefix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, ContainsPrefix[T] :: HNil, Out]) =
-      p.:+(P.containsPrefix(value))
-    def containsRegex[Out <: HList](value: scala.util.matching.Regex)(
-        implicit prepend: Prepend.Aux[K, ContainsRegex :: HNil, Out]) =
-      p.:+(P.containsRegex(value))
-    def containsFuzzy[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](
-        value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0], prepend: Prepend.Aux[K, ContainsFuzzy[T] :: HNil, Out]) =
-      p.:+(P.containsFuzzy(value))
+    //      P.contains(value))
+    def prefix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.prefix(value) :: p
+    def suffix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.suffix(value) :: p
+    def regex[Out <: HList](value: scala.util.matching.Regex) =
+      P.regex(value) :: p
+    def fuzzy[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.fuzzy(value) :: p
+    def containsPrefix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.containsPrefix(value) :: p
+    def containsRegex[Out <: HList](value: scala.util.matching.Regex) =
+      P.containsRegex(value) :: p
+    def containsFuzzy[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
+        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+      P.containsFuzzy(value) :: p
   }
 
   implicit class WithPredicate[T <: P[_]](p: T) //extends WithPredicateHList(p :: HNil)

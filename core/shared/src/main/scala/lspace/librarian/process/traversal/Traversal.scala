@@ -55,7 +55,7 @@ object Traversal {
   trait ResourceSteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList]
       extends StepsHelper[ST[Start], ET[End], Steps] {
 
-    def g(graph: Graph*) =
+    def G(graph: Graph*) =
       Traversal[ST[Start], DataType[Graph], step.G :: Steps](step.G(graph.toList) :: _traversal.steps)(
         target,
         st,
@@ -109,6 +109,7 @@ object Traversal {
       val step = Has(label, values.toList)
       Traversal[ST[Start], ET[End], Has :: Steps](step :: _traversal.steps)(target, st, et)
     }
+
     def has[L: HasStep.PropertyLabel, T](label: L, value: P[T], values: P[T]*) = {
       val step = Has(label, value :: values.toList)
       Traversal[ST[Start], ET[End], Has :: Steps](step :: _traversal.steps)(target, st, et)

@@ -75,7 +75,7 @@ trait Graph extends IriResource {
 
   protected def _createNode(ontology: Ontology*): Node
   def createNode(ontology: Ontology*): Node = _createNode(ontology: _*)
-  def <(label: Ontology): Node              = createNode(label)
+  def +(label: Ontology): Node              = createNode(label)
 
   /**
     * adds a node by reference (iri(s))

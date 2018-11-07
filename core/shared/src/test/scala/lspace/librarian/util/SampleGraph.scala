@@ -36,28 +36,28 @@ object SampleGraph {
 
     object places {
       val SanJosédeMaipo = {
-        val place = graph < ontologies.place
+        val place = graph + ontologies.place
         place --- Property.default.iri --> "place-san_jose_de_maipo"
         place --- "name" --> "San José de Maipo"
         place --- properties.geo --> Point(72.0403, 60.90879)
         place
       }
       val CrystalSprings = {
-        val place = graph < ontologies.place
+        val place = graph + ontologies.place
         place --- Property.default.iri --> "place-crystal_springs"
         place --- "name" --> "Crystal Springs"
         place --- properties.geo --> Point(-48.4046, 175.87173)
         place
       }
       val Haridwar = {
-        val place = graph < ontologies.place
+        val place = graph + ontologies.place
         place --- Property.default.iri --> "place-haridwar"
         place --- "name" --> "Haridwar"
         place --- properties.geo --> Point(89.45136, 88.01204)
         place
       }
       val Talca = {
-        val place = graph < ontologies.place
+        val place = graph + ontologies.place
         place --- Property.default.iri --> "place-talca"
         place --- "name" --> "Talca"
         place --- properties.geo --> Point(74.32746, -45.06438)
@@ -65,7 +65,7 @@ object SampleGraph {
       }
     }
     val Yoshio = {
-      val person = graph < ontologies.person
+      val person = graph + ontologies.person
       person --- Property.default.iri --> "person-yoshio"
       person --- properties.name --> "Yoshio" //relation can be a string
       person --- properties.birthDate --> LocalDate.parse("1996-08-18")
@@ -75,7 +75,7 @@ object SampleGraph {
       person
     }
     val Levi = {
-      val person = graph < ontologies.person
+      val person = graph + ontologies.person
       person --- Property.default.iri --> "person-levi"
       person --- "name" --> "Levi" //relation can be a Property-object
       person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-12-20")
@@ -85,7 +85,7 @@ object SampleGraph {
       person
     }
     val Gray = {
-      val person = graph < ontologies.person
+      val person = graph + ontologies.person
       person --- Property.default.iri --> "person-gray"
       person --- "name" --> "Gray"
       person --- namespaces.schema / "birthDate" --> LocalDate.parse("1997-04-10")
@@ -95,7 +95,7 @@ object SampleGraph {
       person
     }
     val Kevin = {
-      val person = graph < ontologies.person
+      val person = graph + ontologies.person
       person --- Property.default.iri --> "person-kevin"
       person --- "name" --> "Kevin"
       person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-11-30")
@@ -105,7 +105,7 @@ object SampleGraph {
       person
     }
     val Stan = {
-      val person = graph < ontologies.person
+      val person = graph + ontologies.person
       person --- Property.default.iri --> "person-stan"
       person --- "name" --> "Stan"
       person --- namespaces.schema / "birthDate" --> LocalDate.parse("2002-06-13")
@@ -115,7 +115,7 @@ object SampleGraph {
       person
     }
     val Garrison = {
-      val person = graph < ontologies.person
+      val person = graph + ontologies.person
       person --- Property.default.iri --> "person-garrisson"
       person --- "name" --> "Garrison"
       person --- namespaces.schema / "birthDate" --> LocalDate.parse("1994-06-18")

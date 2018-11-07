@@ -348,7 +348,7 @@ object JsonLD {
     }
   }
 
-  private def valueToJson(value: Any)(implicit dt: DataType[_]): Json = value match {
+  private def valueToJson(value: Any)(dt: DataType[_]): Json = value match {
     case v: Ontology if dt.iri == DataType.default.ontologyURLType.iri        => Json.jString(v.iri)
     case v: Property if dt.iri == DataType.default.propertyURLType.iri        => Json.jString(v.iri)
     case v: DataType[_] if dt.iri == DataType.default.dataTypeURLType.iri     => Json.jString(v.iri)

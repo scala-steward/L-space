@@ -9,6 +9,7 @@ import lspace.librarian.util.SampleGraph
 import org.scalatest.BeforeAndAfterAll
 import lspace.librarian.structure._
 import lspace.librarian.structure.DataType.default.{listType, _}
+import lspace.types.vector.Point
 import org.scalatest.{Matchers, WordSpec}
 import shapeless.HNil
 
@@ -124,6 +125,10 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         g.N.has(properties.balance, P.outside(300, 3000)).count.head shouldBe 2
         g.N.has(properties.balance, P.between(300, 3000)).count.head shouldBe 3
       }
+
+      "geometric predicate" in {
+        g.N.has(properties.geo, P.within(Point(72.0403, 60.90879))).count.head shouldBe 1
+      }
     }
     "a HasNot-step" in {
       g.N.hasNot(Property.default.label).toStream.nonEmpty shouldBe true
@@ -209,7 +214,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       doubleGroupedNodes.nonEmpty shouldBe true
     }
     "a Drop-step" ignore {
-      val p         = graph < Ontology("https://schema.org/Person")
+      val p         = graph + Ontology("https://schema.org/Person")
       val weirdname = "lkaskfdmnowenoiafps"
       p --- "name" --> weirdname
       g.N.has("name", P.eqv(weirdname)).count.head shouldBe 1
