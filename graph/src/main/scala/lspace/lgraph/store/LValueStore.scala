@@ -53,7 +53,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
                                        else Stream())
   }
 
-  def byIri(iri: String): Stream[T] = graph.storeManager.valueByIri(iri)
+  override def byIri(iri: String): Stream[T] = super.byIri(iri) ++ graph.storeManager.valueByIri(iri) distinct
 
   def byValue[V](value: V): Stream[T] =
     value match {

@@ -99,9 +99,6 @@ trait LGraph extends Graph {
   override protected[lgraph] def edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
   override protected[lgraph] def valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
 
-  protected def `@idIndex`: Index   = LIndex(Vector(Set(Property.default.`@id`)), thisgraph)
-  protected def `@typeIndex`: Index = LIndex(Vector(Set(Property.default.`@type`)), thisgraph)
-
   override protected def _createNode(id: Long)(ontology: Ontology*): _Node = {
     val node = LNode(id, thisgraph)
     node._lastoutsync = Some(Instant.now())

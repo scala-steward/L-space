@@ -11,6 +11,8 @@ trait DataGraph extends Graph {
   }
 
   def index: IndexGraph
+  protected def `@idIndex`: Index
+  protected def `@typeIndex`: Index
 
 //  trait Nodes extends super.Nodes {
 //    def +(label: String): Node = create(ns.getOntology(label).getOrElse(Ontology(label)))

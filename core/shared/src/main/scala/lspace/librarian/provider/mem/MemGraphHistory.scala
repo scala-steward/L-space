@@ -49,4 +49,4 @@ object MemGraphHistory {
   }
 }
 
-trait MemGraphHistory extends MemGraph with DataGraph with History {}
+trait MemGraphHistory extends MemDataGraph with History {}

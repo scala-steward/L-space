@@ -21,7 +21,7 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
                                        else Stream())
   }
 
-  override def byIri(iri: String): Stream[T] = graph.storeManager.nodeByIri(iri)
+  override def byIri(iri: String): Stream[T] = super.byIri(iri) ++ graph.storeManager.nodeByIri(iri) distinct
 
   override def store(node: T): Unit = {
     super.store(node)

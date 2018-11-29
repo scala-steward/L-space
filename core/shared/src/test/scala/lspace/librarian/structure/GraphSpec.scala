@@ -53,15 +53,15 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
   "A namespace-graph" can {
     "store and retrieve an ontology" in {
-      graph.ns.getOntology(V.ontology.iri).isEmpty shouldBe true
+      val unknownOntology = Ontology("unknownOntology")(_extendedClasses = () => List(DataType.ontology))
+      graph.ns.getOntology(unknownOntology).isEmpty shouldBe true
 
-      val ontology = graph.ns.storeOntology(V.ontology)
+      val ontology = graph.ns.storeOntology(unknownOntology)
       ontology.out(Property.default.`@extends`).size shouldBe 1
       ontology.labels.size shouldBe 1
-      ontology.iri shouldBe V.ontology.iri
-      ontology.out(Property.default.`@extends`).size shouldBe 1
+      ontology.iri shouldBe unknownOntology.iri
 
-      graph.ns.getOntology(V.ontology.iri).isDefined shouldBe true
+      graph.ns.getOntology(unknownOntology.iri).isDefined shouldBe true
     }
 
     "store and retrieve a property" in {}

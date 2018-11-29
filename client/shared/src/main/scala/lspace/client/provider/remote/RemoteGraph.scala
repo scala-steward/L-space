@@ -52,10 +52,6 @@ trait RemoteGraph extends Graph {
 
 //  protected def `@idStore`: ValueStore[this.type] = ???
 
-  override protected def `@idIndex`: Index = ???
-
-  override protected def `@typeIndex`: Index = ???
-
   override protected def _createEdge[S, E](id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] =
     ???
 

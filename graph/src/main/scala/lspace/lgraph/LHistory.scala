@@ -68,4 +68,4 @@ object LHistory {
   }
 }
 
-trait LHistory extends LGraph with DataGraph with History {}
+trait LHistory extends LDataGraph with History {}

@@ -78,7 +78,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     }
   }
 
-  def byIri(iri: String): Stream[T] = graph.storeManager.edgeByIri(iri)
+  override def byIri(iri: String): Stream[T] = super.byIri(iri) ++ graph.storeManager.edgeByIri(iri) distinct
 
   override def byId(id: Long): Option[T] = super.byId(id).orElse(graph.storeManager.edgeById(id).headOption)
 

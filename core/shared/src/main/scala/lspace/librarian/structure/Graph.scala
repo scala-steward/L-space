@@ -84,9 +84,6 @@ trait Graph extends IriResource {
 //  protected def `@idStore`: ValueStore[this.type]
 //  protected def `@typeStore`: ValueStore[String, _Value[String]]
 
-  protected def `@idIndex`: Index
-  protected def `@typeIndex`: Index
-
   def init(): Unit
 
   sealed trait RApi[T <: Resource[_]] {

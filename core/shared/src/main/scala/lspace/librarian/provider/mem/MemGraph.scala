@@ -82,9 +82,6 @@ trait MemGraph extends Graph {
   protected[mem] val `@idStore`: ValueStore[this.type] =
     MemValueStore(NS.types.`@id`, thisgraph)
 
-  protected[mem] val `@idIndex`: Index   = MemIndex(Vector(Set(Property.default.`@id`)), thisgraph)
-  protected[mem] val `@typeIndex`: Index = MemIndex(Vector(Set(Property.default.`@type`)), thisgraph)
-
   override protected def _createNode(_id: Long)(ontology: Ontology*): _Node = {
     val node = new _Node with MemNode {
       implicit val graph: Graph = thisgraph

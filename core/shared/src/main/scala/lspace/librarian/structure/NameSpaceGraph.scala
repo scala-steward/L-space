@@ -50,27 +50,23 @@ trait NameSpaceGraph extends DataGraph {
           .getOrElse(ontologyFromNode(nodeStore.byId(id).head)))
   }
 
-  def getOntology(iri: String): Option[Ontology] = {
-    ontologyFromCache(iri)
-      .orElse {
-        nodeStore
-          .byIri(iri)
-          .find(n => n.hasLabel(Ontology.ontology).isDefined && n.hasLabel(DataType.ontology).isEmpty)
-          .map(ontologyFromNode)
-      }
-  }
-
   protected def ontologyFromCache(id: Long): Option[Ontology] =
     Ontology.allOntologies.byId
       .get(id)
       .orElse(ns.ontologies.byId.get(id))
 
   protected def ontologyFromCache(iri: String): Option[Ontology] =
-    Ontology.allOntologies.byIri
-      .get(iri)
+    MemGraphDefault.ns
+      .getOntology(iri)
       .orElse(ns.ontologies.byIri
         .get(iri))
-      .orElse(MemGraphDefault.ns.ontologies.byIri.get(iri))
+
+  def getOntology(iri: String): Option[Ontology] = {
+    ontologyFromCache(iri)
+      .orElse {
+        nodeStore.byIri(iri).find(_.hasLabel(Ontology.ontology).isDefined).map(ontologyFromNode)
+      }
+  }
 
   private def ontologyFromNode(node: _Node): Ontology = {
     val ontology = Ontology(node)
@@ -155,7 +151,7 @@ trait NameSpaceGraph extends DataGraph {
       }
   }
 
-  protected[librarian] def propertyFromNode(node: _Node): Property = {
+  protected def propertyFromNode(node: _Node): Property = {
     val range = () =>
       node.out(Property.default.`@range`).collect {
         case node: _Node =>
@@ -277,12 +273,6 @@ trait NameSpaceGraph extends DataGraph {
     case datatype: DataType[_] => storeDataType(datatype)
   }
 
-  def getDataType[T: DefaultsToAny](iri: String): Option[DataType[T]] = {
-    datatypeFromCache(iri)
-      .orElse(nodeStore.byIri(iri).find(_.hasLabel(DataType.ontology).isDefined).map(datatypeFromNode))
-      .asInstanceOf[Option[DataType[T]]]
-  }
-
   def getDataTypes[T: DefaultsToAny](id: Long, ids: Long*): List[DataType[T]] = {
     (id :: ids.toList)
       .map(
@@ -298,11 +288,16 @@ trait NameSpaceGraph extends DataGraph {
       .orElse(ns.datatypes.byId.get(id))
 
   protected def datatypeFromCache(iri: String): Option[DataType[_]] =
-    DataType.allDataTypes.byIri
-      .get(iri)
+    MemGraphDefault.ns
+      .getDataType(iri)
       .orElse(ns.datatypes.byIri
         .get(iri))
-      .orElse(MemGraphDefault.ns.datatypes.byIri.get(iri))
+
+  def getDataType[T: DefaultsToAny](iri: String): Option[DataType[T]] = {
+    datatypeFromCache(iri)
+      .orElse(nodeStore.byIri(iri).find(_.hasLabel(DataType.ontology).isDefined).map(datatypeFromNode))
+      .asInstanceOf[Option[DataType[T]]]
+  }
 
   private def datatypeFromNode(node: _Node): DataType[_] = ??? //TODO: retrieve custom collection datatypes
 
