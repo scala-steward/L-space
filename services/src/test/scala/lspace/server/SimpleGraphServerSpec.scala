@@ -20,6 +20,7 @@ import org.scalatest.Matchers
 class SimpleGraphServerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   val graph          = MemGraph("SimpleGraphServerSpec")
+  val jsonld         = JsonLD(graph)
   private val _graph = graph
   val server = new SimpleGraphServer {
     lazy val graph: Graph = _graph
@@ -42,7 +43,7 @@ class SimpleGraphServerSpec extends WordSpec with Matchers with BeforeAndAfterAl
   "a graph-server" should {
     "execute a traversal only on a POST request" in {
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
-      val json      = JsonLD.nodeToJsonWithContext(traversal.self)._1
+      val json      = jsonld.nodeToJsonWithContext(traversal.self)._1
 
       println(json)
 

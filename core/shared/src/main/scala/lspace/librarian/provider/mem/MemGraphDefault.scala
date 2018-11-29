@@ -2,6 +2,7 @@ package lspace.librarian.provider.mem
 
 import java.util.concurrent.atomic.AtomicLong
 
+import lspace.librarian.structure.Property
 import lspace.librarian.structure.util.IdProvider
 
 object MemGraphDefault extends MemDataGraph {
@@ -25,6 +26,18 @@ object MemGraphDefault extends MemDataGraph {
 
       lazy val graph: MemGraph      = _thisgraph
       lazy val index: MemIndexGraph = this
+    }
+
+    override protected def propertyFromCache(iri: String): Option[Property] =
+      Property.allProperties.byIri
+        .get(iri)
+        .orElse(properties.byIri.get(iri))
+
+    override def getProperty(iri: String): Option[Property] = {
+      propertyFromCache(iri)
+        .orElse {
+          nodeStore.byIri(iri).find(_.hasLabel(Property.ontology).isDefined).map(propertyFromNode)
+        }
     }
   }
 

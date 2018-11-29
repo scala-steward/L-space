@@ -16,7 +16,7 @@ import scala.util.{Failure, Success}
 
 trait LinkedDataService {
 
-  val jsonLD = JsonLD
+  def jsonld: JsonLD
   implicit def backend: SttpBackend[Task, Observable[ByteBuffer]]
   //  def traverseAsync[Start, End, LastStep, Labels <: HList](traversal: Traversal[Start, End, LastStep, Labels]): Task[List[End]]
   //  def traverse[Steps <: HList, Labels <: HList, Out](traversal: Traversal[_, _, Steps, Labels])(
@@ -26,7 +26,7 @@ trait LinkedDataService {
                                     ct: ClassType[Out]): Task[Collection[Out]] = {
     sttp
       .post(uri"${traversal.target.iri}/traverse")
-      .body(jsonLD.nodeToJsonWithContext(traversal.self)._1.toString())
+      .body(jsonld.nodeToJsonWithContext(traversal.self)._1.toString())
       .headers(Map("Content-Type" -> "application/ld+json", "Accept" -> "application/ld+json"))
       .send()
       .map { response =>
@@ -34,7 +34,7 @@ trait LinkedDataService {
           val json: Json = Parse.parse(response.unsafeBody).right.get
           json.obj
             .map { obj =>
-              jsonLD.resource(obj) match {
+              jsonld.resource(obj) match {
                 case Success(resource) =>
                   Collection.apply(resource.asInstanceOf[Node], ct)
                 case Failure(error) =>
@@ -59,7 +59,7 @@ trait LinkedDataService {
           val json: Json = Parse.parse(response.unsafeBody).right.get
           json.obj
             .map { obj =>
-              val cachedNode = jsonLD.resource(obj) match {
+              val cachedNode = jsonld.resource(obj) match {
                 case Success(resource) =>
                   resource match {
                     case node: Node => node //mergeWithCache(node)
@@ -92,7 +92,7 @@ trait LinkedDataService {
               array.map { json =>
                 json.obj match {
                   case Some(obj) =>
-                    jsonLD.resource(obj) match {
+                    jsonld.resource(obj) match {
                       case Success(resource) =>
                         resource match {
                           case node: Node => node //mergeWithCache(node)

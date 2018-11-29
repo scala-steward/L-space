@@ -529,6 +529,7 @@ trait Graph extends IriResource {
       addMeta(edge, edges.create(target, edge.key, edge.to))
     }
 
+  def add(graph: Graph): Unit = ++(graph)
   def ++(graph: Graph): Unit = {
     if (graph != this) {
       graph.nodes().foreach { node =>

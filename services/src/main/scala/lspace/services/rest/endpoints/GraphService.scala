@@ -18,7 +18,8 @@ import lspace.parse.json.JsonLD
 object GraphService {}
 
 case class GraphService(context: String, graph: Graph) extends Service {
-  val log = LoggerFactory.getLogger(getClass)
+  val log    = LoggerFactory.getLogger(getClass)
+  val jsonld = JsonLD(graph)
 
   val headersAll = root.map(_.headerMap.toMap)
 
@@ -59,7 +60,7 @@ case class GraphService(context: String, graph: Graph) extends Service {
     //    println(s"Got foo: $json")
     json.obj
       .map { obj =>
-        JsonLD.resource(obj).map {
+        jsonld.resource(obj).map {
           case traversalNode: Node =>
             val start  = Instant.now()
             val result = Traversal.wrap(traversalNode)(graph)(ClassType.default[Any]).toUntypedStream.toList
@@ -67,7 +68,7 @@ case class GraphService(context: String, graph: Graph) extends Service {
               override def iri: String = ""
             })
             log.debug("result count: " + result.size.toString)
-            val (collectionJson, builder1) = JsonLD.nodeToJsonWithContext(collection)
+            val (collectionJson, builder1) = jsonld.nodeToJsonWithContext(collection)
 
             Ok(collectionJson).withHeader("Content-Type", "application/ld+json")
           case _ =>
@@ -87,10 +88,10 @@ case class GraphService(context: String, graph: Graph) extends Service {
 
   val getLabels: Endpoint[IO, Json] = get("label") {
     val start = Instant.now()
-    val result = graph.g.N
+    val result = graph.ns.g.N
       .union(_.hasLabel(Ontology.ontology), _.hasLabel(Property.ontology), _.hasLabel(DataType.ontology))
     val collection: Collection[Node] = Collection(start, Instant.now(), result.toList)(result.et)
-    val (collectionJson, builder1)   = JsonLD.nodeToJsonWithContext(collection)
+    val (collectionJson, builder1)   = jsonld.nodeToJsonWithContext(collection)
 
     Ok(collectionJson).withHeader("Content-Type", "application/ld+json")
   }

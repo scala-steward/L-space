@@ -19,6 +19,9 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 object JsonLD {
+  def apply(graph: Graph): JsonLD = new JsonLD(graph)
+}
+class JsonLD(graph: Graph) {
 
   val httpClient: HttpClient = HttpClientImpl
 
@@ -105,33 +108,6 @@ object JsonLD {
         }
     }
 
-  /*def nodeToJson(node: Node, builder: LDContextBuilder = LDContextBuilder()): (JsonObject, LDContextBuilder) = {
-    node.labels.foldLeft(List[Json]() -> builder) {
-      case ((iris, builder), tpe) =>
-        val (iri, newBuilder) = builder.compactIri(tpe)
-        (iris :+ Json.jString(iri)) -> newBuilder
-    } match {
-      case (typeIris, builder) =>
-        val jsProperties = (
-          Seq(node.iri).filter(_.nonEmpty).map(types.id -> Json.jString(_)) ++
-            {
-              val iris = node.iris
-              if (iris.toList.lengthCompare(1) == 0) Seq(types.ids -> Json.jString(iris.head))
-              else if (iris.nonEmpty) Seq(types.ids -> node.iris.toList.map(Json.jString).asJson)
-              else Seq()
-            } ++
-            {
-              if (typeIris.lengthCompare(1) == 0) Seq(types.TYPE -> typeIris.head)
-              else if (typeIris.nonEmpty) Seq(types.TYPE -> typeIris.asJson)
-              else Seq()
-            }).toMap
-        addEdgesToJson(node, builder) match {
-          case (result, builder) =>
-            JsonObject.fromTraversableOnce(jsProperties ++ result.toMap) -> builder
-        }
-    }
-  }
-   */
   def addEdgesToJson[T](resource: Resource[T],
                         builder: LDContextBuilder = LDContextBuilder()): (JsonObject, LDContextBuilder) = {
     resource
@@ -522,8 +498,6 @@ object JsonLD {
     JsonObject.fromTraversableOnce(jsProperties ++ oProperty) -> newBuilder
   }
 
-  //  def parseContextPropertyMod(expKey: String, json: Json, prop)
-
   def parseContext(json: JsonObject, builder: LDGraphBuilder = LDGraphBuilder()): Try[(LDGraphBuilder, JsonObject)] =
     Try {
       //      json match {
@@ -579,7 +553,7 @@ object JsonLD {
                             .orElse {
                               json.obj.map {
                                 value =>
-                                  val property = MemGraphDefault.ns.getProperty(expKey).getOrElse {
+                                  val property = graph.ns.getProperty(expKey).getOrElse {
                                     httpClient
                                       .getResource(expKey)({ string =>
                                         val json = Parse
@@ -627,7 +601,7 @@ object JsonLD {
         value.string
           .map(builder.expandIri(_))
           .map { expKey =>
-            val ct = MemGraphDefault.ns.getClassType(expKey).getOrElse {
+            val ct = graph.ns.getClassType(expKey).getOrElse {
               httpClient
                 .getResource(expKey)({ string =>
                   val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -689,26 +663,6 @@ object JsonLD {
           .getOrElse(throw FromJsonException(s"@base has unexpected value $value"))
     }
   }
-  //  def parse(json: Json, builder: LDGraphBuilder = LDGraphBuilder()): Try[Any] = Try {
-  //    json.obj.map(parseObject(_, builder))
-  //      .orElse(json.array.map(parseArray(_, builder)))
-  //      .getOrElse(parseValue(json, builder))
-  //  }
-  //
-  //  private def parseObject(obj: JsonObject, builder: LDGraphBuilder = LDGraphBuilder()): Try[Any] = Try {
-  //    obj(types.TYPE)
-  //  }
-  //
-  //  private def parseArray(array: JsonArray, builder: LDGraphBuilder = LDGraphBuilder()): Try[Any] = Try {
-  //    array.map(parse(_, builder) match {
-  //      case Success(resource) => resource
-  //      case Failure(error) => throw error
-  //    })
-  //  }
-  //
-  //  private def parseValue(value: Json, builder: LDGraphBuilder = LDGraphBuilder()): Try[Any] = Try {
-  //
-  //  }
 
   private def getIri(obj: Map[String, Json], builder: LDGraphBuilder) =
     obj.get(types.`@id`).flatMap(_.string).map(builder.expandIri(_))
@@ -732,11 +686,11 @@ object JsonLD {
           json.array
             .map(_.map(_.string
               .map(builder.expandIri(_))
-              .getOrElse(throw FromJsonException("unknown @type key/iri format"))))
+              .getOrElse(throw FromJsonException("getTypes: unknown @type key/iri format"))))
             .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
             .getOrElse(List())
             .map { iri =>
-              MemGraphDefault.ns
+              graph.ns
                 .getOntology(iri)
                 .orElse(httpClient
                   .getResource(iri)({ string =>
@@ -795,7 +749,7 @@ object JsonLD {
       .filter(_.nonEmpty)
       .getOrElse(throw FromJsonException("Ontology without iri is not allowed"))
 
-    MemGraphDefault.ns.getOntology(iri).getOrElse {
+    graph.ns.getOntology(iri).getOrElse {
       val labels = getTypes(expObj, builder)
       if (labels.size != 1 || labels.head != Ontology.ontology)
         throw FromJsonException(s"Parsing ontology without @type: @class or ${types.rdfsClass}")
@@ -821,11 +775,11 @@ object JsonLD {
             json.array
               .map(_.map(_.string
                 .map(builder.expandIri(_))
-                .getOrElse(throw FromJsonException("unknown @type key/iri format"))))
+                .getOrElse(throw FromJsonException("jsonToOntology: unknown @type key/iri format"))))
               .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
               .getOrElse(List())
               .map { iri =>
-                MemGraphDefault.ns
+                graph.ns
                   .getOntology(iri)
                   .orElse(httpClient
                     .getResource(iri)({ string =>
@@ -843,7 +797,7 @@ object JsonLD {
                     case _                  => throw FromJsonException(s"@extends $iri does not link to an ontology")
                   }
                   .getOrElse(throw new Exception(s"Could not get extended ontology $iri")) /*.map(DetachedGraph.nodes.upsert)*/
-                MemGraphDefault.ns.nodes.hasIri(iri).head
+                MemGraphDefault.ns.nodes.hasIri(iri).headOption.getOrElse(graph.ns.nodes.hasIri(iri).head)
             })
         .getOrElse(List())
         .foreach { extendedNode =>
@@ -865,7 +819,7 @@ object JsonLD {
   }
 
   private def getClassType(iri: String): Option[ClassType[_]] = {
-    MemGraphDefault.ns
+    graph.ns
       .getClassType(iri)
       .orElse(
         httpClient
@@ -891,7 +845,7 @@ object JsonLD {
         .filter(_.nonEmpty)
         .getOrElse(throw FromJsonException("Property without iri is not allowed"))
 
-      MemGraphDefault.ns.getProperty(iri).getOrElse {
+      graph.ns.getProperty(iri).getOrElse {
         val labels = getTypes(expObj, builder)
         if (labels.size != 1 || labels.head != Property.ontology)
           throw FromJsonException(s"Parsing property without @type: @property or ${types.rdfProperty}")
@@ -917,11 +871,11 @@ object JsonLD {
               json.array
                 .map(_.map(_.string
                   .map(builder.expandIri(_))
-                  .getOrElse(throw FromJsonException("unknown @type key/iri format"))))
+                  .getOrElse(throw FromJsonException("jsonToProperty/@extends: unknown @type key/iri format"))))
                 .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
                 .getOrElse(List())
                 .map { iri =>
-                  MemGraphDefault.ns
+                  graph.ns
                     .getProperty(iri)
                     .orElse(httpClient
                       .getResource(iri)({ string =>
@@ -940,7 +894,7 @@ object JsonLD {
                         throw FromJsonException(s"@extends $iri does not link to a property")
                     }
                     .getOrElse(throw new Exception(s"Could not get extended property $iri")) /*.map(DetachedGraph.nodes.upsert)*/
-                  MemGraphDefault.ns.nodes.hasIri(iri).head
+                  MemGraphDefault.ns.nodes.hasIri(iri).headOption.getOrElse(graph.ns.nodes.hasIri(iri).head)
               })
           .getOrElse(List())
           .foreach { extendedNode =>
@@ -965,18 +919,18 @@ object JsonLD {
                         case Success(r) => r
                         case Failure(e) => throw e
                       }))
-                      .getOrElse(throw FromJsonException("unknown @type key/iri format"))))
+                      .getOrElse(throw FromJsonException("jsonToProperty/@ranges: unknown @type key/iri format"))))
               .orElse(json.string.map(builder.expandIri(_)).map(List(_).map(getClassType(_).get)))
               .orElse(json.obj.map(jsonToClassType(_, builder) match {
                 case Success(r) => List(r)
                 case Failure(e) => throw e
               }))
               .getOrElse(List())
-              .map(ct =>
-                MemGraphDefault.ns.nodes
-                  .hasIri(ct.iri)
-                  .headOption
-                  .getOrElse(throw FromJsonException("unknown @type key/iri format")))
+//              .map(ct =>
+//                MemGraphDefault.ns.nodes
+//                  .hasIri(ct.iri)
+//                  .headOption
+//                  .getOrElse(throw FromJsonException("jsonToProperty/@range: unknown @type key/iri format")))
           }
           .getOrElse(List())
           .foreach { rangeNode =>
@@ -1002,7 +956,7 @@ object JsonLD {
       .filter(_.nonEmpty)
       .getOrElse(throw FromJsonException("DataType without iri is not allowed"))
 
-    MemGraphDefault.ns.getDataType(iri).getOrElse {
+    graph.ns.getDataType(iri).getOrElse {
 
       val labels = getTypes(expObj, builder)
       if (labels.size != 1 || labels.head != DataType.ontology)
@@ -1020,11 +974,11 @@ object JsonLD {
             json.array
               .map(_.map(_.string
                 .map(builder.expandIri(_))
-                .getOrElse(throw FromJsonException("unknown @type key/iri format"))))
+                .getOrElse(throw FromJsonException("jsonToDataType/@extends: unknown @type key/iri format"))))
               .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
               .getOrElse(List())
               .map { iri =>
-                MemGraphDefault.ns
+                graph.ns
                   .getDataType(iri)
                   .orElse(httpClient
                     .getResource(iri)({ string =>
@@ -1042,7 +996,7 @@ object JsonLD {
                     case _                     => throw FromJsonException(s"@extends $iri does not link to a datatype")
                   }
                   .getOrElse(throw new Exception(s"Could not get extended datatype $iri")) /*.map(DetachedGraph.nodes.upsert)*/
-                MemGraphDefault.ns.nodes.hasIri(iri).head
+                MemGraphDefault.ns.nodes.hasIri(iri).headOption.getOrElse(graph.ns.nodes.hasIri(iri).head)
             })
         .getOrElse(List())
         .foreach { extendedNode =>
@@ -1061,10 +1015,8 @@ object JsonLD {
         json.string
           .map(
             iri =>
-              MemGraphDefault.ns
-                .getOntology(iri)
-                .orElse(MemGraphDefault.ns.getProperty(iri))
-                .orElse(MemGraphDefault.ns.getDataType(iri))
+              graph.ns
+                .getClassType(iri)
                 .get)
           .orElse(json.obj.map(jsonToDataType(_, builder).get))
           .map(List(_))
@@ -1074,10 +1026,8 @@ object JsonLD {
                 json =>
                   json.string
                     .map(iri =>
-                      MemGraphDefault.ns
-                        .getOntology(iri)
-                        .orElse(MemGraphDefault.ns.getProperty(iri))
-                        .orElse(MemGraphDefault.ns.getDataType(iri))
+                      graph.ns
+                        .getClassType(iri)
                         .get)
                     .orElse(json.obj.map(jsonToDataType(_, builder).get)))))
       }
@@ -1145,14 +1095,14 @@ object JsonLD {
     Try {
       val iri    = getIri(obj.toMap, builder)
       val labels = getTypes(obj.toMap, builder)
-      Try { iri.flatMap(getClassType).get } orElse {
+      Try { iri.flatMap(graph.ns.getClassType).get } orElse {
         if (labels.contains(DataType.ontology)) {
           jsonToDataType(obj, builder)
         } else if (labels.contains(Property.ontology)) {
           jsonToProperty(obj, builder)
         } else if (labels.contains(Ontology.ontology)) {
           jsonToOntology(obj, builder)
-        } else throw FromJsonException("not valid classtype")
+        } else Try { iri.flatMap(getClassType).getOrElse(throw FromJsonException("not valid classtype")) }
       }
     }.flatten
 
@@ -1165,11 +1115,11 @@ object JsonLD {
           json.array
             .map(_.map(_.string
               .map(builder.expandIri(_))
-              .getOrElse(throw FromJsonException("unknown @type key/iri format"))))
+              .getOrElse(throw FromJsonException("getProperties: unknown @type key/iri format"))))
             .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
             .getOrElse(List())
             .map { iri =>
-              MemGraphDefault.ns
+              graph.ns
                 .getProperty(iri)
                 .orElse(httpClient
                   .getResource(iri)({ string =>
@@ -1184,7 +1134,7 @@ object JsonLD {
                   case _                  => throw FromJsonException(s"@properties $iri does not link to a property")
                 }
                 .getOrElse(throw new Exception("123")) /*.map(DetachedGraph.nodes.upsert)*/
-              MemGraphDefault.ns.nodes.hasIri(iri).head
+              MemGraphDefault.ns.nodes.hasIri(iri).headOption.getOrElse(graph.ns.nodes.hasIri(iri).head)
           })
       .getOrElse(List())
   }
@@ -1213,15 +1163,8 @@ object JsonLD {
             if (iri == types.`@id`) DataType.default.uRLType
             else //key.range.collectFirst { case key if key.iri == iri => key }
               //          .orElse {
-              MemGraphDefault.ns
-                .getOntology(iri) //.filter(ontology => key.range.exists(ontology.extendsContext))
-                //          }
-                .orElse {
-                  MemGraphDefault.ns.getProperty(iri)
-                }
-                .orElse {
-                  MemGraphDefault.ns.getDataType(iri)
-                }
+              graph.ns
+                .getClassType(iri)
                 .getOrElse {
                   throw FromJsonException(s"no classtype found for iri ${iri}")
                 }
@@ -1241,7 +1184,7 @@ object JsonLD {
     val iri = builder.expandIri(jKey)
     val (key, classType) = {
       val key = //builder.properties.get(iri).orElse(
-        MemGraphDefault.ns.getProperty(iri).getOrElse {
+        graph.ns.getProperty(iri).getOrElse {
           httpClient.getResource(iri) { json =>
             this
               .parseContext(Parse.parseOption(json).flatMap(_.obj).getOrElse(throw FromJsonException("")))

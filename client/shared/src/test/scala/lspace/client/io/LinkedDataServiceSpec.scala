@@ -18,7 +18,7 @@ class LinkedDataServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAf
   val computer: GraphComputer    = DefaultStreamComputer()
   lazy val g                     = graph.g
 
-  val service: LinkedDataService = LinkedDataServiceImpl
+  val service: LinkedDataService = LinkedDataServiceImpl(graph)
 
   implicit override def executionContext: ExecutionContext = global
   //  implicit lazy val scheduler = Scheduler(java.util.concurrent.Executors.newSingleThreadScheduledExecutor(), executionContext)
@@ -37,21 +37,21 @@ class LinkedDataServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAf
     "work for a List[String] result" in {
       val traversal     = graph.g.N.has("name", P.eqv("Garrison")).out("name")
       val traversalTask = traversal.toTask
-      traversalTask.runAsync map { r =>
+      traversalTask.runAsync(global).map { r =>
         assert(r.size == 1)
       }
     }
     "work for a Map[Property, List[Any]] result" in {
       val traversal     = graph.g.N.has("name", P.eqv("Garrison")).outMap()
       val traversalTask = traversal.toTask
-      traversalTask.runAsync map { r =>
+      traversalTask.runAsync(global).map { r =>
         assert(r.head.size == 5)
       }
     }
     "work for a Map[String, List[Any]] result" in {
       val traversal     = graph.g.N.has("name").group(_.out("name").hasLabel[String]).count
       val traversalTask = traversal.toTask
-      traversalTask.runAsync map { r =>
+      traversalTask.runAsync(global).map { r =>
         assert(r.size == 1)
       }
     }

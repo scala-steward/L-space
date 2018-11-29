@@ -17,18 +17,18 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.util.{Failure, Success}
 
 class JsonLDSpec extends WordSpec with Matchers {
-  val jsonParser = JsonLD
-  val graph      = MemGraph("JsonLDSpec")
+  val graph  = MemGraph("JsonLDSpec")
+  val jsonld = JsonLD(graph)
   SampleGraph.loadSocial(graph)
 
   val httpClient: HttpClient = HttpClientImpl
 
   "A JsonLDParser" should {
     "parse and encode literals" in {
-      val json5 = jsonParser.anyToJson(5L, List(DataType.default.`@long`))._1
+      val json5 = jsonld.anyToJson(5L, List(DataType.default.`@long`))._1
       json5.toString() shouldBe """"5""""
-      jsonParser.jsonToValue(DataType.default.`@long`, json5).map(_._2) shouldBe Success(5L)
-      val json5object = jsonParser.anyToJson(5L)._1
+      jsonld.jsonToValue(DataType.default.`@long`, json5).map(_._2) shouldBe Success(5L)
+      val json5object = jsonld.anyToJson(5L)._1
       json5object.toString() shouldBe """{"@value":"5","@type":"@long"}"""
       Parse.parse(""""5"""").right.get.string.isDefined shouldBe true
       Parse.parse(""""5"""").right.get.string.get.toLong shouldBe 5L
@@ -36,9 +36,9 @@ class JsonLDSpec extends WordSpec with Matchers {
     }
     "parse a traversal to json" in {
       val traversal       = MemGraphDefault.g.N.has(SampleGraph.properties.name) //, Some(Traversal.ontology))
-      val (json, builder) = jsonParser.nodeToJsonWithContext(traversal.self)
+      val (json, builder) = jsonld.nodeToJsonWithContext(traversal.self)
       json.obj.get ?? types.`@context` shouldBe true
-      val nodeTry = jsonParser.resource(json.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
+      val nodeTry = jsonld.resource(json.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
       nodeTry match {
         case Success(r) =>
         case Failure(e) => println(e.getMessage)
@@ -46,12 +46,12 @@ class JsonLDSpec extends WordSpec with Matchers {
       nodeTry.isSuccess shouldBe true
       val node              = nodeTry.get
       val parsedTraversal   = Traversal.wrap(node)(MemGraphDefault)(ClassType.default[Any])
-      val (json2, builder2) = jsonParser.nodeToJsonWithContext(parsedTraversal.self)
-      val nodeTry2          = jsonParser.resource(json2.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
+      val (json2, builder2) = jsonld.nodeToJsonWithContext(parsedTraversal.self)
+      val nodeTry2          = jsonld.resource(json2.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
       nodeTry2.isSuccess shouldBe true
       val node2             = nodeTry2.get
       val parsedTraversal2  = Traversal.wrap(node2)(MemGraphDefault)(ClassType.default[Any])
-      val (json3, builder3) = jsonParser.nodeToJsonWithContext(parsedTraversal2.self)
+      val (json3, builder3) = jsonld.nodeToJsonWithContext(parsedTraversal2.self)
       json shouldBe json2
       json shouldBe json2
       json shouldBe json3
@@ -71,7 +71,7 @@ class JsonLDSpec extends WordSpec with Matchers {
         Ontology("thing")(_properties = () => name :: surname :: Nil,
                           _extendedClasses = () => new Ontology("basething") {} :: Nil)
 
-      val json = jsonParser.ontologyToJson(testOntology)._1
+      val json = jsonld.ontologyToJson(testOntology)._1
       json ?? types.`@id` shouldBe true
       json(types.`@id`).exists(_.string.contains("thing")) shouldBe true
 
@@ -93,18 +93,18 @@ class JsonLDSpec extends WordSpec with Matchers {
     val testOntology: Ontology =
       Ontology("thing")(_properties = () => name :: surname :: Nil, _extendedClasses = () => baseOntology :: Nil)
 
-    val propertyJsonName = jsonParser.propertyToJson(name)
+    val propertyJsonName = jsonld.propertyToJson(name)
     MemGraphDefault.ns.storeProperty(name)
     //    name.status := CacheStatus.CACHED
-    val propertyJsonSurname = jsonParser.propertyToJson(surname)
+    val propertyJsonSurname = jsonld.propertyToJson(surname)
     MemGraphDefault.ns.storeProperty(surname)
     //    surname.status := CacheStatus.CACHED
-    val ontologyJson = jsonParser.ontologyToJson(testOntology)._1
+    val ontologyJson = jsonld.ontologyToJson(testOntology)._1
     val ontologyNode = MemGraphDefault.ns.storeOntology(testOntology)
 
     "parse json to an ontology" in {
       MemGraphDefault.ns.getOntology(testOntology.iri).isDefined shouldBe true
-      val ontology = jsonParser.resource(ontologyJson)
+      val ontology = jsonld.resource(ontologyJson)
       ontology shouldBe Success(ontologyNode)
     }
 
@@ -116,7 +116,7 @@ class JsonLDSpec extends WordSpec with Matchers {
       node.addOut(typedName, "Alice")
       node.addOut(typedSurname, "A")
       node.addOut(typedSurname, "B")
-      val json = jsonParser.nodeToJson(node)._1
+      val json = jsonld.nodeToJson(node)._1
       //      println(json.toString())
       json ?? types.`@id` shouldBe true
       json(types.`@id`).get.string.contains("abc") shouldBe true
@@ -150,9 +150,9 @@ class JsonLDSpec extends WordSpec with Matchers {
       node.addOut(typedName, "Alice")
       node --- surname --> "A"
       node --- surname --> "B"
-      val json = jsonParser.nodeToJson(node)._1
+      val json = jsonld.nodeToJson(node)._1
       //      println(Json.jObject(json).toString)
-      val parsedResource = jsonParser.resource(json)
+      val parsedResource = jsonld.resource(json)
       parsedResource.map(_.iri) shouldBe Success(node.iri)
 
       val parsedNode = parsedResource.filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
@@ -167,7 +167,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     "parse a list of nodes" in {
       val result = MemGraphDefault.g.N().range(80, 82).toList
       //      println(result.map(_.asInstanceOf[MemResource[_]].id))
-      val json = jsonParser.anyToJson(result)._1
+      val json = jsonld.anyToJson(result)._1
       //      println(Json.prettyPrint(json))
       //      val parsedResult = jsonParser.list(json)
       //      parsedResult.isSuccess shouldBe true
@@ -182,17 +182,19 @@ class JsonLDSpec extends WordSpec with Matchers {
     "parse a property from schema.org" in {
       val result = httpClient
         .getResource("https://schema.org/propertyID") { json =>
-          jsonParser.jsonToProperty(Parse.parseOption(json).get.obj.get)
+          jsonld.jsonToProperty(Parse.parseOption(json).get.obj.get)
         }
         .flatten
       result match {
         case Success(s) =>
-        case Failure(e) => println(e.getMessage())
+        case Failure(e) =>
+          e.printStackTrace()
+          println(e.getMessage())
       }
       result.isSuccess shouldBe true
       val resultname = httpClient
         .getResource("https://schema.org/name") { json =>
-          jsonParser.jsonToProperty(Parse.parseOption(json).get.obj.get)
+          jsonld.jsonToProperty(Parse.parseOption(json).get.obj.get)
         }
         .flatten
       resultname match {
@@ -208,10 +210,10 @@ class JsonLDSpec extends WordSpec with Matchers {
       val traversal       = graph.g.N().has(SampleGraph.properties.balance, P.gt(5.0)).outMap()
       val dt              = traversal.ct //(new DataType[Any] { val iri = "" })
       val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(dt)
-      val (json, context) = JsonLD.nodeToJsonWithContext(collection)
+      val (json, context) = jsonld.nodeToJsonWithContext(collection)
       //      println(json)
 
-      val collectionNode = JsonLD.resource(json.obj.get) match {
+      val collectionNode = jsonld.resource(json.obj.get) match {
         case Success(r) => r.asInstanceOf[Node]
         case Failure(e) =>
           println(e.getMessage)
@@ -224,10 +226,10 @@ class JsonLDSpec extends WordSpec with Matchers {
       val traversal       = graph.g.N().has(SampleGraph.properties.balance, P.gt(5.0)).outEMap()
       val dt              = traversal.ct //(new IriType[Edge[Node, Any]] { val iri = "" })
       val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(dt)
-      val (json, context) = JsonLD.nodeToJsonWithContext(collection)
+      val (json, context) = jsonld.nodeToJsonWithContext(collection)
       //      println(json)
 
-      val collectionNode = JsonLD.resource(json.obj.get) match {
+      val collectionNode = jsonld.resource(json.obj.get) match {
         case Success(r) => r.asInstanceOf[Node]
         case Failure(e) =>
           println(e.getMessage)
@@ -242,10 +244,10 @@ class JsonLDSpec extends WordSpec with Matchers {
         graph.g.N().has(SampleGraph.properties.balance, P.gt(5.0)).group(_.out(SampleGraph.properties.balance))
       val dt              = traversal.ct
       val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(dt)
-      val (json, context) = JsonLD.nodeToJsonWithContext(collection)
+      val (json, context) = jsonld.nodeToJsonWithContext(collection)
       //      println(json)
 
-      val collectionNode = JsonLD.resource(json.obj.get) match {
+      val collectionNode = jsonld.resource(json.obj.get) match {
         case Success(r) => r.asInstanceOf[Node]
         case Failure(e) =>
           println(e.getMessage)
@@ -259,10 +261,10 @@ class JsonLDSpec extends WordSpec with Matchers {
       val traversal = graph.g.N().has(SampleGraph.properties.balance, P.gt(5.0)).out(SampleGraph.properties.balance)
       //      val dt: ClassType[Any] = traversal.ct //FIX: no type-resolve for dt: 'Cannot be cast to scala.runtime.Nothing'
       val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(traversal.ct)
-      val (json, context) = JsonLD.nodeToJsonWithContext(collection)
+      val (json, context) = jsonld.nodeToJsonWithContext(collection)
       //      println(json)
 
-      val collectionNode = JsonLD.resource(json.obj.get) match {
+      val collectionNode = jsonld.resource(json.obj.get) match {
         case Success(r) => r.asInstanceOf[Node]
         case Failure(e) =>
           println(e.getMessage)

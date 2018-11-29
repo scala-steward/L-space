@@ -2,12 +2,12 @@ import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
-  val scala     = "2.12.6"
+  val scala     = "2.12.7"
   val uTest     = "0.4.7"
-  val finch     = "0.25.0"
+  val finch     = "0.26.0"
   val circe     = "0.9.3"
   val argonaut  = "6.2.2"
-  val monix     = "3.0.0-RC1"
+  val monix     = "3.0.0-RC2"
   val sttp      = "1.3.5"
   val elastic4s = "6.4.0"
   val phantom   = "2.29.0"

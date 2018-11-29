@@ -143,11 +143,10 @@ trait NameSpaceGraph extends DataGraph {
       .orElse(ns.properties.byId.get(id))
 
   protected def propertyFromCache(iri: String): Option[Property] =
-    Property.allProperties.byIri
-      .get(iri)
+    MemGraphDefault.ns
+      .getProperty(iri)
       .orElse(ns.properties.byIri
         .get(iri))
-      .orElse(MemGraphDefault.ns.properties.byIri.get(iri))
 
   def getProperty(iri: String): Option[Property] = {
     propertyFromCache(iri)
@@ -156,7 +155,7 @@ trait NameSpaceGraph extends DataGraph {
       }
   }
 
-  private def propertyFromNode(node: _Node): Property = {
+  protected[librarian] def propertyFromNode(node: _Node): Property = {
     val range = () =>
       node.out(Property.default.`@range`).collect {
         case node: _Node =>
