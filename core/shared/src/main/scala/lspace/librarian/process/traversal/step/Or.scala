@@ -26,26 +26,26 @@ object Or extends StepDef("Or") with StepWrapper[Or] {
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Or/traversal")
+    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Or/traversal")
     traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.label --> "traversal" --- Property.default.language --> "en"
-    traversalNode --- Property.default.comment --> "A traversal .." --- Property.default.language --> "en"
-    traversalNode --- Property.default.container --> types.list
-    traversalNode --- Property.default.range --> Traversal.ontology
+    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
+    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
+    traversalNode --- Property.default.`@container` --> types.`@list`
+    traversalNode --- Property.default.`@range` --> Traversal.ontology
 
     lazy val traversal: Property                = Property(traversalNode)
     val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
   }
 
   def apply(traversals: List[Traversal[_, _, _ <: HList]]): Or = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
 
     Or(traversals, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.traversal
+  ontologyNode --- Property.default.`@properties` --> keys.traversal
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

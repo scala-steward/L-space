@@ -8,7 +8,7 @@ object DurationType extends DurationType {
   def default = DurationType
 }
 trait DurationType extends QuantityType[Time] {
-  val iri: String = NS.types.duration
+  val iri: String = NS.types.`@duration`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(QuantityType)
 }

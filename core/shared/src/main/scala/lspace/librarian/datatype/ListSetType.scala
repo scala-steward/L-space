@@ -41,7 +41,7 @@ object ListSetType {
 
 class ListSetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
 
-  val iri: String = s"${NS.types.listset}/${valueRange.map(_.iri).sorted.mkString("+")}"
+  val iri: String = s"${NS.types.`@listset`}/${valueRange.map(_.iri).sorted.mkString("+")}"
   //  override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(CollectionType[V](valueRange))
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.default[V])

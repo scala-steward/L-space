@@ -15,7 +15,7 @@ object Count extends StepDef("Count") with StepWrapper[Count] {
   }
 
   def apply(): Count = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Count(node)
   }

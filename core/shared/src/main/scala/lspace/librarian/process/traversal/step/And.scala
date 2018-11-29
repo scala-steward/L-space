@@ -26,12 +26,12 @@ object And extends StepDef("And") with StepWrapper[And] {
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/And/traversal")
+    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/And/traversal")
     traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.label --> "traversal" --- Property.default.language --> "en"
-    traversalNode --- Property.default.comment --> "A traversal which must have a non-empty result" --- Property.default.language --> "en"
-    traversalNode --- Property.default.container --> types.list
-    traversalNode --- Property.default.range --> Traversal.ontology
+    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
+    traversalNode --- Property.default.`@comment` --> "A traversal which must have a non-empty result" --- Property.default.`@language` --> "en"
+    traversalNode --- Property.default.`@container` --> types.`@list`
+    traversalNode --- Property.default.`@range` --> Traversal.ontology
 
     lazy val traversal: Property                = Property(traversalNode)
     val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
@@ -43,13 +43,13 @@ object And extends StepDef("And") with StepWrapper[And] {
   }
 
   def apply(traversals: List[Traversal[_, _, _ <: HList]]): And = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
     And(traversals, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.traversal
+  ontologyNode --- Property.default.`@properties` --> keys.traversal
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

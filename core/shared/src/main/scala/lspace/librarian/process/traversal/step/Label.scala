@@ -21,7 +21,7 @@ object Label extends StepDef("Label") with StepWrapper[Label] {
   object keys extends MoveStep.Properties
 
   def apply[CT <: ClassType[_]](labels: Set[CT] = Set()): Label = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     labels.foreach {
       case ontology: Ontology =>
@@ -34,7 +34,7 @@ object Label extends StepDef("Label") with StepWrapper[Label] {
     new Label(labels.asInstanceOf[Set[ClassType[_]]], node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.`ns.l-space.eu/librarian/MoveStep/label`
+  ontologyNode --- Property.default.`@properties` --> keys.`ns.l-space.eu/librarian/MoveStep/label`
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

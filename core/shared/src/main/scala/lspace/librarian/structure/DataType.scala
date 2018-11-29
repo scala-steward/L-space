@@ -14,33 +14,34 @@ import scala.collection.immutable.ListSet
 
 object DataType {
   lazy val ontology =
-    Ontology(NS.types.DATATYPE)(iris = Set(NS.types.schemaDataType), _extendedClasses = () => List(Ontology.ontology))
+    Ontology(NS.types.`@datatype`)(iris = Set(NS.types.schemaDataType),
+                                   _extendedClasses = () => List(Ontology.ontology))
 
   def urlType[T]: IriType[T] = new IriType[T] {
     type Out = T
-    val iri: String = NS.types.DATATYPE
+    val iri: String = NS.types.`@datatype`
   }
 
   def apply(node: Node): DataType[_] = node match {
     case literalType: LiteralType[_] => literalType
     case node =>
       node.iri match {
-        case types.id | types.schemaURL            => IriType
-        case types.nodeURL                         => NodeURLType.default
-        case types.edgeURL                         => EdgeURLType.default
-        case types.valueURL                        => ValueURLType.default
-        case types.string | types.schemaText       => TextType.textType
-        case types.int | types.schemaInteger       => IntType.intType
-        case types.double | types.schemaFloat      => DoubleType.doubleType
-        case types.long                            => LongType.longType
-        case types.date | types.schemaDate         => LocalDateType.default
-        case types.datetime | types.schemaDateTime => DateTimeType.datetimeType
-        case types.time | types.schemaTime         => LocalTimeType.default
-        case types.duration                        => DurationType
-        case types.epochtime                       => EpochType
-        case types.boolean | types.schemaBoolean   => BoolType.boolType
-        case types.geojson                         => GeometricType
-        case types.color                           => TextType.textType
+        case types.`@id` | types.schemaURL            => IriType
+        case types.`@nodeURL`                         => NodeURLType.default
+        case types.`@edgeURL`                         => EdgeURLType.default
+        case types.`@valueURL`                        => ValueURLType.default
+        case types.`@string` | types.schemaText       => TextType.textType
+        case types.`@int` | types.schemaInteger       => IntType.intType
+        case types.`@double` | types.schemaFloat      => DoubleType.doubleType
+        case types.`@long`                            => LongType.longType
+        case types.`@date` | types.schemaDate         => LocalDateType.default
+        case types.`@datetime` | types.schemaDateTime => DateTimeType.datetimeType
+        case types.`@time` | types.schemaTime         => LocalTimeType.default
+        case types.`@duration`                        => DurationType
+        case types.`@epoch`                           => EpochType
+        case types.`@boolean` | types.schemaBoolean   => BoolType.boolType
+        case types.`@geojson`                         => GeometricType
+        case types.`@color`                           => TextType.textType
         case _ =>
           throw new Exception(s"ontology/property ${node.iri} not known in graph ${node.graph.iri}")
       }
@@ -62,24 +63,24 @@ object DataType {
     val propertyURLType = Property.urlType
     val dataTypeURLType = DataType.urlType[DataType[_]]
 
-    val textType     = TextType.textType
-    val numericType  = NumericType.numType[AnyVal]
-    val intType      = IntType.intType
-    val doubleType   = DoubleType.doubleType
-    val longType     = LongType.longType
-    val dateType     = LocalDateType.default
-    val dateTimeType = DateTimeType.datetimeType
-    val timeType     = LocalTimeType.default
-    val temporal     = CalendarType
-    val duration     = DurationType
-    val quantity     = QuantityType
-    val durationType = DurationType
+    val `@string`        = TextType.textType
+    val `@number`        = NumericType.numType[AnyVal]
+    val `@int`           = IntType.intType
+    val `@double`        = DoubleType.doubleType
+    val `@long`          = LongType.longType
+    val `@date`          = LocalDateType.default
+    val `@datetime`      = DateTimeType.datetimeType
+    val `@localdatetime` = LocalDateTimeType.localdatetimeType
+    val `@time`          = LocalTimeType.default
+    val `@temporal`      = CalendarType
+    val `@duration`      = DurationType
+    val `@quantity`      = QuantityType
     //  val epochType: EpochType = EpochType
-    val boolType     = BoolType.boolType
-    val geoType      = GeometricType
-    val geopointType = GeopointType.default
-    val colorType    = ColorType
-    val graphType    = GraphType.default
+    val `@boolean`  = BoolType.boolType
+    val `@geo`      = GeometricType
+    val `@geopoint` = GeopointType.default
+    val `@color`    = ColorType
+    val `@graph`    = GraphType.default
 
     def vectorType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) = VectorType(List(ct))
     def vectorType[T](implicit tpe: ClassTypeable[T])                           = VectorType(List(tpe.ct)).asInstanceOf[VectorType[T]]
@@ -151,9 +152,12 @@ object DataType {
     }
   }
 
-  lazy val allDataTypes: List[DataType[_]] = {
+  /**
+    * imcomplete...
+    */
+  lazy val allDataTypes = new {
     import default._
-    List(
+    val datatypes = List(
       uRLType,
       nodeURLType,
       edgeURLType,
@@ -161,19 +165,23 @@ object DataType {
       ontologyURLType,
       propertyURLType,
       dataTypeURLType,
-      textType,
-      intType,
-      doubleType,
-      longType,
-      dateType,
-      dateTimeType,
-      timeType,
-      durationType,
-      boolType,
-      geoType,
-      geopointType,
-      graphType
+      `@string`,
+      `@int`,
+      `@double`,
+      `@long`,
+      `@date`,
+      `@datetime`,
+      `@localdatetime`,
+      `@time`,
+      `@duration`,
+      `@boolean`,
+      `@geo`,
+      `@geopoint`,
+      `@graph`
     )
+    val byId    = (0l to datatypes.size - 1 toList).zip(datatypes).toMap
+    val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
+    val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
   }
 }
 
@@ -192,7 +200,7 @@ trait DataType[+T] extends ClassType[T] {
   override def toString: String = s"datatype:$iri"
 }
 object LiteralType extends LiteralType[Any] {
-  val iri: String = NS.types.literal
+  val iri: String = NS.types.`@literal`
   type Out = Any
 
 //  implicit val classTypeable: ClassTypeable.Aux[LiteralType[Any], LiteralType[Any]] =
@@ -203,7 +211,7 @@ object LiteralType extends LiteralType[Any] {
   implicit def clsLiteral[T]: ClassTypeable.Aux[LiteralType[T], T, LiteralType[T]] = new ClassTypeable[LiteralType[T]] {
     type C  = T
     type CT = LiteralType[T]
-    def ct: CT = new LiteralType[T] { val iri: String = NS.types.literal }
+    def ct: CT = new LiteralType[T] { val iri: String = NS.types.`@literal` }
   }
 //  implicit def default[T, CT[+Z] <: LiteralType[Z]](implicit ev: CT[T] =:= LiteralType[Any]): LiteralType[T] =
 //    LiteralType.asInstanceOf[LiteralType[T]]
@@ -214,12 +222,12 @@ trait LiteralType[+T] extends DataType[T]
 
 object StructuredValue {
   lazy val ontology =
-    Ontology(NS.types.structured)(_extendedClasses = () => List(DataType.ontology))
+    Ontology(NS.types.`@structured`)(_extendedClasses = () => List(DataType.ontology))
 
   def structuredType[T]: StructuredValue[T] = new StructuredValue[T] {
     type Out = T
     type CT  = StructuredValue[T]
-    val iri: String                                             = NS.types.structured
+    val iri: String                                             = NS.types.`@structured`
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.default.default)
   }
 
@@ -239,23 +247,23 @@ object CollectionType {
 
   def default[T] = new CollectionType[Iterable[T]] {
     type Out = Iterable[T]
-    val iri: String = NS.types.collection
+    val iri: String = NS.types.`@collection`
   }
 
   lazy val ontology =
-    Ontology(NS.types.collection)(_extendedClasses = () => List(StructuredValue.ontology))
+    Ontology(NS.types.`@collection`)(_extendedClasses = () => List(StructuredValue.ontology))
 
   object keys {
-    private val valueRangeNode = MemGraphDefault.ns.upsertNode("@valueRange")
+    private val valueRangeNode = MemGraphDefault.ns.nodes.upsert("@valueRange")
     valueRangeNode.addLabel(Property.ontology)
-    valueRangeNode --- Property.default.label --> "@valueRange" --- Property.default.language --> "en"
-    valueRangeNode --- Property.default.container --> types.list
-    valueRangeNode --- Property.default.range --> types.CLASS
+    valueRangeNode --- Property.default.`@label` --> "@valueRange" --- Property.default.`@language` --> "en"
+    valueRangeNode --- Property.default.`@container` --> types.`@list`
+    valueRangeNode --- Property.default.`@range` --> types.`@class`
     val valueRange = Property(valueRangeNode)
   }
 
   def apply[V](valueRange: List[ClassType[V]]) = new CollectionType[Iterable[V]] {
-    val iri: String = s"${NS.types.collection}/${valueRange.map(_.iri).sorted.mkString("+")}"
+    val iri: String = s"${NS.types.`@collection`}/${valueRange.map(_.iri).sorted.mkString("+")}"
     //    override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(StructuredValue[V]())
   }
 
@@ -273,7 +281,7 @@ trait CollectionType[+T /*<: Iterable[_]*/ ] extends StructuredValue[T] {
 object NumericType {
   def numType[T]: NumericType[T] = new NumericType[T] {
     type Out = T
-    val iri: String                = NS.types.number
+    val iri: String                = NS.types.`@number`
     override val iris: Set[String] = Set(NS.types.schemaNumber)
   }
 
@@ -288,7 +296,7 @@ object NumericType {
 }
 trait NumericType[+T] extends LiteralType[T]
 object CalendarType extends CalendarType[Any] {
-  val iri: String = NS.types.temporal
+  val iri: String = NS.types.`@temporal`
   type Out = Any
 
   implicit val clsCalendar: ClassTypeable.Aux[CalendarType[Any], Any, CalendarType[Any]] =
@@ -305,7 +313,7 @@ object CalendarType extends CalendarType[Any] {
 trait CalendarType[+T] extends LiteralType[T]
 
 object QuantityType extends QuantityType[Any] {
-  val iri: String = NS.types.quantity
+  val iri: String = NS.types.`@quantity`
   type Out = Any
 
   implicit val clsQuantity: ClassTypeable.Aux[QuantityType[Any], Any, QuantityType[Any]] =
@@ -321,7 +329,7 @@ object QuantityType extends QuantityType[Any] {
 trait QuantityType[+T] extends StructuredValue[T]
 
 object GeometricType extends GeometricType[Geometry] {
-  val iri: String = NS.types.geo
+  val iri: String = NS.types.`@geo`
   type Out = Geometry
 
   implicit val clsGeometric: ClassTypeable.Aux[GeometricType[Geometry], Geometry, GeometricType[Geometry]] =
@@ -336,7 +344,7 @@ object GeometricType extends GeometricType[Geometry] {
 }
 trait GeometricType[+T] extends StructuredValue[T]
 object ColorType extends ColorType[Any] { //TODO RgbType, CMYK, PMS, NamedColor
-  val iri: String = NS.types.color
+  val iri: String = NS.types.`@color`
   type Out = Any
 
   implicit val clsColor: ClassTypeable.Aux[ColorType[Any], Any, ColorType[Any]] = new ClassTypeable[ColorType[Any]] {

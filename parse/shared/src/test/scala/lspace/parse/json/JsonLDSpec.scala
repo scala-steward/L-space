@@ -25,9 +25,9 @@ class JsonLDSpec extends WordSpec with Matchers {
 
   "A JsonLDParser" should {
     "parse and encode literals" in {
-      val json5 = jsonParser.anyToJson(5L, List(DataType.default.longType))._1
+      val json5 = jsonParser.anyToJson(5L, List(DataType.default.`@long`))._1
       json5.toString() shouldBe """"5""""
-      jsonParser.jsonToValue(DataType.default.longType, json5).map(_._2) shouldBe Success(5L)
+      jsonParser.jsonToValue(DataType.default.`@long`, json5).map(_._2) shouldBe Success(5L)
       val json5object = jsonParser.anyToJson(5L)._1
       json5object.toString() shouldBe """{"@value":"5","@type":"@long"}"""
       Parse.parse(""""5"""").right.get.string.isDefined shouldBe true
@@ -37,7 +37,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     "parse a traversal to json" in {
       val traversal       = MemGraphDefault.g.N.has(SampleGraph.properties.name) //, Some(Traversal.ontology))
       val (json, builder) = jsonParser.nodeToJsonWithContext(traversal.self)
-      json.obj.get ?? types.context shouldBe true
+      json.obj.get ?? types.`@context` shouldBe true
       val nodeTry = jsonParser.resource(json.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
       nodeTry match {
         case Success(r) =>
@@ -62,34 +62,34 @@ class JsonLDSpec extends WordSpec with Matchers {
     }
 
     "parse an ontology to json" in {
-      val name      = Property("thing/name")(_range = () => DataType.default.textType :: Nil)
-      val typedName = name + DataType.default.textType
+      val name      = Property("thing/name")(_range = () => DataType.default.`@string` :: Nil)
+      val typedName = name + DataType.default.`@string`
       val surname =
-        Property("thing/surname")(_range = () => DataType.default.textType :: Nil, containers = List(types.set))
-      val typedSurname = surname + DataType.default.textType
+        Property("thing/surname")(_range = () => DataType.default.`@string` :: Nil, containers = List(types.`@set`))
+      val typedSurname = surname + DataType.default.`@string`
       val testOntology: Ontology =
         Ontology("thing")(_properties = () => name :: surname :: Nil,
                           _extendedClasses = () => new Ontology("basething") {} :: Nil)
 
       val json = jsonParser.ontologyToJson(testOntology)._1
-      json ?? types.id shouldBe true
-      json(types.id).exists(_.string.contains("thing")) shouldBe true
+      json ?? types.`@id` shouldBe true
+      json(types.`@id`).exists(_.string.contains("thing")) shouldBe true
 
-      json ?? types.properties shouldBe true
-      json(types.properties).map(_.isArray).value shouldBe true
-      json(types.properties).get.array.get.exists(_.string.contains("thing/name")) shouldBe true
-      json(types.properties).get.array.get.exists(_.string.contains("thing/surname")) shouldBe true
+      json ?? types.`@properties` shouldBe true
+      json(types.`@properties`).map(_.isArray).value shouldBe true
+      json(types.`@properties`).get.array.get.exists(_.string.contains("thing/name")) shouldBe true
+      json(types.`@properties`).get.array.get.exists(_.string.contains("thing/surname")) shouldBe true
     }
 
     val baseOntology: Ontology = Ontology("basething")
 
     MemGraphDefault.ns.storeOntology(baseOntology)
     //    baseOntology.status := CacheStatus.CACHED
-    val name      = Property("thing/name")(_range = () => DataType.default.textType :: Nil)
-    val typedName = name + DataType.default.textType
+    val name      = Property("thing/name")(_range = () => DataType.default.`@string` :: Nil)
+    val typedName = name + DataType.default.`@string`
     val surname =
-      Property("thing/surname")(_range = () => DataType.default.textType :: Nil, containers = List(types.set))
-    val typedSurname = surname + DataType.default.textType
+      Property("thing/surname")(_range = () => DataType.default.`@string` :: Nil, containers = List(types.`@set`))
+    val typedSurname = surname + DataType.default.`@string`
     val testOntology: Ontology =
       Ontology("thing")(_properties = () => name :: surname :: Nil, _extendedClasses = () => baseOntology :: Nil)
 
@@ -109,7 +109,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     }
 
     "parse a node to json" in {
-      val node = DetachedGraph.createNode()
+      val node = DetachedGraph.nodes.create()
       node.addOut(Property.default.typed.iriUrlString, "abc")
       node.addLabel(testOntology)
       node.addOut(Property.default.typed.irisUrlString, "def")
@@ -118,11 +118,11 @@ class JsonLDSpec extends WordSpec with Matchers {
       node.addOut(typedSurname, "B")
       val json = jsonParser.nodeToJson(node)._1
       //      println(json.toString())
-      json ?? types.id shouldBe true
-      json(types.id).get.string.contains("abc") shouldBe true
+      json ?? types.`@id` shouldBe true
+      json(types.`@id`).get.string.contains("abc") shouldBe true
 
-      json ?? types.TYPE shouldBe true
-      json(types.TYPE).get.string.contains("thing") shouldBe true
+      json ?? types.`@type` shouldBe true
+      json(types.`@type`).get.string.contains("thing") shouldBe true
 
       json ?? "thing/name" shouldBe true
       json("thing/name").get.string should contain("Alice")
@@ -143,7 +143,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     }
 
     "parse json to a node" in {
-      val node = DetachedGraph.createNode()
+      val node = DetachedGraph.nodes.create()
       node.addOut(Property.default.typed.iriUrlString, "abc")
       node.addLabel(testOntology)
       node.addOut(Property.default.typed.irisUrlString, "def")

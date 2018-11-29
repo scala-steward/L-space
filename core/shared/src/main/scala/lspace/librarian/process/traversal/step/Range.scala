@@ -18,34 +18,34 @@ object Range extends StepDef("Range") with StepWrapper[Range] {
 
   object keys {
     private val lowNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Range/low")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Range/low")
     lowNode.addLabel(Property.ontology)
-    lowNode --- Property.default.label --> "low" --- Property.default.language --> "en"
-    lowNode --- Property.default.comment --> "The lower result-index to start from" --- Property.default.language --> "en"
-    lowNode --- Property.default.range --> DataType.default.intType
+    lowNode --- Property.default.`@label` --> "low" --- Property.default.`@language` --> "en"
+    lowNode --- Property.default.`@comment` --> "The lower result-index to start from" --- Property.default.`@language` --> "en"
+    lowNode --- Property.default.`@range` --> DataType.default.`@int`
     lazy val low: Property         = Property(lowNode)
-    val lowInt: TypedProperty[Int] = low + DataType.default.intType
+    val lowInt: TypedProperty[Int] = low + DataType.default.`@int`
 
     private val highNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Range/high")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Range/high")
     highNode.addLabel(Property.ontology)
-    highNode --- Property.default.label --> "high" --- Property.default.language --> "en"
-    highNode --- Property.default.comment --> "The higher result-index to start from" --- Property.default.language --> "en"
-    highNode --- Property.default.range --> DataType.default.intType
+    highNode --- Property.default.`@label` --> "high" --- Property.default.`@language` --> "en"
+    highNode --- Property.default.`@comment` --> "The higher result-index to start from" --- Property.default.`@language` --> "en"
+    highNode --- Property.default.`@range` --> DataType.default.`@int`
     lazy val high: Property         = Property(highNode)
-    val highInt: TypedProperty[Int] = high + DataType.default.intType
+    val highInt: TypedProperty[Int] = high + DataType.default.`@int`
   }
 
   def apply(low: Int, high: Int): Range = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.lowInt, low)
     node.addOut(keys.highInt, high)
     Range(low, high, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.low
-  ontologyNode --- Property.default.properties --> keys.high
+  ontologyNode --- Property.default.`@properties` --> keys.low
+  ontologyNode --- Property.default.`@properties` --> keys.high
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

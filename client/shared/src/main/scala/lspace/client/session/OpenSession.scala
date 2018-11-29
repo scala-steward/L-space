@@ -10,14 +10,14 @@ import lspace.types._
 
 object OpenSession {
   protected val ontologyNode =
-    MemGraphDefault.ns.upsertNode(s"https://data.l-space.eu/schema/OpenSession")
+    MemGraphDefault.ns.nodes.upsert(s"https://data.l-space.eu/schema/OpenSession")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.label --> "OpenSession" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.comment --> "An open session is to secure a series of requests during a limited period of time." --- Property.default.language --> "en"
+  ontologyNode --- Property.default.`@label` --> "OpenSession" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> "An open session is to secure a series of requests during a limited period of time." --- Property.default.`@language` --> "en"
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   def apply(iri: String, expiration: Instant, startTime: Instant): OpenSession = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
     node.addOut(Property.default.typed.iriUrlString, iri)
     node.addOut(keys.expirationDate, expiration)
     node.addOut(keys.startTimeDate, startTime)
@@ -30,37 +30,37 @@ object OpenSession {
   }
 
   object keys {
-    private val expirationNode = MemGraphDefault.ns.upsertNode(s"${ontology.iri}/Expiration")
+    private val expirationNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/Expiration")
     expirationNode.addLabel(Property.ontology)
-    expirationNode --- Property.default.label --> "Expiration" --- Property.default.language --> "en"
-    expirationNode --- Property.default.comment --> "Date and time at which the session expires." --- Property.default.language --> "en"
-    expirationNode --- Property.default.range --> DataType.default.dateTimeType
+    expirationNode --- Property.default.`@label` --> "Expiration" --- Property.default.`@language` --> "en"
+    expirationNode --- Property.default.`@comment` --> "Date and time at which the session expires." --- Property.default.`@language` --> "en"
+    expirationNode --- Property.default.`@range` --> DataType.default.`@datetime`
 
     lazy val expiration: Property              = Property(expirationNode)
-    val expirationDate: TypedProperty[Instant] = expiration + DataType.default.dateTimeType
+    val expirationDate: TypedProperty[Instant] = expiration + DataType.default.`@datetime`
 
-    private val startTimeNode = MemGraphDefault.ns.upsertNode(s"${ontology.iri}/StartTime")
+    private val startTimeNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/StartTime")
     startTimeNode.addLabel(Property.ontology)
-    startTimeNode --- Property.default.label --> "StartTime" --- Property.default.language --> "en"
-    startTimeNode --- Property.default.comment --> "Date and time at which the session has started." --- Property.default.language --> "en"
-    startTimeNode --- Property.default.range --> DataType.default.dateTimeType
+    startTimeNode --- Property.default.`@label` --> "StartTime" --- Property.default.`@language` --> "en"
+    startTimeNode --- Property.default.`@comment` --> "Date and time at which the session has started." --- Property.default.`@language` --> "en"
+    startTimeNode --- Property.default.`@range` --> DataType.default.`@datetime`
 
     lazy val startTime: Property              = Property(startTimeNode)
-    val startTimeDate: TypedProperty[Instant] = startTime + DataType.default.dateTimeType
+    val startTimeDate: TypedProperty[Instant] = startTime + DataType.default.`@datetime`
 
-    private val endTimeNode = MemGraphDefault.ns.upsertNode(s"${ontology.iri}/EndTime")
+    private val endTimeNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/EndTime")
     endTimeNode.addLabel(Property.ontology)
-    endTimeNode --- Property.default.label --> "EndTime" --- Property.default.language --> "en"
-    endTimeNode --- Property.default.comment --> "Date and time at which the session has ended." --- Property.default.language --> "en"
-    endTimeNode --- Property.default.range --> DataType.default.dateTimeType
+    endTimeNode --- Property.default.`@label` --> "EndTime" --- Property.default.`@language` --> "en"
+    endTimeNode --- Property.default.`@comment` --> "Date and time at which the session has ended." --- Property.default.`@language` --> "en"
+    endTimeNode --- Property.default.`@range` --> DataType.default.`@datetime`
 
     lazy val endTime: Property              = Property(endTimeNode)
-    val endTimeDate: TypedProperty[Instant] = endTime + DataType.default.dateTimeType
+    val endTimeDate: TypedProperty[Instant] = endTime + DataType.default.`@datetime`
   }
 
-  ontologyNode --- Property.default.properties --> keys.expiration
-  ontologyNode --- Property.default.properties --> keys.startTime
-  ontologyNode --- Property.default.properties --> keys.endTime
+  ontologyNode --- Property.default.`@properties` --> keys.expiration
+  ontologyNode --- Property.default.`@properties` --> keys.startTime
+  ontologyNode --- Property.default.`@properties` --> keys.endTime
 }
 
 trait Session extends IriResource

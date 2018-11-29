@@ -4,7 +4,7 @@ import lspace.librarian.datatype.ValueURLType
 import lspace.librarian.process.traversal.helper.ClassTypeable
 
 object Value {
-  val reservedKeys: Set[String] = Set(Property.default.TYPE.iri)
+  val reservedKeys: Set[String] = Set(Property.default.`@type`.iri)
 
   implicit def default[T <: Value[_]]: ClassTypeable.Aux[T, T, ValueURLType[T]] = new ClassTypeable[T] {
     type C  = T
@@ -25,14 +25,14 @@ trait Value[T] extends Resource[T] {
   def labels: List[DataType[_]] = List(label)
   //    out(graph.TYPE).collect { case node: Node => node }.map(DataType.wrap)
 
-  override def equals(o: scala.Any): Boolean = o match {
-    case resource: Value[_] => value == resource.value
-    case _                  => value == o
-  }
+//  override def equals(o: scala.Any): Boolean = o match {
+//    case resource: Value[_] => value == resource.value
+//    case _                  => value == o
+//  }
 
   //  override def start() = Traversal[T, T, step.V, HNil, HNil](step.V(List(this)))(graph, Structure(HNil), LabelsHList(HNil))
 
   override def hashCode(): Int = value.hashCode()
 
-  def remove(): Unit = graph.deleteValue(this)
+  def remove(): Unit = graph.values.delete(this)
 }

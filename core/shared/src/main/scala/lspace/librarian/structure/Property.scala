@@ -11,10 +11,10 @@ import scala.collection.immutable.ListSet
 
 object Property {
   lazy val ontology: Ontology =
-    Ontology(NS.types.PROPERTY)(iris = Set(NS.types.rdfProperty))
+    Ontology(NS.types.`@property`)(iris = Set(NS.types.rdfProperty))
 
   implicit lazy val urlType: IriType[Property] = new IriType[Property] {
-    val iri: String = NS.types.PROPERTY
+    val iri: String = NS.types.`@property`
   }
 
   implicit val defaultString: ClassTypeable.Aux[Property, Edge[Any, Any], EdgeURLType[Edge[Any, Any]]] =
@@ -28,7 +28,7 @@ object Property {
     if (node.hasLabel(urlType).nonEmpty) {
       Property(node.iri)(
         iris = node.iris,
-        _range = () => node.out(default.range).collect { case node: Node => node.graph.ns.getClassType(node) },
+        _range = () => node.out(default.`@range`).collect { case node: Node => node.graph.ns.getClassType(node) },
         containers = node.out(default.typed.containerString),
         label = node
           .outE(default.typed.labelString)
@@ -43,126 +43,134 @@ object Property {
           }
           .toMap,
         _extendedClasses = () =>
-          node.out(default.EXTENDS).collect {
+          node.out(default.`@extends`).collect {
             case node: Node => MemGraphDefault.ns.getProperty(node.iri).getOrElse(Property(node))
         },
         _properties = () => node.out(default.typed.propertyProperty).map(Property.apply)
       )
     } else {
-      throw new Exception(s"${node.iri} is not an ontology")
+      throw new Exception(s"${node.iri} is not a property")
     }
   }
 
   object default {
     import DataType.default._
 
-    val iri: Property = Property(NS.types.id)(_range = () => textType :: Nil)
-    val iris: Property =
-      Property(NS.types.ids)(_range = () => textType :: Nil, containers = NS.types.set :: Nil)
-    val container: Property =
-      Property(NS.types.container)(_range = () => textType :: Nil, containers = NS.types.list :: Nil)
-    val range: Property = Property(NS.types.range)(
+    val `@id`: Property = Property(NS.types.`@id`)(_range = () => `@string` :: Nil)
+    val `@ids`: Property =
+      Property(NS.types.`@ids`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+    val `@container`: Property =
+      Property(NS.types.`@container`)(_range = () => `@string` :: Nil, containers = NS.types.`@list` :: Nil)
+    val `@range`: Property = Property(NS.types.`@range`)(
       iris = Set(NS.types.schemaRange),
       _range = () =>
         DataType.default.ontologyURLType :: DataType.default.propertyURLType :: DataType.default.dataTypeURLType :: Nil,
-      containers = NS.types.listset :: Nil
+      containers = NS.types.`@listset` :: Nil
     )
-    val TYPE: Property = Property(NS.types.TYPE)(
+    val `@type`: Property = Property(NS.types.`@type`)(
       _range = () =>
         DataType.default.ontologyURLType :: DataType.default.propertyURLType :: DataType.default.dataTypeURLType :: Nil,
-      containers = NS.types.listset :: Nil
+      containers = NS.types.`@listset` :: Nil
     )
-    val EXTENDS: Property = Property(NS.types.EXTENDS)(
+    val `@extends`: Property = Property(NS.types.`@extends`)(
       iris = Set(NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf),
       _range = () =>
         DataType.default.ontologyURLType :: DataType.default.propertyURLType :: DataType.default.dataTypeURLType :: Nil,
-      containers = NS.types.listset :: Nil
+      containers = NS.types.`@listset` :: Nil
     )
-    val properties: Property = Property(NS.types.properties)(_range = () => DataType.default.propertyURLType :: Nil,
-                                                             containers = NS.types.set :: Nil)
-    val language: Property =
-      Property(NS.types.language)(_range = () => textType :: Nil, containers = NS.types.set :: Nil)
-    val index: Property =
-      Property(NS.types.index)(_range = () => textType :: Nil, containers = NS.types.set :: Nil)
-    val label: Property =
-      Property(NS.types.label)(iris = Set(NS.types.rdfsLabel),
-                               _range = () => textType :: Nil,
-                               containers = NS.types.language :: Nil)
-    val comment: Property =
-      Property(NS.types.comment)(iris = Set(NS.types.rdfsComment),
-                                 _range = () => textType :: Nil,
-                                 containers = NS.types.language :: Nil)
-    val base: Property      = Property(NS.types.base)(_range = () => textType :: Nil)
-    val value: Property     = Property(NS.types.value)
-    val pvalue: Property    = Property(NS.types.pvalue)
-    val graph: Property     = Property(NS.types.graph)(containers = NS.types.set :: Nil)
-    val start: Property     = Property(NS.types.start)(_range = () => dateTimeType :: Nil)
-    val end: Property       = Property(NS.types.end)(_range = () => dateTimeType :: Nil)
-    val createdon: Property = Property(NS.types.createdon)(_range = () => dateTimeType :: Nil)
-    val modifiedon: Property =
-      Property(NS.types.modifiedon)(_range = () => dateTimeType :: Nil)
-    val deletedon: Property = Property(NS.types.deletedon)(_range = () => dateTimeType :: Nil)
-    val transcendedOn: Property =
-      Property(NS.types.transcendedon)(_range = () => dateTimeType :: Nil)
+    val `@properties`: Property = Property(NS.types.`@properties`)(_range =
+                                                                     () => DataType.default.propertyURLType :: Nil,
+                                                                   containers = NS.types.`@set` :: Nil)
+    val `@language`: Property =
+      Property(NS.types.`@language`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+    val `@index`: Property =
+      Property(NS.types.`@index`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+    val `@label`: Property =
+      Property(NS.types.`@label`)(iris = Set(NS.types.rdfsLabel),
+                                  _range = () => `@string` :: Nil,
+                                  containers = NS.types.`@language` :: Nil)
+    val `@comment`: Property =
+      Property(NS.types.`@comment`)(iris = Set(NS.types.rdfsComment),
+                                    _range = () => `@string` :: Nil,
+                                    containers = NS.types.`@language` :: Nil)
+    val `@base`: Property      = Property(NS.types.`@base`)(_range = () => `@string` :: Nil)
+    val `@value`: Property     = Property(NS.types.`@value`)
+    val `@pvalue`: Property    = Property(NS.types.`@pvalue`)
+    val `@graph`: Property     = Property(NS.types.`@graph`)(containers = NS.types.`@set` :: Nil)
+    val `@start`: Property     = Property(NS.types.`@start`)(_range = () => `@datetime` :: Nil)
+    val `@end`: Property       = Property(NS.types.`@end`)(_range = () => `@datetime` :: Nil)
+    val `@createdon`: Property = Property(NS.types.`@createdon`)(_range = () => `@datetime` :: Nil)
+    val `@modifiedon`: Property =
+      Property(NS.types.`@modifiedon`)(_range = () => `@datetime` :: Nil)
+    val `@deletedon`: Property = Property(NS.types.`@deletedon`)(_range = () => `@datetime` :: Nil)
+    val `@transcendedon`: Property =
+      Property(NS.types.`@transcendedon`)(_range = () => `@datetime` :: Nil)
 
     object typed {
-      lazy val iriUrlString: TypedProperty[String]    = iri as textType
-      lazy val irisUrlString: TypedProperty[String]   = iris as textType
-      lazy val containerString: TypedProperty[String] = container as textType
+      lazy val iriUrlString: TypedProperty[String]    = `@id` as `@string`
+      lazy val irisUrlString: TypedProperty[String]   = `@ids` as `@string`
+      lazy val containerString: TypedProperty[String] = `@container` as `@string`
       //  lazy val entryInt: TypedPropertyKey[Int] = entry as intType)
-      lazy val rangeOntology: TypedProperty[Node] = range as Ontology.ontology
-      lazy val rangeDataType: TypedProperty[Node] = range as DataType.ontology
+      lazy val rangeOntology: TypedProperty[Node] = `@range` as Ontology.ontology
+      lazy val rangeDataType: TypedProperty[Node] = `@range` as DataType.ontology
 
-      lazy val typeOntology: TypedProperty[Node] = TYPE as Ontology.ontology //Ontology.classType
+      lazy val typeOntology: TypedProperty[Node] = `@type` as Ontology.ontology //Ontology.classType
       //  TYPE.addRange(ontology)
-      lazy val typeProperty: TypedProperty[Node] = TYPE as Property.ontology //Property.classType
+      lazy val typeProperty: TypedProperty[Node] = `@type` as Property.ontology //Property.classType
       //  TYPE.addRange(property)
-      lazy val typeDatatype: TypedProperty[Node] = TYPE as DataType.ontology //as DataType.classType
+      lazy val typeDatatype: TypedProperty[Node] = `@type` as DataType.ontology //as DataType.classType
       //  TYPE.addRange(datatype)
-      lazy val extendsOntology: TypedProperty[Node]  = EXTENDS as Ontology.ontology //as Ontology.classType
-      lazy val extendsProperty: TypedProperty[Node]  = EXTENDS as Property.ontology //as Property.classType
-      lazy val extendsDataType: TypedProperty[Node]  = EXTENDS as DataType.ontology //as DataType.classType
-      lazy val propertyProperty: TypedProperty[Node] = properties as Property.ontology //as Property.classType
-      lazy val languageString: TypedProperty[String] = language as textType
-      lazy val indexString: TypedProperty[String]    = index as textType
-      lazy val labelString: TypedProperty[String]    = label as textType
-      lazy val commentString: TypedProperty[String]  = comment as textType
-      lazy val baseString: TypedProperty[String]     = base as textType
-      lazy val pvalueString: TypedProperty[String]   = pvalue as textType
+      lazy val extendsOntology: TypedProperty[Node]  = `@extends` as Ontology.ontology //as Ontology.classType
+      lazy val extendsProperty: TypedProperty[Node]  = `@extends` as Property.ontology //as Property.classType
+      lazy val extendsDataType: TypedProperty[Node]  = `@extends` as DataType.ontology //as DataType.classType
+      lazy val propertyProperty: TypedProperty[Node] = `@properties` as Property.ontology //as Property.classType
+      lazy val languageString: TypedProperty[String] = `@language` as `@string`
+      lazy val indexString: TypedProperty[String]    = `@index` as `@string`
+      lazy val labelString: TypedProperty[String]    = `@label` as `@string`
+      lazy val commentString: TypedProperty[String]  = `@comment` as `@string`
+      lazy val baseString: TypedProperty[String]     = `@base` as `@string`
+      lazy val pvalueString: TypedProperty[String]   = `@pvalue` as `@string`
 
-      lazy val startDateTime: TypedProperty[Instant]         = start as dateTimeType
-      lazy val endDateTime: TypedProperty[Instant]           = end as dateTimeType
-      lazy val createdonDateTime: TypedProperty[Instant]     = createdon as dateTimeType
-      lazy val modifiedonDateTime: TypedProperty[Instant]    = modifiedon as dateTimeType
-      lazy val deletedonDateTime: TypedProperty[Instant]     = deletedon as dateTimeType
-      lazy val transcendedOnDateTime: TypedProperty[Instant] = transcendedOn as dateTimeType
+      lazy val startDateTime: TypedProperty[Instant]         = `@start` as `@datetime`
+      lazy val endDateTime: TypedProperty[Instant]           = `@end` as `@datetime`
+      lazy val createdonDateTime: TypedProperty[Instant]     = `@createdon` as `@datetime`
+      lazy val modifiedonDateTime: TypedProperty[Instant]    = `@modifiedon` as `@datetime`
+      lazy val deletedonDateTime: TypedProperty[Instant]     = `@deletedon` as `@datetime`
+      lazy val transcendedOnDateTime: TypedProperty[Instant] = `@transcendedon` as `@datetime`
     }
   }
 
   import default._
-  lazy val allProperties: Map[String, Property] = Map[String, Property](
-    iri.iri           -> iri,
-    iris.iri          -> iris,
-    container.iri     -> container, /*entry.iri -> entry, */
-    range.iri         -> range,
-    TYPE.iri          -> TYPE,
-    EXTENDS.iri       -> EXTENDS,
-    properties.iri    -> properties,
-    language.iri      -> language,
-    index.iri         -> index,
-    label.iri         -> label,
-    comment.iri       -> comment,
-    base.iri          -> base,
-    value.iri         -> value,
-    pvalue.iri        -> pvalue,
-    graph.iri         -> graph,
-    start.iri         -> start,
-    end.iri           -> end,
-    createdon.iri     -> createdon,
-    modifiedon.iri    -> modifiedon,
-    deletedon.iri     -> deletedon,
-    transcendedOn.iri -> transcendedOn
-  )
+  lazy val allProperties = new {
+    val properties = List(
+      `@id`,
+      `@ids`,
+      `@container`, /*entry.iri -> entry, */
+      `@range`,
+      `@type`,
+      `@extends`,
+      `@properties`,
+      `@language`,
+      `@index`,
+      `@label`,
+      `@comment`,
+      `@base`,
+      `@value`,
+      `@pvalue`,
+      `@graph`,
+      `@start`,
+      `@end`,
+      `@createdon`,
+      `@modifiedon`,
+      `@deletedon`,
+      `@transcendedon`
+    )
+
+    if (properties.size > 99) throw new Exception("extend default-property-id range!")
+    val byId    = (100l to 100l + properties.size - 1 toList).zip(properties).toMap
+    val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
+    val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+  }
 
   import default.typed._
   lazy val allTypedProperties: Map[String, TypedProperty[_]] = Map(

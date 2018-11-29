@@ -16,7 +16,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "Nodes" can {
     "be queried by id" in {
-      val node = graph.createNode(Property.ontology)
+      val node = graph.nodes.create(Property.ontology)
       node.addOut(Property.default.typed.iriUrlString, "abc")
       node.iri shouldBe "abc"
       node.out(Property.default.typed.iriUrlString).nonEmpty shouldBe true
@@ -24,19 +24,19 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.out(Property.default.typed.iriUrlString).head shouldBe "abc"
     }
     "be assigned an ontology" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.labels.size shouldBe 0
       node.addLabel(Ontology.ontology)
       node.labels.size shouldBe 1
     }
     "be assigned an unknown ontology" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.labels.size shouldBe 0
       node.addLabel("veryunknownontology")
       node.labels.size shouldBe 1
     }
     "be assigned an unknown ontology with unknown extended ontology" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.labels.size shouldBe 0
       lazy val veryunknownontology =
         Ontology("veryunknownontology")(_extendedClasses = () => List(veryunknownextendedontology))
@@ -47,7 +47,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.labels.size shouldBe 1
     }
     "be assigned two ontologies" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.labels.size shouldBe 0
       node.addLabel(Ontology.ontology)
       node.labels.size shouldBe 1
@@ -61,21 +61,21 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.labels.map(_.iri).contains(DataType.ontology.iri) shouldBe true
     }
     "be assigned a relation" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addOut("unknownkeyisnotaproblem", 123)
       node.out("unknownkeyisnotaproblem").size shouldBe 1
     }
     "be removed by traversal" ignore {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addOut(Property.default.typed.iriUrlString, "12345")
-      graph.g.N().has(Property.default.iri, P.eqv("12345")).toList.size shouldBe 1
+      graph.g.N().has(Property.default.`@id`, P.eqv("12345")).toList.size shouldBe 1
       graph.g.N().hasIri(node.iri).toList.size shouldBe 1
       graph.g.N(node).toList.size shouldBe 1
       graph.g.N(node).drop().iterate()
       graph.g.N().hasIri("12345").toList.size shouldBe 0
     }
     "be removed by node-method" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addOut(Property.default.typed.iriUrlString, "123456")
       graph.g.N().hasIri(node.iri).toList.size shouldBe 1
       node.remove()
@@ -88,7 +88,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
   "Nodes" should {
     "not contain an ontology if the ontology is already inherited from another ontology" in {
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addLabel(DataType.ontology)
       node.labels.size shouldBe 1
       node.labels.head shouldBe DataType.ontology
@@ -104,9 +104,9 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
   "Properties" can {
     "only be single for cardinality single" ignore {
-      val singleProperty = Property("singleproperty")(_range = () => List(DataType.default.textType))
+      val singleProperty = Property("singleproperty")(_range = () => List(DataType.default.`@string`))
 
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addOut(singleProperty, "123456")
       node.out(singleProperty).size shouldBe 1
       node.out(singleProperty).head shouldBe "123456"
@@ -116,9 +116,9 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "be many and contain duplicates for cardinality list" ignore {
       val listProperty =
-        Property("listproperty")(_range = () => List(DataType.default.textType), containers = List(types.list))
+        Property("listproperty")(_range = () => List(DataType.default.`@string`), containers = List(types.`@list`))
 
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addOut(listProperty, "123456")
       node.out(listProperty).size shouldBe 1
       node.out(listProperty).head shouldBe "123456"
@@ -131,9 +131,9 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "only be unique and contain no duplicates for cardinality set" ignore {
       val listProperty =
-        Property("setproperty")(_range = () => List(DataType.default.textType), containers = List(types.set))
+        Property("setproperty")(_range = () => List(DataType.default.`@string`), containers = List(types.`@set`))
 
-      val node = graph.createNode()
+      val node = graph.nodes.create()
       node.addOut(listProperty, "123456")
       node.out(listProperty).size shouldBe 1
       node.out(listProperty).head shouldBe "123456"
@@ -145,16 +145,16 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.out(listProperty) should contain("1234567")
     }
     "have a collection as a value" in {
-      val vectorProperty = Property("some.vector")(_range = () => List(VectorType(List(DataType.default.intType))))
-      val intVector      = vectorProperty + DataType.default.intType
-      val node           = graph.createNode()
+      val vectorProperty = Property("some.vector")(_range = () => List(VectorType(List(DataType.default.`@int`))))
+      val intVector      = vectorProperty + DataType.default.`@int`
+      val node           = graph.nodes.create()
       node.addOut(vectorProperty, Vector(1, 2, 3, 4))
       node.out("some.vector") shouldBe List(Vector(1, 2, 3, 4))
     }
     "be of type double" in {
-      val number       = Property("number")(_range = () => List(DataType.default.doubleType), containers = List(types.set))
-      val numberDouble = number + DataType.default.doubleType
-      val node         = graph.createNode()
+      val number       = Property("number")(_range = () => List(DataType.default.`@double`), containers = List(types.`@set`))
+      val numberDouble = number + DataType.default.`@double`
+      val node         = graph.nodes.create()
       node.addOut(numberDouble, 0.0)
       node.out(numberDouble).head.getClass shouldBe 0.0.getClass
     }

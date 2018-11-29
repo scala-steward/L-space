@@ -15,7 +15,7 @@ object Drop extends StepDef("Drop") with StepWrapper[Drop] {
   }
 
   def apply(): Drop = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Drop(node)
   }

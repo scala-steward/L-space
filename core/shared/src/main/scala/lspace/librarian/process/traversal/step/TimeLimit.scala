@@ -18,24 +18,24 @@ object TimeLimit extends StepDef("TimeLimit") with StepWrapper[TimeLimit] {
   }
 
   object keys {
-    private val durationNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/TimeLimit/duration")
+    private val durationNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/TimeLimit/duration")
     durationNode.addLabel(Property.ontology)
-    durationNode --- Property.default.label --> "duration" --- Property.default.language --> "en"
-    durationNode --- Property.default.comment --> "The maximum time the underlaying traversal may take" --- Property.default.language --> "en"
-    durationNode --- Property.default.range --> DataType.default.dateTimeType
+    durationNode --- Property.default.`@label` --> "duration" --- Property.default.`@language` --> "en"
+    durationNode --- Property.default.`@comment` --> "The maximum time the underlaying traversal may take" --- Property.default.`@language` --> "en"
+    durationNode --- Property.default.`@range` --> DataType.default.`@datetime`
 
     lazy val duration: Property                        = Property(durationNode)
-    val durationTime: TypedProperty[squants.time.Time] = duration + DataType.default.durationType
+    val durationTime: TypedProperty[squants.time.Time] = duration + DataType.default.`@duration`
   }
 
   def apply(time: Option[squants.time.Time] = None): TimeLimit = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     time.foreach(time => node.addOut(keys.durationTime, time))
     TimeLimit(time, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.duration
+  ontologyNode --- Property.default.`@properties` --> keys.duration
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

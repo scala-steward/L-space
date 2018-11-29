@@ -17,16 +17,16 @@ object MapType {
     //    val keyRangeProperty: TypedPropertyKey[Node] = keyRange.addRange(keyRange.graph.property)
     //    val keyRangeDataType: TypedPropertyKey[Node] = keyRange.addRange(keyRange.graph.datatype)
 
-    private val keyRangeNode = MemGraphDefault.ns.upsertNode("@keyRange")
+    private val keyRangeNode = MemGraphDefault.ns.nodes.upsert("@keyRange")
     keyRangeNode.addLabel(Property.ontology)
-    keyRangeNode --- Property.default.label --> "@keyRange" --- Property.default.language --> "en"
-    keyRangeNode --- Property.default.container --> types.list
-    keyRangeNode --- Property.default.range --> types.CLASS
+    keyRangeNode --- Property.default.`@label` --> "@keyRange" --- Property.default.`@language` --> "en"
+    keyRangeNode --- Property.default.`@container` --> types.`@list`
+    keyRangeNode --- Property.default.`@range` --> types.`@class`
     val keyRange = Property(keyRangeNode)
   }
   //  def apply[K](keyType: ClassType[K])(implicit graph: Graph)= {
   //    val iri = s"${ldcontext.types.map}:[${keyType.iri}]"
-  //    new MapType[K, Any](keyType, valueType, graph.getDataType(iri).getOrElse(graph.upsertNode(iri)))
+  //    new MapType[K, Any](keyType, valueType, graph.getDataType(iri).getOrElse(graph.nodes.upsert(iri)))
   //  }
   //  def apply[K, V](keyRange: List[ClassType[K]], valueRange: List[ClassType[V]])(implicit graph: Graph) = {
   //    val iri = s"${ldcontext.types.map}:[${keyRange.map(_.iri).toList.sorted}],[${valueRange.map(_.iri).toList.sorted}]]"
@@ -76,7 +76,7 @@ class MapType[K, V](val keyRange: List[ClassType[K]], val valueRange: List[Class
     extends CollectionType[Map[K, V]] {
 
   val iri =
-    s"${NS.types.map}/${keyRange.map(_.iri).sorted.mkString("+")}/${valueRange.map(_.iri).sorted.mkString("+")}"
+    s"${NS.types.`@map`}/${keyRange.map(_.iri).sorted.mkString("+")}/${valueRange.map(_.iri).sorted.mkString("+")}"
 
   override val _properties: () => List[Property] = () => List(MapType.keys.keyRange, CollectionType.keys.valueRange)
 

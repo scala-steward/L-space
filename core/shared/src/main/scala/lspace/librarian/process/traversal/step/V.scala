@@ -18,29 +18,33 @@ object V extends StepDef("V") with StepWrapper[V] {
 
   object keys {
     private val valueNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/V/value")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/V/value")
     valueNode.addLabel(Property.ontology)
-    valueNode --- Property.default.label --> "value" --- Property.default.language --> "en"
-    valueNode --- Property.default.comment --> "A value" --- Property.default.language --> "en"
-    valueNode --- Property.default.container --> types.list
-    valueNode --- Property.default.range --> DataType.default.valueURLType
+    valueNode --- Property.default.`@label` --> "value" --- Property.default.`@language` --> "en"
+    valueNode --- Property.default.`@comment` --> "A value" --- Property.default.`@language` --> "en"
+    valueNode --- Property.default.`@container` --> types.`@list`
+    valueNode --- Property.default.`@range` --> DataType.default.valueURLType
 
     lazy val value: Property                = Property(valueNode)
     val valueUrl: TypedProperty[Value[Any]] = value + DataType.default.valueURLType
   }
 
   def apply(values: List[Any] = List()): V = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     //    println(nodes.map(_.iri).mkString(" >> "))
 
-    values.foreach(v => node.addOut(keys.value, ClassType.valueToOntologyResource(v), v))
+    val _values = values
+      .map(v => node.addOut(keys.value, ClassType.valueToOntologyResource(v), v))
+      .map(_.to)
+      .asInstanceOf[List[Value[_]]]
     //    if (nodes.lengthCompare(1) > 0) node.property(V.keys.nodeUrl, nodes.head, nodes.tail: _*)
     //    if (nodes.nonEmpty) property(V.keys.nodeUrl, nodes.head)
-    V(values.map(v => DetachedGraph.createValue(v)(ClassType.valueToOntologyResource(v))), node)
+//    V(values.map(v => DetachedGraph.values.create(v)), node)
+    V(_values, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.value
+  ontologyNode --- Property.default.`@properties` --> keys.value
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

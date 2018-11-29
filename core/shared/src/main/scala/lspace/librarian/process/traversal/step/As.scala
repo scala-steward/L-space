@@ -28,24 +28,24 @@ object As extends StepDef("As") with StepWrapper[As[Any, String]] {
 
   object keys {
     private val nameNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/As/name")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/As/name")
     nameNode.addLabel(Property.ontology)
-    nameNode --- Property.default.label --> "traversal" --- Property.default.language --> "en"
-    nameNode --- Property.default.comment --> "A traversal which must have a non-empty result" --- Property.default.language --> "en"
-    nameNode --- Property.default.range --> DataType.default.textType
+    nameNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
+    nameNode --- Property.default.`@comment` --> "A traversal which must have a non-empty result" --- Property.default.`@language` --> "en"
+    nameNode --- Property.default.`@range` --> DataType.default.`@string`
 
     lazy val name: Property               = Property(nameNode)
-    val nameString: TypedProperty[String] = name + DataType.default.textType
+    val nameString: TypedProperty[String] = name + DataType.default.`@string`
   }
 
   def apply[T, Tname <: String](label: Tname): As[T, Tname] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.nameString, label.toString)
     As[T, Tname](label, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.name
+  ontologyNode --- Property.default.`@properties` --> keys.name
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

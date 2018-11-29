@@ -38,7 +38,7 @@ object VectorType {
 }
 
 class VectorType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[Vector[V]] {
-  lazy val iri = s"${NS.types.list}/${valueRange.map(_.iri).sorted.mkString("+")}"
+  lazy val iri = s"${NS.types.`@list`}/${valueRange.map(_.iri).sorted.mkString("+")}"
   //  override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(CollectionType[V](valueRange))
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.default[V])
 }

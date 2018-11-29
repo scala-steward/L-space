@@ -15,7 +15,7 @@ object Max extends StepDef("Max") with StepWrapper[Max] {
   }
 
   def apply(): Max = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Max(node)
   }

@@ -9,7 +9,7 @@ import lspace.librarian.structure._
 import lspace.types.vector.Geometry
 
 object GeoContains extends PredicateCompanion("GeoContains") with PredicateWrapper[GeoContains[_]] {
-  ontologyNode --- Property.default.EXTENDS --> ObjectP.ontology
+  ontologyNode --- Property.default.`@extends` --> ObjectP.ontology
 
   def wrap(node: Node): GeoContains[_] = node match {
     case node: GeoContains[_] => node
@@ -23,7 +23,7 @@ object GeoContains extends PredicateCompanion("GeoContains") with PredicateWrapp
 
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): GeoContains[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new GeoContains(pvalue, node)

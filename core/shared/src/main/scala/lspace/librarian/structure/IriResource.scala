@@ -1,7 +1,5 @@
 package lspace.librarian.structure
 
-import lspace.NS
-
 trait IriResource {
 
   /**
@@ -17,21 +15,9 @@ trait IriResource {
   }
 }
 
-object IriResource extends LowPriorityIriTypeImplicits {
+object IriResource {
   def apply(_iri: String): IriResource = new IriResource {
     val iri: String = _iri
   }
 
 }
-
-trait LowPriorityIriTypeImplicits {
-//  implicit def dt[T <: IriResource](implicit ev: T <:< IriResource) = new IriType[T] {
-//    val iri: String = ldcontext.types.DATATYPE
-//  }
-}
-
-//object Iri {
-//  implicit def asString(iri: Iri): String       = iri.iri
-//  implicit def stringAsIri(iri: String): String = Iri(iri)
-//}
-//case class Iri(iri: String) extends IriResource

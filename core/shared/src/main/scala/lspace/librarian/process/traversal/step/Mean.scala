@@ -15,7 +15,7 @@ object Mean extends StepDef("Mean") with StepWrapper[Mean] {
   }
 
   def apply(): Mean = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Mean(node)
   }

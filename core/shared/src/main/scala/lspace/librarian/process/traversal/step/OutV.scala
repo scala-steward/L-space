@@ -15,7 +15,7 @@ object OutV extends StepDef("OutV") with StepWrapper[OutV] {
   }
 
   def apply(): OutV = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     OutV(node)
   }

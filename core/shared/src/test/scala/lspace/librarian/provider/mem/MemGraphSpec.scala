@@ -6,16 +6,17 @@ class MemGraphSpec extends GraphSpec {
   //  Ontology
   //  val graph: Graph = MemGraphDefault
   val graph: Graph                    = MemGraph("memgraphspec")
-  def createGraph(iri: String): Graph = MemGraph("memgraph-" + iri)
+  val sampleGraph: Graph              = MemGraph("memgraphspec-sample")
+  def createGraph(iri: String): Graph = MemGraph("memgraphspec-" + iri)
 
   "MemGraph.default" should {
     "contain all base ontologies and properties" in {
-      MemGraphDefault.ns.ontologies.size should be > 0
-      MemGraphDefault.ns.properties.size should be > 0
+      MemGraphDefault.ns.ontologies.byIri.size should be > 0
+      MemGraphDefault.ns.properties.byIri.size should be > 0
     }
     "get 10,000 times from index" in {
       val start = java.time.Instant.now().toEpochMilli
-      (1 to 10000).foreach(_ => graph.getNode("sptth/tbd.tld/librarian/step/HasLabel"))
+      (1 to 10000).foreach(_ => graph.nodes.hasIri("sptth/tbd.tld/librarian/step/HasLabel"))
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
       println(s"get 10,000 times from index took ${duration} milli-seconds")
@@ -30,7 +31,7 @@ class MemGraphSpec extends GraphSpec {
     //
     //      val start = java.time.Instant.now()
     //      println(start)
-    //      //      val x = (1 to 80000).map(i => graph.upsertNode(s"https://some.example.com/$i"))
+    //      //      val x = (1 to 80000).map(i => graph.nodes.upsert(s"https://some.example.com/$i"))
     //      //      val x = (1 to 80000).map(i => graph.newValue(s"https://some.example.com/$i"))
     //      val x = (1 to 80000).map(i => graph.newNode()).map { n => n.property(graph.TYPE, "a"); n }
     //      //      println("#nodes: " + graph.nodes.size)

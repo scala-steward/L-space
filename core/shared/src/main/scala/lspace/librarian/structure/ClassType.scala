@@ -4,6 +4,7 @@ import java.time.{Instant, LocalDate, LocalTime}
 
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
+import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.types.vector.{Geometry, Point}
 
 object ClassType {
@@ -17,15 +18,15 @@ object ClassType {
       case r: Property    => DataType.default.propertyURLType
       case r: DataType[_] => DataType.default.dataTypeURLType
       case r: IriResource => DataType.default.uRLType
-      case v: String      => DataType.default.textType
-      case v: Int         => DataType.default.intType
-      case v: Double      => DataType.default.doubleType
-      case v: Long        => DataType.default.longType
-      case v: Instant     => DataType.default.dateTimeType
-      case v: LocalDate   => DataType.default.dateType
-      case v: LocalTime   => DataType.default.timeType
-      case v: Boolean     => DataType.default.boolType
-      case v: Point       => DataType.default.geopointType
+      case v: String      => DataType.default.`@string`
+      case v: Int         => DataType.default.`@int`
+      case v: Double      => DataType.default.`@double`
+      case v: Long        => DataType.default.`@long`
+      case v: Instant     => DataType.default.`@datetime`
+      case v: LocalDate   => DataType.default.`@date`
+      case v: LocalTime   => DataType.default.`@time`
+      case v: Boolean     => DataType.default.`@boolean`
+      case v: Point       => DataType.default.`@geopoint`
       //      case v: Geometry => DataType.default.geoType
       //      case v: List[_] => DataType.default.listType()
       //      case v: ListSet[_] => DataType.default.listsetType()
@@ -58,6 +59,8 @@ object ClassType {
 }
 
 trait ClassType[+T] extends IriResource {
+
+  def iris: Set[String]
 
   protected def _properties: () => List[Property]
 

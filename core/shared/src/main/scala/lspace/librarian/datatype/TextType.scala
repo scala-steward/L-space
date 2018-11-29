@@ -16,14 +16,14 @@ object TextType {
     }
 }
 trait TextType[+T] extends LiteralType[T] {
-  val iri: String                = NS.types.string
+  val iri: String                = NS.types.`@string`
   override val iris: Set[String] = Set(NS.types.schemaText)
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType)
 }
 
 trait IriStringType extends TextType[Iri] {
-  override val iri: String       = NS.types.iri
+  override val iri: String       = NS.types.`@iri`
   override val iris: Set[String] = Set()
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TextType.textType)

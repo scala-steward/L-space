@@ -17,7 +17,7 @@ object LocalDateType {
     }
 }
 trait LocalDateType[+T] extends CalendarType[T] {
-  val iri: String                = NS.types.date
+  val iri: String                = NS.types.`@date`
   override val iris: Set[String] = Set(NS.types.schemaDate)
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType)

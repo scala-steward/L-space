@@ -39,7 +39,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "a E-step" in {
       val edge = g.E.toList //implicit WithTraversalStream not resolved by IntelliJ IDEA, toList not recognized
-      edge.head.id shouldBe 3l
+//      edge.head.id shouldBe 3l
       //      val edges = g.E(edge).toList
       //      edges.size shouldBe 1
       //      edges.head.id shouldBe edge.id
@@ -60,7 +60,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.has("name", P.eqv("Garrison")).out("name").head shouldBe "Garrison"
     }
     "a OutMap-step" in {
-      Traversal.WithTraversalStream(g.N.outMap().hasLabel(intType)).toStream.head
+      Traversal.WithTraversalStream(g.N.outMap().hasLabel(`@int`)).toStream.head
       g.N.outMap().toStream.nonEmpty shouldBe true
       graph.g.N.has("name", P.eqv("Garrison")).outMap().head.size shouldBe 5
     }
@@ -76,7 +76,10 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     "a In-step" in {
       val values = g.N.in().toStream
       values.nonEmpty shouldBe true
-      g.V.is(P.eqv("Garrison")).in("name").out(Property.default.iri).head shouldBe "person-garrisson"
+      graph.values().exists(_.value == "Garrison") should be(true)
+      g.V("Garrison").toList.nonEmpty should be(true)
+      g.V.is(P.eqv("Garrison")).toList.nonEmpty should be(true)
+      g.V.is(P.eqv("Garrison")).in("name").out(Property.default.`@id`).head shouldBe "person-garrisson"
     }
     "a InMap-step" in {
       val values = g.N.inMap().toStream
@@ -131,11 +134,11 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       }
     }
     "a HasNot-step" in {
-      g.N.hasNot(Property.default.label).toStream.nonEmpty shouldBe true
+      g.N.hasNot(Property.default.`@label`).toStream.nonEmpty shouldBe true
     }
     "a HasId-step" in {
       val someId = g.N.hasIri("place-san_jose_de_maipo").id.head
-      g.N.hasId(someId).out(Property.default.iri).head shouldBe "place-san_jose_de_maipo"
+      g.N.hasId(someId).out(Property.default.`@id`).head shouldBe "place-san_jose_de_maipo"
     }
     "a HasIri-step" in {
       g.N.hasIri("place-san_jose_de_maipo").toStream.nonEmpty shouldBe true
@@ -187,14 +190,14 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200))).count.head shouldBe 3
     }
     "a Not-step" in {
-      g.N.not(_.has(Property.default.label)).toStream.nonEmpty shouldBe true
+      g.N.not(_.has(Property.default.`@label`)).toStream.nonEmpty shouldBe true
     }
     "a Project-step" in {
-      g.N.project(_.out(Property.default.iri), _.out(Property.default.TYPE)).toStream.nonEmpty shouldBe true
+      g.N.project(_.out(Property.default.`@id`), _.out(Property.default.`@type`)).toStream.nonEmpty shouldBe true
       g.N
         .union(
-          _.project(_.out(Property.default.iri), _.out(Property.default.TYPE)),
-          _.project(_.out(Property.default.iri), _.out(Property.default.TYPE))
+          _.project(_.out(Property.default.`@id`), _.out(Property.default.`@type`)),
+          _.project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))
         )
         .toStream
         .nonEmpty shouldBe true
@@ -245,39 +248,39 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "a HasLabel-step" in {
       g.N.hasLabel(ontologies.place).toList.size should be > 0
-      g.V.hasLabel(intType).toList.size shouldBe 4
-      g.V.hasLabel(doubleType).toList.size shouldBe 4
-      g.V.hasLabel(textType).toList.size shouldBe 20
-      g.V.hasLabel(intType, doubleType).toList.size shouldBe 8
-      g.V.hasLabel(intType, doubleType, textType).toList.size shouldBe 28
+      g.V.hasLabel(`@int`).toList.size shouldBe 4
+      g.V.hasLabel(`@double`).toList.size shouldBe 4
+      g.V.hasLabel(`@string`).toList.size shouldBe 20
+      g.V.hasLabel(`@int`, `@double`).toList.size shouldBe 8
+      g.V.hasLabel(`@int`, `@double`, `@string`).toList.size shouldBe 28
       g.V.hasLabel[Int].toList.size shouldBe 4
       g.V.hasLabel("@int").toList.size shouldBe 4
     }
     "a Order-step" in {
 //      g.N.order(_.out("name").hasLabel[String]).local(_.out("name").limit(1)).head shouldBe "Crystal Springs"
-      g.N.order(_.out("name").hasLabel(textType)).local(_.out("name").limit(1)).head shouldBe "Crystal Springs"
-      g.N.order(_.out("balance").hasLabel(doubleType), false).limit(1).out("balance").head shouldBe 2230.30
+      g.N.order(_.out("name").hasLabel(`@string`)).local(_.out("name").limit(1)).head shouldBe "Crystal Springs"
+      g.N.order(_.out("balance").hasLabel(`@double`), false).limit(1).out("balance").head shouldBe 2230.30
 //      g.N.order(_.out("balance").hasLabel[Double], false).limit(1).out("balance").head shouldBe 2230.30
-      g.N.order(_.out("balance").hasLabel(doubleType)).limit(1).out("balance").head shouldBe -245.05
-      g.N.order(_.out("balance").hasLabel(doubleType), false).limit(1).out("name").head shouldBe "Gray"
+      g.N.order(_.out("balance").hasLabel(`@double`)).limit(1).out("balance").head shouldBe -245.05
+      g.N.order(_.out("balance").hasLabel(`@double`), false).limit(1).out("name").head shouldBe "Gray"
     }
     "a Max-step" in {
-      g.N.out("balance").hasLabel(DataType.default.doubleType).max.head shouldBe 2230.30
-      g.N.out("balance").hasLabel(DataType.default.numericType).max.head shouldBe 2230.30
-      g.N.out("balance").hasLabel(DataType.default.doubleType).max.in("balance").out("name").head shouldBe "Gray"
+      g.N.out("balance").hasLabel(DataType.default.`@double`).max.head shouldBe 2230.30
+      g.N.out("balance").hasLabel(DataType.default.`@number`).max.head shouldBe 2230.30
+      g.N.out("balance").hasLabel(DataType.default.`@double`).max.in("balance").out("name").head shouldBe "Gray"
     }
     "a Min-step" in {
-      g.N.out("balance").hasLabel(DataType.default.doubleType).min.head shouldBe -245.05
-      g.N.out("balance").hasLabel(DataType.default.doubleType).min.in("balance").out("name").head shouldBe "Levi"
+      g.N.out("balance").hasLabel(DataType.default.`@double`).min.head shouldBe -245.05
+      g.N.out("balance").hasLabel(DataType.default.`@double`).min.in("balance").out("name").head shouldBe "Levi"
     }
     "a Sum-step" in {
-      g.N.out("balance").hasLabel(DataType.default.doubleType).sum.head shouldBe 2496.09
+      g.N.out("balance").hasLabel(DataType.default.`@double`).sum.head shouldBe 2496.09
       //      val maxBalanceAll = g.N.out("balance").hasLabel(graph.intType, graph.doubleType, graph.longType).sum().head
       //      maxBalanceAll shouldBe 2796.09
     }
 
     "a Mean-step" in {
-      g.N.out("balance").hasLabel(DataType.default.doubleType).mean.head shouldBe 624.0225
+      g.N.out("balance").hasLabel(DataType.default.`@double`).mean.head shouldBe 624.0225
     }
 
     "a Count-step" in {
@@ -355,7 +358,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       import shapeless.ops.hlist._
       import syntax.singleton._
       implicit def stringToF(label: String) = () => label.narrow
-      val x                                 = g.V.hasLabel(intType).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b")
+      val x                                 = g.V.hasLabel(`@int`).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b")
 
       val (i1: Int, n1: Node)   = x.select.head
       val (i3: Int, n3: Node)   = x.select(_.a.b).head
@@ -379,7 +382,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       x.select("b", "aname").head._1.iri shouldBe "person-gray"
 
       g.V
-        .hasLabel(intType)
+        .hasLabel(`@int`)
         .as("aname")
         .min
         .in(properties.rate)

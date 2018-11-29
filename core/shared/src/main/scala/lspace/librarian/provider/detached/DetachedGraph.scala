@@ -1,65 +1,66 @@
 package lspace.librarian.provider.detached
 
+import java.util.concurrent.atomic.AtomicLong
+
 import lspace.librarian.process.computer.DefaultStreamComputer
 import lspace.librarian.process.traversal._
 import lspace.librarian.process.traversal.step._
 import lspace.librarian.provider.mem._
 import lspace.librarian.provider.mem.MemNode
 import lspace.librarian.structure._
+import lspace.librarian.structure.util.IdProvider
 
 import scala.collection.mutable
 
 object DetachedGraph extends MemDataGraph {
   lazy val iri: String = "detachedmemgraph"
+  println("create DetachedGraph")
+
+  lazy val idProvider: IdProvider = new IdProvider {
+    private val id = new AtomicLong()
+    def next: Long = id.incrementAndGet
+  }
 
   val ns: MemNSGraph = MemGraphDefault.ns
+  val index: MemIndexGraph = {
+    lazy val self = thisgraph
+    new MemIndexGraph {
+      override def graph: MemGraph = self
 
-  override protected def _createNode(ontology: Ontology*): MemNode = {
-    val node: MemNode = MemNode.apply
-    ontology.foreach(node.addLabel)
-    node
+      /**
+        * An empty uri means that there is no URI assigned.
+        *
+        * @return
+        */
+      override def iri: String = self.iri + "/index"
+    }
   }
 
-  override protected def _createEdge[S, E](from: Resource[S], key: Property, to: Resource[E]): MemEdge[S, E] = {
-    val f =
-      if (from.graph == thisgraph || from.graph == MemGraphDefault)
-        from.asInstanceOf[MemResource[S]]
-      else if (from.iri.nonEmpty) upsertNode(from.iri).asInstanceOf[MemResource[S]]
-      else throw new Exception("")
-    val k = key
-    val t =
-      if (to.graph == thisgraph || to.graph == MemGraphDefault) to.asInstanceOf[MemResource[E]]
-      else if (to.iri.nonEmpty) upsertNode(to.iri).asInstanceOf[MemResource[E]]
-      else throw new Exception("")
-    val p: MemEdge[S, E] = MemEdge(f, k, t)
+  override protected def _storeNode(node: _Node): Unit = {}
 
-    p.outV.linksOut += p.key -> (p.outV.linksOut.getOrElse(p.key, mutable.LinkedHashSet()) += p)
-
-    //    p.linksOut += p.graph.TYPE -> mutable.LinkedHashSet(MemEdge(
-    //      p,
-    //      TYPE,
-    //      thisgraph.getPropertyKey(k.iri).get.value.asInstanceOf[MemResource[Node]])(thisgraph))
-    p
+  override protected def _storeEdge(edge: _Edge[_, _]): Unit = {
+    edge.from
+      .asInstanceOf[MemResource[Any]]
+      .linksOut += edge.key -> (edge.from
+      .asInstanceOf[MemResource[Any]]
+      .linksOut
+      .getOrElse(edge.key, mutable.LinkedHashSet[Edge[Any, Any]]()) += edge)
   }
 
-  override protected def _createValue[T](value: T)(dt: DataType[T]): MemValue[T] = {
-    //    val d = value match {
-    //      case r: Resource[_] => throw new Exception("newValue only accepts literal-values and no resources")
-    //      case _ => valueToDataType(value)
-    //    }
-    val v: MemValue[T] = MemValue[T](value, dt)
-    //    v.linksOut += TYPE -> mutable.LinkedHashSet(
-    //      newEdge(v, TYPE, d.value.asInstanceOf[MemNode]))
-    v
-  }
+  override protected def _indexEdge[S, E](edge: _Edge[S, E]): Unit = {}
 
-  override def upsertNode(uri: String, uris: Set[String] = Set()): Node = {
-    val node = createNode()
-    node.addOut(Property.default.typed.iriUrlString, uri)
-    //    node.property(MemGraphDefault.createdonDateTime, Instant.now())
-    node
-  }
+  override protected def _storeValue(value: _Value[_]): Unit = {}
+
+  override protected def _indexValue(value: _Value[_]): Unit = {}
+
+//  override def nodes.upsert(uri: String, uris: Set[String] = Set()): Node = {
+//    val node = createNode()
+//    node.addOut(Property.default.typed.iriUrlString, uri)
+//    //    node.property(MemGraphDefault.createdonDateTime, Instant.now())
+//    node
+//  }
 
   override val computer = new DefaultStreamComputer()
 
+  println("created DetachedGraph")
 }

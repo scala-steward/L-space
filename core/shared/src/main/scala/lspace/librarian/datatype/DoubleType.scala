@@ -16,7 +16,7 @@ object DoubleType {
     }
 }
 trait DoubleType[+T] extends NumericType[T] {
-  val iri: String                = NS.types.double
+  val iri: String                = NS.types.`@double`
   override val iris: Set[String] = Set(NS.types.schemaFloat)
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.numType)

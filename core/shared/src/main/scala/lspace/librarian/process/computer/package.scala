@@ -1,6 +1,7 @@
 package lspace.librarian.process
 
 import java.lang
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.librarian.process.traversal.Traverser
 import lspace.librarian.structure.{Resource, Value}
@@ -43,17 +44,21 @@ package object computer {
         .reduceOption[Traverser[R]] {
           case (r1, r2) =>
             r1.get.value -> r2.get.value match {
-              case (a: Int, b: Int)       => if (a > b) r1 else r2
-              case (a: Int, b: Double)    => if (a > b) r1 else r2
-              case (a: Int, b: Long)      => if (a > b) r1 else r2
-              case (a: Double, b: Int)    => if (a > b) r1 else r2
-              case (a: Double, b: Double) => if (a > b) r1 else r2
-              case (a: Double, b: Long)   => if (a > b) r1 else r2
-              case (a: Long, b: Int)      => if (a > b) r1 else r2
-              case (a: Long, b: Double)   => if (a > b) r1 else r2
-              case (a: Long, b: Long)     => if (a > b) r1 else r2
+              case (a: Int, b: Int)                     => if (a > b) r1 else r2
+              case (a: Int, b: Double)                  => if (a > b) r1 else r2
+              case (a: Int, b: Long)                    => if (a > b) r1 else r2
+              case (a: Double, b: Int)                  => if (a > b) r1 else r2
+              case (a: Double, b: Double)               => if (a > b) r1 else r2
+              case (a: Double, b: Long)                 => if (a > b) r1 else r2
+              case (a: Long, b: Int)                    => if (a > b) r1 else r2
+              case (a: Long, b: Double)                 => if (a > b) r1 else r2
+              case (a: Long, b: Long)                   => if (a > b) r1 else r2
+              case (a: Instant, b: Instant)             => if (a.isAfter(b)) r1 else r2
+              case (a: LocalDateTime, b: LocalDateTime) => if (a.isAfter(b)) r1 else r2
+              case (a: LocalDate, b: LocalDate)         => if (a.isAfter(b)) r1 else r2
+              case (a: LocalTime, b: LocalTime)         => if (a.isAfter(b)) r1 else r2
               case _ =>
-                throw new Exception(s"unexpected numeric type ${r2.get.value.getClass}") //TODO: log warning and/or accept only a stream with numeric T's
+                throw new Exception(s"unexpected numeric or temporal type ${r2.get.value.getClass}") //TODO: log warning and/or accept only a stream with numeric T's
             }
         }
         .toStream
@@ -65,17 +70,21 @@ package object computer {
         .reduceOption[Traverser[R]] {
           case (r1, r2) =>
             r1.get.value -> r2.get.value match {
-              case (a: Int, b: Int)       => if (a < b) r1 else r2
-              case (a: Int, b: Double)    => if (a < b) r1 else r2
-              case (a: Int, b: Long)      => if (a < b) r1 else r2
-              case (a: Double, b: Int)    => if (a < b) r1 else r2
-              case (a: Double, b: Double) => if (a < b) r1 else r2
-              case (a: Double, b: Long)   => if (a < b) r1 else r2
-              case (a: Long, b: Int)      => if (a < b) r1 else r2
-              case (a: Long, b: Double)   => if (a < b) r1 else r2
-              case (a: Long, b: Long)     => if (a < b) r1 else r2
+              case (a: Int, b: Int)                     => if (a < b) r1 else r2
+              case (a: Int, b: Double)                  => if (a < b) r1 else r2
+              case (a: Int, b: Long)                    => if (a < b) r1 else r2
+              case (a: Double, b: Int)                  => if (a < b) r1 else r2
+              case (a: Double, b: Double)               => if (a < b) r1 else r2
+              case (a: Double, b: Long)                 => if (a < b) r1 else r2
+              case (a: Long, b: Int)                    => if (a < b) r1 else r2
+              case (a: Long, b: Double)                 => if (a < b) r1 else r2
+              case (a: Long, b: Long)                   => if (a < b) r1 else r2
+              case (a: Instant, b: Instant)             => if (a.isBefore(b)) r1 else r2
+              case (a: LocalDateTime, b: LocalDateTime) => if (a.isBefore(b)) r1 else r2
+              case (a: LocalDate, b: LocalDate)         => if (a.isBefore(b)) r1 else r2
+              case (a: LocalTime, b: LocalTime)         => if (a.isBefore(b)) r1 else r2
               case _ =>
-                throw new Exception(s"unexpected numeric type ${r2.get.value.getClass}") //TODO: log warning and/or accept only a stream with numeric T's
+                throw new Exception(s"unexpected numeric or temporal type ${r2.get.value.getClass}") //TODO: log warning and/or accept only a stream with numeric T's
             }
         }
         .toStream

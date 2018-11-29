@@ -33,6 +33,16 @@ trait LGraphNSGraph extends LGraph with NameSpaceGraph {
 }
 
 trait LGraph extends Graph {
+  protected def newIdRange: Vector[Long]
+  protected lazy val IdGenerator = new {
+    private var id = newIdRange.iterator
+    def next: Long =
+      if (id.hasNext) id.next()
+      else {
+        id = newIdRange.iterator
+        id.next()
+      }
+  }
 
   /**
     * Links A.K.A. Edges A.K.A. Properties

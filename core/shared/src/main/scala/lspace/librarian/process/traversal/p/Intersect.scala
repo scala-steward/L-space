@@ -8,7 +8,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Intersect extends PredicateCompanion("Intersect") with PredicateWrapper[Intersect[_]] {
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Intersect[_] = node match {
     case node: Intersect[_] => node
@@ -19,7 +19,7 @@ object Intersect extends PredicateCompanion("Intersect") with PredicateWrapper[I
 
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Intersect[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new Intersect(pvalue, node)

@@ -17,14 +17,14 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
 
   object keys {
     private val labelNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/HasLabel/Label")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasLabel/Label")
     labelNode.addLabel(Property.ontology)
-    labelNode --- Property.default.label --> "Label" --- Property.default.language --> "en"
-    labelNode --- Property.default.comment --> "A label" --- Property.default.language --> "en"
-    labelNode --- Property.default.container --> types.set
-    labelNode --- Property.default.range --> Ontology.ontology
-    labelNode --- Property.default.range --> Property.ontology
-    labelNode --- Property.default.range --> DataType.ontology
+    labelNode --- Property.default.`@label` --> "Label" --- Property.default.`@language` --> "en"
+    labelNode --- Property.default.`@comment` --> "A label" --- Property.default.`@language` --> "en"
+    labelNode --- Property.default.`@container` --> types.`@set`
+    labelNode --- Property.default.`@range` --> Ontology.ontology
+    labelNode --- Property.default.`@range` --> Property.ontology
+    labelNode --- Property.default.`@range` --> DataType.ontology
 
     lazy val label: Property                   = Property(labelNode)
     val labelOntologyNode: TypedProperty[Node] = label + Ontology.ontology
@@ -33,7 +33,7 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
   }
 
   def apply[CT <: ClassType[_]](labels: List[CT]): HasLabel = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     labels.foreach {
       case ontology: Ontology => node.addOut(keys.label, ontology.asInstanceOf[Ontology])
@@ -43,7 +43,7 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
     HasLabel(node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.label
+  ontologyNode --- Property.default.`@properties` --> keys.label
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

@@ -14,7 +14,7 @@ object Contains extends PredicateCompanion("Contains") with PredicateWrapper[Con
     def contains(avalue: Any, pvalue: T): Boolean
   }
 
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Contains[_] = node match {
     case node: Contains[_] => node
@@ -28,7 +28,7 @@ object Contains extends PredicateCompanion("Contains") with PredicateWrapper[Con
 
   def apply[T: EqHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Contains[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new Contains(pvalue, node)

@@ -16,26 +16,26 @@ object G extends StepDef("G") with StepWrapper[G] {
   }
 
   object keys {
-    private val graphNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/g/Graphsource")
+    private val graphNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/g/Graphsource")
     graphNode.addLabel(Property.ontology)
-    graphNode --- Property.default.label --> "Graphsource" --- Property.default.language --> "en"
-    graphNode --- Property.default.comment --> "An edge" --- Property.default.language --> "en"
-    graphNode --- Property.default.container --> types.list
-    graphNode --- Property.default.range --> DataType.urlType[IriResource]
+    graphNode --- Property.default.`@label` --> "Graphsource" --- Property.default.`@language` --> "en"
+    graphNode --- Property.default.`@comment` --> "An edge" --- Property.default.`@language` --> "en"
+    graphNode --- Property.default.`@container` --> types.`@list`
+    graphNode --- Property.default.`@range` --> DataType.urlType[IriResource]
 
     lazy val graph: Property                 = Property(graphNode)
     val graphUrl: TypedProperty[IriResource] = graph + DataType.urlType[IriResource]
   }
 
   def apply(graphSources: List[Graph]): G = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     graphSources.foreach(graph => node.addOut(keys.graphUrl, graph))
 
     G(node)(graphSources)
   }
 
-  ontologyNode --- Property.default.properties --> keys.graph
+  ontologyNode --- Property.default.`@properties` --> keys.graph
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

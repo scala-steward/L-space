@@ -48,10 +48,10 @@ object JsonLD {
             dataTypeToJson(ct, newBuilder) match { case (key, value) => Json.jObject(key) -> value }
           case _ => newBuilder.compactIri(ct) match { case (key, value) => key.asJson -> value }
         }
-        newBuilder2 -> (result ++ Map(keyIri -> Map(types.TYPE -> json).asJson))
+        newBuilder2 -> (result ++ Map(keyIri -> Map(types.`@type` -> json).asJson))
     }
     JsonObject.fromTraversableOnce(
-      Map(types.context -> Json.jObject(JsonObject.fromTraversableOnce(newBuilder.context.map {
+      Map(types.`@context` -> Json.jObject(JsonObject.fromTraversableOnce(newBuilder.context.map {
         case (iri, prefix) => prefix -> iri.asJson
       }.toList ++ result.toList))) ++ json.toMap)
   }
@@ -87,15 +87,15 @@ object JsonLD {
         } match {
           case (typeIris, builder) =>
             val jsProperties =
-              (Seq(nodeResource.iri).filter(_.nonEmpty).map(types.id -> Json.jString(_)) ++ {
+              (Seq(nodeResource.iri).filter(_.nonEmpty).map(types.`@id` -> Json.jString(_)) ++ {
                 val iris = nodeResource.iris
-                if (iris.toList.lengthCompare(1) == 0) Seq(types.ids -> Json.jString(iris.head))
+                if (iris.toList.lengthCompare(1) == 0) Seq(types.`@ids` -> Json.jString(iris.head))
                 else if (iris.nonEmpty)
-                  Seq(types.ids -> nodeResource.iris.toList.map(Json.jString).asJson)
+                  Seq(types.`@ids` -> nodeResource.iris.toList.map(Json.jString).asJson)
                 else Seq()
               } ++ {
-                if (typeIris.lengthCompare(1) == 0) Seq(types.TYPE -> typeIris.head)
-                else if (typeIris.nonEmpty) Seq(types.TYPE -> typeIris.asJson)
+                if (typeIris.lengthCompare(1) == 0) Seq(types.`@type` -> typeIris.head)
+                else if (typeIris.nonEmpty) Seq(types.`@type` -> typeIris.asJson)
                 else Seq()
               }).toMap
             addEdgesToJson(nodeResource, builder) match {
@@ -189,7 +189,7 @@ object JsonLD {
             addEdgesToJson(edge, builder) match {
               case (result, builder) =>
                 val (cKeyIri, newBuilder) = builder.compactIri(edge.key)
-                (Map(types.to -> to, types.from -> from, types.TYPE -> cKeyIri.asJson) ++ result.toMap asJson) -> newBuilder
+                (Map(types.`@to` -> to, types.`@from` -> from, types.`@type` -> cKeyIri.asJson) ++ result.toMap asJson) -> newBuilder
             }
         }
     }
@@ -220,7 +220,7 @@ object JsonLD {
                           ct.isInstanceOf[Property] || ct.isInstanceOf[IriType[Node]])) {
                     Json.jString(v.iri).asJson -> builder
                   } else
-                    Map(types.value -> Json.jString(v.iri), types.TYPE -> Json.jString(types.id)).asJson -> builder
+                    Map(types.`@value` -> Json.jString(v.iri), types.`@type` -> Json.jString(types.`@id`)).asJson -> builder
               }
             } else { //object inc. all out-edges? or pass local-id (long)
               if (builder.iriLessNodes.contains(v.id.toString)) {
@@ -229,7 +229,7 @@ object JsonLD {
                         ct.isInstanceOf[Property] || ct.isInstanceOf[IriType[Node]])) {
                   Json.jString(s"_:${v.graph.iri}/id/${v.id}").asJson -> builder
                 } else
-                  Map(types.value -> Json.jString(v.iri), types.TYPE -> Json.jString(types.id)).asJson -> builder
+                  Map(types.`@value` -> Json.jString(v.iri), types.`@type` -> Json.jString(types.`@id`)).asJson -> builder
               } else {
                 val (obj, newBuilder) =
                   nodeToJson(v, builder.copy(iriLessNodes = builder.iriLessNodes ++ Map(v.id.toString -> v)))
@@ -242,11 +242,12 @@ object JsonLD {
           //          throw ToJsonException("property --> property not yet supported")
           case v: Value[_] =>
             if (v.iri.nonEmpty) {
-              Json.jObject(JsonObject.fromTraversableOnce(
-                Map(types.id -> Json.jString(v.iri), types.TYPE -> v.label.iri.asJson))) -> builder
+              Json.jObject(
+                JsonObject.fromTraversableOnce(
+                  Map(types.`@id` -> Json.jString(v.iri), types.`@type` -> v.label.iri.asJson))) -> builder
             } else {
               eCT.size match {
-                case 0 if v.label.iri == types.string =>
+                case 0 if v.label.iri == types.`@string` =>
                   valueToJson(v.value)(v.label) -> builder
                 case 1 if v.label == eCT.head =>
                   anyToJson(v.value, List(v.label), builder)
@@ -255,7 +256,7 @@ object JsonLD {
                   val (value, newBuilder2)      = anyToJson(v.value, List(v.label), newBuilder)
                   Json.jObject(
                     JsonObject
-                      .fromTraversableOnce(Map(types.value -> value, types.TYPE -> dataTypeIri.asJson))) -> newBuilder2
+                      .fromTraversableOnce(Map(types.`@value` -> value, types.`@type` -> dataTypeIri.asJson))) -> newBuilder2
               }
             }
         }
@@ -277,7 +278,8 @@ object JsonLD {
                 (r :+ (kr, vr)) -> vb
             }
             Json.jObject(
-              JsonObject.fromTraversableOnce(Map(types.value -> mr.asJson, types.container -> types.map.asJson))) -> mb
+              JsonObject.fromTraversableOnce(
+                Map(types.`@value` -> mr.asJson, types.`@container` -> types.`@map`.asJson))) -> mb
         }
       case v: List[_] =>
         eCT.headOption match {
@@ -295,7 +297,8 @@ object JsonLD {
                 (r :+ vr) -> vb
             }
             Json.jObject(
-              JsonObject.fromTraversableOnce(Map(types.value -> lr.asJson, types.container -> types.list.asJson))) -> lb
+              JsonObject.fromTraversableOnce(
+                Map(types.`@value` -> lr.asJson, types.`@container` -> types.`@list`.asJson))) -> lb
         }
       case v: Set[_] =>
         eCT.headOption match {
@@ -313,7 +316,8 @@ object JsonLD {
                 (r :+ vr) -> vb
             }
             Json.jObject(
-              JsonObject.fromTraversableOnce(Map(types.value -> lr.asJson, types.container -> types.set.asJson))) -> lb
+              JsonObject.fromTraversableOnce(
+                Map(types.`@value` -> lr.asJson, types.`@container` -> types.`@set`.asJson))) -> lb
         }
       case v: Vector[_] =>
         eCT.headOption match {
@@ -332,7 +336,7 @@ object JsonLD {
             }
             Json.jObject(
               JsonObject
-                .fromTraversableOnce(Map(types.value -> lr.asJson, types.container -> types.vector.asJson))) -> lb
+                .fromTraversableOnce(Map(types.`@value` -> lr.asJson, types.`@container` -> types.`@vector`.asJson))) -> lb
         }
       case v: Any =>
         val dt = ClassType.valueToOntologyResource(v)
@@ -343,26 +347,26 @@ object JsonLD {
           case _ =>
             Json.jObject(
               JsonObject
-                .fromTraversableOnce(Map(types.value -> valueToJson(v)(dt), types.TYPE -> dt.iri.asJson))) -> builder
+                .fromTraversableOnce(Map(types.`@value` -> valueToJson(v)(dt), types.`@type` -> dt.iri.asJson))) -> builder
         }
     }
   }
 
   private def valueToJson(value: Any)(dt: DataType[_]): Json = value match {
-    case v: Ontology if dt.iri == DataType.default.ontologyURLType.iri        => Json.jString(v.iri)
-    case v: Property if dt.iri == DataType.default.propertyURLType.iri        => Json.jString(v.iri)
-    case v: DataType[_] if dt.iri == DataType.default.dataTypeURLType.iri     => Json.jString(v.iri)
-    case v: IriResource if dt.iri == DataType.default.uRLType.iri             => Json.jString(v.iri)
-    case v: String if dt.iri == DataType.default.textType.iri                 => Json.jString(v)
-    case v: Boolean if dt.iri == DataType.default.boolType.iri                => Json.jBool(v)
-    case v: Int if dt.iri == DataType.default.intType.iri                     => Json.jNumber(v)
-    case v: Double if dt.iri == DataType.default.doubleType.iri               => Json.jNumber(v).get
-    case v: Long if dt.iri == DataType.default.longType.iri                   => Json.jString(v.toString)
-    case v: Instant if dt.iri == DataType.default.dateTimeType.iri            => Json.jString(v.toString())
-    case v: LocalDate if dt.iri == DataType.default.dateType.iri              => Json.jString(v.toString())
-    case v: LocalTime if dt.iri == DataType.default.timeType.iri              => Json.jString(v.toString())
-    case v: Geometry if dt.iri == DataType.default.geoType.iri                => v.asJson
-    case v: Geometry /*Point*/ if dt.iri == DataType.default.geopointType.iri => v.asJson
+    case v: Ontology if dt.iri == DataType.default.ontologyURLType.iri       => Json.jString(v.iri)
+    case v: Property if dt.iri == DataType.default.propertyURLType.iri       => Json.jString(v.iri)
+    case v: DataType[_] if dt.iri == DataType.default.dataTypeURLType.iri    => Json.jString(v.iri)
+    case v: IriResource if dt.iri == DataType.default.uRLType.iri            => Json.jString(v.iri)
+    case v: String if dt.iri == DataType.default.`@string`.iri               => Json.jString(v)
+    case v: Boolean if dt.iri == DataType.default.`@boolean`.iri             => Json.jBool(v)
+    case v: Int if dt.iri == DataType.default.`@int`.iri                     => Json.jNumber(v)
+    case v: Double if dt.iri == DataType.default.`@double`.iri               => Json.jNumber(v).get
+    case v: Long if dt.iri == DataType.default.`@long`.iri                   => Json.jString(v.toString)
+    case v: Instant if dt.iri == DataType.default.`@datetime`.iri            => Json.jString(v.toString())
+    case v: LocalDate if dt.iri == DataType.default.`@date`.iri              => Json.jString(v.toString())
+    case v: LocalTime if dt.iri == DataType.default.`@time`.iri              => Json.jString(v.toString())
+    case v: Geometry if dt.iri == DataType.default.`@geo`.iri                => v.asJson
+    case v: Geometry /*Point*/ if dt.iri == DataType.default.`@geopoint`.iri => v.asJson
     //        case v if v.isInstanceOf[Geoshape] => geojsonType.toJson(v.asInstanceOf[DataTypes.GeoT])
   }
 
@@ -374,24 +378,24 @@ object JsonLD {
   def ontologyToJson(ontology: Ontology,
                      builder: LDContextBuilder = LDContextBuilder()): (JsonObject, LDContextBuilder) = {
     val jsProperties = Seq(
-      Some(types.id   -> Json.jString(ontology.iri)),
-      Some(types.TYPE -> Json.jString(types.CLASS)),
-      ontology.base.map(uri => types.base -> Json.jString(uri)),
+      Some(types.`@id`   -> Json.jString(ontology.iri)),
+      Some(types.`@type` -> Json.jString(types.`@class`)),
+      ontology.base.map(uri => types.`@base` -> Json.jString(uri)),
       if (ontology.label.nonEmpty)
-        Some(types.label -> ontology.label.mapValues(Json.jString).asJson)
+        Some(types.`@label` -> ontology.label.mapValues(Json.jString).asJson)
       else None,
       if (ontology.comment.nonEmpty)
-        Some(types.comment -> ontology.comment.mapValues(Json.jString).asJson)
+        Some(types.`@comment` -> ontology.comment.mapValues(Json.jString).asJson)
       else None,
       if (ontology.extendedClasses.nonEmpty)
-        Some(types.EXTENDS -> ontology.extendedClasses.map(o => Json.jString(o.iri)).asJson)
+        Some(types.`@extends` -> ontology.extendedClasses.map(o => Json.jString(o.iri)).asJson)
       else None
     ).flatten.toMap ++
       (ontology.properties.toList match {
         case List()         => Map[String, Json]()
-        case List(property) => Map(types.properties -> Json.jString(property.iri))
+        case List(property) => Map(types.`@properties` -> Json.jString(property.iri))
         case properties =>
-          Map(types.properties -> properties.map(key => Json.jString(key.iri)).asJson)
+          Map(types.`@properties` -> properties.map(key => Json.jString(key.iri)).asJson)
       })
 
     JsonObject.fromTraversableOnce(jsProperties) -> builder
@@ -404,30 +408,30 @@ object JsonLD {
     */
   def propertyToJson(key: Property, builder: LDContextBuilder = LDContextBuilder()): (JsonObject, LDContextBuilder) = {
     val jsProperties = Seq(
-      Some(types.id   -> Json.jString(key.iri)),
-      Some(types.TYPE -> Json.jString(types.PROPERTY)),
-      if (key.label.nonEmpty) Some(types.label -> key.label.mapValues(Json.jString).asJson)
+      Some(types.`@id`   -> Json.jString(key.iri)),
+      Some(types.`@type` -> Json.jString(types.`@property`)),
+      if (key.label.nonEmpty) Some(types.`@label` -> key.label.mapValues(Json.jString).asJson)
       else None,
-      if (key.comment.nonEmpty) Some(types.comment -> key.comment.mapValues(Json.jString).asJson)
+      if (key.comment.nonEmpty) Some(types.`@comment` -> key.comment.mapValues(Json.jString).asJson)
       else None,
       if (key.container.isDefined)
-        Some(types.container -> List(Json.jString(key.container.get)).asJson)
+        Some(types.`@container` -> List(Json.jString(key.container.get)).asJson)
       else None,
       if (key.extendedClasses.nonEmpty)
-        Some(types.EXTENDS -> key.extendedClasses.map(o => Json.jString(o.iri)).asJson)
+        Some(types.`@extends` -> key.extendedClasses.map(o => Json.jString(o.iri)).asJson)
       else None
     ).flatten.toMap ++
       (key.range.toList match {
         case List()         => Map[String, Json]()
-        case List(dataType) => Map(types.range -> Json.jString(dataType.iri))
+        case List(dataType) => Map(types.`@range` -> Json.jString(dataType.iri))
         case dataTypes =>
-          Map(types.range -> dataTypes.map(dataType => Json.jString(dataType.iri)).asJson)
+          Map(types.`@range` -> dataTypes.map(dataType => Json.jString(dataType.iri)).asJson)
       }) ++
       (key.properties.toList match {
         case List()         => Map[String, Json]()
-        case List(property) => Map(types.PROPERTY -> Json.jString(property.iri))
+        case List(property) => Map(types.`@property` -> Json.jString(property.iri))
         case properties =>
-          Map(types.PROPERTY -> properties.map(key => Json.jString(key.iri)).asJson)
+          Map(types.`@property` -> properties.map(key => Json.jString(key.iri)).asJson)
       })
 
     JsonObject.fromTraversableOnce(jsProperties) -> builder
@@ -462,23 +466,23 @@ object JsonLD {
   def dataTypeToJson(dataType: DataType[_],
                      builder: LDContextBuilder = LDContextBuilder()): (JsonObject, LDContextBuilder) = {
     val jsProperties = Seq(
-      Some(types.id   -> Json.jString(dataType.iri)),
-      Some(types.TYPE -> Json.jString(types.DATATYPE)),
+      Some(types.`@id`   -> Json.jString(dataType.iri)),
+      Some(types.`@type` -> Json.jString(types.`@datatype`)),
       if (dataType.label.nonEmpty)
-        Some(types.label -> dataType.label.mapValues(Json.jString).asJson)
+        Some(types.`@label` -> dataType.label.mapValues(Json.jString).asJson)
       else None,
       if (dataType.comment.nonEmpty)
-        Some(types.comment -> dataType.comment.mapValues(Json.jString).asJson)
+        Some(types.`@comment` -> dataType.comment.mapValues(Json.jString).asJson)
       else None,
       if (dataType.extendedClasses.nonEmpty)
-        Some(types.EXTENDS -> dataType.extendedClasses.map(o => Json.jString(o.iri)).asJson)
+        Some(types.`@extends` -> dataType.extendedClasses.map(o => Json.jString(o.iri)).asJson)
       else None
     ).flatten.toMap ++
       (dataType.properties.toList match {
         case List() => Map[String, Json]()
         //        case List(property) => Map(types.properties -> Json.jString(property.iri))
         case properties =>
-          Map(types.properties -> properties.map(key => Json.jString(key.iri)).asJson)
+          Map(types.`@properties` -> properties.map(key => Json.jString(key.iri)).asJson)
       })
 
     val (oProperty, newBuilder) = dataType match {
@@ -524,7 +528,7 @@ object JsonLD {
     Try {
       //      json match {
       //        case obj: JsObject =>
-      json(types.context)
+      json(types.`@context`)
         .map { json =>
           if (json.isNull) Seq[Json]()
           else
@@ -545,20 +549,20 @@ object JsonLD {
                   json.obj.map(_.toList.foldLeft(builder) {
                     case (builder, (key, json)) =>
                       builder.expandIri(key) match {
-                        case types.base =>
+                        case types.`@base` =>
                           json.string
                             .map(iri => builder.expandIri(iri))
                             .map(base => builder.copy(context = builder.context.copy(base = Some(base))))
                             .getOrElse(builder)
                         //                      builder.copy(contexts = builder.contexts.drop(1) :+ builder.contexts.last.copy(base = Some(base)))).getOrElse(builder)
-                        case types.vocab =>
+                        case types.`@vocab` =>
                           json.string
                             .map(iri => builder.expandIri(iri))
                             .map(vocab =>
                               //                      builder.copy(contexts = builder.contexts.drop(1) :+ builder.contexts.last.copy(vocab = Some(vocab)))).getOrElse(builder)
                               builder.copy(context = builder.context.copy(vocab = Some(vocab))))
                             .getOrElse(builder)
-                        case types.language =>
+                        case types.`@language` =>
                           json.string
                             .map(iri => builder.expandIri(iri))
                             .map(language =>
@@ -610,7 +614,7 @@ object JsonLD {
                 .get
           }
         }
-        .map(_ -> (json - types.context))
+        .map(_ -> (json - types.`@context`))
         .getOrElse(builder -> json)
     }
 
@@ -619,7 +623,7 @@ object JsonLD {
     val value = kv._2
     val pMod  = builder.context.property(property)
     builder.expandIri(key) match {
-      case types.TYPE =>
+      case types.`@type` =>
         value.string
           .map(builder.expandIri(_))
           .map { expKey =>
@@ -654,7 +658,7 @@ object JsonLD {
               }
           }
           .getOrElse(throw FromJsonException(s"@type has unexpected value $value"))
-      case types.vocab =>
+      case types.`@vocab` =>
         value.string
           .map(builder.expandIri(_))
           .map(iri =>
@@ -662,21 +666,21 @@ object JsonLD {
               builder.context.property + (property -> pMod.copy(context = pMod.context.copy(vocab = Some(iri)))))))
           .getOrElse(throw FromJsonException(s"@vocab has unexpected value $value"))
       //                                    pMod.context.expandIri(iri)).map(vocab => pMod.copy(context = pMod.context.copy(vocab = Some(vocab)))).getOrElse(pMod)
-      case types.language =>
+      case types.`@language` =>
         value.string
           .map(builder.expandIri(_))
           .map(iri =>
             builder.copy(context = builder.context.copy(property =
               builder.context.property + (property -> pMod.copy(context = pMod.context.copy(language = Some(iri)))))))
           .getOrElse(throw FromJsonException(s"@language has unexpected value $value"))
-      case types.container =>
+      case types.`@container` =>
         value.string
           .map(builder.expandIri(_))
           .map(iri =>
             builder.copy(context = builder.context.copy(property =
               builder.context.property + (property -> pMod.copy(container = Some(iri))))))
           .getOrElse(throw FromJsonException(s"@container has unexpected value $value"))
-      case types.base =>
+      case types.`@base` =>
         value.string
           .map(builder.expandIri(_))
           .map(iri =>
@@ -707,11 +711,11 @@ object JsonLD {
   //  }
 
   private def getIri(obj: Map[String, Json], builder: LDGraphBuilder) =
-    obj.get(types.id).flatMap(_.string).map(builder.expandIri(_))
+    obj.get(types.`@id`).flatMap(_.string).map(builder.expandIri(_))
 
   private def getIris(obj: Map[String, Json], builder: LDGraphBuilder) =
     obj
-      .get(types.ids)
+      .get(types.`@ids`)
       .flatMap(
         json =>
           json.array
@@ -722,7 +726,7 @@ object JsonLD {
 
   private def getTypes(obj: Map[String, Json], builder: LDGraphBuilder = LDGraphBuilder()): List[Ontology] = {
     obj
-      .get(types.TYPE)
+      .get(types.`@type`)
       .map(
         json =>
           json.array
@@ -749,14 +753,14 @@ object JsonLD {
                   case ontology: Ontology => ontology
                   case _                  => throw FromJsonException(s"@extends $iri does not link to a property")
                 }
-                .getOrElse(throw new Exception(s"Could not get ontology $iri")) /*.map(DetachedGraph.upsertNode)*/
+                .getOrElse(throw new Exception(s"Could not get ontology $iri")) /*.map(DetachedGraph.nodes.upsert)*/
           })
       .getOrElse(List())
   }
 
   private def getLabel(obj: Map[String, Json], builder: LDGraphBuilder): Map[String, String] =
     obj
-      .get(types.label)
+      .get(types.`@label`)
       .flatMap(
         json =>
           json.obj
@@ -769,7 +773,7 @@ object JsonLD {
 
   private def getComment(obj: Map[String, Json], builder: LDGraphBuilder): Map[String, String] =
     obj
-      .get(types.comment)
+      .get(types.`@comment`)
       .flatMap(
         json =>
           json.obj
@@ -796,21 +800,21 @@ object JsonLD {
       if (labels.size != 1 || labels.head != Ontology.ontology)
         throw FromJsonException(s"Parsing ontology without @type: @class or ${types.rdfsClass}")
 
-      val ontologyNode = MemGraphDefault.ns.upsertNode(iri)
+      val ontologyNode = MemGraphDefault.ns.nodes.upsert(iri)
       ontologyNode.addLabel(Ontology.ontology)
 
-      getIris(expObj, builder).foreach(iri => ontologyNode --- Property.default.iris --> iri)
+      getIris(expObj, builder).foreach(iri => ontologyNode --- Property.default.`@ids` --> iri)
       getLabel(expObj, builder).foreach {
         case (lang, label) =>
-          ontologyNode --- Property.default.label --> label --- Property.default.language --> lang
+          ontologyNode --- Property.default.`@label` --> label --- Property.default.`@language` --> lang
       }
       getComment(expObj, builder).foreach {
         case (lang, comment) =>
-          ontologyNode --- Property.default.comment --> comment --- Property.default.language --> lang
+          ontologyNode --- Property.default.`@comment` --> comment --- Property.default.`@language` --> lang
       }
 
       expObj
-        .get(types.EXTENDS)
+        .get(types.`@extends`)
         .orElse(expObj.get(types.rdfsSubClassOf))
         .map(
           json =>
@@ -838,21 +842,21 @@ object JsonLD {
                     case ontology: Ontology => ontology
                     case _                  => throw FromJsonException(s"@extends $iri does not link to an ontology")
                   }
-                  .getOrElse(throw new Exception(s"Could not get extended ontology $iri")) /*.map(DetachedGraph.upsertNode)*/
-                MemGraphDefault.ns.getNode(iri).head
+                  .getOrElse(throw new Exception(s"Could not get extended ontology $iri")) /*.map(DetachedGraph.nodes.upsert)*/
+                MemGraphDefault.ns.nodes.hasIri(iri).head
             })
         .getOrElse(List())
         .foreach { extendedNode =>
-          ontologyNode --- Property.default.EXTENDS --> extendedNode
+          ontologyNode --- Property.default.`@extends` --> extendedNode
         }
 
       getProperties(expObj, builder).foreach { propertyNode =>
-        ontologyNode --- Property.default.properties --> propertyNode
+        ontologyNode --- Property.default.`@properties` --> propertyNode
       }
 
-      (JsonObject.fromTraversableOnce(expObj) - types.id - types.ids - types.TYPE -
-        types.EXTENDS - types.rdfsSubClassOf - types.label - types.rdfsLabel -
-        types.comment - types.rdfsComment).toMap.foreach {
+      (JsonObject.fromTraversableOnce(expObj) - types.`@id` - types.`@ids` - types.`@type` -
+        types.`@extends` - types.rdfsSubClassOf - types.`@label` - types.rdfsLabel -
+        types.`@comment` - types.rdfsComment).toMap.foreach {
         case (jKey, jValue) => jsonToEdge(ontologyNode, jKey, jValue, builder)
       }
 
@@ -892,21 +896,21 @@ object JsonLD {
         if (labels.size != 1 || labels.head != Property.ontology)
           throw FromJsonException(s"Parsing property without @type: @property or ${types.rdfProperty}")
 
-        val propertyNode = MemGraphDefault.ns.upsertNode(iri)
+        val propertyNode = MemGraphDefault.ns.nodes.upsert(iri)
         propertyNode.addLabel(Property.ontology)
 
-        getIris(expObj, builder).foreach(iri => propertyNode --- Property.default.iris --> iri)
+        getIris(expObj, builder).foreach(iri => propertyNode --- Property.default.`@ids` --> iri)
         getLabel(expObj, builder).foreach {
           case (lang, label) =>
-            propertyNode --- Property.default.label --> label --- Property.default.language --> lang
+            propertyNode --- Property.default.`@label` --> label --- Property.default.`@language` --> lang
         }
         getComment(expObj, builder).foreach {
           case (lang, comment) =>
-            propertyNode --- Property.default.comment --> comment --- Property.default.language --> lang
+            propertyNode --- Property.default.`@comment` --> comment --- Property.default.`@language` --> lang
         }
 
         expObj
-          .get(types.EXTENDS)
+          .get(types.`@extends`)
           .orElse(expObj.get(types.rdfsSubPropertyOf))
           .map(
             json =>
@@ -935,19 +939,19 @@ object JsonLD {
                       case _ =>
                         throw FromJsonException(s"@extends $iri does not link to a property")
                     }
-                    .getOrElse(throw new Exception(s"Could not get extended property $iri")) /*.map(DetachedGraph.upsertNode)*/
-                  MemGraphDefault.ns.getNode(iri).head
+                    .getOrElse(throw new Exception(s"Could not get extended property $iri")) /*.map(DetachedGraph.nodes.upsert)*/
+                  MemGraphDefault.ns.nodes.hasIri(iri).head
               })
           .getOrElse(List())
           .foreach { extendedNode =>
-            propertyNode --- Property.default.EXTENDS --> extendedNode
+            propertyNode --- Property.default.`@extends` --> extendedNode
           }
 
         getProperties(expObj, builder).foreach { propertyNode0 =>
-          propertyNode --- Property.default.properties --> propertyNode0
+          propertyNode --- Property.default.`@properties` --> propertyNode0
         }
         expObj
-          .get(types.range)
+          .get(types.`@range`)
           .orElse(expObj.get(types.schemaRange))
           .map { json =>
             json.array
@@ -969,19 +973,19 @@ object JsonLD {
               }))
               .getOrElse(List())
               .map(ct =>
-                MemGraphDefault.ns
-                  .getNode(ct.iri)
+                MemGraphDefault.ns.nodes
+                  .hasIri(ct.iri)
                   .headOption
                   .getOrElse(throw FromJsonException("unknown @type key/iri format")))
           }
           .getOrElse(List())
           .foreach { rangeNode =>
-            propertyNode --- Property.default.range --> rangeNode
+            propertyNode --- Property.default.`@range` --> rangeNode
           }
 
-        (JsonObject.fromTraversableOnce(expObj) - types.id - types.ids - types.TYPE -
-          types.EXTENDS - types.rdfsSubPropertyOf - types.label - types.rdfsLabel -
-          types.comment - types.rdfsComment - types.container - types.range -
+        (JsonObject.fromTraversableOnce(expObj) - types.`@id` - types.`@ids` - types.`@type` -
+          types.`@extends` - types.rdfsSubPropertyOf - types.`@label` - types.rdfsLabel -
+          types.`@comment` - types.rdfsComment - types.`@container` - types.`@range` -
           types.schemaRange - types.schemaDomainIncludes).toMap.foreach {
           case (jKey, jValue) => jsonToEdge(propertyNode, jKey, jValue, builder)
         }
@@ -1004,12 +1008,12 @@ object JsonLD {
       if (labels.size != 1 || labels.head != DataType.ontology)
         throw FromJsonException(s"DataType datatype without @type: @datatype or ${types.schemaDataType}")
 
-      val datatypeNode = MemGraphDefault.ns.upsertNode(iri)
+      val datatypeNode = MemGraphDefault.ns.nodes.upsert(iri)
       datatypeNode.addLabel(DataType.ontology)
       datatypeNode.addLabel(Ontology.ontology)
 
       expObj
-        .get(types.EXTENDS)
+        .get(types.`@extends`)
         .orElse(expObj.get(types.rdfsSubClassOf))
         .map(
           json =>
@@ -1037,17 +1041,17 @@ object JsonLD {
                     case datatype: DataType[_] => datatype
                     case _                     => throw FromJsonException(s"@extends $iri does not link to a datatype")
                   }
-                  .getOrElse(throw new Exception(s"Could not get extended datatype $iri")) /*.map(DetachedGraph.upsertNode)*/
-                MemGraphDefault.ns.getNode(iri).head
+                  .getOrElse(throw new Exception(s"Could not get extended datatype $iri")) /*.map(DetachedGraph.nodes.upsert)*/
+                MemGraphDefault.ns.nodes.hasIri(iri).head
             })
         .getOrElse(List())
         .foreach { extendedNode =>
-          datatypeNode --- Property.default.EXTENDS --> extendedNode
+          datatypeNode --- Property.default.`@extends` --> extendedNode
         }
 
-      (JsonObject.fromTraversableOnce(expObj) - types.id - types.ids - types.TYPE -
-        types.EXTENDS - types.rdfsSubPropertyOf - types.label - types.rdfsLabel -
-        types.comment - types.rdfsComment - types.container - types.range -
+      (JsonObject.fromTraversableOnce(expObj) - types.`@id` - types.`@ids` - types.`@type` -
+        types.`@extends` - types.rdfsSubPropertyOf - types.`@label` - types.rdfsLabel -
+        types.`@comment` - types.rdfsComment - types.`@container` - types.`@range` -
         types.schemaRange - types.schemaDomainIncludes - CollectionType.keys.valueRange.iri - MapType.keys.keyRange.iri).toMap
         .foreach {
           case (jKey, jValue) => jsonToEdge(datatypeNode, jKey, jValue, builder)
@@ -1088,39 +1092,39 @@ object JsonLD {
         case ct: Ontology    => node --- CollectionType.keys.valueRange --> ct
       }
       val dt = iri match {
-        case iri if iri.startsWith(types.list) =>
+        case iri if iri.startsWith(types.`@list`) =>
           val clsTypes = expObj
             .get(CollectionType.keys.valueRange.iri)
             .flatMap(jsonToClassTypes)
             .getOrElse(List())
           clsTypes.foreach(valueRangeToNode(datatypeNode))
-          datatypeNode --- Property.default.iri --> ListType(clsTypes).iri
+          datatypeNode --- Property.default.`@id` --> ListType(clsTypes).iri
           ListType.wrap(datatypeNode)
-        case iri if iri.startsWith(types.listset) =>
+        case iri if iri.startsWith(types.`@listset`) =>
           val clsTypes = expObj
             .get(CollectionType.keys.valueRange.iri)
             .flatMap(jsonToClassTypes)
             .getOrElse(List())
           clsTypes.foreach(valueRangeToNode(datatypeNode))
-          datatypeNode --- Property.default.iri --> ListSetType(clsTypes).iri
+          datatypeNode --- Property.default.`@id` --> ListSetType(clsTypes).iri
           ListSetType.wrap(datatypeNode)
-        case iri if iri.startsWith(types.set) =>
+        case iri if iri.startsWith(types.`@set`) =>
           val clsTypes = expObj
             .get(CollectionType.keys.valueRange.iri)
             .flatMap(jsonToClassTypes)
             .getOrElse(List())
           clsTypes.foreach(valueRangeToNode(datatypeNode))
-          datatypeNode --- Property.default.iri --> SetType(clsTypes).iri
+          datatypeNode --- Property.default.`@id` --> SetType(clsTypes).iri
           SetType.wrap(datatypeNode)
-        case iri if iri.startsWith(types.vector) =>
+        case iri if iri.startsWith(types.`@vector`) =>
           val clsTypes = expObj
             .get(CollectionType.keys.valueRange.iri)
             .flatMap(jsonToClassTypes)
             .getOrElse(List())
           clsTypes.foreach(valueRangeToNode(datatypeNode))
-          datatypeNode --- Property.default.iri --> VectorType(clsTypes).iri
+          datatypeNode --- Property.default.`@id` --> VectorType(clsTypes).iri
           VectorType.wrap(datatypeNode)
-        case iri if iri.startsWith(types.map) =>
+        case iri if iri.startsWith(types.`@map`) =>
           val kclsTypes =
             expObj.get(MapType.keys.keyRange.iri).flatMap(jsonToClassTypes).getOrElse(List())
           val clsTypes = expObj
@@ -1129,7 +1133,7 @@ object JsonLD {
             .getOrElse(List())
           kclsTypes.foreach(keyRangeToNode(datatypeNode))
           clsTypes.foreach(valueRangeToNode(datatypeNode))
-          datatypeNode --- Property.default.iri --> MapType(kclsTypes, clsTypes).iri
+          datatypeNode --- Property.default.`@id` --> MapType(kclsTypes, clsTypes).iri
           MapType.wrap(datatypeNode)
       }
       MemGraphDefault.ns.storeClassType(dt.asInstanceOf[ClassType[Any]])
@@ -1154,7 +1158,7 @@ object JsonLD {
 
   private def getProperties(obj: Map[String, Json], builder: LDGraphBuilder): List[Node] = {
     obj
-      .get(types.properties)
+      .get(types.`@properties`)
 //      .orElse(obj.get(types.schemaDomainIncludes))
       .map(
         json =>
@@ -1179,8 +1183,8 @@ object JsonLD {
                   case property: Property => property
                   case _                  => throw FromJsonException(s"@properties $iri does not link to a property")
                 }
-                .getOrElse(throw new Exception("123")) /*.map(DetachedGraph.upsertNode)*/
-              MemGraphDefault.ns.getNode(iri).head
+                .getOrElse(throw new Exception("123")) /*.map(DetachedGraph.nodes.upsert)*/
+              MemGraphDefault.ns.nodes.hasIri(iri).head
           })
       .getOrElse(List())
   }
@@ -1188,7 +1192,7 @@ object JsonLD {
   def getClassType[T](obj: JsonObject,
                       classType: ClassType[T],
                       builder: LDGraphBuilder = LDGraphBuilder()): Try[(List[ClassType[_]], JsonObject)] = Try {
-    obj(types.TYPE)
+    obj(types.`@type`)
       .map { json =>
         json.array
           .map { values =>
@@ -1206,7 +1210,7 @@ object JsonLD {
         tpes
           .map(builder.expandIri(_))
           .map { iri =>
-            if (iri == types.id) DataType.default.uRLType
+            if (iri == types.`@id`) DataType.default.uRLType
             else //key.range.collectFirst { case key if key.iri == iri => key }
               //          .orElse {
               MemGraphDefault.ns
@@ -1222,7 +1226,7 @@ object JsonLD {
                   throw FromJsonException(s"no classtype found for iri ${iri}")
                 }
           }
-          .asInstanceOf[List[ClassType[_]]] -> (obj - types.TYPE)
+          .asInstanceOf[List[ClassType[_]]] -> (obj - types.`@type`)
       //        println(s"classtype == ${iri}")
       }
       .getOrElse {
@@ -1263,11 +1267,11 @@ object JsonLD {
       key -> builder.context.property
         .get(key)
         .flatMap(_.tpe)
-        .getOrElse(key.range.headOption.getOrElse(DataType.default.textType))
+        .getOrElse(key.range.headOption.getOrElse(DataType.default.`@string`))
     }
 
     key.container match {
-      case Some(types.list) =>
+      case Some(types.`@list`) =>
         jValue.array
           .map { values =>
             values.map(json =>
@@ -1288,7 +1292,7 @@ object JsonLD {
           //          case Failure(error) => throw FromJsonException(s"Could not parse value $json for ${key.iri} with dataType ${classType.iri} and error ${error.getMessage}")
           //        }}}
           .getOrElse(throw FromJsonException(s"@container:@list but value $jValue is not a @list"))
-      case Some(types.set) =>
+      case Some(types.`@set`) =>
         jValue.array
           .map { values =>
             values.map(json =>
@@ -1302,7 +1306,7 @@ object JsonLD {
             })
           }
           .getOrElse(throw FromJsonException(s"@container:@set but value $jValue for key ${key.iri} is not a @set"))
-      case Some(types.language) | Some(types.index) =>
+      case Some(types.`@language`) | Some(types.`@index`) =>
         jValue.obj
           .map { obj =>
             jsIndexToEdges(resource, key, key.container.get, classType, obj, builder) match {
@@ -1327,7 +1331,7 @@ object JsonLD {
                      builder: LDGraphBuilder = LDGraphBuilder()): Try[(ClassType[Any], Any)] = Try {
     parseContext(obj, builder).map {
       case (builder, obj) =>
-        obj(types.value) match {
+        obj(types.`@value`) match {
           case Some(value) =>
             getClassType(obj, classType, builder) match {
               case Success((classTypes, obj)) =>
@@ -1355,7 +1359,7 @@ object JsonLD {
                  builder: LDGraphBuilder = LDGraphBuilder()): Try[(ClassType[Any], Any)] = Try {
     parseContext(obj, builder).map {
       case (builder, obj) =>
-        val to = obj(types.to) match {
+        val to = obj(types.`@to`) match {
           case Some(to) =>
             val classType = property.range.headOption.getOrElse(TextType.textType)
             getClassType(obj, classType, builder) match {
@@ -1372,7 +1376,7 @@ object JsonLD {
           case None =>
             throw FromJsonException(s"@to expected but missing for ${property.iri} in $obj")
         }
-        val from = obj(types.from) match {
+        val from = obj(types.`@from`) match {
           case Some(from) =>
             val classType = property.range.headOption.getOrElse(TextType.textType)
             getClassType(obj, classType, builder) match {
@@ -1394,15 +1398,15 @@ object JsonLD {
           case o: Node       => o
           case p: Edge[_, _] => p
           case v: Value[_]   => v
-          case v             => DetachedGraph.createValue(v)(from._1.asInstanceOf[DataType[Any]])
+          case v             => DetachedGraph.values.create(v, from._1.asInstanceOf[DataType[Any]])
         }
         val toResource = from._2 match {
           case o: Node       => o
           case p: Edge[_, _] => p
           case v: Value[_]   => v
-          case v             => DetachedGraph.createValue(v)(from._1.asInstanceOf[DataType[Any]])
+          case v             => DetachedGraph.values.create(v, from._1.asInstanceOf[DataType[Any]])
         }
-        property -> DetachedGraph.createEdge(fromResource, property, toResource)
+        property -> DetachedGraph.edges.create(fromResource, property, toResource)
     } match {
       case Success(value) => value //.toList//.asInstanceOf[List[MemProperty[_, _]]]
       case Failure(error) => throw error
@@ -1418,7 +1422,7 @@ object JsonLD {
     if (obj.fieldSet.intersect(Graph.reservedKeys.map(_.iri)).nonEmpty)
       throw FromJsonException("index-keys cannot contain reserved key-words")
     container match {
-      case types.language =>
+      case types.`@language` =>
         obj.toMap.map {
           case (indexKey, jValue) =>
             //                jsonToValue(typedKey.self2, key, context)
@@ -1431,7 +1435,7 @@ object JsonLD {
               case Failure(error) => throw error
             }
         }.toList //.asInstanceOf[List[Property[_, String]]]
-      case types.index =>
+      case types.`@index` =>
         obj.toMap.map {
           case (indexKey, jValue) =>
             //                jsonToValue(typedKey.self2, key, context)
@@ -1454,14 +1458,14 @@ object JsonLD {
 
     json.obj
       .flatMap { obj =>
-        obj(types.value)
+        obj(types.`@value`)
           .map(json =>
             jsValueToValue(obj, classType, builder) match {
               case Success(r)     => r
               case Failure(error) => throw error
           })
           .orElse {
-            Option(if (obj ?? types.to && obj ?? types.from && obj ?? types.TYPE) {
+            Option(if (obj ?? types.`@to` && obj ?? types.`@from` && obj ?? types.`@type`) {
               getClassType(obj, classType, builder) match {
                 case Success(r) =>
                   if (r._1.headOption.exists(_.isInstanceOf[Property])) {
@@ -1470,7 +1474,7 @@ object JsonLD {
                       case Failure(error) => throw error
                     }
                   } else if (r._1.headOption.contains(IriType)) {
-                    jsToToEdge(r._2, Property.default.iri, builder) match {
+                    jsToToEdge(r._2, Property.default.`@id`, builder) match {
                       case Success(r)     => r
                       case Failure(error) => throw error
                     }
@@ -1514,25 +1518,24 @@ object JsonLD {
                       .map(
                         array =>
                           array
-                            .map(
-                              json =>
-                                jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.textType),
-                                            json,
-                                            builder) match {
-                                  case Success(value) => value._2
-                                  case Failure(error) => throw error
-                              }))
+                            .map(json =>
+                              jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.`@string`),
+                                          json,
+                                          builder) match {
+                                case Success(value) => value._2
+                                case Failure(error) => throw error
+                            }))
                   case tpe: MapType[_, _] =>
                     json.array.map { array =>
                       array
                         .map(json =>
                           json.array.filter(_.lengthCompare(2) == 0).map { array =>
-                            (jsonToValue(tpe.keyRange.headOption.getOrElse(DataType.default.textType),
+                            (jsonToValue(tpe.keyRange.headOption.getOrElse(DataType.default.`@string`),
                                          array.head,
                                          builder) match {
                               case Success(value) => value._2
                               case Failure(error) => throw error
-                            }) -> (jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.textType),
+                            }) -> (jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.`@string`),
                                                array(1),
                                                builder) match {
                               case Success(value) => value._2
@@ -1546,40 +1549,37 @@ object JsonLD {
                       .map(
                         array =>
                           array
-                            .map(
-                              json =>
-                                jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.textType),
-                                            json,
-                                            builder) match {
-                                  case Success(value) => value._2
-                                  case Failure(error) => throw error
-                              }))
+                            .map(json =>
+                              jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.`@string`),
+                                          json,
+                                          builder) match {
+                                case Success(value) => value._2
+                                case Failure(error) => throw error
+                            }))
                   case tpe: SetType[_] =>
                     json.array
                       .map(
                         array =>
                           array
-                            .map(
-                              json =>
-                                jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.textType),
-                                            json,
-                                            builder) match {
-                                  case Success(value) => value._2
-                                  case Failure(error) => throw error
-                              }))
+                            .map(json =>
+                              jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.`@string`),
+                                          json,
+                                          builder) match {
+                                case Success(value) => value._2
+                                case Failure(error) => throw error
+                            }))
                   case tpe: VectorType[_] =>
                     json.array
                       .map(
                         array =>
                           array
-                            .map(
-                              json =>
-                                jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.textType),
-                                            json,
-                                            builder) match {
-                                  case Success(value) => value._2
-                                  case Failure(error) => throw error
-                              }))
+                            .map(json =>
+                              jsonToValue(tpe.valueRange.headOption.getOrElse(DataType.default.`@string`),
+                                          json,
+                                          builder) match {
+                                case Success(value) => value._2
+                                case Failure(error) => throw error
+                            }))
                 }).map(tpe -> _)
             }
           //      case tpe: IriType[_] =>
@@ -1592,7 +1592,7 @@ object JsonLD {
             json.string
               .map { iri =>
                 //TODO: check for valid iri
-                val node = DetachedGraph.createNode()
+                val node = DetachedGraph.nodes.create()
                 node.addOut(Property.default.typed.iriUrlString, builder.expandIri(iri))
                 DataType.default.uRLType -> node //.asInstanceOf[T]
               }
@@ -1624,13 +1624,13 @@ object JsonLD {
       case (builder, obj) =>
         val expObj = obj.toMap.map { case (key, value) => builder.expandIri(key) -> value }
 
-        if (obj.size == 1 && obj ?? types.graph && sourceUrl.exists(_.startsWith("https://schema.org"))) {
+        if (obj.size == 1 && obj ?? types.`@graph` && sourceUrl.exists(_.startsWith("https://schema.org"))) {
           val result = {
-            val json = obj(types.graph).get
+            val json = obj(types.`@graph`).get
             json.array
               .map(_.map(json =>
                 json.string
-                  .map(iri => JsonObject.fromTraversableOnce(Map(types.id -> Json.jString(iri))))
+                  .map(iri => JsonObject.fromTraversableOnce(Map(types.`@id` -> Json.jString(iri))))
                   .orElse(json.obj)
                   .getOrElse(throw FromJsonException(s"@graph cannot contain nested lists"))).map { obj =>
                 getIri(expObj, builder)
@@ -1658,20 +1658,22 @@ object JsonLD {
           val iris = getIris(expObj, builder) //.foreach(iri => node.addOut(Property.default.ids, iri))
 
           iri
-            .flatMap(iri =>
-              if (ontologies.exists(_.iri == types.DATATYPE) || ontologies.exists(_.iri == types.CLASS) || ontologies
-                    .exists(_.iri == types.PROPERTY)) {
-                MemGraphDefault.ns.getNode(iri).headOption
-              } else {
-                None
-            })
+            .flatMap(
+              iri =>
+                if (ontologies.exists(_.iri == types.`@datatype`) || ontologies
+                      .exists(_.iri == types.`@class`) || ontologies
+                      .exists(_.iri == types.`@property`)) {
+                  MemGraphDefault.ns.nodes.hasIri(iri).headOption
+                } else {
+                  None
+              })
             .getOrElse {
-              val node = DetachedGraph.createNode()
+              val node = DetachedGraph.nodes.create()
               ontologies.foreach(node.addLabel)
-              iri.foreach(node --- Property.default.iri --> _)
-              iris.foreach(node --- Property.default.iris --> _)
+              iri.foreach(node --- Property.default.`@id` --> _)
+              iris.foreach(node --- Property.default.`@ids` --> _)
               //                propertyValues(node, obj - ldcontext.types.id - ldcontext.types.ids - ldcontext.types.context - ldcontext.types.TYPE, builder)
-              (obj - types.id - types.ids - types.context - types.TYPE).toMap.foreach {
+              (obj - types.`@id` - types.`@ids` - types.`@context` - types.`@type`).toMap.foreach {
                 case (jKey, jValue) =>
                   jsonToEdge(node, jKey, jValue, builder)
               }

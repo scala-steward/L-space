@@ -6,41 +6,41 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
 object TupleType {
-  lazy val ontology = Ontology(types.tuple)(_extendedClasses = () => List(StructuredValue.ontology))
+  lazy val ontology = Ontology(types.`@tuple`)(_extendedClasses = () => List(StructuredValue.ontology))
 
   object keys {
-    private val _1stRangeNode = MemGraphDefault.ns.upsertNode("@1stRange")
+    private val _1stRangeNode = MemGraphDefault.ns.nodes.upsert("@1stRange")
     _1stRangeNode.addLabel(Property.ontology)
-    _1stRangeNode --- Property.default.label --> "@1stRange" --- Property.default.language --> "en"
-    _1stRangeNode --- Property.default.container --> types.list
-    _1stRangeNode --- Property.default.range --> types.CLASS
+    _1stRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
+    _1stRangeNode --- Property.default.`@container` --> types.`@list`
+    _1stRangeNode --- Property.default.`@range` --> types.`@class`
     val _1stRange = Property(_1stRangeNode)
 
-    private val _2ndRangeNode = MemGraphDefault.ns.upsertNode("@2ndRange")
+    private val _2ndRangeNode = MemGraphDefault.ns.nodes.upsert("@2ndRange")
     _2ndRangeNode.addLabel(Property.ontology)
-    _2ndRangeNode --- Property.default.label --> "@1stRange" --- Property.default.language --> "en"
-    _2ndRangeNode --- Property.default.container --> types.list
-    _2ndRangeNode --- Property.default.range --> types.CLASS
+    _2ndRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
+    _2ndRangeNode --- Property.default.`@container` --> types.`@list`
+    _2ndRangeNode --- Property.default.`@range` --> types.`@class`
     val _2ndRange = Property(_2ndRangeNode)
 
-    private val _3rdRangeNode = MemGraphDefault.ns.upsertNode("@3rdRange")
+    private val _3rdRangeNode = MemGraphDefault.ns.nodes.upsert("@3rdRange")
     _3rdRangeNode.addLabel(Property.ontology)
-    _3rdRangeNode --- Property.default.label --> "@1stRange" --- Property.default.language --> "en"
-    _3rdRangeNode --- Property.default.container --> types.list
-    _3rdRangeNode --- Property.default.range --> types.CLASS
+    _3rdRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
+    _3rdRangeNode --- Property.default.`@container` --> types.`@list`
+    _3rdRangeNode --- Property.default.`@range` --> types.`@class`
     val _3rdRange = Property(_3rdRangeNode)
 
-    private val _4rdRangeNode = MemGraphDefault.ns.upsertNode("@4rdRange")
+    private val _4rdRangeNode = MemGraphDefault.ns.nodes.upsert("@4rdRange")
     _4rdRangeNode.addLabel(Property.ontology)
-    _4rdRangeNode --- Property.default.label --> "@1stRange" --- Property.default.language --> "en"
-    _4rdRangeNode --- Property.default.container --> types.list
-    _4rdRangeNode --- Property.default.range --> types.CLASS
+    _4rdRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
+    _4rdRangeNode --- Property.default.`@container` --> types.`@list`
+    _4rdRangeNode --- Property.default.`@range` --> types.`@class`
     val _4rdRange = Property(_4rdRangeNode)
   }
 
   def apply(node: Node): TupleType[_] = {
     node.iri match {
-      case iri if iri.startsWith(types.tuple + 2) =>
+      case iri if iri.startsWith(types.`@tuple` + 2) =>
         Tuple2Type(
           node
             .out(keys._1stRange)
@@ -51,7 +51,7 @@ object TupleType {
             .collect { case node: Node => node }
             .map(node.graph.ns.getClassType)
         )
-      case iri if iri.startsWith(types.tuple + 3) =>
+      case iri if iri.startsWith(types.`@tuple` + 3) =>
         Tuple3Type(
           node
             .out(keys._1stRange)
@@ -66,7 +66,7 @@ object TupleType {
             .collect { case node: Node => node }
             .map(node.graph.ns.getClassType)
         )
-      case iri if iri.startsWith(types.tuple + 4) =>
+      case iri if iri.startsWith(types.`@tuple` + 4) =>
         Tuple4Type(
           node
             .out(keys._1stRange)
@@ -131,7 +131,7 @@ class Tuple2Type[+A, +B](val _1stRange: List[ClassType[A]], val _2ndRange: List[
     extends TupleType[(A, B)] {
 
   val iri =
-    s"${types.tuple}2/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}"
+    s"${types.`@tuple`}2/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}"
 }
 
 object Tuple3Type {
@@ -168,7 +168,7 @@ class Tuple3Type[A, B, C](val _1stRange: List[ClassType[A]],
     extends TupleType[(A, B, C)] {
 
   val iri =
-    s"${types.tuple}3/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}/${_3ndRange.map(_.iri).sorted.mkString("+")}"
+    s"${types.`@tuple`}3/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}/${_3ndRange.map(_.iri).sorted.mkString("+")}"
 }
 
 object Tuple4Type {
@@ -213,6 +213,6 @@ class Tuple4Type[A, B, C, D](val _1stRange: List[ClassType[A]],
     extends TupleType[(A, B, C, D)] {
 
   val iri =
-    s"${types.tuple}4/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}" +
+    s"${types.`@tuple`}4/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}" +
       s"/${_3ndRange.map(_.iri).sorted.mkString("+")}/${_4ndRange.map(_.iri).sorted.mkString("+")}"
 }

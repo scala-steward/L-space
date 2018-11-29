@@ -5,9 +5,15 @@ import lspace.librarian.structure._
 import scala.collection.mutable
 
 object MemNode {
-  protected[provider] def apply(implicit _graph: MemGraph): MemNode = new MemNode {
-    implicit val graph: MemGraph = _graph
-  }
+//  protected[provider] def apply(implicit _graph: MemGraph): MemNode = new MemNode {
+//    implicit val graph: MemGraph = _graph
+//    val id: Long                 = graph.idGenerator.next
+//  }
+
+//  protected[provider] def apply(_id: Long)(implicit _graph: MemGraph): MemNode = new MemNode {
+//    implicit val graph: Graph = _graph
+//    val id: Long              = _id
+//  }
 }
 
 trait MemNode extends MemResource[Node] with Node {
@@ -28,12 +34,9 @@ trait MemNode extends MemResource[Node] with Node {
         types += o
       }
     }
+    //TODO: store and index
     o
   }
 
   def removeLabel(classType: Ontology): Unit = types -= classType
-
-  override def _remove(): Unit = {
-    super._remove()
-  }
 }

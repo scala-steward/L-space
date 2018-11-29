@@ -10,5 +10,5 @@ object GraphType {
 }
 
 trait GraphType[+T <: Graph] extends DataType[T] {
-  val iri: String = NS.types.graph
+  val iri: String = NS.types.`@graph`
 }

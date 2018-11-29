@@ -7,15 +7,15 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Regex extends PredicateCompanion("Regex") with PredicateWrapper[Regex] {
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Regex = node match {
     case node: Regex => node
-    case _           => new Regex(node.out(EqP.keys.value + DataType.default.textType).head.r, node)
+    case _           => new Regex(node.out(EqP.keys.value + DataType.default.`@string`).head.r, node)
   }
 
   def apply(pvalue: scala.util.matching.Regex): Regex = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue.regex)
     new Regex(pvalue, node)

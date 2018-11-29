@@ -15,7 +15,7 @@ object Sum extends StepDef("Sum") with StepWrapper[Sum] {
   }
 
   def apply(): Sum = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Sum(node)
   }

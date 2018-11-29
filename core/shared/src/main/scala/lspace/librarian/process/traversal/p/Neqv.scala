@@ -10,7 +10,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Neqv extends PredicateCompanion("Neqv") with PredicateWrapper[Neqv[_]] {
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Neqv[_] = node match {
     case node: Neqv[_] => node
@@ -20,7 +20,7 @@ object Neqv extends PredicateCompanion("Neqv") with PredicateWrapper[Neqv[_]] {
   }
 
   def apply[T: EqHelper, T0, TT0 <: ClassType[_]](pvalue: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Neqv[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new Neqv(pvalue, node)

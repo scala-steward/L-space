@@ -14,7 +14,7 @@ object Dedup extends StepDef("Dedup") with StepWrapper[Dedup] {
   }
 
   def apply(): Dedup = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Dedup(node)
   }

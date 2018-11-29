@@ -25,7 +25,7 @@ lazy val compilerOptions = Seq(
 
 lazy val projectSettings = Seq(
   organization := "eu.l-space",
-  version := "0.1.9",
+  version := "0.2.0-SNAPSHOT",
 )
 
 lazy val commonSettings = projectSettings ++ Seq(
@@ -96,7 +96,7 @@ lazy val client =
     )
 
 lazy val graph = (project in file("graph"))
-  .dependsOn(core.jvm % "compile->compile;test->test")
+  .dependsOn(parse.jvm % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-graph",

@@ -15,7 +15,7 @@ object InR extends StepDef("InR") with StepWrapper[InR] {
   }
 
   def apply(): InR = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     InR(node)
   }

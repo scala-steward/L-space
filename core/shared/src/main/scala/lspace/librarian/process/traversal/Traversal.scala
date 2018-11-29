@@ -1,5 +1,7 @@
 package lspace.librarian.process.traversal
 
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
+
 import lspace.NS
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.{ClassTypeable, Selector}
@@ -28,21 +30,21 @@ object Traversal {
 
   val keys = new {
     private val stepNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/Traversal/step")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Traversal/step")
     stepNode.addLabel(Property.ontology)
-    stepNode --- Property.default.label --> "step" --- Property.default.language --> "en"
-    stepNode --- Property.default.comment --> "A step in a traversal" --- Property.default.language --> "en"
-    stepNode --- Property.default.container --> NS.types.list
-    stepNode --- Property.default.range --> Step.ontology
+    stepNode --- Property.default.`@label` --> "step" --- Property.default.`@language` --> "en"
+    stepNode --- Property.default.`@comment` --> "A step in a traversal" --- Property.default.`@language` --> "en"
+    stepNode --- Property.default.`@container` --> NS.types.`@list`
+    stepNode --- Property.default.`@range` --> Step.ontology
     lazy val step: Property = Property(stepNode)
 
     val stepStep: TypedProperty[Node] = step + Step.ontology
   }
 
-  private val ontologyNode = MemGraphDefault.ns.createNode(Ontology.ontology)
-  ontologyNode --- Property.default.iri --> "sptth/tbd.tld/librarian/Traversal"
-  ontologyNode --- Property.default.label --> "Traversal" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.properties --> keys.step
+  private val ontologyNode = MemGraphDefault.ns.nodes.create(Ontology.ontology)
+  ontologyNode --- Property.default.`@id` --> "sptth/tbd.tld/librarian/Traversal"
+  ontologyNode --- Property.default.`@label` --> "Traversal" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@properties` --> keys.step
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
@@ -61,12 +63,13 @@ object Traversal {
         st,
         GraphType.default)
 
-    def N: Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] = N()
-    def N(resource: Node*)(implicit ev: Node =:= Node): Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] =
-      Traversal[ST[Start], NodeURLType[Node], step.N :: Steps](step.N(resource.toList) :: _traversal.steps)(
-        target,
-        st,
-        NodeURLType.default)
+    def N(): Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] =
+      Traversal[ST[Start], NodeURLType[Node], step.N :: Steps](step.N() :: _traversal.steps)(target,
+                                                                                             st,
+                                                                                             NodeURLType.default)
+    def N(resource: Node, resources: Node*): Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] =
+      Traversal[ST[Start], NodeURLType[Node], step.N :: Steps](
+        step.N(resource :: resources.toList) :: _traversal.steps)(target, st, NodeURLType.default)
 
     def E: Traversal[ST[Start], EdgeURLType[Edge[Any, Any]], step.E :: Steps] = //: Traversal[ST[Start],ClassType[Edge[S, E]], step.E :: Steps] =
       E[Any, Any]()
@@ -76,12 +79,11 @@ object Traversal {
         st,
         EdgeURLType.edgeUrlType[Edge[S, E]])
 
-    def V: Traversal[ST[Start], DataType[Any], V :: Steps] =
+    def V(): Traversal[ST[Start], DataType[Any], V :: Steps] =
       Traversal[ST[Start], DataType[Any], step.V :: Steps](step.V() :: _traversal.steps)(target,
                                                                                          st,
                                                                                          DataType.default.default)
-    def V[T, ET0 <: DataType[T], OutC, Out <: ClassType[OutC]](value: T, values: T*)(
-        implicit cls: ClassTypeable.Aux[ET0, OutC, Out]) =
+    def V[T, OutC, Out <: ClassType[OutC]](value: T, values: T*)(implicit cls: ClassTypeable.Aux[T, OutC, Out]) =
       Traversal[ST[Start], Out, step.V :: Steps](step.V(value :: values.toList) :: _traversal.steps)(target, st, cls.ct)
 
     //    def R[T <: Resource[T]: DefaultsToAny]: Traversal[Start, T, step.R :: Steps] = R()
@@ -196,33 +198,33 @@ object Traversal {
 
     def isNumber =
       Traversal[ST[Start], NumericType[Any], HasLabel :: Steps](HasLabel(
-        DataType.default.intType :: DataType.default.doubleType :: DataType.default.longType :: Nil) :: _traversal.steps)(
+        DataType.default.`@int` :: DataType.default.`@double` :: DataType.default.`@long` :: Nil) :: _traversal.steps)(
         target,
         st,
-        DataType.default.numericType)
+        DataType.default.`@number`)
 
     def isTemporal =
       Traversal[ST[Start], CalendarType[Any], HasLabel :: Steps](HasLabel(
-        DataType.default.dateTimeType :: DataType.default.dateTimeType :: DataType.default.timeType :: Nil) :: _traversal.steps)(
+        DataType.default.`@datetime` :: DataType.default.`@datetime` :: DataType.default.`@time` :: Nil) :: _traversal.steps)(
         target,
         st,
-        DataType.default.temporal)
+        DataType.default.`@temporal`)
 
     def isQuantity =
       Traversal[ST[Start], QuantityType[Any], HasLabel :: Steps](
-        HasLabel(DataType.default.duration :: Nil) :: _traversal.steps)(target, st, DataType.default.quantity)
+        HasLabel(DataType.default.`@duration` :: Nil) :: _traversal.steps)(target, st, DataType.default.`@quantity`)
 
     def isDuration =
       Traversal[ST[Start], DurationType, HasLabel :: Steps](
-        HasLabel(DataType.default.duration :: Nil) :: _traversal.steps)(target, st, DataType.default.duration)
+        HasLabel(DataType.default.`@duration` :: Nil) :: _traversal.steps)(target, st, DataType.default.`@duration`)
 
     def isGeo =
       Traversal[ST[Start], GeometricType[Any], HasLabel :: Steps](
-        HasLabel(DataType.default.geopointType :: Nil) :: _traversal.steps)(target, st, DataType.default.geoType)
+        HasLabel(DataType.default.`@geopoint` :: Nil) :: _traversal.steps)(target, st, DataType.default.`@geo`)
 
     def isColor =
       Traversal[ST[Start], ColorType[Any], HasLabel :: Steps](
-        HasLabel(DataType.default.colorType :: Nil) :: _traversal.steps)(target, st, DataType.default.colorType)
+        HasLabel(DataType.default.`@color` :: Nil) :: _traversal.steps)(target, st, DataType.default.`@color`)
 
     def hasLabel(label0: String, labels0: String*) = {
       val labelKeys = (MemGraphDefault.ns
@@ -728,7 +730,7 @@ object Traversal {
     implicit def target = _traversal.target
 
     def id =
-      Traversal[ST[Start], LongType[Long], Id :: Steps](Id() :: _traversal.steps)(target, st, DataType.default.longType)
+      Traversal[ST[Start], LongType[Long], Id :: Steps](Id() :: _traversal.steps)(target, st, DataType.default.`@long`)
 
     def iri = _traversal.out(Property.default.typed.iriUrlString)
   }
@@ -797,6 +799,8 @@ object Traversal {
       Traversal(Label(key.toSet) :: _traversal.steps)(target, st, et.ct)
     //    def label(implicit dt: DataType[End]): Traversal[Start, DataType[End], Label, Containers] =
     //      Traversal[Start, DataType[End], Label, Containers](Label())
+    def order(increasing: Boolean) =
+      Traversal(Order(Traversal[ET[End], ET[End]]()(target, et, et), increasing) :: _traversal.steps)(target, st, et)
   }
 
   implicit class ResourceStepsHelper2[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList](
@@ -839,7 +843,7 @@ object Traversal {
     def mean() =
       Traversal[ST[Start], DoubleType[Double], Mean :: Steps](Mean() :: _traversal.steps)(target,
                                                                                           st,
-                                                                                          DataType.default.doubleType)
+                                                                                          DataType.default.`@double`)
   }
 
   implicit class QuantitySteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: QuantityType[Z], Steps <: HList](
@@ -857,7 +861,7 @@ object Traversal {
       Traversal[ST[Start], ET[End], Mean :: Steps](Mean() :: _traversal.steps)(target, st, et)
   }
 
-  implicit class TemporalSteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: CalendarType[Z], Steps <: HList](
+  abstract class TemporalSteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: CalendarType[Z], Steps <: HList](
       protected[this] val _traversal: Traversal[ST[Start], ET[End], Steps])
       extends StepsHelper[ST[Start], ET[End], Steps] {
     implicit val target = _traversal.target
@@ -869,6 +873,19 @@ object Traversal {
     def min() =
       Traversal[ST[Start], ET[End], Min :: Steps](Min() :: _traversal.steps)(target, st, et)
   }
+
+  implicit class InstantSteps[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: CalendarType[Z], Steps <: HList](
+      _traversal: Traversal[ST[Start], ET[Instant], Steps])
+      extends TemporalSteps(_traversal)
+  implicit class LocalDateTimeSteps[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: CalendarType[Z], Steps <: HList](
+      _traversal: Traversal[ST[Start], ET[LocalDateTime], Steps])
+      extends TemporalSteps(_traversal)
+  implicit class LocalTimeSteps[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: CalendarType[Z], Steps <: HList](
+      _traversal: Traversal[ST[Start], ET[LocalTime], Steps])
+      extends TemporalSteps(_traversal)
+  implicit class LocalDateSteps[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: CalendarType[Z], Steps <: HList](
+      _traversal: Traversal[ST[Start], ET[LocalDate], Steps])
+      extends TemporalSteps(_traversal)
 
   implicit class GeoSteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: GeometricType[Z], Steps <: HList](
       protected[this] val _traversal: Traversal[ST[Start], ET[End], Steps])
@@ -898,10 +915,7 @@ object Traversal {
     def tail(max: Int) =
       Traversal(Tail(max) :: _traversal.steps)(target, st, et)
 
-    def order(increasing: Boolean) =
-      Traversal(Order(Traversal[ET[End], ET[End]]()(target, et, et), increasing) :: _traversal.steps)(target, st, et)
-
-    def order[T, CT[+Z] <: ClassType[Z]: Orderable](
+    def order[T, CT[+Z] <: DataType[Z]: Orderable](
         by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CT[T], _ <: HList],
         increasing: Boolean = true) =
       Traversal(Order(by(Traversal[ET[End], ET[End]]()(target, et, et)), increasing) :: _traversal.steps)(target,
@@ -909,7 +923,7 @@ object Traversal {
                                                                                                           et)
 
     def count() =
-      Traversal(Count() :: _traversal.steps)(target, st, DataType.default.longType)
+      Traversal(Count() :: _traversal.steps)(target, st, DataType.default.`@long`)
   }
 
   /**
@@ -1034,7 +1048,7 @@ object Traversal {
 
   def apply[ST0 <: ClassType[_], ET0 <: ClassType[_], Steps <: HList](
       steps0: Steps)(target0: Graph, st0: ST0, et0: ET0): Traversal[ST0, ET0, Steps] = {
-    val node0 = DetachedGraph.createNode(ontology)
+    val node0 = DetachedGraph.nodes.create(ontology)
 
     steps0.runtimeList.reverse.asInstanceOf[List[Node]].foreach(node0.addOut(keys.step, _))
 

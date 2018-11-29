@@ -27,7 +27,7 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
       Order(
         node
           .out(Order.keys.byTraversal)
-          .map(Traversal.wrap(_)(DetachedGraph)(ClassType.default[Any]))
+          .map(Traversal.wrap(_)(DetachedGraph)(DataType.default.default))
           .head,
         node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true),
         node
@@ -36,39 +36,39 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Order/by")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Order/by")
     byNode.addLabel(Property.ontology)
-    byNode --- Property.default.label --> "by" --- Property.default.language --> "en"
-    byNode --- Property.default.comment --> "A traversal .." --- Property.default.language --> "en"
-    byNode --- Property.default.range --> Traversal.ontology
+    byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
+    byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
+    byNode --- Property.default.`@range` --> Traversal.ontology
     lazy val by                          = Property(byNode)
     val byTraversal: TypedProperty[Node] = by + Traversal.ontology
 
     private val increasingNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Order/increasing")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Order/increasing")
     increasingNode.addLabel(Property.ontology)
-    increasingNode --- Property.default.label --> "increasing" --- Property.default.language --> "en"
-    increasingNode --- Property.default.comment --> "Set to true to sort ascending" --- Property.default.language --> "en"
-    increasingNode --- Property.default.range --> DataType.default.boolType
+    increasingNode --- Property.default.`@label` --> "increasing" --- Property.default.`@language` --> "en"
+    increasingNode --- Property.default.`@comment` --> "Set to true to sort ascending" --- Property.default.`@language` --> "en"
+    increasingNode --- Property.default.`@range` --> DataType.default.`@boolean`
     lazy val increasing: Property                 = Property(increasingNode)
-    val increasingBoolean: TypedProperty[Boolean] = increasing + DataType.default.boolType
+    val increasingBoolean: TypedProperty[Boolean] = increasing + DataType.default.`@boolean`
   }
 
-  def apply(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList], increasing: Boolean = true): Order = {
-    val node = DetachedGraph.createNode(ontology)
+  def apply(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean = true): Order = {
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.byTraversal, by.self)
     if (!increasing) node.addOut(keys.increasingBoolean, increasing)
     Order(by, increasing, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.by
-  ontologyNode --- Property.default.properties --> keys.increasing
+  ontologyNode --- Property.default.`@properties` --> keys.by
+  ontologyNode --- Property.default.`@properties` --> keys.increasing
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 //case class Order(key: PropertyKey, increasing: Boolean = true) extends TraverseStep /*with ModulateStep[ZeroOrMoreBy]*/ {
-case class Order private (by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],
+case class Order private (by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList],
                           increasing: Boolean,
                           override val value: Node)
     extends WrappedNode(value)

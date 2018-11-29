@@ -18,26 +18,26 @@ object HasIri extends StepDef("HasIri") with StepWrapper[HasIri] {
 
   object keys {
     private val iriNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/HasIri/iri")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasIri/iri")
     iriNode.addLabel(Property.ontology)
-    iriNode --- Property.default.label --> "Iri" --- Property.default.language --> "en"
-    iriNode --- Property.default.comment --> "An iri" --- Property.default.language --> "en"
-    iriNode --- Property.default.container --> types.set
-    iriNode --- Property.default.range --> DataType.default.textType
+    iriNode --- Property.default.`@label` --> "Iri" --- Property.default.`@language` --> "en"
+    iriNode --- Property.default.`@comment` --> "An iri" --- Property.default.`@language` --> "en"
+    iriNode --- Property.default.`@container` --> types.`@set`
+    iriNode --- Property.default.`@range` --> DataType.default.`@string`
 
     lazy val iri: Property               = Property(iriNode)
-    val iriString: TypedProperty[String] = iri + DataType.default.textType
+    val iriString: TypedProperty[String] = iri + DataType.default.`@string`
   }
 
   def apply(ids: Set[String]): HasIri = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     //    node.addOuts(keys.idString, ids.toList)
     ids.foreach(node.addOut(keys.iri, _))
     HasIri(node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.iri
+  ontologyNode --- Property.default.`@properties` --> keys.iri
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

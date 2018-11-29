@@ -27,24 +27,24 @@ object Local extends StepDef("Local") with StepWrapper[Local] {
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Local/traversal")
+    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Local/traversal")
     traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.label --> "traversal" --- Property.default.language --> "en"
-    traversalNode --- Property.default.comment --> "A traversal .." --- Property.default.language --> "en"
-    traversalNode --- Property.default.range --> Traversal.ontology
+    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
+    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
+    traversalNode --- Property.default.`@range` --> Traversal.ontology
 
     lazy val traversal: Property                = Property(traversalNode)
     val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
   }
 
   def apply(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Local = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.traversalTraversal, traversal.self)
     Local(traversal, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.traversal
+  ontologyNode --- Property.default.`@properties` --> keys.traversal
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

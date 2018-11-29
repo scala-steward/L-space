@@ -14,7 +14,7 @@ object Id extends StepDef("Id") with StepWrapper[Id] {
   }
 
   def apply(): Id = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     new Id(node)
   }

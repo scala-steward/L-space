@@ -1,11 +1,12 @@
 package lspace.librarian.process.traversal
 
-import java.time.{Instant, LocalDate, LocalTime}
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.time.temporal.Temporal
 
 import lspace.librarian.process.traversal.p._
 import lspace.librarian.structure._
 import lspace.NS
+import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.EqP.ontologyNode
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
@@ -23,7 +24,7 @@ import scala.util.Try
 
 object P {
   private val ontologyNode =
-    MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/P")
+    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/P")
   ontologyNode.addLabel(Ontology.ontology)
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
@@ -107,13 +108,14 @@ object P {
   object EqHelper {
     def map[T](value: T): (T, EqHelper[T]) = {
       val helper: (_, EqHelper[_]) = value match {
-        case v: Int         => v -> Helper.IntHelper
-        case v: Double      => v -> Helper.DoubleHelper
-        case v: Long        => v -> Helper.LongHelper
-        case v: Quantity[_] => v -> Helper.QuantityHelper
-        case v: Instant     => v -> Helper.InstantHelper
-        case v: LocalDate   => v -> Helper.LocalDateHelper
-        case v: LocalTime   => v -> Helper.LocalTimeHelper
+        case v: Int           => v -> Helper.IntHelper
+        case v: Double        => v -> Helper.DoubleHelper
+        case v: Long          => v -> Helper.LongHelper
+        case v: Quantity[_]   => v -> Helper.QuantityHelper
+        case v: Instant       => v -> Helper.InstantHelper
+        case v: LocalDateTime => v -> Helper.LocalDateTimeHelper
+        case v: LocalDate     => v -> Helper.LocalDateHelper
+        case v: LocalTime     => v -> Helper.LocalTimeHelper
         //        case v: QuantityRange[_] => v -> Helper.QuantityRangeHelper
         case v: String  => v -> Helper.TextHelper
         case v: Boolean => v -> Helper.BooleanHelper
@@ -141,18 +143,34 @@ object P {
   object OrderHelper {
     def map[T](value: T): (T, OrderHelper[T]) = {
       val helper: (_, OrderHelper[_]) = value match {
-        case v: Int         => v -> Helper.IntHelper
-        case v: Double      => v -> Helper.DoubleHelper
-        case v: Long        => v -> Helper.LongHelper
-        case v: Quantity[_] => v -> Helper.QuantityHelper
-        case v: Instant     => v -> Helper.InstantHelper
-        case v: LocalDate   => v -> Helper.LocalDateHelper
-        case v: LocalTime   => v -> Helper.LocalTimeHelper
-        case v: String      => v -> Helper.TextHelper
+        case v: Int           => v -> Helper.IntHelper
+        case v: Double        => v -> Helper.DoubleHelper
+        case v: Long          => v -> Helper.LongHelper
+        case v: Quantity[_]   => v -> Helper.QuantityHelper
+        case v: Instant       => v -> Helper.InstantHelper
+        case v: LocalDateTime => v -> Helper.LocalDateTimeHelper
+        case v: LocalDate     => v -> Helper.LocalDateHelper
+        case v: LocalTime     => v -> Helper.LocalTimeHelper
+        case v: String        => v -> Helper.TextHelper
         //        case v: TimeUnit => v -> Helper.TimeHelper
       }
       helper.asInstanceOf[(T, OrderHelper[T])]
     }
+    def get[T](classtype: ClassType[T]): OrderHelper[T] =
+      (classtype match {
+        case dt: IntType[_]    => P.Helper.IntHelper
+        case dt: DoubleType[_] => P.Helper.DoubleHelper
+        case dt: LongType[_]   => P.Helper.LongHelper
+        case dt: TextType[_]   => P.Helper.TextHelper
+        case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.localdatetimeType.iri =>
+          P.Helper.InstantHelper
+        case dt: DateTimeType[_] if dt.iri == DateTimeType.datetimeType.iri =>
+          P.Helper.LocalDateTimeHelper
+        case dt: LocalDateType[_] => P.Helper.LocalDateHelper
+        case dt: LocalTimeType[_] => P.Helper.LocalTimeHelper
+        case _ =>
+          throw new Exception(s"unsupported order step, @type to order on is ${classtype.iri}")
+      }).asInstanceOf[P.OrderHelper[T]]
   }
   sealed trait PartialOrderHelper[T] extends Helper[T]
   sealed trait NumericHelper[T]      extends RangeHelper[T] {}
@@ -160,13 +178,14 @@ object P {
   object RangeHelper {
     def map[T](value: T): (T, RangeHelper[T]) = {
       val helper: (_, RangeHelper[_]) = value match {
-        case v: Int         => v -> Helper.IntHelper
-        case v: Double      => v -> Helper.DoubleHelper
-        case v: Long        => v -> Helper.LongHelper
-        case v: Quantity[_] => v -> Helper.QuantityHelper
-        case v: Instant     => v -> Helper.InstantHelper
-        case v: LocalDate   => v -> Helper.LocalDateHelper
-        case v: LocalTime   => v -> Helper.LocalTimeHelper
+        case v: Int           => v -> Helper.IntHelper
+        case v: Double        => v -> Helper.DoubleHelper
+        case v: Long          => v -> Helper.LongHelper
+        case v: Quantity[_]   => v -> Helper.QuantityHelper
+        case v: Instant       => v -> Helper.InstantHelper
+        case v: LocalDateTime => v -> Helper.LocalDateTimeHelper
+        case v: LocalDate     => v -> Helper.LocalDateHelper
+        case v: LocalTime     => v -> Helper.LocalTimeHelper
         //        case v: QuantityRange[_] => v -> Helper.QuantityRangeHelper
         //        case v: TimeUnit => v -> Helper.TimeHelper
       }
@@ -404,6 +423,28 @@ object P {
         case _               => false
       }
       def contains(avalue: Any, pvalue: Instant): Boolean = avalue match {
+        //        case avalue: LocalDate => LocalDate.of(Instant.)
+        case _ => false
+      }
+    }
+    implicit object LocalDateTimeHelper extends RangeHelper[LocalDateTime] {
+      def gt(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
+        case avalue: LocalDateTime => avalue.isAfter(pvalue)
+        case _                     => false
+      }
+      def gte(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
+        case avalue: LocalDateTime => avalue.isAfter(pvalue) || eqv(avalue, pvalue)
+        case _                     => false
+      }
+      def lt(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
+        case avalue: LocalDateTime => avalue.isBefore(pvalue)
+        case _                     => false
+      }
+      def lte(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
+        case avalue: LocalDateTime => avalue.isBefore(pvalue) || eqv(avalue, pvalue)
+        case _                     => false
+      }
+      def contains(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
         //        case avalue: LocalDate => LocalDate.of(Instant.)
         case _ => false
       }
@@ -664,20 +705,20 @@ trait EqP[T] extends P[T] {
 }
 object EqP {
   private val ontologyNode =
-    MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/EqP")
+    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/EqP")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.EXTENDS --> P.ontology
-  ontologyNode --- Property.default.label --> "EqP" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.comment --> "A simple predicate" --- Property.default.language --> "en"
+  ontologyNode --- Property.default.`@extends` --> P.ontology
+  ontologyNode --- Property.default.`@label` --> "EqP" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> "A simple predicate" --- Property.default.`@language` --> "en"
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   object keys {
     private val valueNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/compare/value")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/compare/value")
     valueNode.addLabel(Property.ontology)
-    valueNode --- Property.default.label --> "value" --- Property.default.language --> "en"
-    valueNode --- Property.default.comment --> "Any value" --- Property.default.language --> "en"
-    valueNode --- Property.default.container --> NS.types.list
+    valueNode --- Property.default.`@label` --> "value" --- Property.default.`@language` --> "en"
+    valueNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
+    valueNode --- Property.default.`@container` --> NS.types.`@list`
     lazy val value: Property = Property(valueNode)
     //    val typedValue = value.addRange(DataType.nodeType)
     //    val valueString = value + DataType.default.textType
@@ -692,7 +733,7 @@ object EqP {
     //    val valueUrl = value + DataType.default.uRLType
     //    val valueEpoch = value + DataType.default.epochType)
   }
-  ontologyNode --- Property.default.properties --> keys.value
+  ontologyNode --- Property.default.`@properties` --> keys.value
 
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
@@ -704,24 +745,24 @@ trait RangeP[T] extends P[T] {
 }
 object RangeP {
   private val ontologyNode =
-    MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/RangeP")
+    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/RangeP")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.label --> "RangeP" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.comment --> "A compound predicate" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.EXTENDS --> P.ontology
+  ontologyNode --- Property.default.`@label` --> "RangeP" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> "A compound predicate" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@extends` --> P.ontology
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   object keys {
     private val lowerNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/range/lower")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/range/lower")
     lowerNode.addLabel(Property.ontology)
-    lowerNode --- Property.default.label --> "lower" --- Property.default.language --> "en"
+    lowerNode --- Property.default.`@label` --> "lower" --- Property.default.`@language` --> "en"
     lazy val lower = Property(lowerNode)
 
     private val upperNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/range/upper")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/range/upper")
     upperNode.addLabel(Property.ontology)
-    upperNode --- Property.default.label --> "upper" --- Property.default.language --> "en"
+    upperNode --- Property.default.`@label` --> "upper" --- Property.default.`@language` --> "en"
     lazy val upper = Property(upperNode)
 
     //    val typedValue = value.addRange(DataType.nodeType)
@@ -740,8 +781,8 @@ object RangeP {
     //    val upperTime = upper.addRange(upper.graph.timeType)
   }
 
-  ontologyNode --- Property.default.properties --> keys.lower
-  ontologyNode --- Property.default.properties --> keys.upper
+  ontologyNode --- Property.default.`@properties` --> keys.lower
+  ontologyNode --- Property.default.`@properties` --> keys.upper
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
@@ -750,36 +791,36 @@ trait CollectionP[T] extends P[T] {
 }
 object CollectionP {
   private val ontologyNode =
-    MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/CollectionP")
+    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/CollectionP")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.label --> "CollectionP" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.comment --> "A complete predicate" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.EXTENDS --> P.ontology
+  ontologyNode --- Property.default.`@label` --> "CollectionP" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> "A complete predicate" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@extends` --> P.ontology
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   object keys {
-    private val valueNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/compare/values")
+    private val valueNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/compare/values")
     valueNode.addLabel(Property.ontology)
-    valueNode --- Property.default.EXTENDS --> EqP.keys.value
-    valueNode --- Property.default.label --> "values" --- Property.default.language --> "en"
-    valueNode --- Property.default.comment --> "Polyglot list of values" --- Property.default.language --> "en"
-    valueNode --- Property.default.container --> NS.types.set
+    valueNode --- Property.default.`@extends` --> EqP.keys.value
+    valueNode --- Property.default.`@label` --> "values" --- Property.default.`@language` --> "en"
+    valueNode --- Property.default.`@comment` --> "Polyglot list of values" --- Property.default.`@language` --> "en"
+    valueNode --- Property.default.`@container` --> NS.types.`@set`
 
     lazy val value  = Property(valueNode)
     lazy val valueP = value + P.ontology //TODO: test nested predicate structures
   }
 
-  ontologyNode --- Property.default.properties --> keys.value
+  ontologyNode --- Property.default.`@properties` --> keys.value
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 object ObjectP {
   private val ontologyNode =
-    MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/p/ObjectP")
+    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/ObjectP")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.label --> "ObjectP" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.comment --> ".." --- Property.default.language --> "en"
-  ontologyNode --- Property.default.EXTENDS --> P.ontology
+  ontologyNode --- Property.default.`@label` --> "ObjectP" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> ".." --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@extends` --> P.ontology
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
 }
@@ -792,12 +833,12 @@ trait PredicateWrapper[+T] {
 
 abstract class PredicateCompanion(label: String, comment: String = "") {
   protected[traversal] val ontologyNode =
-    MemGraphDefault.ns.upsertNode(s"sptth/tbd.tld/librarian/p/${label}")
+    MemGraphDefault.ns.nodes.upsert(s"sptth/tbd.tld/librarian/p/${label}")
   ontologyNode.addLabel(Ontology.ontology)
   if (label != "")
-    ontologyNode --- Property.default.label --> label --- Property.default.language --> "en"
+    ontologyNode --- Property.default.`@label` --> label --- Property.default.`@language` --> "en"
   if (comment != "")
-    ontologyNode --- Property.default.comment --> comment --- Property.default.language --> "en"
+    ontologyNode --- Property.default.`@comment` --> comment --- Property.default.`@language` --> "en"
   //  ontologyNode --- Property.default.comment --> "" --- Property.default.language --> "en"
   lazy val ontology: Ontology = Ontology(ontologyNode)
 }

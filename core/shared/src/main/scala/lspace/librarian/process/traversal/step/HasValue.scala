@@ -15,14 +15,14 @@ object HasValue extends StepDef("HasValue") with StepWrapper[HasValue] {
   }
 
   def apply(predicates: List[P[_]]): HasValue = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     predicates.foreach(node.addOut(Has.keys.predicate, _))
 
     HasValue(predicates, node)
   }
 
-  ontologyNode --- Property.default.properties --> Has.keys.predicate
+  ontologyNode --- Property.default.`@properties` --> Has.keys.predicate
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

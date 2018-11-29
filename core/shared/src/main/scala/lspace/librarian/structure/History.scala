@@ -5,10 +5,10 @@ import java.time.Instant
 import lspace.librarian.datatype.DateTimeType
 
 object History {
-  val historyKeys = Set(Property.default.createdon,
-                        Property.default.deletedon,
-                        Property.default.modifiedon,
-                        Property.default.transcendedOn)
+  val historyKeys = Set(Property.default.`@createdon`,
+                        Property.default.`@deletedon`,
+                        Property.default.`@modifiedon`,
+                        Property.default.`@transcendedon`)
 }
 
 /**
@@ -16,40 +16,47 @@ object History {
   */
 trait History extends Graph {
 
-  override def createNode(ontology: Ontology*): Node = {
-    val createdNode = _createNode(ontology: _*)
+  abstract override protected def _createNode(id: Long)(ontology: Ontology*): _Node = {
+    val createdNode = super._createNode(id)(ontology: _*)
 
     //TODO: make time configurable
-    createEdge(createdNode, Property.default.createdon, _createValue(Instant.now())(DateTimeType.datetimeType))
+    edges.create(createdNode,
+                 Property.default.`@createdon`,
+                 _createValue(idProvider.next)(Instant.now())(DateTimeType.datetimeType))
 
     createdNode
   }
 
-  override def createEdge[S, E](from: Resource[S], key: Property, to: Resource[E]): Edge[S, E] = {
-    val createdEdge = _createEdge(from, key, to)
+  abstract override protected def _createEdge[S, E](
+      id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] = {
+    val createdEdge = super._createEdge(id)(from, key, to)
 
-    _createEdge(createdEdge, Property.default.createdon, _createValue(Instant.now())(DateTimeType.datetimeType))
+    _createEdge(idProvider.next)(createdEdge,
+                                 Property.default.`@createdon`,
+                                 _createValue(idProvider.next)(Instant.now())(DateTimeType.datetimeType))
 
     createdEdge
   }
 
-  override def createValue[T](value: T)(dt: DataType[T]): Value[T] = {
-    val createdValue = _createValue(value)(dt)
+  abstract override protected def _createValue[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] = {
+    val createdValue = super._createValue(id)(value)(dt)
 
-    createEdge(createdValue, Property.default.createdon, _createValue(Instant.now())(DateTimeType.datetimeType))
+    edges.create(createdValue,
+                 Property.default.`@createdon`,
+                 _createValue(idProvider.next)(Instant.now())(DateTimeType.datetimeType))
 
     createdValue
   }
 
-  override def deleteNode(node: Node): Unit = {
-    createEdge(node, Property.default.deletedon, createValue(Instant.now())(DateTimeType.datetimeType))
+  override protected def _deleteNode(node: _Node): Unit = {
+    edges.create(node, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
   }
 
-  override def deleteEdge(edge: Edge[_, _]): Unit = {
-    createEdge(edge, Property.default.deletedon, createValue(Instant.now())(DateTimeType.datetimeType))
+  override protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
+    edges.create(edge, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
   }
 
-  override def deleteValue(value: Value[_]): Unit = {
-    createEdge(value, Property.default.deletedon, createValue(Instant.now())(DateTimeType.datetimeType))
+  override protected def _deleteValue(value: _Value[_]): Unit = {
+    edges.create(value, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
   }
 }

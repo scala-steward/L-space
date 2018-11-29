@@ -10,7 +10,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Between extends PredicateCompanion("Between") with PredicateWrapper[Between[_]] {
-  ontologyNode --- Property.default.EXTENDS --> RangeP.ontology
+  ontologyNode --- Property.default.`@extends` --> RangeP.ontology
 
   def wrap(node: Node): Between[_] = node match {
     case node: Between[_] => node
@@ -22,7 +22,7 @@ object Between extends PredicateCompanion("Between") with PredicateWrapper[Betwe
 
   def apply[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Between[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(RangeP.keys.lower, lower)
     node.addOut(RangeP.keys.upper, upper)

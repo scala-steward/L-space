@@ -17,19 +17,19 @@ object N extends StepDef("N") with StepWrapper[N] {
 
   object keys {
     private val nodeNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/N/node")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/N/node")
     nodeNode.addLabel(Property.ontology)
-    nodeNode --- Property.default.label --> "node" --- Property.default.language --> "en"
-    nodeNode --- Property.default.comment --> "A node" --- Property.default.language --> "en"
-    nodeNode --- Property.default.container --> types.list
-    nodeNode --- Property.default.range --> DataType.default.nodeURLType
+    nodeNode --- Property.default.`@label` --> "node" --- Property.default.`@language` --> "en"
+    nodeNode --- Property.default.`@comment` --> "A node" --- Property.default.`@language` --> "en"
+    nodeNode --- Property.default.`@container` --> types.`@list`
+    nodeNode --- Property.default.`@range` --> DataType.default.nodeURLType
 
     lazy val node: Property          = Property(nodeNode)
     val nodeUrl: TypedProperty[Node] = node + DataType.default.nodeURLType
   }
 
   def apply(nodes: List[Node] = List()): N = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     //    println(nodes.map(_.iri).mkString(" >> "))
     nodes.foreach(node.addOut(keys.node, _))
@@ -38,7 +38,7 @@ object N extends StepDef("N") with StepWrapper[N] {
     N(nodes, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.node
+  ontologyNode --- Property.default.`@properties` --> keys.node
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

@@ -8,7 +8,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object ContainsFuzzy extends PredicateCompanion("ContainsFuzzy") with PredicateWrapper[ContainsFuzzy[_]] {
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): ContainsFuzzy[_] = node match {
     case node: ContainsFuzzy[_] => node
@@ -19,7 +19,7 @@ object ContainsFuzzy extends PredicateCompanion("ContainsFuzzy") with PredicateW
 
   def apply[T: StringHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): ContainsFuzzy[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new ContainsFuzzy(pvalue, node)

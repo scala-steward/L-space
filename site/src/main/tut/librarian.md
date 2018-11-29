@@ -70,7 +70,7 @@ import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure._
 import lspace.librarian.structure.DataType.default._
-val graph: Graph = MemGraph("DefaultGraphComputerSpec")
+val graph: Graph = MemGraph("librarian-doc")
 import lspace.librarian.util.SampleGraph
 SampleGraph.loadSocial(graph)
 val labels = SampleGraph.ontologies
@@ -294,24 +294,24 @@ g.N.group(_.out("name")).group(_.out("age")) //can e.g. be a Map[String, List[Ma
 ##### Min
 Min-step passes only the traverser with the smallest value
 ```tut:book
-g.N.out("balance").hasLabel(doubleType).min.head //should be -245.05
-g.N.out("balance").hasLabel(doubleType).min.in("balance").out("name").head //should be "Levi"
+g.N.out("balance").hasLabel(`@double`).min.head //should be -245.05
+g.N.out("balance").hasLabel(`@double`).min.in("balance").out("name").head //should be "Levi"
 ```
 ##### Max
 Max-step passes only the traverser with the largest value
 ```tut:book
-g.N.out("balance").hasLabel(doubleType).max.head //should be 2230.30
-g.N.out("balance").hasLabel(doubleType).max.in("balance").out("name").head //should be "Gray"
+g.N.out("balance").hasLabel(`@double`).max.head //should be 2230.30
+g.N.out("balance").hasLabel(`@double`).max.in("balance").out("name").head //should be "Gray"
 ```
 ##### Mean
 Mean-step passes a traverser where the value is the mean of the values of incoming traversers
 ```tut:book
-g.N.out("balance").hasLabel(doubleType).mean.head //should be 624.0225
+g.N.out("balance").hasLabel(`@double`).mean.head //should be 624.0225
 ```
 ##### Sum
 Sum-step passes a traverser where the value is the sum of the values of incoming traversers
 ```tut:book
-g.N.out("balance").hasLabel(doubleType).sum.head //should be 2496.09
+g.N.out("balance").hasLabel(`@double`).sum.head //should be 2496.09
 ```
 ##### Count
 Count-step returns the number of incoming traversers

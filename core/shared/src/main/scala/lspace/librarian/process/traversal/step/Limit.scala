@@ -18,24 +18,24 @@ object Limit extends StepDef("Limit") with StepWrapper[Limit] {
 
   object keys {
     private val maxNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Limit/max")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Limit/max")
     maxNode.addLabel(Property.ontology)
-    maxNode --- Property.default.label --> "max" --- Property.default.language --> "en"
-    maxNode --- Property.default.comment --> "The maximum number of results" --- Property.default.language --> "en"
-    maxNode --- Property.default.range --> DataType.default.intType
+    maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
+    maxNode --- Property.default.`@comment` --> "The maximum number of results" --- Property.default.`@language` --> "en"
+    maxNode --- Property.default.`@range` --> DataType.default.`@int`
 
     lazy val max: Property         = Property(maxNode)
-    val maxInt: TypedProperty[Int] = max + DataType.default.intType
+    val maxInt: TypedProperty[Int] = max + DataType.default.`@int`
   }
 
   def apply(max: Int): Limit = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.maxInt, max)
     Limit(max, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.max
+  ontologyNode --- Property.default.`@properties` --> keys.max
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

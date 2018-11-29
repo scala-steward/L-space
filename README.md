@@ -24,7 +24,7 @@ L-space is available for Scala 2.11.x and 2.12.x.
 To include `lspace-core` (all core structures and basic implementations (in-memory) of the graph, 
 data-models and traversal-engines) add the following to your `build.sbt`:
 ```
-libraryDependencies += "eu.l-space" %% "lspace-core" % "0.1.8"
+libraryDependencies += "eu.l-space" %% "lspace-core" % "{version}"
 ```
 
 ## Modules
@@ -36,7 +36,7 @@ L-space provides additional modules for remote traversals, parsing io, rest-api 
 - `lspace-graph`: basic implementation for persistence and indexing remote (e.g. Cassandra, Elasticsearch, HDFS, ...)
 - `lspace-services`: basic implementation for a rest service which accepts Librarian queries in Json-LD and returns results in Json-LD
 ```
-libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "0.1.8"
+libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "{version}"
 ```
 
 ## Examples

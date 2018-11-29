@@ -22,13 +22,13 @@ object Out extends StepDef("Out") with StepWrapper[Out] {
   object keys extends MoveStep.Properties
 
   def apply(labels: Set[Property] = Set()): Out = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     labels.foreach(label => node.addOut(MoveStep.keys.label, label))
     new Out(labels, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.`ns.l-space.eu/librarian/MoveStep/label`
+  ontologyNode --- Property.default.`@properties` --> keys.`ns.l-space.eu/librarian/MoveStep/label`
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

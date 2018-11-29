@@ -22,18 +22,18 @@ object TypeHelper {
   def literalTypeIri(value: Any): Option[List[String]] =
     Option(value match {
       case v: IriResource => null
-      case v: String      => NS.types.string :: List()
-      case v: Boolean     => NS.types.boolean :: List()
-      case v: Int         => NS.types.int :: NS.types.double :: NS.types.long :: List()
+      case v: String      => NS.types.`@string` :: List()
+      case v: Boolean     => NS.types.`@boolean` :: List()
+      case v: Int         => NS.types.`@int` :: NS.types.`@double` :: NS.types.`@long` :: List()
       case v: Double =>
-        NS.types.double :: NS.types.int :: NS.types.long :: List()
-      case v: Long => NS.types.long :: NS.types.int :: NS.types.double :: List()
+        NS.types.`@double` :: NS.types.`@int` :: NS.types.`@long` :: List()
+      case v: Long => NS.types.`@long` :: NS.types.`@int` :: NS.types.`@double` :: List()
       case v: Instant =>
-        NS.types.datetime :: /*ldcontext.types.date :: ldcontext.types.time :: */ List()
+        NS.types.`@datetime` :: /*ldcontext.types.date :: ldcontext.types.time :: */ List()
       case v: LocalDate =>
-        NS.types.date :: /*ldcontext.types.datetime :: ldcontext.types.time :: */ List()
+        NS.types.`@date` :: /*ldcontext.types.datetime :: ldcontext.types.time :: */ List()
       case v: LocalTime =>
-        NS.types.time :: /*ldcontext.types.datetime :: ldcontext.types.date :: */ List()
-      case v: Geometry => NS.types.geo :: List()
+        NS.types.`@time` :: /*ldcontext.types.datetime :: ldcontext.types.date :: */ List()
+      case v: Geometry => NS.types.`@geo` :: List()
     })
 }

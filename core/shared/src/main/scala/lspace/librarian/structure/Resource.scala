@@ -14,7 +14,8 @@ object Resource {
 }
 
 trait Resource[+T] extends IriResource {
-  @transient def id: Long
+//  @transient
+  def id: Long
 
   /**
     * Get the graph that this resource is within.
@@ -25,15 +26,18 @@ trait Resource[+T] extends IriResource {
   def value: T
   def self: Resource[T] = this
 
+  def `@id`: String = iri
   def iri: String = {
-    out(default.iri).collectFirst { case url: String => url }.getOrElse("")
+    out(default.`@id`).collectFirst { case url: String => url }.getOrElse("")
   }
-  def iris: Set[String] = out(default.iris).collect { case url: String => url }.toSet
+  def `@ids`: Set[String] = iris
+  def iris: Set[String]   = out(default.`@ids`).collect { case url: String => url }.toSet
 
-  @transient val status: CacheStatus.CacheStatus = CacheStatus.EMPTY
-  @transient val memento: Long                   = 0L
+  @transient var status: CacheStatus.CacheStatus = CacheStatus.EMPTY
+  @transient var memento: Long                   = 0L
 
   //  def keys: Set[Property] = outE().map(_.key).toSet ++ inE().map(_.key).toSet
+  def `@type`: List[ClassType[_]] = labels
   def labels: List[ClassType[_]]
 
   //  def start(): Traversal[Resource[T], Resource[T], R :: HNil, HNil] = Traversal[Resource[T], Resource[T], HNil]()(graph, LabelsHList(HNil)).R[T](this)
@@ -97,6 +101,8 @@ trait Resource[+T] extends IriResource {
         .getProperty(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ))
   def ---(key: Property): PartialOutEdge[T] = PartialOutEdge(this, key)
+  def ---(f: Property.default.type => Property): PartialOutEdge[T] =
+    PartialOutEdge(this, f(Property.default))
 
   /**
     * Edge with Cardinality single
@@ -132,46 +138,54 @@ trait Resource[+T] extends IriResource {
   def addOut[V, V0, VT0 <: ClassType[_]](key: Property, value: V)(implicit ev1: V <:!< ClassType[_],
                                                                   dt: ClassTypeable.Aux[V, V0, VT0]): Edge[T, V0] = {
     val toResource = value match {
-      case resource: Resource[_] => graph.upsertResource(resource)
+      case resource: Resource[_] => graph.resources.upsert(resource)
       case _ =>
         dt.ct match {
           case dt: DataType[V] =>
-            graph.createValue(value)(dt)
+            graph.values.create(value, dt)
           case ct: ClassType[V] =>
-            graph.createValue(value)(ClassType.valueToOntologyResource(value))
+            graph.values.create(value)
         }
     }
-    graph.createEdge(this, key, toResource.asInstanceOf[Resource[V0]])
+    graph.edges.create(this, key, toResource.asInstanceOf[Resource[V0]])
   }
 
 //    addOuts(key, dt.ct -> value.asInstanceOf[V0] :: Nil).head
   def addOut[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
       implicit ev1: V <:!< ClassType[_]): Edge[T, V] = {
     val toResource = value match {
-      case resource: Resource[V] => graph.upsertResource(resource)
+      case resource: Resource[V] => resource.asInstanceOf[Resource[V]]
       case _ =>
         dt match {
           case dt: DataType[V] =>
-            graph.createValue(value)(dt)
+            graph.values.create(value, dt)
           case ct: ClassType[V] =>
-            graph.createValue(value)(ClassType.valueToOntologyResource(value))
+            graph.values.create[V](value)
         }
     }
-    graph.createEdge(this, key, toResource)
+    graph.edges.create(this, key, toResource)
   }
 
 //    addOuts(key, List(dt -> value)).head
   def addOut[V <: ClassType[_]](key: Property, value: V): Edge[T, Node] = {
     val toResource = graph.ns.storeClassType(value)
-    graph.createEdge(this, key, toResource)
+//    val toResource = graph.nodes.upsert(value.iri, value.iris)
+//    value match {
+//      case ontology: Ontology => toResource.addLabel(Ontology.ontology)
+//      case property: Property => toResource.addLabel(Property.ontology)
+//      case datatype: DataType[_] =>
+//        toResource.addLabel(Ontology.ontology)
+//        toResource.addLabel(DataType.ontology)
+//    }
+    graph.edges.create(this, key, toResource)
   }
 //    addOuts(key, List(IriType[V] -> value)).head
   def addOut[V](key: TypedProperty[V], value: V): Edge[T, V] = {
     val toResource = value match {
-      case resource: Resource[V] => graph.upsertResource(resource)
-      case _                     => graph.createValue(value)(key.range.asInstanceOf[DataType[V]])
+      case resource: Resource[V] => graph.resources.upsert(resource).asInstanceOf[Resource[V]]
+      case _                     => graph.values.create(value, key.range.asInstanceOf[DataType[V]])
     }
-    graph.createEdge(this, key.key, toResource)
+    graph.edges.create(this, key.key, toResource)
   }
 
   def <--(key: String): PartialInEdge[T] =
@@ -181,40 +195,64 @@ trait Resource[+T] extends IriResource {
         .orElse(MemGraphDefault.ns.getProperty(key))
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ))
   def <--(key: Property): PartialInEdge[T] = PartialInEdge(this, key)
-  def addIn[V, CTa <: ClassTypeable[V]](key: String, value: V)(implicit ev: V <:!< ClassType[_], dt: CTa): Edge[V, T] =
+  def addIn[V, V0, VT0 <: ClassType[_]](key: String, value: V)(implicit ev1: V <:!< ClassType[_],
+                                                               dt: ClassTypeable.Aux[V, V0, VT0]): Edge[V0, T] =
+    addIn[V, V0, VT0](
+      graph.ns
+        .getProperty(key)
+        .orElse(MemGraphDefault.ns.getProperty(key))
+        .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
+      value
+    )
+  def addIn[V <: ClassType[_]](key: String, value: V): Edge[Node, T] =
     addIn(
       graph.ns
         .getProperty(key)
         .orElse(MemGraphDefault.ns.getProperty(key))
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
-    )(ev, dt)
-  def addIn[V <: ClassType[_]](key: String, value: V): Edge[V, T] =
-    addIns(
-      graph.ns
-        .getProperty(key)
-        .orElse(MemGraphDefault.ns.getProperty(key))
-        .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
-      List(IriType[V] -> value)
-    ).head
-  def addIn[V](key: Property, value: V)(implicit ev: V <:!< ClassType[_], dt: ClassTypeable[V]): Edge[V, T] =
-    addIns(key, dt.ct.asInstanceOf[ClassType[V]] -> value :: Nil).head
-  def addIn[V <: ClassType[_]](key: Property, value: V): Edge[V, T] =
-    addIns(key, List(IriType[V] -> value)).head
+    )
+  def addIn[V, V0, VT0 <: ClassType[_]](key: Property, value: V)(implicit ev1: V <:!< ClassType[_],
+                                                                 dt: ClassTypeable.Aux[V, V0, VT0]): Edge[V0, T] = {
+    val toResource = value match {
+      case resource: Resource[_] => graph.resources.upsert(resource)
+      case _ =>
+        dt.ct match {
+          case dt: DataType[V] =>
+            graph.values.create(value, dt)
+          case ct: ClassType[V] =>
+            graph.values.create(value)
+        }
+    }
+    graph.edges.create(toResource.asInstanceOf[Resource[V0]], key, this)
+  }
+  def addIn[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
+      implicit ev1: V <:!< ClassType[_]): Edge[V, T] = {
+    val toResource = value match {
+      case resource: Resource[V] => graph.resources.upsert(resource).asInstanceOf[Resource[V]]
+      case _ =>
+        dt match {
+          case dt: DataType[V] =>
+            graph.values.create(value, dt)
+          case ct: ClassType[V] =>
+            graph.values.create[V](value)
+        }
+    }
+    graph.edges.create(toResource, key, this)
+  }
 
-//  def addIn[V](key: String, value: V)(implicit dt: ClassType[V]): Edge[V, T] =
-//    addIns(graph.ns.getProperty(key).getOrElse(Property(key)), dt -> value :: Nil).head
-//  def addIn[V, DV <: ClassType[V]](key: Property, value: V)(implicit dt: ClassTypeable.Aux[V, DV]): Edge[V, T] =
-//    addIns(key, dt.ct -> value :: Nil).head
-//  def addIn[V, DV <: ClassType[V]](key: TypedProperty[V], value: V)(implicit dt: ClassTypeable.Aux[V, DV]): Edge[V, T] =
-//    addIns(key.key, dt.ct -> value :: Nil).head
-  //  def addIns[V](key: String, values: List[V]): List[Edge[V, T]] =
-  //    addIns(graph.getPropertyKey(key).getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ), values)
-  //  def addIns[V](key: Property, values: List[V]): List[Edge[V, T]]
-  //  def addIns[V](key: TypedPropertyKey[V], values: List[V]): List[Edge[V, T]] = {
-  //    addIns(key.key, values)
-  //  }
-  def addIns[V](key: Property, values: List[(ClassType[V], V)]): List[Edge[V, T]]
+  def addIn[V <: ClassType[_]](key: Property, value: V): Edge[Node, T] = {
+    val fromResource = graph.ns.storeClassType(value)
+//    val fromResource = graph.nodes.upsert(value.iri, value.iris)
+//    value match {
+//      case ontology: Ontology => fromResource.addLabel(Ontology.ontology)
+//      case property: Property => fromResource.addLabel(Property.ontology)
+//      case datatype: DataType[_] =>
+//        fromResource.addLabel(Ontology.ontology)
+//        fromResource.addLabel(DataType.ontology)
+//    }
+    graph.edges.create(fromResource, key, this)
+  }
 
   def addBoth[V, R[T] <: Resource[T]](key: Property, value: R[V]): (Edge[T, V], Edge[V, T]) = {
     val fromCT = this match {
@@ -239,6 +277,5 @@ trait Resource[+T] extends IriResource {
   def removeInE(key: Property): Unit
   def removeOutE(key: Property): Unit
 
-  protected def _remove(): Unit
   def remove(): Unit
 }

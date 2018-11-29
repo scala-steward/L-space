@@ -6,7 +6,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Without extends PredicateCompanion("Without") with PredicateWrapper[Without[_]] {
-  ontologyNode --- Property.default.EXTENDS --> CollectionP.ontology
+  ontologyNode --- Property.default.`@extends` --> CollectionP.ontology
 
   def wrap(node: Node): Without[_] = node match {
     case node: Without[_] => node
@@ -14,7 +14,7 @@ object Without extends PredicateCompanion("Without") with PredicateWrapper[Witho
   }
 
   def apply[T](pvalues: List[T]): Without[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
     new Without(pvalues, node)

@@ -41,7 +41,7 @@ trait Edge[+S, +E] extends Resource[Edge[S, E]] {
   def outV: Resource[S]
   def from: Resource[S] = outV
 
-  def remove(): Unit = graph.deleteEdge(this)
+  def remove(): Unit = graph.edges.delete(this)
 
   override def toString: String = s"edge:${if (iri.nonEmpty) iri else id.toString}"
 }

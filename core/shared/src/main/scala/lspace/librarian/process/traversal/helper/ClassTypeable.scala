@@ -1,6 +1,6 @@
 package lspace.librarian.process.traversal.helper
 
-import java.time.{Instant, LocalDate, LocalTime}
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.librarian.datatype._
 import lspace.librarian.structure._
@@ -57,6 +57,13 @@ object ClassTypeable {
     type CT = DateTimeType[Instant]
     def ct: CT = DateTimeType.datetimeType
   }
+
+  implicit val defaultLocalDateTime: ClassTypeable.Aux[LocalDateTime, LocalDateTime, DateTimeType[LocalDateTime]] =
+    new ClassTypeable[LocalDateTime] {
+      type C  = LocalDateTime
+      type CT = DateTimeType[LocalDateTime]
+      def ct: CT = LocalDateTimeType.localdatetimeType
+    }
 
   implicit val defaultLocalDate: ClassTypeable.Aux[LocalDate, LocalDate, LocalDateType[LocalDate]] =
     new ClassTypeable[LocalDate] {

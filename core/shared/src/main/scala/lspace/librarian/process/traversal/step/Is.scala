@@ -16,26 +16,26 @@ object Is extends StepDef("Is") with StepWrapper[Is] {
   }
 
   object keys {
-    private val predicateNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Is/Predicate")
+    private val predicateNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Is/Predicate")
     predicateNode.addLabel(Property.ontology)
-    predicateNode --- Property.default.label --> "Predicate" --- Property.default.language --> "en"
-    predicateNode --- Property.default.comment --> "A Predicate" --- Property.default.language --> "en"
-    predicateNode --- Property.default.container --> types.list
-    predicateNode --- Property.default.range --> P.ontology
+    predicateNode --- Property.default.`@label` --> "Predicate" --- Property.default.`@language` --> "en"
+    predicateNode --- Property.default.`@comment` --> "A Predicate" --- Property.default.`@language` --> "en"
+    predicateNode --- Property.default.`@container` --> types.`@list`
+    predicateNode --- Property.default.`@range` --> P.ontology
 
     lazy val predicate: Property          = Property(predicateNode)
     val predicateUrl: TypedProperty[Node] = predicate + P.ontology
   }
 
   def apply(predicates: List[P[_]]): Is = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     predicates.foreach(node.addOut(keys.predicate, _))
 
     Is(predicates, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.predicate
+  ontologyNode --- Property.default.`@properties` --> keys.predicate
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

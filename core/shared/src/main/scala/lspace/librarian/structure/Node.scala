@@ -26,7 +26,7 @@ trait Node extends Resource[Node] {
 //  def addLabel(iri: String): Unit = addLabel(graph.ns.getOntology(iri).getOrElse(Ontology(iri)))
   def addLabel(classType: Ontology): Ontology
 
-  def remove(): Unit = graph.deleteNode(this)
+  def remove(): Unit = graph.nodes.delete(this)
 
   def removeLabel(classType: Ontology)
 

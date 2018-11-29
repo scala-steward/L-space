@@ -35,11 +35,11 @@ object Group extends StepDef("Group") with StepWrapper[Group[ClassType[Any]]] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Group/by")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Group/by")
     byNode.addLabel(Property.ontology)
-    byNode --- Property.default.label --> "by" --- Property.default.language --> "en"
-    byNode --- Property.default.comment --> "A traversal .." --- Property.default.language --> "en"
-    byNode --- Property.default.range --> Traversal.ontology
+    byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
+    byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
+    byNode --- Property.default.`@range` --> Traversal.ontology
 
     lazy val by = Property(byNode)
     //    val byProperty: TypedPropertyKey[Node] = by.addRange(Property.ontology)
@@ -59,13 +59,13 @@ object Group extends StepDef("Group") with StepWrapper[Group[ClassType[Any]]] {
   //  }
 
   def apply[A <: ClassType[_]](by: Traversal[_ <: ClassType[_], A, _ <: HList]): Group[A] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.by, by.self)
     Group[A](by, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.by
+  ontologyNode --- Property.default.`@properties` --> keys.by
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

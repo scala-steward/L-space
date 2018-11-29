@@ -21,7 +21,7 @@ object NodeURLType {
 }
 
 trait NodeURLType[+T] extends IriType[T] {
-  val iri: String = NS.types.nodeURL
+  val iri: String = NS.types.`@nodeURL`
 }
 
 object EdgeURLType {
@@ -47,7 +47,7 @@ object EdgeURLType {
 //  implicit def default = EdgeURLType
 //}
 trait EdgeURLType[+T] extends IriType[T] {
-  val iri: String = NS.types.edgeURL
+  val iri: String = NS.types.`@edgeURL`
 }
 
 object ValueURLType {
@@ -67,5 +67,5 @@ object ValueURLType {
 }
 
 trait ValueURLType[+T] extends IriType[T] {
-  val iri: String = NS.types.valueURL
+  val iri: String = NS.types.`@valueURL`
 }

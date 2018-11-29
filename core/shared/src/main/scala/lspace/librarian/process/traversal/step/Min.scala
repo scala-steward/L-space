@@ -15,7 +15,7 @@ object Min extends StepDef("Min") with StepWrapper[Min] {
   }
 
   def apply(): Min = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     Min(node)
   }

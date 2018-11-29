@@ -16,7 +16,7 @@ object GeopointType {
     }
 }
 trait GeopointType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geopoint
+  val iri: String = NS.types.`@geopoint`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }
@@ -34,7 +34,7 @@ object GeoMultipointType extends GeoMultipointType[MultiPoint] {
     }
 }
 trait GeoMultipointType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geomultipoint
+  val iri: String = NS.types.`@geomultipoint`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }
@@ -51,7 +51,7 @@ object GeoLineType extends GeoLineType[Line] {
     }
 }
 trait GeoLineType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geoline
+  val iri: String = NS.types.`@geoline`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }
@@ -68,7 +68,7 @@ object GeoMultiLineType extends GeoMultiLineType[MultiLine] {
     }
 }
 trait GeoMultiLineType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geomultiline
+  val iri: String = NS.types.`@geomultiline`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }
@@ -85,7 +85,7 @@ object GeoPolygonType extends GeoPolygonType[Polygon] {
     }
 }
 trait GeoPolygonType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geopolygon
+  val iri: String = NS.types.`@geopolygon`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }
@@ -103,7 +103,7 @@ object GeoMultiPolygonType extends GeoMultiPolygonType[MultiPolygon] {
     }
 }
 trait GeoMultiPolygonType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geomultipolygon
+  val iri: String = NS.types.`@geomultipolygon`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }
@@ -121,7 +121,7 @@ object GeoMultiGeometryType extends GeoMultiGeometryType[MultiGeometry] {
     }
 }
 trait GeoMultiGeometryType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.geomultigeometry
+  val iri: String = NS.types.`@geomultigeometry`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
 }

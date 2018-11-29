@@ -16,7 +16,7 @@ object BoolType {
 }
 
 trait BoolType[+T] extends LiteralType[T] {
-  override val iri: String       = NS.types.boolean
+  override val iri: String       = NS.types.`@boolean`
   override val iris: Set[String] = Set(NS.types.schemaBoolean)
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType)

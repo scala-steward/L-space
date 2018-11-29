@@ -22,25 +22,25 @@ object Project extends StepDef("Project") with StepWrapper[Project] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Project/by")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Project/by")
     byNode.addLabel(Property.ontology)
-    byNode --- Property.default.label --> "by" --- Property.default.language --> "en"
-    byNode --- Property.default.comment --> "A traversal ..." --- Property.default.language --> "en"
-    byNode --- Property.default.container --> types.list
-    byNode --- Property.default.range --> Traversal.ontology
+    byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
+    byNode --- Property.default.`@comment` --> "A traversal ..." --- Property.default.`@language` --> "en"
+    byNode --- Property.default.`@container` --> types.`@list`
+    byNode --- Property.default.`@range` --> Traversal.ontology
 
     lazy val by: Property                = Property(byNode)
     val byTraversal: TypedProperty[Node] = by + Traversal.ontology
   }
 
   def apply(traversals: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]): Project = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     traversals.map(_.self).foreach(node.addOut(keys.by, _))
     Project(traversals, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.by
+  ontologyNode --- Property.default.`@properties` --> keys.by
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

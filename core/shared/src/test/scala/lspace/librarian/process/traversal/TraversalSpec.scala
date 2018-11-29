@@ -19,6 +19,16 @@ class TraversalSpec extends WordSpec with Matchers {
       g.stepsList.size shouldBe 0
       g.self.graph shouldBe DetachedGraph
     }
+    "start with a ResourceStep" in {
+      g.N.hasLabel(Ontology.ontology).stepsList.size shouldBe 2
+      g.E.hasLabel(Property.default.`@label`).stepsList.size shouldBe 2
+      g.V.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 2
+    }
+    "start without a ResourceStep" in {
+      g.hasLabel(Ontology.ontology).stepsList.size shouldBe 1
+      g.hasLabel(Property.default.`@label`).stepsList.size shouldBe 1
+      g.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 1
+    }
     "end-type is numeric" can {
       "be summed up" in {
         "g.V.hasLabel[Int].sum" should compile
@@ -62,15 +72,15 @@ class TraversalSpec extends WordSpec with Matchers {
       DetachedGraph.g.N().out().stepsList.size shouldBe 2
       DetachedGraph.g.N().out().hasIri("abc").stepsList.size shouldBe 3
       val pDouble =
-        Property("schema/x")(_range = () => List(DataType.default.doubleType), containers = List(NS.types.list))
-      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.doubleType
+        Property("schema/x")(_range = () => List(DataType.default.`@double`), containers = List(NS.types.`@list`))
+      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
       MemGraphDefault.ns.storeProperty(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
 
       //      println(Traversal.g("biggraph").V().has(pDouble, 0.5).toString)
       //      println(Traversal.g("biggraph").V().has(pDouble, P.eq(0.5).gt(0.4)).toString)
       DetachedGraph.g.N().has(pDouble).stepsList.size shouldBe 2
-      val testNode = MemGraphDefault.createNode()
+      val testNode = MemGraphDefault.nodes.create()
       List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
       testNode.addOut(pDouble, 0.5)
       testNode.out(pDouble).size shouldBe 5
@@ -119,19 +129,19 @@ class TraversalSpec extends WordSpec with Matchers {
       MemGraphDefault.g.N().out(pDouble).toList.size shouldBe 5
       MemGraphDefault.g.N().has(pDouble, P.eqv(1.1)).toList.size shouldBe 1
 
-      val pString                             = Property("aa")(_range = () => List(DataType.default.textType))
-      val typedPString: TypedProperty[String] = pString + DataType.default.textType
+      val pString                             = Property("aa")(_range = () => List(DataType.default.`@string`))
+      val typedPString: TypedProperty[String] = pString + DataType.default.`@string`
       MemGraphDefault.ns.storeProperty(pString)
       DetachedGraph.g.N().has(pDouble, P.gte("a")).stepsList.size shouldBe 2
     }
     "consist of multiple steps" in {
       val traversal = DetachedGraph.g.N().out().out().in()
       traversal.stepsList.size shouldBe 4
-      val pDouble                             = Property("schema/x")(_range = () => List(DataType.default.doubleType))
-      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.doubleType
-      val test                                = DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.doubleType)
+      val pDouble                             = Property("schema/x")(_range = () => List(DataType.default.`@double`))
+      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
+      val test                                = DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
       test.sum
-      DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.doubleType).sum
+      DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
     "which contains labels (as-steps)" can {
       "be selected by valid name" ignore {

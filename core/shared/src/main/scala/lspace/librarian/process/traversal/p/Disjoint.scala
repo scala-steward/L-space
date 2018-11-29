@@ -8,7 +8,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Disjoint extends PredicateCompanion("Disjoint") with PredicateWrapper[Disjoint[_]] {
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Disjoint[_] = node match {
     case node: Disjoint[_] => node
@@ -19,7 +19,7 @@ object Disjoint extends PredicateCompanion("Disjoint") with PredicateWrapper[Dis
 
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Disjoint[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new Disjoint(pvalue, node)

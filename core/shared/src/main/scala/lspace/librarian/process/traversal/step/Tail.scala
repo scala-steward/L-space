@@ -15,24 +15,24 @@ object Tail extends StepDef("Tail") with StepWrapper[Tail] {
 
   object keys {
     private val maxNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/step/Tail/max")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Tail/max")
     maxNode.addLabel(Property.ontology)
-    maxNode --- Property.default.label --> "max" --- Property.default.language --> "en"
-    maxNode --- Property.default.comment --> "The maximum number of tail-results" --- Property.default.language --> "en"
-    maxNode --- Property.default.range --> DataType.default.intType
+    maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
+    maxNode --- Property.default.`@comment` --> "The maximum number of tail-results" --- Property.default.`@language` --> "en"
+    maxNode --- Property.default.`@range` --> DataType.default.`@int`
 
     lazy val max: Property         = Property(maxNode)
-    val maxInt: TypedProperty[Int] = max + DataType.default.intType
+    val maxInt: TypedProperty[Int] = max + DataType.default.`@int`
   }
 
   def apply(max: Int): Tail = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.maxInt, max)
     Tail(max, node)
   }
 
-  ontologyNode --- Property.default.properties --> keys.max
+  ontologyNode --- Property.default.`@properties` --> keys.max
   //  MemGraphDefault.ns.storeOntology(ontology)
 }
 

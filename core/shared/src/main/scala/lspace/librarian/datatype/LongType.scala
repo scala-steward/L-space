@@ -16,7 +16,7 @@ object LongType {
 }
 
 trait LongType[+T] extends NumericType[T] {
-  val iri: String = NS.types.long
+  val iri: String = NS.types.`@long`
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.numType)
 }

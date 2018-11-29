@@ -6,7 +6,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Within extends PredicateCompanion("Within") with PredicateWrapper[Within[_]] {
-  ontologyNode --- Property.default.EXTENDS --> CollectionP.ontology
+  ontologyNode --- Property.default.`@extends` --> CollectionP.ontology
 
   def wrap(node: Node): Within[_] = node match {
     case node: Within[_] => node
@@ -14,7 +14,7 @@ object Within extends PredicateCompanion("Within") with PredicateWrapper[Within[
   }
 
   def apply[T](pvalues: List[T]): Within[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
 

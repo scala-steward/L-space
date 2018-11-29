@@ -8,11 +8,11 @@ import lspace.librarian.structure.Property.default
 
 object Ontology {
   lazy val ontology: Ontology =
-    Ontology(NS.types.CLASS)(iris = Set(NS.types.rdfsClass))
+    Ontology(NS.types.`@class`)(iris = Set(NS.types.rdfsClass))
 
   //  lazy val classType: ClassType[Ontology] = ClassType[Ontology](ldcontext.types.CLASS)
   implicit lazy val urlType: IriType[Ontology] = new IriType[Ontology] {
-    val iri: String = NS.types.CLASS
+    val iri: String = NS.types.`@class`
   }
 
   implicit val defaultOntology: ClassTypeable.Aux[Ontology, Node, NodeURLType[Node]] =
@@ -44,19 +44,26 @@ object Ontology {
           }
           .toMap,
         _extendedClasses = () =>
-          node.out(default.EXTENDS).collect {
+          node.out(default.`@extends`).collect {
             case node: Node => MemGraphDefault.ns.getOntology(node.iri).getOrElse(Ontology(node))
         },
         base = node.out(default.typed.baseString).headOption
       )
     } else {
-      throw new Exception(s"${node.iri} is not an ontology")
+//      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
+//        .printStackTrace()
+      throw new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
+        s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
+          .map(_.iri)}")
     }
   }
 
-  val allOntologies: Map[String, Ontology] = Map[String, Ontology](ontology.iri -> ontology,
-                                                                   Property.ontology.iri -> Property.ontology,
-                                                                   DataType.ontology.iri -> DataType.ontology)
+  val allOntologies = new {
+    val ontologies = List(ontology, Property.ontology, DataType.ontology)
+    val byId       = (200l to 200l + ontologies.size - 1 toList).zip(ontologies).toMap
+    val byIri      = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
+    val idByIri    = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+  }
 
   def apply(iri: String)(implicit
                          iris: Set[String] = Set(),

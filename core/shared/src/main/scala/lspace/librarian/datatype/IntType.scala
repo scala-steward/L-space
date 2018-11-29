@@ -16,7 +16,7 @@ object IntType {
 }
 
 trait IntType[+T] extends NumericType[T] {
-  val iri: String                = NS.types.int
+  val iri: String                = NS.types.`@int`
   override val iris: Set[String] = Set(NS.types.schemaInteger)
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.numType)

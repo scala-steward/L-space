@@ -3,8 +3,11 @@ package lspace.client.provider.remote
 import monix.eval.Task
 import lspace.client.io.LinkedDataService
 import lspace.librarian.process.traversal.Traversal
-import lspace.librarian.provider.mem.{MemGraphDefault, MemNSGraph}
+import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.structure._
+import lspace.librarian.structure.index.Index
+import lspace.librarian.structure.store.{EdgeStore, NodeStore, Store, ValueStore}
+import lspace.librarian.structure.util.IdProvider
 import shapeless.HList
 
 object RemoteGraph {
@@ -17,40 +20,55 @@ object RemoteGraph {
 
 trait RemoteGraph extends Graph {
 
+  lazy val idProvider: IdProvider = ???
+
   def cache: Graph
   lazy val ns: NameSpaceGraph = cache.ns
 
   def service: LinkedDataService
 
-  def links: Stream[Edge[_, _]] = throwDoesNotSupportSyncTraversal //g.E.toStream
-  def nodes: Stream[Node]       = throwDoesNotSupportSyncTraversal //g.V.toStream
-  def values: Stream[Value[_]]  = throwDoesNotSupportSyncTraversal //g.VR.toStream
+  protected def nodeStore: NodeStore[this.type]   = ???
+  protected def edgeStore: EdgeStore[this.type]   = ???
+  protected def valueStore: ValueStore[this.type] = ???
+  override def edges: Edges                       = throw new Exception("remote graph has no local edges") //g.E.toStream
+  override def nodes: Nodes                       = throw new Exception("remote graph has no local nodes") //g.V.toStream
+  override def values: Values                     = throw new Exception("remote graph has no local values:") //g.VR.toStream
 
-  protected def _createNode(ontology: Ontology*): Node =
+  protected def _createNode(id: Long)(ontology: Ontology*): _Node =
     throw new Exception("remote graphs do not (yet) support writing")
-  protected def _createEdge[S, E](from: Resource[S], key: Property, to: Resource[E]): Edge[S, E] =
+  protected def _createEdge[S, E](id: Long)(from: Resource[S], key: Property, to: Resource[E]): Edge[S, E] =
     throw new Exception("remote graphs do not (yet) support writing")
   def newValue[T](dataType: LiteralType[T], value: T): Value[T] =
     throw new Exception("remote graphs do not (yet) support writing")
-  override def _createValue[T](value: T)(dt: DataType[T]): Value[T] =
+  override def _createValue[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] =
     throw new Exception("remote graphs do not (yet) support writing")
+
+  /**
+    * creates new transaction
+    *
+    * @return
+    */
+  override def transaction: Transaction = ???
+
+//  protected def `@idStore`: ValueStore[this.type] = ???
+
+  override protected def `@idIndex`: Index = ???
+
+  override protected def `@typeIndex`: Index = ???
+
+  override protected def _createEdge[S, E](id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] =
+    ???
+
+  override protected def _deleteResource(resource: _Resource[_]): Unit = ???
 
   protected def _deleteNode(node: Node): Unit       = ???
   protected def _deleteEdge(edge: Edge[_, _]): Unit = ???
   protected def _deleteValue(value: Value[_]): Unit = ???
 
-  override def upsertNode(uri: String, uris: Set[String]): Node =
-    throw new Exception("remote graphs do not (yet) support writing")
 //  override def postResource[V](resource: Resource[V]): Resource[V] =
 //    throw new Exception("remote graphs do not (yet) support writing")
 
   override def init(): Unit = {} //TODO: test connection?
-
-  override def getNodeById(id: Long): Option[Node]                = ???
-  override def getEdgeById(id: Long): Option[Edge[_, _]]          = ???
-  override def getValueById(id: Long): Option[Value[_]]           = ???
-  override def getResourceById(id: Long): Option[Resource[_]]     = ???
-  override def upsertResource[V](value: Resource[V]): Resource[V] = ???
 
   private def throwDoesNotSupportSyncTraversal =
     throw new Exception("remote graph traversals do not support synchronous calls")

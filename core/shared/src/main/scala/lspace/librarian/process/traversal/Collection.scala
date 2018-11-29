@@ -12,10 +12,10 @@ import lspace.types._
 
 object Collection {
   private val ontologyNode =
-    MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/Collection")
+    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.label --> "Result" --- Property.default.language --> "en"
-  ontologyNode --- Property.default.comment --> "Result" --- Property.default.language --> "en"
+  ontologyNode --- Property.default.`@label` --> "Result" --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> "Result" --- Property.default.`@language` --> "en"
 
   def wrap(node: Node): Collection[Any] = node match {
     case node: Collection[Any] => node
@@ -26,32 +26,32 @@ object Collection {
   }
 
   val keys = new {
-    private val startNode = MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/Collection/start")
+    private val startNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection/start")
     startNode.addLabel(Property.ontology)
-    startNode --- Property.default.label --> "start" --- Property.default.language --> "en"
-    startNode --- Property.default.comment --> "Any value" --- Property.default.language --> "en"
-    startNode --- Property.default.range --> DataType.default.dateTimeType
+    startNode --- Property.default.`@label` --> "start" --- Property.default.`@language` --> "en"
+    startNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
+    startNode --- Property.default.`@range` --> DataType.default.`@datetime`
     lazy val start: Property = Property(startNode)
 
     private val endNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/Collection/end")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection/end")
     endNode.addLabel(Property.ontology)
-    endNode --- Property.default.label --> "end" --- Property.default.language --> "en"
-    endNode --- Property.default.comment --> "Any value" --- Property.default.language --> "en"
-    endNode --- Property.default.range --> DataType.default.dateTimeType
+    endNode --- Property.default.`@label` --> "end" --- Property.default.`@language` --> "en"
+    endNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
+    endNode --- Property.default.`@range` --> DataType.default.`@datetime`
     lazy val end: Property = Property(endNode)
 
     private val itemNode =
-      MemGraphDefault.ns.upsertNode("sptth/tbd.tld/librarian/Collection/item")
+      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection/item")
     itemNode.addLabel(Property.ontology)
-    itemNode --- Property.default.label --> "item" --- Property.default.language --> "en"
-    itemNode --- Property.default.comment --> "Any value" --- Property.default.language --> "en"
-    itemNode --- Property.default.container --> NS.types.list
+    itemNode --- Property.default.`@label` --> "item" --- Property.default.`@language` --> "en"
+    itemNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
+    itemNode --- Property.default.`@container` --> NS.types.`@list`
     lazy val item: Property = Property(itemNode)
 
-    val startDateTime = start + DataType.default.dateTimeType
+    val startDateTime = start + DataType.default.`@datetime`
 
-    val endDateTime = end + DataType.default.dateTimeType
+    val endDateTime = end + DataType.default.`@datetime`
 
     //    val itemString = item.addRange(item.graph.textType)
     //    val itemInt = item.addRange(item.graph.intType)
@@ -67,15 +67,15 @@ object Collection {
     //    val itemAny = item.addRange()
   }
 
-  ontologyNode --- Property.default.properties --> keys.start
-  ontologyNode --- Property.default.properties --> keys.end
-  ontologyNode --- Property.default.properties --> keys.item
+  ontologyNode --- Property.default.`@properties` --> keys.start
+  ontologyNode --- Property.default.`@properties` --> keys.end
+  ontologyNode --- Property.default.`@properties` --> keys.item
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   def apply[T](node: Node, ct: ClassType[T]): Collection[T] = wrap(node).asInstanceOf[Collection[T]]
   def apply[T, CT <: ClassType[T]](start: Instant, end: Instant, items: List[T])(ct: CT): Collection[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
     node.addOut(keys.start, start)
     node.addOut(keys.end, end)
     //    items.foreach(item => node.addOut(keys.item, item))

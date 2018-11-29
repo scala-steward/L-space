@@ -27,6 +27,9 @@ And then there is the concept of an ontology, property and data-type:
     * Geo: Geometry (work-in-progress, open-for-suggestions)
     * Boolean
   * [Squants DSL (WIP)](https://github.com/typelevel/squants)
+  
+## Graph model
+A graph exists of a data-space, name-space and index-space. 
 
 ## Rationales
 This project is inspired by the [Apache Tinkerpop](http://tinkerpop.apache.org/) graph computing framework 

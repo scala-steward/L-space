@@ -8,7 +8,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Suffix extends PredicateCompanion("Suffix") with PredicateWrapper[Suffix[_]] {
-  ontologyNode --- Property.default.EXTENDS --> EqP.ontology
+  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Suffix[_] = node match {
     case node: Suffix[_] => node
@@ -19,7 +19,7 @@ object Suffix extends PredicateCompanion("Suffix") with PredicateWrapper[Suffix[
 
   def apply[T: StringHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Suffix[T] = {
-    val node = DetachedGraph.createNode(ontology)
+    val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new Suffix(pvalue, node)
