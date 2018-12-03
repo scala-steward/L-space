@@ -60,9 +60,9 @@ graph.resources.hasId(id)
 ```
 upsert
 ```tut:book
-graph.resources.upsert("some-literal").id
-graph.resources.upsert("some-literal").id //should be equal because values are deduplicated
-graph.resources.upsert("some-literal2").id //new value, hence new id
+graph.values.create("some-literal").id
+graph.values.create("some-literal").id //should be equal because values are deduplicated
+graph.values.create("some-literal2").id //new value, hence new id
 ```
 count:
 ```tut:book
