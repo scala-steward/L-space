@@ -149,6 +149,10 @@ lazy val site = (project in file("site"))
     micrositeHomepage := "https://docs.l-space.eu",
     micrositeOrganizationHomepage := "https://l-space.eu",
     //    micrositeOrganizationHomepage := "",
+    excludeFilter in ghpagesCleanSite := //preserves github-settings for custom domain, each time CNAME is written custom domain is reset?
+      new FileFilter{
+        def accept(f: File) = (ghpagesRepository.value / "CNAME").getCanonicalPath == f.getCanonicalPath
+      } || "versions.html",
     micrositeGithubOwner := "L-space",
     micrositeGithubRepo := "L-space",
     micrositeGitterChannelUrl := "L-space/L-space",
