@@ -28,14 +28,16 @@ object ListSetType {
     ).asInstanceOf[ListSetType[Any]]
   }
 
-  def apply[V, VT[+Z] <: ClassType[Z]](valueRange: List[VT[V]]) = new ListSetType(valueRange)
+  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListSetType[TOut] =
+    new ListSetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListSetType[TOut]]
 
   implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
     : ClassTypeable.Aux[ListSetType[T], List[TOut], ListSetType[TOut]] =
     new ClassTypeable[ListSetType[T]] {
       type C  = List[TOut]
       type CT = ListSetType[TOut]
-      def ct: CT = ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
+      def ct: CT = new ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
     }
 }
 

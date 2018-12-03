@@ -25,7 +25,9 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   def byId(id: Long): Option[T]        = data.get(id)
   def byId(ids: List[Long]): Stream[T] = ids.toStream.flatMap(data.get)
 
-  def delete(id: Long): Unit = data -= id
+  def delete(resource: T): Unit        = data -= resource.id
+  def delete(resources: List[T]): Unit = resources.foreach(delete)
 
   def all(): Stream[T] = data.toStream.map(_._2)
+  def count(): Long    = all().size
 }

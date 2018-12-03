@@ -26,14 +26,16 @@ object VectorType {
         .map(node.graph.ns.getClassType))
   }
 
-  def apply[V, VT[+Z] <: ClassType[Z]](valueRange: List[VT[V]]) = new VectorType(valueRange)
+  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): VectorType[TOut] =
+    new VectorType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[VectorType[TOut]]
 
   implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
     : ClassTypeable.Aux[VectorType[T], Vector[TOut], VectorType[TOut]] =
     new ClassTypeable[VectorType[T]] {
       type C  = Vector[TOut]
       type CT = VectorType[TOut]
-      def ct: CT = VectorType(List(clsTpbl.ct))
+      def ct: CT = new VectorType(List(clsTpbl.ct))
     }
 }
 

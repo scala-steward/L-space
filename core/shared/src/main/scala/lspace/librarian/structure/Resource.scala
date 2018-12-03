@@ -13,7 +13,7 @@ object Resource {
   }
 }
 
-trait Resource[+T] extends IriResource {
+trait Resource[T] extends IriResource {
 //  @transient
   def id: Long
 
@@ -31,7 +31,7 @@ trait Resource[+T] extends IriResource {
     out(default.`@id`).collectFirst { case url: String => url }.getOrElse("")
   }
   def `@ids`: Set[String] = iris
-  def iris: Set[String]   = out(default.`@ids`).collect { case url: String => url }.toSet
+  def iris: Set[String]   = out(default.`@id`, default.`@ids`).collect { case url: String => url }.toSet
 
   @transient var status: CacheStatus.CacheStatus = CacheStatus.EMPTY
   @transient var memento: Long                   = 0L
@@ -143,8 +143,8 @@ trait Resource[+T] extends IriResource {
         dt.ct match {
           case dt: DataType[V] =>
             graph.values.create(value, dt)
-          case ct: ClassType[V] =>
-            graph.values.create(value)
+//          case ct: ClassType[V] =>
+//            graph.values.create(value)
         }
     }
     graph.edges.create(this, key, toResource.asInstanceOf[Resource[V0]])
@@ -159,8 +159,8 @@ trait Resource[+T] extends IriResource {
         dt match {
           case dt: DataType[V] =>
             graph.values.create(value, dt)
-          case ct: ClassType[V] =>
-            graph.values.create[V](value)
+//          case ct: ClassType[V] =>
+//            graph.values.create[V](value)
         }
     }
     graph.edges.create(this, key, toResource)
@@ -220,8 +220,8 @@ trait Resource[+T] extends IriResource {
         dt.ct match {
           case dt: DataType[V] =>
             graph.values.create(value, dt)
-          case ct: ClassType[V] =>
-            graph.values.create(value)
+//          case ct: ClassType[V] =>
+//            graph.values.create(value)
         }
     }
     graph.edges.create(toResource.asInstanceOf[Resource[V0]], key, this)
@@ -234,8 +234,8 @@ trait Resource[+T] extends IriResource {
         dt match {
           case dt: DataType[V] =>
             graph.values.create(value, dt)
-          case ct: ClassType[V] =>
-            graph.values.create[V](value)
+//          case ct: ClassType[V] =>
+//            graph.values.create[V](value)
         }
     }
     graph.edges.create(toResource, key, this)
@@ -272,8 +272,8 @@ trait Resource[+T] extends IriResource {
       .asInstanceOf[Edge[V, T]]
   }
 
-  def removeInE(edge: Edge[_, _]): Unit
-  def removeOutE(edge: Edge[_, _]): Unit
+  def removeInE(edge: Edge[_, T]): Unit
+  def removeOutE(edge: Edge[T, _]): Unit
   def removeInE(key: Property): Unit
   def removeOutE(key: Property): Unit
 

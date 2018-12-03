@@ -74,7 +74,8 @@ object Traversal {
     def E: Traversal[ST[Start], EdgeURLType[Edge[Any, Any]], step.E :: Steps] = //: Traversal[ST[Start],ClassType[Edge[S, E]], step.E :: Steps] =
       E[Any, Any]()
     def E[S: DefaultsToAny, E: DefaultsToAny](resource: Edge[S, E]*) =
-      Traversal[ST[Start], EdgeURLType[Edge[S, E]], step.E :: Steps](step.E(resource.toList) :: _traversal.steps)(
+      Traversal[ST[Start], EdgeURLType[Edge[S, E]], step.E :: Steps](
+        step.E(resource.toList.asInstanceOf[List[Edge[Any, Any]]]) :: _traversal.steps)(
         target,
         st,
         EdgeURLType.edgeUrlType[Edge[S, E]])
@@ -97,9 +98,8 @@ object Traversal {
       label match {
         case label: Property => label
         case label: String =>
-          MemGraphDefault.ns
+          target.ns
             .getProperty(label)
-            .orElse(_traversal.target.ns.getProperty(label))
             .getOrElse(Property(label)) //throw new Exception("unknown key"))
       }
     //    def has[L: (String |∨| Property)#λ](label: L): Traversal[Start, End, Has :: Steps] = {
@@ -227,23 +227,10 @@ object Traversal {
         HasLabel(DataType.default.`@color` :: Nil) :: _traversal.steps)(target, st, DataType.default.`@color`)
 
     def hasLabel(label0: String, labels0: String*) = {
-      val labelKeys = (MemGraphDefault.ns
-        .getProperty(label0)
-        .orElse(_traversal.target.ns.getProperty(label0))
-        .orElse(MemGraphDefault.ns.getOntology(label0))
-        .orElse(_traversal.target.ns.getOntology(label0))
-        .orElse(MemGraphDefault.ns.getDataType(label0))
-        .orElse(_traversal.target.ns.getDataType(label0)) ::
+      val labelKeys = (target.ns
+        .getClassType(label0) ::
         labels0
-        .map(
-          label =>
-            MemGraphDefault.ns
-              .getProperty(label)
-              .orElse(_traversal.target.ns.getProperty(label))
-              .orElse(MemGraphDefault.ns.getOntology(label))
-              .orElse(_traversal.target.ns.getOntology(label))
-              .orElse(MemGraphDefault.ns.getDataType(label))
-              .orElse(_traversal.target.ns.getDataType(label)))
+        .map(label => target.ns.getClassType(label))
         .toList).flatten
       Traversal[ST[Start], ET[End], HasLabel :: Steps](HasLabel(labelKeys) :: _traversal.steps)(target, st, et)
     }
@@ -261,7 +248,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def outMap(keys: List[Property]): Traversal[ST[Start], ClassType[Any], OutMap :: Steps] =
       outMap(keys: _*)
@@ -277,7 +263,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def outEMap(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[End, Any]], OutEMap :: Steps] =
       outEMap(keys: _*)
@@ -293,7 +278,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def inMap(keys: List[Property]): Traversal[ST[Start], ClassType[Any], InMap :: Steps] =
       inMap(keys: _*)
@@ -308,7 +292,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def inEMap(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[Any, End]], InEMap :: Steps] =
       inEMap(keys: _*)
@@ -328,7 +311,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def out(keys: List[Property] = List()): Traversal[ST[Start], ClassType[Any], Out :: Steps] =
       out(keys: _*)
@@ -346,7 +328,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def outE(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[End, Any]], OutE :: Steps] =
       outE(keys: _*)
@@ -362,7 +343,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def in(keys: List[Property]): Traversal[ST[Start], ClassType[Any], In :: Steps] =
       in(keys: _*)
@@ -377,7 +357,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def inE(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[Any, End]], InE :: Steps] =
       inE(keys: _*)
@@ -771,7 +750,6 @@ object Traversal {
           key =>
             target.ns
               .getProperty(key)
-              .orElse(MemGraphDefault.ns.getProperty(key))
               .getOrElse(Property(key))): _*)
     def label(keys: List[Property] = List()): Traversal[ST[Start], IriType[Property], Label :: Steps] =
       label(keys: _*)

@@ -3,7 +3,7 @@ package lspace.librarian.provider.mem.store
 import lspace.librarian.provider.mem.{MemGraph, MemResource}
 import lspace.librarian.structure.Property.default.{`@id`, `@ids`}
 import lspace.librarian.structure.store.EdgeStore
-import lspace.librarian.structure.{Edge, Property}
+import lspace.librarian.structure.{DataType, Edge, Property}
 
 import scala.collection.mutable
 
@@ -14,12 +14,12 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       .linksOut += resource.key -> (resource.from
       .asInstanceOf[MemResource[Any]]
       .linksOut
-      .getOrElse(resource.key, mutable.LinkedHashSet[Edge[Any, Any]]()) += resource)
+      .getOrElse(resource.key, mutable.LinkedHashSet[Edge[Any, _]]()) += resource.asInstanceOf[Edge[Any, _]])
 
     resource.to.asInstanceOf[MemResource[Any]].linksIn += resource.key -> (resource.to
       .asInstanceOf[MemResource[Any]]
       .linksIn
-      .getOrElse(resource.key, mutable.LinkedHashSet[Edge[Any, Any]]()) += resource)
+      .getOrElse(resource.key, mutable.LinkedHashSet[Edge[_, Any]]()) += resource.asInstanceOf[Edge[_, Any]])
 
     if ((resource.key == `@id` || resource.key == `@ids`) && resource.to.isInstanceOf[graph._Value[String]])
       graph.`@idStore`.store(resource.to.asInstanceOf[graph._Value[String]])
@@ -28,7 +28,7 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
   }
 
   def byIri(iri: String): Stream[T] =
-    graph.`@idStore`.byValue(iri)
+    graph.`@idStore`.byValue(iri, DataType.default.`@string`)
       .flatMap(_.in(`@id`, `@ids`).filter(_.isInstanceOf[Edge[_, _]]))
       .asInstanceOf[Stream[T]]
       .distinct
@@ -69,7 +69,8 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
             data.toStream.collect { case e if e._2.key == key => e._2 }
         }
       case Some(fromIri) =>
-        val fromResources = graph.`@idStore`.byValue(fromIri).flatMap(_.inE(`@id`).map(_.from))
+        val fromResources =
+          graph.`@idStore`.byValue(fromIri, DataType.default.`@string`).flatMap(_.inE(`@id`).map(_.from))
         key match {
           case None =>
             fromResources.flatMap(_.outE())

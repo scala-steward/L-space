@@ -14,7 +14,6 @@ import scala.collection.mutable
 
 object DetachedGraph extends MemDataGraph {
   lazy val iri: String = "detachedmemgraph"
-  println("create DetachedGraph")
 
   lazy val idProvider: IdProvider = new IdProvider {
     private val id = new AtomicLong()
@@ -44,7 +43,7 @@ object DetachedGraph extends MemDataGraph {
       .linksOut += edge.key -> (edge.from
       .asInstanceOf[MemResource[Any]]
       .linksOut
-      .getOrElse(edge.key, mutable.LinkedHashSet[Edge[Any, Any]]()) += edge)
+      .getOrElse(edge.key, mutable.LinkedHashSet[Edge[Any, _]]()) += edge.asInstanceOf[Edge[Any, _]])
   }
 
   override protected def _indexEdge[S, E](edge: _Edge[S, E]): Unit = {}
@@ -61,6 +60,4 @@ object DetachedGraph extends MemDataGraph {
 //  }
 
   override val computer = new DefaultStreamComputer()
-
-  println("created DetachedGraph")
 }

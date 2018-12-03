@@ -33,22 +33,15 @@ L-space provides additional modules for remote traversals, parsing io, rest-api 
 
 - `lspace-parse`: parsers for linked data
 - `lspace-client`: clients to communicatie with other graph(-services)
-- `lspace-graph`: basic implementation for persistence and indexing remote (e.g. Cassandra, Elasticsearch, HDFS, ...)
+- `lspace-graph`: implementation for persistence and indexing remote (e.g. Cassandra, Elasticsearch, HDFS, ...)
 - `lspace-services`: basic implementation for a rest service which accepts Librarian queries in Json-LD and returns results in Json-LD
 ```
 libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "{version}"
 ```
 
 ## Examples
-`examples` on how to use the project modules in various environments and
-
-# Current State of Development, work-in-process
-- [X] The core in-memory graph is working and fast! 
-  - [X] It is Scala-js compatible so it can be used in javascript-webapps. 
-  - [ ] Extends the type of traversal steps to tell the librarian more concise what it is you want from L-space.
-- [ ] The JSON-LD that L-space produces is not 100% conformant with the current JSON-LD specs, so be aware! 
-Still need to implement @version so it can produce any JSON-LD version.
-- [ ] Project Graph is basicly a TODO, the work has just been started. 
+`examples` on how to use the project modules in various environments and 
+sample-environments (e.g. Jupyter-notebook with samples)
 
 ## Acknowledgments
 * This project uses as few libraries as possible, the main libraries for core, parse, client and services are:

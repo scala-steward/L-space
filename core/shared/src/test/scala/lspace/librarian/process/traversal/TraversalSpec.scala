@@ -10,7 +10,6 @@ import org.scalatest.{Matchers, WordSpec}
 import shapeless._
 
 class TraversalSpec extends WordSpec with Matchers {
-  MemGraphDefault.iri
   val g = DetachedGraph.g
 
   "A traversal" which {

@@ -9,7 +9,6 @@ import monix.eval.Task
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.structure._
-import lspace.librarian.structure.index.Index
 import lspace.librarian.structure.util.IdProvider
 import shapeless.HList
 
@@ -78,26 +77,14 @@ object LGraph {
 //  def apply(_iri: String, _idProvider: IdProvider, _ns: LNSGraph, _index: LIndexGraph)
 }
 
-trait LGraphIdProvider extends IdProvider {
-  protected def newIdRange: Vector[Long]
-  private var id = newIdRange.iterator
-  def next: Long = synchronized {
-    if (id.hasNext) id.next()
-    else {
-      id = newIdRange.iterator
-      id.next()
-    }
-  }
-}
-
 trait LGraph extends Graph {
 //  def createStoreManager[G <: LGraph]: G => StoreManager[G]
 //  def stateManager: GraphManager[this.type]
   def storeManager: StoreManager[this.type]
 
-  override protected[lgraph] def nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
-  override protected[lgraph] def edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
-  override protected[lgraph] def valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
+  override protected[lgraph] val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
+  override protected[lgraph] val edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
+  override protected[lgraph] val valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
 
   override protected def _createNode(id: Long)(ontology: Ontology*): _Node = {
     val node = LNode(id, thisgraph)
@@ -118,11 +105,11 @@ trait LGraph extends Graph {
   }
 
   protected def _deleteResource(resource: _Resource[_]): Unit = {
-    resource.asInstanceOf[LResource[_]].linksOut.foreach {
+    resource.asInstanceOf[LResource[Any]].linksOut.foreach {
       case (key, properties) =>
         properties.links.foreach(edge => edge.to.removeInE(edge))
     }
-    resource.asInstanceOf[LResource[_]].linksIn.foreach {
+    resource.asInstanceOf[LResource[Any]].linksIn.foreach {
       case (key, properties) =>
         properties.links.foreach(edge => edge.from.removeOutE(edge))
     }

@@ -113,7 +113,7 @@ trait TupleType[+T] extends StructuredValue[T] {}
 object Tuple2Type {
 
   def apply[A, AT[+Z] <: ClassType[Z], B, BT[+Z] <: ClassType[Z]](_1stRange: List[AT[A]], _2ndRange: List[BT[B]]) =
-    new Tuple2Type(_1stRange, _2ndRange)
+    new Tuple2Type(_1stRange, _2ndRange) //TODO: ClassTypeable
 
   implicit def defaultCls[A, Aout, ATout <: ClassType[_], B, Bout, BTout <: ClassType[_]](
       implicit clsTpblA: ClassTypeable.Aux[A, Aout, ATout],

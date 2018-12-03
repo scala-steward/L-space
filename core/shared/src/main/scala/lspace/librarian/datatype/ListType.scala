@@ -16,14 +16,16 @@ object ListType {
         .map(node.graph.ns.getClassType))
   }
 
-  def apply[V, VT[+Z] <: ClassType[Z]](valueRange: List[VT[V]]) = new ListType(valueRange)
+  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =
+    new ListType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListType[TOut]]
 
   implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[TOut]](
       implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[ListType[T], List[TOut], ListType[TOut]] =
     new ClassTypeable[ListType[T]] {
       type C  = List[TOut]
       type CT = ListType[TOut]
-      def ct: CT = ListType(List(clsTpbl.ct))
+      def ct: CT = new ListType(List(clsTpbl.ct))
     }
 }
 

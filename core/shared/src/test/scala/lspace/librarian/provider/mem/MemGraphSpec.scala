@@ -1,8 +1,9 @@
 package lspace.librarian.provider.mem
 
+import lspace.librarian.process.computer.GraphComputerSpec
 import lspace.librarian.structure._
 
-class MemGraphSpec extends GraphSpec {
+class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
   //  Ontology
   //  val graph: Graph = MemGraphDefault
   val graph: Graph                    = MemGraph("memgraphspec")

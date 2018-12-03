@@ -12,3 +12,6 @@ cache:
     - node_modules
 install:
   - npm install jsdom
+services:
+- cassandra
+- elasticsearch

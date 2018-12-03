@@ -49,9 +49,16 @@ object MapType {
     )
   }
 
-  def apply[K, V](keyRange: List[_ <: ClassType[K]], valueRange: List[_ <: ClassType[V]]) =
-//  def apply[K, KT[+Z] <: ClassType[Z], V, VT[+Z] <: ClassType[Z]](keyRange: List[KT[K]], valueRange: List[VT[V]]) =
-    new MapType(keyRange, valueRange)
+  def apply[KT <: ClassType[_],
+            KTOut,
+            CKTOut <: ClassType[KTOut],
+            VT <: ClassType[_],
+            VTOut,
+            CVTOut <: ClassType[VTOut]](keyRange: List[KT], valueRange: List[VT])(
+      implicit kclsTpbl: ClassTypeable.Aux[KT, KTOut, CKTOut],
+      vclsTpbl: ClassTypeable.Aux[VT, VTOut, CVTOut]): MapType[KTOut, VTOut] =
+    new MapType(keyRange.asInstanceOf[List[ClassType[KTOut]]], valueRange.asInstanceOf[List[ClassType[VTOut]]])
+      .asInstanceOf[MapType[KTOut, VTOut]]
 
   implicit def defaultCls[
       K,
@@ -68,7 +75,7 @@ object MapType {
     new ClassTypeable[MapType[K, V]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[KOut, VOut]
-      def ct: CT = MapType(List(clsTpblK.ct), List(clsTpblV.ct))
+      def ct: CT = new MapType(List(clsTpblK.ct), List(clsTpblV.ct))
     }
 }
 

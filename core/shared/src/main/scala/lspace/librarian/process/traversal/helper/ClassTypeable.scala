@@ -109,7 +109,7 @@ object ClassTypeable {
     new ClassTypeable[List[T]] {
       type C  = List[TOut]
       type CT = ListType[TOut]
-      def ct: CT = ListType(List(clsTpbl.ct)).asInstanceOf[ListType[TOut]]
+      def ct: CT = new ListType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListType[TOut]]
     }
 
   implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](
@@ -117,7 +117,7 @@ object ClassTypeable {
     new ClassTypeable[Set[T]] {
       type C  = List[TOut]
       type CT = SetType[TOut]
-      def ct: CT = SetType(List(clsTpbl.ct)).asInstanceOf[SetType[TOut]]
+      def ct: CT = new SetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[SetType[TOut]]
     }
 
   implicit def defaultVector[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
@@ -125,7 +125,7 @@ object ClassTypeable {
     new ClassTypeable[Vector[T]] {
       type C  = Vector[TOut]
       type CT = VectorType[TOut]
-      def ct: CT = VectorType(List(clsTpbl.ct)).asInstanceOf[VectorType[TOut]]
+      def ct: CT = new VectorType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[VectorType[TOut]]
     }
 
   implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
@@ -133,7 +133,7 @@ object ClassTypeable {
     new ClassTypeable[ListSet[T]] {
       type C  = List[TOut]
       type CT = ListSetType[TOut]
-      def ct: CT = ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
+      def ct: CT = new ListSetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListSetType[TOut]]
     }
 
   implicit def defaultMap[
@@ -148,7 +148,9 @@ object ClassTypeable {
     new ClassTypeable[Map[K, V]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[KOut, VOut]
-      def ct: CT = MapType(List(clsTpblK.ct), List(clsTpblV.ct))
+      def ct: CT =
+        new MapType[KOut, VOut](List(clsTpblK.ct.asInstanceOf[ClassType[KOut]]),
+                                List(clsTpblV.ct.asInstanceOf[ClassType[VOut]]))
     }
 
   implicit def defaultTuple2[

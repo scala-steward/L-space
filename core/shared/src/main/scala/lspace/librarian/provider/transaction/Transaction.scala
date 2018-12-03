@@ -4,6 +4,7 @@ import lspace.librarian.process.computer.TransactionStreamComputer
 import lspace.librarian.provider.mem._
 import lspace.librarian.structure._
 import lspace.librarian.structure.util.IdProvider
+import monix.eval.Task
 
 import scala.collection.mutable
 
@@ -59,31 +60,29 @@ trait Transaction extends MemDataGraph {
     }
 
     override def hasIri(iris: List[String]): List[Resource[_]] = {
-      super.hasIri(iris) match {
-        case List() =>
-          parent.resources
-            .hasIri(iris)
-            .map {
-              case n: Node       => _TNode(n)
-              case e: Edge[_, _] => _TEdge(e)
-              case v: Value[_]   => _TValue(v)
-            }
-        case l => l
-      }
+      val fromTransaction = super.hasIri(iris)
+      val fromParent = parent.resources
+        .hasIri(iris)
+        .map {
+          case n: Node       => _TNode(n)
+          case e: Edge[_, _] => _TEdge(e)
+          case v: Value[_]   => _TValue(v)
+        }
+        .filterNot(n => nodes.deleted.contains(n.id) || edges.deleted.contains(n.id) || values.deleted.contains(n.id))
+      val ids = fromTransaction.map(_.id)
+      fromTransaction ++ fromParent.filter(n => ids.contains(n.id))
     }
 
     override def hasId(id: Long): Option[Resource[_]] = {
-      super.hasId(id) match {
-        case None =>
-          parent.resources
-            .hasId(id)
-            .map {
-              case n: Node       => _TNode(n)
-              case e: Edge[_, _] => _TEdge(e)
-              case v: Value[_]   => _TValue(v)
-            }
-        case l => l
-      }
+      if (nodes.deleted.contains(id) || edges.deleted.contains(id) || values.deleted.contains(id)) None
+      else
+        super
+          .hasId(id)
+          .orElse(parent.resources.hasId(id).map {
+            case n: Node       => _TNode(n)
+            case e: Edge[_, _] => _TEdge(e)
+            case v: Value[_]   => _TValue(v)
+          })
     }
   }
 
@@ -99,17 +98,15 @@ trait Transaction extends MemDataGraph {
     }
 
     override def hasIri(iris: List[String]): List[Node] = {
-      super.hasIri(iris) match {
-        case List() => parent.nodes.hasIri(iris).map(_TNode(_))
-        case l      => l
-      }
+      val fromTransaction = super.hasIri(iris)
+      val fromParent      = parent.nodes.hasIri(iris).map(_TNode(_)).filterNot(n => deleted.contains(n.id))
+      val ids             = fromTransaction.map(_.id)
+      fromTransaction ++ fromParent.filterNot(n => ids.contains(n.id))
     }
 
     override def hasId(id: Long): Option[Node] = {
-      super.hasId(id) match {
-        case None => parent.nodes.hasId(id).map(_TNode(_))
-        case l    => l
-      }
+      if (deleted.contains(id)) None
+      else super.hasId(id).orElse(parent.nodes.hasId(id).map(_TNode(_)))
     }
   }
 
@@ -125,17 +122,15 @@ trait Transaction extends MemDataGraph {
     }
 
     override def hasIri(iris: List[String]): List[Edge[_, _]] = {
-      super.hasIri(iris) match {
-        case List() => parent.edges.hasIri(iris).map(_TEdge(_))
-        case l      => l
-      }
+      val fromTransaction = super.hasIri(iris)
+      val fromParent      = parent.edges.hasIri(iris).map(_TEdge(_)).filterNot(n => deleted.contains(n.id))
+      val ids             = fromTransaction.map(_.id)
+      fromTransaction ++ fromParent.filterNot(n => ids.contains(n.id))
     }
 
     override def hasId(id: Long): Option[Edge[_, _]] = {
-      super.hasId(id) match {
-        case None => parent.edges.hasId(id).map(_TEdge(_))
-        case l    => l
-      }
+      if (deleted.contains(id)) None
+      else super.hasId(id).orElse(parent.edges.hasId(id).map(_TEdge(_)))
     }
   }
 
@@ -151,24 +146,22 @@ trait Transaction extends MemDataGraph {
     }
 
     override def hasIri(iris: List[String]): List[Value[_]] = {
-      super.hasIri(iris) match {
-        case List() => parent.values.hasIri(iris).map(_TValue(_))
-        case l      => l
-      }
+      val fromTransaction = super.hasIri(iris)
+      val fromParent      = parent.values.hasIri(iris).map(_TValue(_)).filterNot(n => deleted.contains(n.id))
+      val ids             = fromTransaction.map(_.id)
+      fromTransaction ++ fromParent.filterNot(n => ids.contains(n.id))
     }
 
-    override def byValue(valueSet: List[Any]): List[Value[_]] = {
-      super.byValue(valueSet) match {
-        case List() => parent.values.byValue(valueSet).map(_TValue(_))
-        case l      => l
-      }
+    override def byValue[T](valueSet: List[(T, DataType[T])]): List[Value[_]] = {
+      val fromTransaction = super.byValue(valueSet)
+      val fromParent      = parent.values.byValue(valueSet).map(_TValue(_)).filterNot(n => deleted.contains(n.id))
+      val ids             = fromTransaction.map(_.id)
+      fromTransaction ++ fromParent.filter(n => ids.contains(n.id))
     }
 
     override def hasId(id: Long): Option[Value[_]] = {
-      super.hasId(id) match {
-        case None => parent.values.hasId(id).map(_TValue(_))
-        case l    => l
-      }
+      if (deleted.contains(id)) None
+      else super.hasId(id).orElse(parent.values.hasId(id).map(_TValue(_)))
     }
   }
 
@@ -176,7 +169,9 @@ trait Transaction extends MemDataGraph {
 
   protected var open: Boolean = true
 
-  def commit(): Unit  = open = false
+  def commit(): Unit = {
+    open = false
+  }
   def isOpen: Boolean = open
 
   /**
@@ -208,8 +203,9 @@ trait Transaction extends MemDataGraph {
       case node: _TNode =>
         nodes.deleted += node.id
       case _ =>
-        super._deleteNode(node)
     }
+    nodes.added -= node
+    super._deleteNode(node)
   }
 
   override protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
@@ -225,41 +221,51 @@ trait Transaction extends MemDataGraph {
           case _                =>
         }
       case _ =>
-        super._deleteEdge(edge)
     }
+    edges.added -= edge
+    super._deleteEdge(edge)
   }
 
+  /**
+    * deletes the Value from the transaction and marks the id as deleted
+    * @param value
+    */
   override protected def _deleteValue(value: _Value[_]): Unit = {
     value match {
       case value: _TValue[_] =>
         values.deleted += value.id
       case _ =>
-        super._deleteValue(value)
     }
+    values.added -= value
+    super._deleteValue(value)
   }
 
-  override protected def _deleteResource(resource: _Resource[_]): Unit = {
-
-    resource.outE().foreach { e =>
-      e.to match {
-        case tr: TResource[_] => tr.deletedEdges += e.id
-        case n: Node          =>
-        case e: Edge[_, _]    =>
-        case v: Value[_]      =>
-      }
-      e.remove()
-    }
-    resource.inE().foreach { e =>
-      e.from match {
-        case tr: TResource[_] => tr.deletedEdges += e.id
-        case n: Node          =>
-        case e: Edge[_, _]    =>
-        case v: Value[_]      =>
-      }
-      e.remove()
-    }
-    super._deleteResource(resource)
-  }
+//  /**
+//    * delete in-/out-going edges from the resource
+//    * @param resource
+//    */
+//  override protected def _deleteResource(resource: _Resource[_]): Unit = {
+//
+////    resource.outE().foreach { e =>
+////      e.to.asInstanceOf[Resource[_]] match {
+////        case tr: TResource[_] => tr.deletedEdges += e.id
+////        case n: Node          =>
+////        case e: Edge[_, _]    =>
+////        case v: Value[_]      =>
+////      }
+////      e.remove()
+////    }
+////    resource.inE().foreach { e =>
+////      e.from.asInstanceOf[Resource[_]] match {
+////        case tr: TResource[_] => tr.deletedEdges += e.id
+////        case n: Node          =>
+////        case e: Edge[_, _]    =>
+////        case v: Value[_]      =>
+////      }
+////      e.remove()
+////    }
+//    super._deleteResource(resource)
+//  }
 
   override val computer = new TransactionStreamComputer(this)
 }

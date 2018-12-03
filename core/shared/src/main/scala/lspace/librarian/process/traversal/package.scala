@@ -74,7 +74,8 @@ package object traversal {
       new Impl[OutMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: OutMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          MapType(List(DataType.default.propertyURLType), List(ListType(List(im).filter(_.iri.nonEmpty))))
+          new MapType(List(DataType.default.propertyURLType),
+                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
       }
@@ -83,7 +84,8 @@ package object traversal {
       new Impl[OutEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: OutEMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          MapType(List(DataType.default.propertyURLType), List(ListType(List(im).filter(_.iri.nonEmpty))))
+          new MapType(List(DataType.default.propertyURLType),
+                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
       }
@@ -92,7 +94,8 @@ package object traversal {
       new Impl[InMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: InMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          MapType(List(DataType.default.propertyURLType), List(ListType(List(im).filter(_.iri.nonEmpty))))
+          new MapType(List(DataType.default.propertyURLType),
+                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
       }
@@ -101,7 +104,8 @@ package object traversal {
       new Impl[InEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: InEMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          MapType(List(DataType.default.propertyURLType), List(ListType(List(im).filter(_.iri.nonEmpty))))
+          new MapType(List(DataType.default.propertyURLType),
+                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
       }
@@ -113,7 +117,8 @@ package object traversal {
       new Impl[Group[AT] :: L, CT, Map[List[Aout], List[inner.Out]], CollectionType[Map[List[Aout], List[inner.Out]]]] {
         override def convert(hlist: Group[AT] :: L, value: CT): CollectionType[Map[List[Aout], List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          MapType(List(ListType(List(clsTpblA.ct))), List(ListType(List(im).filter(_.iri.nonEmpty))))
+          new MapType(List(ListType(List(clsTpblA.ct.asInstanceOf[ClassType[Aout]]))),
+                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[List[Aout], List[inner.Out]]]]
         }
       }
@@ -123,7 +128,8 @@ package object traversal {
       new Impl[Path :: L, CT, List[inner.Out], CollectionType[List[inner.Out]]] {
         override def convert(hlist: Path :: L, value: CT): CollectionType[List[inner.Out]] = {
           val im = inner.convert(hlist.tail, value)
-          ListType(List(im).filter(_.iri.nonEmpty)).asInstanceOf[CollectionType[List[inner.Out]]]
+          new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))
+            .asInstanceOf[CollectionType[List[inner.Out]]]
         }
       }
   }

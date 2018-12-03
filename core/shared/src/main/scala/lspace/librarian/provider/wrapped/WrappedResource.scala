@@ -4,7 +4,7 @@ import monix.reactive.subjects.Var
 import lspace.librarian.structure._
 import lspace.util.CacheStatus
 
-trait WrappedResource[+T] extends Resource[T] {
+trait WrappedResource[T] extends Resource[T] {
   //  def value: T = self.value
 
   def id: Long                   = self.id
@@ -31,8 +31,8 @@ trait WrappedResource[+T] extends Resource[T] {
 //  def addIns[V](key: Property, values: List[(ClassType[V], V)]): List[Edge[V, T]] =
 //    self.addIns(key, values)
 
-  def removeInE(edge: Edge[_, _]): Unit  = self.removeInE(edge)
-  def removeOutE(edge: Edge[_, _]): Unit = self.removeOutE(edge)
+  def removeInE(edge: Edge[_, T]): Unit  = self.removeInE(edge)
+  def removeOutE(edge: Edge[T, _]): Unit = self.removeOutE(edge)
   def removeInE(key: Property): Unit     = self.removeInE(key)
   def removeOutE(key: Property): Unit    = self.removeOutE(key)
 

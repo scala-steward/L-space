@@ -12,12 +12,11 @@ object GraphUtils {
   def mergeNodes(nodes: Set[Node]): Node = {
     //    val nodesByCreatedOnDateTime =
     //      nodes.toList.sortBy(_.out(default.typed.createdonDateTime).take(1).map(_.toEpochMilli).head)
-    val nodesSortedById =
+    val unmerged =
       nodes.toList.sortBy(_.id)
 
-    val (unmerged, transcended) =
-      //      nodesByCreatedOnDateTime.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
-      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
+//    val (unmerged, transcended) =
+//      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
     unmerged.tail.foreach { slave =>
       val masterVertexOntologies = unmerged.head.labels //out(this.typeOntology).map(Ontology.wrap)
       val suborVertexOntologies  = slave.labels //out(this.typeOntology).map(Ontology.wrap)
@@ -62,9 +61,10 @@ object GraphUtils {
             unmerged.head.addOut(property.key, property.to)
           }
       }
-      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+//      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+      slave.remove()
     }
-    transcended.foreach(_.remove())
+//    transcended.foreach(_.remove())
     unmerged.head
   }
 }

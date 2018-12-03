@@ -82,22 +82,29 @@ object DataType {
     val `@color`    = ColorType
     val `@graph`    = GraphType.default
 
-    def vectorType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) = VectorType(List(ct))
-    def vectorType[T](implicit tpe: ClassTypeable[T])                           = VectorType(List(tpe.ct)).asInstanceOf[VectorType[T]]
-    def vectorType()                                                            = VectorType(List[ClassType[Any]]())
-    def listType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V])   = ListType(List(ct))
+    def vectorType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+      new VectorType(List(ct.asInstanceOf[ClassType[V]]))
+    def vectorType[T](implicit tpe: ClassTypeable[T]) =
+      VectorType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[VectorType[T]]
+    def vectorType() = VectorType(List[ClassType[Any]]())
+    def listType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+      ListType(List(ct.asInstanceOf[ClassType[V]]))
     def listType[T](implicit tpe: ClassTypeable[T]) =
-      ListType(List(tpe.ct)).asInstanceOf[ListType[T]]
-    def listType()                                                               = ListType(List[ClassType[Any]]())
-    def listsetType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) = ListSetType(List(ct))
-    def listsetType[T](implicit tpe: ClassTypeable[T])                           = ListSetType(List(tpe.ct)).asInstanceOf[ListSetType[T]]
-    def listsetType()                                                            = ListSetType(List[ClassType[Any]]())
-    def setType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V])     = SetType(List(ct))
-    def setType[T](implicit tpe: ClassTypeable[T])                               = SetType(List(tpe.ct)).asInstanceOf[SetType[T]]
-    def setType()                                                                = SetType(List[ClassType[Any]]())
+      ListType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[ListType[T]]
+    def listType() = ListType(List[ClassType[Any]]())
+    def listsetType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+      ListSetType(List(ct.asInstanceOf[ClassType[V]]))
+    def listsetType[T](implicit tpe: ClassTypeable[T]) =
+      ListSetType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[ListSetType[T]]
+    def listsetType() = ListSetType(List[ClassType[Any]]())
+    def setType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+      SetType(List(ct.asInstanceOf[ClassType[V]]))
+    def setType[T](implicit tpe: ClassTypeable[T]) =
+      SetType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[SetType[T]]
+    def setType() = SetType(List[ClassType[Any]]())
     def mapType[K, KT[+Z] <: ClassType[Z], KTOut <: ClassType[_], V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](
         kct: KT[K],
-        vct: VT[V]) = MapType(List(kct), List(vct))
+        vct: VT[V]) = MapType(List(kct.asInstanceOf[ClassType[K]]), List(vct.asInstanceOf[ClassType[V]]))
     def mapType[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[K, V] =
       MapType(List(ktpe.ct.asInstanceOf[ClassType[K]]), List(vtpe.ct.asInstanceOf[ClassType[V]])) //.asInstanceOf[MapType[K, V]]
     def mapType() = MapType(List[ClassType[Any]](), List[ClassType[Any]]())

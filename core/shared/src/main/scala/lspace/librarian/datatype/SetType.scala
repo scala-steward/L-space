@@ -26,14 +26,16 @@ object SetType {
         .map(node.graph.ns.getClassType))
   }
 
-  def apply[V, VT[+Z] <: ClassType[Z]](valueRange: List[VT[V]]) = new SetType(valueRange)
+  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): SetType[TOut] =
+    new SetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[SetType[TOut]]
 
   implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](
       implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[SetType[T], List[TOut], SetType[TOut]] =
     new ClassTypeable[SetType[T]] {
       type C  = List[TOut]
       type CT = SetType[TOut]
-      def ct: CT = SetType(List(clsTpbl.ct)).asInstanceOf[SetType[TOut]]
+      def ct: CT = new SetType(List(clsTpbl.ct)).asInstanceOf[SetType[TOut]]
     }
 }
 

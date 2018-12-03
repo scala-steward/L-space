@@ -86,14 +86,14 @@ class DefaultStreamComputer extends GraphComputer {
               .asInstanceOf[Stream[Traverser[Resource[_]]]]
           case list: List[Value[Any]] =>
             implgraph.values
-              .byValue(list.map(v => v.value))
+              .byValue(list.map(v => v.value -> v.label))
               .toStream
               .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
               .asInstanceOf[Stream[Traverser[Resource[_]]]]
         }
       case step: V =>
         implgraph.values
-          .byValue(step.resources.map(v => v.value))
+          .byValue(step.resources.map(v => v.value -> v.label))
           .toStream
           .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
           .asInstanceOf[Stream[Traverser[Resource[_]]]]

@@ -19,7 +19,7 @@ object Edge {
   * @tparam S outV-type, edge-start
   * @tparam E inV-type, edge-end
   */
-trait Edge[+S, +E] extends Resource[Edge[S, E]] {
+trait Edge[S, E] extends Resource[Edge[S, E]] {
   def key: Property
   val value: Edge[S, E]      = this
   def labels: List[Property] = List(key)

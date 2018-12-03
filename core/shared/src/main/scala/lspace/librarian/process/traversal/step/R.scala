@@ -29,7 +29,7 @@ object R extends StepDef("R") with StepWrapper[R] {
     val resourceUrl: TypedProperty[Any] = resource + DataType.default.uRLType
   }
 
-  def apply(values: List[Resource[Any]]): R = {
+  def apply(values: List[Resource[_]]): R = {
     val node = DetachedGraph.nodes.create(ontology)
 
     values.foreach(

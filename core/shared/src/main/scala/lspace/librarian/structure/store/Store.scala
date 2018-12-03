@@ -23,11 +23,12 @@ trait Store[G <: Graph] {
   def byId(ids: List[Long]): Stream[T]
   def byIri(iri: String): Stream[T]
 
-  def -(id: Long): Unit = delete(id)
-  def delete(id: Long): Unit
+  def -(resource: T): Unit = delete(resource)
+  def delete(resource: T): Unit
+  def delete(resources: List[T]): Unit
 
   def all(): Stream[T]
-
+  def count(): Long
 }
 trait NodeStore[G <: Graph] extends Store[G] {
   type T = graph._Node
@@ -41,5 +42,5 @@ trait EdgeStore[G <: Graph] extends Store[G] {
 trait ValueStore[G <: Graph] extends Store[G] {
   type T = graph._Value[_]
 
-  def byValue[V](value: V): Stream[T]
+  def byValue[V](value: V, dt: DataType[V]): Stream[T]
 }

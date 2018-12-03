@@ -2,6 +2,7 @@ package lspace.lgraph.store
 
 import lspace.lgraph.{LGraph, LGraphIdProvider}
 import lspace.librarian.structure._
+import monix.eval.Task
 
 abstract class StoreManager[G <: LGraph](val graph: G) {
 
@@ -31,13 +32,21 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
   def valueByValue[T](value: T, dt: DataType[T]): Stream[graph._Value[T]]
   def valuesByValue[T](values: List[(T, DataType[T])]): Stream[graph._Value[T]]
 
-  def storeNodes(nodes: List[Node]): Unit
-  def storeEdges(edges: List[Edge[_, _]]): Unit
-  def storeValues(values: List[Value[_]]): Unit
+  def storeNodes(nodes: List[Node]): Task[_]
+  def storeEdges(edges: List[Edge[_, _]]): Task[_]
+  def storeValues(values: List[Value[_]]): Task[_]
+
+  def deleteNodes(nodes: List[Node]): Task[_]
+  def deleteEdges(edges: List[Edge[_, _]]): Task[_]
+  def deleteValues(values: List[Value[_]]): Task[_]
 
   def nodes: Stream[graph._Node]
   def edges: Stream[graph._Edge[_, _]]
   def values: Stream[graph._Value[_]]
+
+  def nodeCount(): Long
+  def edgeCount(): Long
+  def valueCount(): Long
 
   /**
     * finishes write-queue(s) and closes connection

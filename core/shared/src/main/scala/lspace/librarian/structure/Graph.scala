@@ -62,10 +62,10 @@ object Graph {
 }
 
 trait Graph extends IriResource {
-  abstract class _Resource[+T] extends structure.Resource[T]
-  abstract class _Node         extends _Resource[structure.Node] with structure.Node
-  abstract class _Edge[+S, +E] extends _Resource[structure.Edge[S, E]] with structure.Edge[S, E]
-  abstract class _Value[T]     extends _Resource[T] with structure.Value[T]
+  abstract class _Resource[T] extends structure.Resource[T]
+  abstract class _Node        extends _Resource[structure.Node] with structure.Node
+  abstract class _Edge[S, E]  extends _Resource[structure.Edge[S, E]] with structure.Edge[S, E]
+  abstract class _Value[T]    extends _Resource[T] with structure.Value[T]
 
   implicit lazy val thisgraph: this.type = this
   def ns: NameSpaceGraph
@@ -101,11 +101,11 @@ trait Graph extends IriResource {
 
     def hasId(id: Long): Option[T]
 
-    def count(): Long = apply().size
-
   }
   trait Resources extends RApi[Resource[_]] {
     def apply(): Stream[Resource[_]] = nodes() ++ edges() ++ values()
+    def count(): Long                = nodeStore.count() + edgeStore.count() + valueStore.count()
+
     def hasIri(iris: List[String]): List[Resource[_]] = {
       val validIris = iris.filter(_.nonEmpty)
       if (validIris.nonEmpty) {
@@ -120,11 +120,12 @@ trait Graph extends IriResource {
       } else List[Resource[_]]()
     }
 
-    def upsert[V](value: V): Resource[V] = {
-      value match {
-        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
-        case value                 => values.create(value).asInstanceOf[Resource[V]]
-      }
+    def upsert[V](resource: Resource[V]): Resource[V] = {
+      upsertR(resource)
+//      value match {
+//        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
+//        case value                 => values.create(value).asInstanceOf[Resource[V]]
+//      }
     }
     private def upsertR[V](value: Resource[V]): Resource[V] = {
       value match {
@@ -153,6 +154,7 @@ trait Graph extends IriResource {
 
   trait Edges extends RApi[Edge[_, _]] {
     def apply(): Stream[Edge[_, _]] = edgeStore.all()
+    def count(): Long               = edgeStore.count()
 
     def hasId(id: Long): Option[Edge[_, _]] = edgeStore.byId(id)
     override def hasIri(iris: List[String]): List[Edge[_, _]] = {
@@ -164,7 +166,7 @@ trait Graph extends IriResource {
               edgeStore
                 .byIri(iri)
                 .toList
-                .asInstanceOf[List[Edge[_, _]]])
+                .asInstanceOf[List[Edge[_, _]]]) distinct
       else List[Edge[_, _]]()
     }
 
@@ -276,6 +278,7 @@ trait Graph extends IriResource {
 
   trait Nodes extends RApi[Node] {
     def apply(): Stream[Node] = nodeStore.all()
+    def count(): Long         = nodeStore.count()
 
     def hasId(id: Long): Option[Node] = nodeStore.byId(id)
     override def hasIri(iris: List[String]): List[Node] = {
@@ -288,7 +291,9 @@ trait Graph extends IriResource {
             .byIri(iri)
             .toList
             .asInstanceOf[List[Node]] //        println(r.map(_.iri))
-        } else List[Node]()
+        } distinct
+      else List[Node]()
+
     }
 
     final def create(ontology: Ontology*): Node           = _createNode(idProvider.next)(ontology: _*)
@@ -384,6 +389,7 @@ trait Graph extends IriResource {
 
   trait Values extends RApi[Value[_]] {
     def apply(): Stream[Value[_]] = valueStore.all()
+    def count(): Long             = valueStore.count()
 
     def hasId(id: Long): Option[Value[_]] = valueStore.byId(id)
     def hasIri(iris: List[String]): List[Value[_]] = {
@@ -396,12 +402,14 @@ trait Graph extends IriResource {
             .byIri(iri)
             .toList
             .asInstanceOf[List[Value[_]]] //        println(r.map(_.iri))
-        } else List[Value[_]]()
+        } distinct
+      else List[Value[_]]()
     }
 
-    def byValue[T](value: T): List[Value[_]] =
-      byValue(List(value))
-    def byValue(valueSet: List[Any]): List[Value[_]] = {
+    def byValue[T, TOut, CTOut <: ClassType[TOut]](value: T)(
+        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): List[Value[_]] =
+      valueStore.byValue(value, clsTpbl.ct.asInstanceOf[DataType[T]]).toList.asInstanceOf[List[Value[_]]]
+    def byValue[T](valueSet: List[(T, DataType[T])]): List[Value[_]] = {
 //      val valueList = valueSet.distinct.filter(_ != null)
 //      if (valueList.nonEmpty) values().filter(v => valueSet.map(_._2).contains(v.value)).toList
 //      //      or(
@@ -409,22 +417,20 @@ trait Graph extends IriResource {
 //      //      _.has(this.ids, p.Within(iriList))).toSet
 //      else List[Value[_]]()
 
-      val l = valueSet
-        .flatMap { value =>
-          valueStore.byValue(value).toList.asInstanceOf[List[Value[_]]]
-        }
-//        .asInstanceOf[List[Value[_]]]
-      l
+      valueSet.flatMap { value =>
+        valueStore.byValue(value._1, value._2).toList.asInstanceOf[List[Value[_]]]
+      } distinct
     }
 
     def create[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] = _createValue(id)(value)(dt)
-    final def create[T](value: T): Value[T] = { //add implicit DataType[T]
+    final def create[T, TOut, CTOut <: ClassType[TOut]](value: T)(
+        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Value[T] = { //add implicit DataType[T]
       byValue(value).headOption.map(_.asInstanceOf[_Value[T]]).getOrElse {
         _createValue(idProvider.next)(value)(ClassType.valueToOntologyResource(value))
       }
     }
     final def create[T](value: T, dt: DataType[T]): Value[T] = { //add implicit DataType[T]
-      byValue(value).headOption.map(_.asInstanceOf[_Value[T]]).getOrElse {
+      byValue(value -> dt :: Nil).headOption.map(_.asInstanceOf[_Value[T]]).getOrElse {
         _createValue(idProvider.next)(value)(dt)
       }
     }
@@ -504,21 +510,37 @@ trait Graph extends IriResource {
 
   protected def _storeValue(value: _Value[_]): Unit = valueStore.store(value)
 
+  /**
+    * deletes the Node from the graph
+    * @param value
+    */
   protected def _deleteNode(node: _Node): Unit = {
     _deleteResource(node)
-    nodeStore.delete(node.id)
+    nodeStore.delete(node)
   }
 
+  /**
+    * deletes the Edge from the graph
+    * @param value
+    */
   protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
     _deleteResource(edge)
-    edgeStore.delete(edge.id)
+    edgeStore.delete(edge)
   }
 
+  /**
+    * deletes the Value from the graph
+    * @param value
+    */
   protected def _deleteValue(value: _Value[_]): Unit = {
     _deleteResource(value)
-    valueStore.delete(value.id)
+    valueStore.delete(value)
   }
 
+  /**
+    * TODO: rename to _deleteProperties/_deleteEdges?
+    * @param resource
+    */
   protected def _deleteResource(resource: _Resource[_]): Unit
 
   private def addMeta[S <: Resource[_], T, RT[Z] <: Resource[Z]](source: S, target: RT[T]): Unit =

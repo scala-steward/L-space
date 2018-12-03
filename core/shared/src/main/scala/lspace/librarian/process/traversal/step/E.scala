@@ -29,7 +29,7 @@ object E extends StepDef("E") with StepWrapper[E] {
     val edgeUrl: TypedProperty[Edge[Any, Any]] = edge + DataType.default.edgeURLType
   }
 
-  def apply(links: List[Edge[_, _]]): E = {
+  def apply(links: List[Edge[Any, Any]]): E = {
     val node = DetachedGraph.nodes.create(ontology)
 
     links.foreach(node.addOut(keys.edge, _))

@@ -4,6 +4,7 @@ import java.time.Instant
 
 import argonaut._
 import lspace.NS.types
+import lspace.librarian.datatype.ListType
 import lspace.librarian.process.traversal.step.HasLabel
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
@@ -260,7 +261,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     "parse an any-result list" in {
       val traversal = graph.g.N().has(SampleGraph.properties.balance, P.gt(5.0)).out(SampleGraph.properties.balance)
       //      val dt: ClassType[Any] = traversal.ct //FIX: no type-resolve for dt: 'Cannot be cast to scala.runtime.Nothing'
-      val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(traversal.ct)
+      val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(new ListType(List(traversal.ct)))
       val (json, context) = jsonld.nodeToJsonWithContext(collection)
       //      println(json)
 

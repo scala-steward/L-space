@@ -299,7 +299,9 @@ trait NameSpaceGraph extends DataGraph {
       .asInstanceOf[Option[DataType[T]]]
   }
 
-  private def datatypeFromNode(node: _Node): DataType[_] = ??? //TODO: retrieve custom collection datatypes
+  private def datatypeFromNode(node: _Node): DataType[_] = {
+    ???
+  } //TODO: retrieve custom collection datatypes
 
   def _createEdge(resource: Resource[_], key: Property, ct: ClassType[_]): Unit = {
     edges.create(

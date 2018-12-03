@@ -9,9 +9,10 @@ import lspace.librarian.util.SampleGraph
 
 trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   def graph: Graph
+  def sampleGraph: Graph
 
   override def beforeAll = {
-    SampleGraph.loadSocial(graph)
+    SampleGraph.loadSocial(sampleGraph)
   }
 
   "Nodes" can {
@@ -146,9 +147,9 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "have a collection as a value" in {
       val vectorProperty = Property("some.vector")(_range = () => List(VectorType(List(DataType.default.`@int`))))
-      val intVector      = vectorProperty + DataType.default.`@int`
+      val intVector      = vectorProperty + VectorType(List(DataType.default.`@int`))
       val node           = graph.nodes.create()
-      node.addOut(vectorProperty, Vector(1, 2, 3, 4))
+      node.addOut(intVector, Vector(1, 2, 3, 4))
       node.out("some.vector") shouldBe List(Vector(1, 2, 3, 4))
     }
     "be of type double" in {

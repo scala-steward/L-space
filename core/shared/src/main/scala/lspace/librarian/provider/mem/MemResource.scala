@@ -46,11 +46,11 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def outE(key: Property*): List[Edge[T, Any]] =
-    if (key.nonEmpty) key.flatMap(key => linksOut.getOrElse(key, List())).toList
-    else linksOut.values.flatten.toList
+    if (key.nonEmpty) key.flatMap(key => linksOut.getOrElse(key, List())).toList.asInstanceOf[List[Edge[T, Any]]]
+    else linksOut.values.flatten.toList.asInstanceOf[List[Edge[T, Any]]]
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.toList)
+    if (key.isEmpty) linksOut.toMap.mapValues(_.toList.asInstanceOf[List[Edge[T, Any]]])
     else outE(key.toList: _*).groupBy(_.key)
   }
 
@@ -64,28 +64,36 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def inE(key: Property*): List[Edge[Any, T]] =
-    if (key.nonEmpty) key.flatMap(key => linksIn.getOrElse(key, List())).toList
-    else linksIn.values.flatten.toList
+    if (key.nonEmpty) key.flatMap(key => linksIn.getOrElse(key, List())).toList.asInstanceOf[List[Edge[Any, T]]]
+    else linksIn.values.flatten.toList.asInstanceOf[List[Edge[Any, T]]]
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
-    if (key.isEmpty) linksIn.toMap.mapValues(_.toList)
+    if (key.isEmpty) linksIn.toMap.mapValues(_.toList.asInstanceOf[List[Edge[Any, T]]])
     else inE(key.toList: _*).groupBy(_.key)
   }
 
   private def validateDT[V](dt: DataType[V], value: V) =
     if (dt.iri.nonEmpty) dt else ClassType.valueToOntologyResource(value)
 
-  def removeInE(edge: Edge[_, _]): Unit = {
-    val properties         = linksIn.getOrElse(edge.key, List())
-    val (toRemove, toKeep) = properties.partition(_ == edge)
-    linksIn += edge.key -> (mutable.LinkedHashSet[Edge[_, T]]() ++ toKeep)
-    toRemove.foreach(_.remove())
+  def removeInE(edge: Edge[_, T]): Unit = {
+    linksIn.get(edge.key).foreach { links =>
+      if (links.contains(edge)) {
+        val newSet = links - edge
+        if (newSet.isEmpty) linksIn -= edge.key
+        else linksIn += edge.key -> newSet
+        edge.remove()
+      }
+    }
   }
-  def removeOutE(edge: Edge[_, _]): Unit = {
-    val properties         = linksOut.getOrElse(edge.key, List())
-    val (toRemove, toKeep) = properties.partition(_ == edge)
-    linksOut += edge.key -> (mutable.LinkedHashSet[Edge[T, _]]() ++ toKeep)
-    toRemove.foreach(_.remove())
+  def removeOutE(edge: Edge[T, _]): Unit = {
+    linksOut.get(edge.key).foreach { links =>
+      if (links.contains(edge)) {
+        val newSet = links - edge
+        if (newSet.isEmpty) linksOut -= edge.key
+        else linksOut += edge.key -> newSet
+        edge.remove()
+      }
+    }
   }
   def removeInE(key: Property): Unit = {
     val toRemove = inE(key)

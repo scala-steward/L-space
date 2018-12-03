@@ -7,7 +7,7 @@ import lspace.librarian.structure.util.IdProvider
 
 object MemGraphDefault extends MemDataGraph {
   val iri: String = "memgraphdefault"
-  println("create MemGraphDefault")
+
   private val _iri      = iri
   private lazy val self = this
 
@@ -59,6 +59,4 @@ object MemGraphDefault extends MemDataGraph {
   }
 
   init()
-
-  println("created MemGraphDefault")
 }

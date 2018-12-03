@@ -3,8 +3,6 @@ package lspace.librarian.structure
 import java.time.Instant
 
 import lspace.librarian.process.traversal._
-import lspace.librarian.process.traversal.step.V
-import lspace.NS.types
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.util.SampleGraph
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
@@ -139,19 +137,22 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "A graph" should {
     "merge nodes to a single node when upserting an existing iri and multiple nodes are found" in {
-      val graph       = createGraph("graphspec-mergeNodes")
-      val transaction = graph //.transaction
-      1.to(100).map(i => transaction.nodes.create()).map { node =>
+      val graph = createGraph("graphspec-mergeNodes")
+      1.to(10).map(i => graph.nodes.create()).map { node =>
+        node.addOut(Property.default.typed.createdonDateTime, Instant.now())
+        node.addOut(Property.default.typed.iriUrlString, "someuniqueurl")
+      }
+      val transaction = graph.transaction
+      1.to(90).map(i => transaction.nodes.create()).map { node =>
         node.addOut(Property.default.typed.createdonDateTime, Instant.now())
         node.addOut(Property.default.typed.iriUrlString, "someuniqueurl")
       }
       transaction.nodes.hasIri("someuniqueurl").size shouldBe 100
       transaction.nodes.upsert("someuniqueurl")
-      transaction.nodes.upsert("someuniqueurl")
+//      transaction.nodes.upsert("someuniqueurl")
       transaction.nodes.hasIri("someuniqueurl").size shouldBe 1
-//      transaction.commit()
-//      Thread.sleep(5000)
-//      graph.nodes.hasIri("someuniqueurl").size shouldBe 100
+      transaction.commit()
+      graph.nodes.hasIri("someuniqueurl").size shouldBe 1
       graph.close()
     }
 

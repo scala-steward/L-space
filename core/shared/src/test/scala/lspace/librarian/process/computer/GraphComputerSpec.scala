@@ -17,9 +17,8 @@ import scala.language._
 
 trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
-  implicit def graph: Graph
-  lazy val g = graph.g
-  def computer: GraphComputer
+  implicit def sampleGraph: Graph
+  lazy val g = sampleGraph.g
 
   val properties = SampleGraph.properties
   val ontologies = SampleGraph.ontologies
@@ -28,7 +27,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   def perform = afterWord("perform")
 
   override def beforeAll = {
-    SampleGraph.loadSocial(graph)
+    SampleGraph.loadSocial(sampleGraph)
   }
 
   "A GraphComputer" can perform {
@@ -62,7 +61,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     "a OutMap-step" in {
       Traversal.WithTraversalStream(g.N.outMap().hasLabel(`@int`)).toStream.head
       g.N.outMap().toStream.nonEmpty shouldBe true
-      graph.g.N.has("name", P.eqv("Garrison")).outMap().head.size shouldBe 5
+      g.N.has("name", P.eqv("Garrison")).outMap().head.size shouldBe 5
     }
     "a OutE-step" in {
       val values = g.N.outE().toStream
@@ -74,9 +73,6 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.outEMap().toStream.nonEmpty shouldBe true
     }
     "a In-step" in {
-      val values = g.N.in().toStream
-      values.nonEmpty shouldBe true
-      graph.values().exists(_.value == "Garrison") should be(true)
       g.V("Garrison").toList.nonEmpty should be(true)
       g.V.is(P.eqv("Garrison")).toList.nonEmpty should be(true)
       g.V.is(P.eqv("Garrison")).in("name").out(Property.default.`@id`).head shouldBe "person-garrisson"
@@ -217,7 +213,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       doubleGroupedNodes.nonEmpty shouldBe true
     }
     "a Drop-step" ignore {
-      val p         = graph + Ontology("https://schema.org/Person")
+      val p         = sampleGraph + Ontology("https://schema.org/Person")
       val weirdname = "lkaskfdmnowenoiafps"
       p --- "name" --> weirdname
       g.N.has("name", P.eqv(weirdname)).count.head shouldBe 1

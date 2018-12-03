@@ -19,7 +19,7 @@ package object computer {
       if (size == 0) lang.Double.NaN else sum / size
     }
 
-    def Sum[T](stream: Stream[Resource[T]]): T = {
+    def Sum(stream: Stream[Resource[_]]): Any = {
       stream
         .map(_.value)
         .foldLeft[Any](0) {
@@ -35,7 +35,7 @@ package object computer {
           case (sum, v) =>
             throw new Exception(s"unexpected numeric type ${v.getClass}") //TODO: log warning and/or accept only a stream with numeric T's
         }
-        .asInstanceOf[T]
+//        .asInstanceOf[T]
     }
     //    stream.map(_.get.value).sum
 

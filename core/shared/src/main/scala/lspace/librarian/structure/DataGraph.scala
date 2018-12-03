@@ -93,10 +93,10 @@ trait DataGraph extends Graph {
   abstract override protected def _createValue[T](_id: Long)(_value: T)(dt: DataType[T]): _Value[T] = {
 //    println(s"datagraph._create value ${_id} ${_value}")
     val value = super._createValue(_id)(_value)(dt)
+    if (ns.getDataType(dt.iri).isEmpty) ns.storeDataType(dt)
+
     _storeValue(value)
     if (dt != DataType.default.`@boolean`) _indexValue(value)
-
-    if (!DataType.allDataTypes.byIri.contains(dt.iri) && ns.getDataType(dt.iri).isEmpty) ns.storeDataType(dt)
 
     value
   }

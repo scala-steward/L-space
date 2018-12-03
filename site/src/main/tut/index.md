@@ -32,10 +32,14 @@ L-space provides additional modules for remote traversals, parsing io, rest-api 
 
 - `lspace-parse`: parsers for linked data
 - `lspace-client`: clients to communicatie with other graph(-services)
-- `lspace-graph`: basic implementation for persistence and indexing remote (e.g. Cassandra, Elasticsearch, HDFS, ...)
+- `lspace-graph`: implementation for persistence and indexing remote (e.g. Cassandra, Elasticsearch, HDFS, ...)
 - `lspace-services`: basic implementation for a rest service which accepts Librarian queries in Json-LD and returns results in Json-LD
 
 ```
 libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "{{ site.data.settings.version }}"
 libraryDependencies += "eu.l-space" %% "{lspace-xxx-tests}" % "{{ site.data.settings.version }}"
 ```
+
+## Examples
+`examples` on how to use the project modules in various environments and 
+sample-environments (e.g. Jupyter-notebook with samples [https://hub.docker.com/u/lspace/](https://hub.docker.com/u/lspace/))

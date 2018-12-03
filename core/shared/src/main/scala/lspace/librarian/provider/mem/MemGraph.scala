@@ -149,14 +149,18 @@ trait MemGraph extends Graph {
 //  def getResourceById(id: Long): Option[Resource[_]] =
 //    getNodeById(id).orElse(getEdgeById(id)).orElse(getValueById(id))
 
+  /**
+    * delete in-/out-going edges from the resource
+    * @param resource
+    */
   protected def _deleteResource(resource: _Resource[_]): Unit = {
-    resource.asInstanceOf[MemResource[_]].linksOut.foreach {
+    resource.asInstanceOf[MemResource[Any]].linksOut.foreach {
       case (key, properties) =>
-        properties.foreach(edge => edge.to.removeInE(edge))
+        properties.foreach(edge => edge.to.asInstanceOf[Resource[Any]].removeInE(edge.asInstanceOf[Edge[Any, Any]]))
     }
-    resource.asInstanceOf[MemResource[_]].linksIn.foreach {
+    resource.asInstanceOf[MemResource[Any]].linksIn.foreach {
       case (key, properties) =>
-        properties.foreach(edge => edge.from.removeOutE(edge))
+        properties.foreach(edge => edge.from.asInstanceOf[Resource[Any]].removeOutE(edge.asInstanceOf[Edge[Any, Any]]))
     }
   }
 
