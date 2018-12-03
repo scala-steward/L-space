@@ -22,11 +22,7 @@ position: 2
  import lspace.librarian.provider.mem.MemGraph
  import lspace.librarian.structure._
  import lspace.librarian.structure.DataType.default._
- val graph: Graph = MemGraph("graph-doc")
  import lspace.librarian.util.SampleGraph
- SampleGraph.loadSocial(graph)
- val labels = SampleGraph.ontologies
- val keys = SampleGraph.properties
  ```
  
 ## What is a graph
@@ -39,6 +35,14 @@ Values have a data-value and values can have edges.
 * Graphs support Librarian-traversals
 * Graphs can be merged (graph ++ graph)
 * Graphs support transactions (graph.transaction -> new in-memory graph with 'commit' function)
+
+create a graph
+ ```tut:book
+ val graph: Graph = MemGraph("graph-doc")
+ SampleGraph.loadSocial(graph)
+ val labels = SampleGraph.ontologies
+ val keys = SampleGraph.properties
+ ```
  
 ## Resource API's
 Graph-resources can all be retrieved by Iri (@id) or by Id. Values and edges do mostly not have an Iri (empty-string).

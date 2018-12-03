@@ -70,11 +70,7 @@ import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure._
 import lspace.librarian.structure.DataType.default._
-val graph: Graph = MemGraph("librarian-doc")
 import lspace.librarian.util.SampleGraph
-SampleGraph.loadSocial(graph)
-val labels = SampleGraph.ontologies
-val keys = SampleGraph.properties
 ```
 ## Overview
 To acquire knowledge, one must be able to communicate with the Librarian. This document should provide guidance in 
@@ -89,7 +85,11 @@ The librarian is able to execute the following steps.
 Graph-selection step to point the librarian to a specific part of the L-space 
 (we would not want to defy the large quantity of knowledge from the whole multiverse has to offer).
 ```tut:book
+val graph: Graph = MemGraph("librarian-doc")
 val g = graph.g //starting from a graph object
+SampleGraph.loadSocial(graph)
+val labels = SampleGraph.ontologies
+val keys = SampleGraph.properties
 ```
 ### Resource steps
 Resource-step to start specify what type of resources the traversal should start in.
