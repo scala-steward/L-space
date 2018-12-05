@@ -58,6 +58,10 @@ object ClassType {
   }
 }
 
+/**
+  *
+  * @tparam T
+  */
 trait ClassType[+T] extends IriResource {
 
   def iris: Set[String]

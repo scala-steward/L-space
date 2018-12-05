@@ -4,25 +4,26 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
+import lspace.librarian.structure.Property.default._
 
 object Role {
-  protected val ontologyNode = MemGraphDefault.ns.nodes.upsert(s"https://data.l-space.eu/schema/Role")
+  protected val ontologyNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "Role")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.`@label` --> "Role" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> "A role ..." --- Property.default.`@language` --> "en"
+  ontologyNode --- `@label` --> "Role" --- `@language` --> "en"
+  ontologyNode --- `@comment` --> "A role ..." --- `@language` --> "en"
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   //TODO: test implicit graph helper-functions
   implicit class WithGraph(graph: Graph) {
     def newRole(iri: String): Role = {
       val node = graph.nodes.create(ontology)
-      node.addOut(Property.default.typed.iriUrlString, iri)
+      node.addOut(typed.iriUrlString, iri)
       new Role(node)
     }
   }
   def apply(iri: String): Role = {
     val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(Property.default.typed.iriUrlString, iri)
+    node.addOut(typed.iriUrlString, iri)
     new Role(node)
   }
   def wrap(node: Node): Role = node match {

@@ -27,7 +27,8 @@ object Local extends StepDef("Local") with StepWrapper[Local] {
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Local/traversal")
+    private val traversalNode =
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Local/traversal")
     traversalNode.addLabel(Property.ontology)
     traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
     traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"

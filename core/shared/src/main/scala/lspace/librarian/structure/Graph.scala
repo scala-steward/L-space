@@ -176,12 +176,16 @@ trait Graph extends IriResource {
       val _from = resources
         .hasId(fromId)
         .map(_.asInstanceOf[_Resource[Any]])
-        .getOrElse(throw new Exception(s"cannot create edge, from-resource with id ${fromId} not found"))
+        .getOrElse {
+          throw new Exception(s"cannot create edge, from-resource with id ${fromId} not found")
+        }
       val _to =
         resources
           .hasId(toId)
           .map(_.asInstanceOf[_Resource[Any]])
-          .getOrElse(throw new Exception(s"cannot create edge, to-resource with id ${toId} not found"))
+          .getOrElse {
+            throw new Exception(s"cannot create edge, to-resource with id ${toId} not found")
+          }
       _createEdge(id)(_from, key, _to)
     }
 

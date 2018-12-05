@@ -20,7 +20,7 @@ trait MemNode extends MemResource[Node] with Node {
 
   private val types          = mutable.HashSet[Ontology]()
   def labels: List[Ontology] = types.toList
-  def addLabel(ontology: Ontology): Ontology = {
+  def addLabel(ontology: Ontology): Ontology = synchronized {
     //    val o = if (ontology.graph != graph) graph.getOntology(ontology.iri).getOrElse(graph.storeOntology(ontology)) else ontology
     val o       = ontology
     val labels2 = labels

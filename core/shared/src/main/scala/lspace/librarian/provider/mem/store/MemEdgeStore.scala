@@ -5,26 +5,20 @@ import lspace.librarian.structure.Property.default.{`@id`, `@ids`}
 import lspace.librarian.structure.store.EdgeStore
 import lspace.librarian.structure.{DataType, Edge, Property}
 
-import scala.collection.mutable
-
 class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStore[G] with EdgeStore[G] {
-  override def store(resource: T): Unit = {
-    resource.from
+  override def store(edge: T): Unit = {
+    edge.from
       .asInstanceOf[MemResource[Any]]
-      .linksOut += resource.key -> (resource.from
+      ._addOut(edge.asInstanceOf[Edge[Any, _]])
+
+    edge.to
       .asInstanceOf[MemResource[Any]]
-      .linksOut
-      .getOrElse(resource.key, mutable.LinkedHashSet[Edge[Any, _]]()) += resource.asInstanceOf[Edge[Any, _]])
+      ._addIn(edge.asInstanceOf[Edge[_, Any]])
 
-    resource.to.asInstanceOf[MemResource[Any]].linksIn += resource.key -> (resource.to
-      .asInstanceOf[MemResource[Any]]
-      .linksIn
-      .getOrElse(resource.key, mutable.LinkedHashSet[Edge[_, Any]]()) += resource.asInstanceOf[Edge[_, Any]])
+    if ((edge.key == `@id` || edge.key == `@ids`) && edge.to.isInstanceOf[graph._Value[String]])
+      graph.`@idStore`.store(edge.to.asInstanceOf[graph._Value[String]])
 
-    if ((resource.key == `@id` || resource.key == `@ids`) && resource.to.isInstanceOf[graph._Value[String]])
-      graph.`@idStore`.store(resource.to.asInstanceOf[graph._Value[String]])
-
-    super.store(resource)
+    super.store(edge)
   }
 
   def byIri(iri: String): Stream[T] =

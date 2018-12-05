@@ -36,7 +36,8 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Repeat/traversal")
+    private val traversalNode =
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/traversal")
     traversalNode.addLabel(Property.ontology)
     traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
     traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
@@ -44,7 +45,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     lazy val traversal: Property                = Property(traversalNode)
     val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
 
-    private val untilNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Repeat/until")
+    private val untilNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/until")
     untilNode.addLabel(Property.ontology)
     untilNode --- Property.default.`@label` --> "until" --- Property.default.`@language` --> "en"
     untilNode --- Property.default.`@comment` --> "If the result of this traversal is non-empty the repeat-loop will break" --- Property.default.`@language` --> "en"
@@ -53,7 +54,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     val untilTraversal: TypedProperty[Node] = until + Traversal.ontology
 
     private val maxNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Repeat/max")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/max")
     maxNode.addLabel(Property.ontology)
     maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
     maxNode --- Property.default.`@comment` --> "The maximum number of repeats" --- Property.default.`@language` --> "en"
@@ -61,7 +62,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     lazy val max: Property         = Property(maxNode)
     val maxInt: TypedProperty[Int] = max + DataType.default.`@int`
 
-    private val collectNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Repeat/collect")
+    private val collectNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/collect")
     collectNode.addLabel(Property.ontology)
     collectNode --- Property.default.`@label` --> "collect" --- Property.default.`@language` --> "en"
     collectNode --- Property.default.`@comment` --> "Set to true to return all intermediate results (of each repeat)" --- Property.default.`@language` --> "en"

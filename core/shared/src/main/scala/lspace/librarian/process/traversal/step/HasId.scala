@@ -18,7 +18,7 @@ object HasId extends StepDef("HasId") with StepWrapper[HasId] {
 
   object keys {
     private val idNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasId/Id")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasId/Id")
     idNode.addLabel(Property.ontology)
     idNode --- Property.default.`@label` --> "Id" --- Property.default.`@language` --> "en"
     idNode --- Property.default.`@comment` --> "An id" --- Property.default.`@language` --> "en"

@@ -25,7 +25,7 @@ object HasNot extends StepDef("HasNot") with StepWrapper[HasNot] {
 
   object keys {
     private val keyNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasNot/Key")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasNot/Key")
     keyNode.addLabel(Property.ontology)
     keyNode --- Property.default.`@label` --> "Key" --- Property.default.`@language` --> "en"
     keyNode --- Property.default.`@comment` --> "A key" --- Property.default.`@language` --> "en"
@@ -34,7 +34,8 @@ object HasNot extends StepDef("HasNot") with StepWrapper[HasNot] {
     lazy val key: Property          = Property(keyNode)
     val keyUrl: TypedProperty[Node] = key + Property.ontology
 
-    private val predicateNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasNot/Predicate")
+    private val predicateNode =
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasNot/Predicate")
     predicateNode.addLabel(Property.ontology)
     predicateNode --- Property.default.`@label` --> "Predicate" --- Property.default.`@language` --> "en"
     predicateNode --- Property.default.`@comment` --> "A Predicate" --- Property.default.`@language` --> "en"

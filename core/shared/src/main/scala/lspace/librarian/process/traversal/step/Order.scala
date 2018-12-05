@@ -36,7 +36,7 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Order/by")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Order/by")
     byNode.addLabel(Property.ontology)
     byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
     byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
@@ -45,7 +45,7 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
     val byTraversal: TypedProperty[Node] = by + Traversal.ontology
 
     private val increasingNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Order/increasing")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Order/increasing")
     increasingNode.addLabel(Property.ontology)
     increasingNode --- Property.default.`@label` --> "increasing" --- Property.default.`@language` --> "en"
     increasingNode --- Property.default.`@comment` --> "Set to true to sort ascending" --- Property.default.`@language` --> "en"

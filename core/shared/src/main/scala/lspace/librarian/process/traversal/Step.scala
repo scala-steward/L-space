@@ -10,7 +10,7 @@ import lspace.librarian.structure.util.OntologyDef
 object Step extends OntologyDef {
   trait Properties {}
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Step")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Step")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "Step" --- Property.default.`@language` --> "en"
   ontologyNode --- Property.default.`@comment` --> "Step" --- Property.default.`@language` --> "en"
@@ -75,7 +75,7 @@ object Step extends OntologyDef {
   }
 
   //  object keys {
-  //    val traversal = Property("sptth/tbd.tld/librarian/Step/traversal")
+  //    val traversal = Property(lspace.NS.vocab.Lspace + "librarian/Step/traversal")
   //    traversal.property(Property.default.label, "traversal").head.property(MemGraphDefault.language, "en")
   //    val traversalNode: TypedPropertyKey[Node] = traversal.addRange(Traversal.ontology)
   //  }
@@ -144,7 +144,7 @@ trait ResourceStep extends TraverseStep
 trait MoveStep     extends TraverseStep
 object MoveStep extends OntologyDef {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/MoveStep")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/MoveStep")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "MoveStep" --- Property.default.`@language` --> "en"
   ontologyNode --- Property.default.`@comment` --> "MoveStep" --- Property.default.`@language` --> "en"
@@ -152,7 +152,7 @@ object MoveStep extends OntologyDef {
 
   object keys extends Step.Properties {
     private val labelNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/MoveStep/label")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/MoveStep/label")
     labelNode.addLabel(Property.ontology)
     labelNode --- Property.default.`@label` --> "label" --- Property.default.`@language` --> "en"
     labelNode --- Property.default.`@comment` --> "A label" --- Property.default.`@language` --> "en"
@@ -199,7 +199,7 @@ trait BranchStep   extends TraverseStep
 
 abstract class StepDef(label: String, comment: String = "") extends OntologyDef {
   protected[traversal] val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(s"sptth/tbd.tld/librarian/step/${label}")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + s"librarian/step/${label}")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@extends` --> Step.ontology
   if (label != "")

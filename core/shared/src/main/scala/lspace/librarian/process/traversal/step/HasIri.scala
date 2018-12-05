@@ -18,7 +18,7 @@ object HasIri extends StepDef("HasIri") with StepWrapper[HasIri] {
 
   object keys {
     private val iriNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasIri/iri")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasIri/iri")
     iriNode.addLabel(Property.ontology)
     iriNode --- Property.default.`@label` --> "Iri" --- Property.default.`@language` --> "en"
     iriNode --- Property.default.`@comment` --> "An iri" --- Property.default.`@language` --> "en"

@@ -28,7 +28,6 @@ object MemGraph {
   }
 
   def apply(_iri: String): MemGraph = {
-    MemGraphDefault.iri
     val graph = new MemDataGraph {
       val iri: String = _iri
 
@@ -93,9 +92,6 @@ trait MemGraph extends Graph {
 
   override protected def _createEdge[S, E](
       _id: Long)(_from: _Resource[S], _key: Property, _to: _Resource[E]): _Edge[S, E] = {
-//    ns.getProperty(_key.iri).orElse(MemGraphDefault.ns.getProperty(_key.iri)).getOrElse {
-//      if (!Graph.reservedKeys.contains(_key)) Property(ns.storeProperty(_key))
-//    }
 
     new _Edge[S, E] with MemEdge[S, E] {
       val key: Property         = _key
@@ -108,29 +104,7 @@ trait MemGraph extends Graph {
     }
   }
 
-//  protected def _storeEdge(edge: _Edge[_, _]): Unit = {
-//    edge.from
-//      .asInstanceOf[MemResource[Any]]
-//      .linksOut += edge.key -> (edge.from
-//      .asInstanceOf[MemResource[Any]]
-//      .linksOut
-//      .getOrElse(edge.key, mutable.LinkedHashSet[Edge[Any, Any]]()) += edge)
-//
-//    edge.to.asInstanceOf[MemResource[Any]].linksIn += edge.key -> (edge.to
-//      .asInstanceOf[MemResource[Any]]
-//      .linksIn
-//      .getOrElse(edge.key, mutable.LinkedHashSet[Edge[Any, Any]]()) += edge)
-//    //      if (key != TYPE) p.inV.linksIn += p.key -> (p.inV.linksIn.getOrElse(p.key, List()) :+ p)
-//
-//    edgeStore.store(edge)
-//  }
-
   protected def _createValue[T](_id: Long)(_value: T)(dt: DataType[T]): _Value[T] = synchronized {
-//    println(s"memgraph._createValue ${_value}")
-    //    val d = value match {
-    //      case r: Resource[_] => throw new Exception("newValue only accepts literal-values and no resources")
-    //      case _ => valueToDataType(value)
-    //    }
 
     new _Value[T] with MemValue[T] {
       val value: T              = _value
@@ -139,28 +113,20 @@ trait MemGraph extends Graph {
 
       val id: Long = _id
     }
-
-    //    valueResource.property(valueResource.graph.createdonDateTime, new DataTypes.Date()) //self-recursive
   }
-
-//  def getNodeById(id: Long): Option[Node]       = nodeStore.byId(id)
-//  def getEdgeById(id: Long): Option[Edge[_, _]] = edgeStore.byId(id)
-//  def getValueById(id: Long): Option[Value[_]]  = valueStores.byId(id)
-//  def getResourceById(id: Long): Option[Resource[_]] =
-//    getNodeById(id).orElse(getEdgeById(id)).orElse(getValueById(id))
 
   /**
     * delete in-/out-going edges from the resource
     * @param resource
     */
   protected def _deleteResource(resource: _Resource[_]): Unit = {
-    resource.asInstanceOf[MemResource[Any]].linksOut.foreach {
+    resource.asInstanceOf[MemResource[Any]].outEMap().foreach {
       case (key, properties) =>
-        properties.foreach(edge => edge.to.asInstanceOf[Resource[Any]].removeInE(edge.asInstanceOf[Edge[Any, Any]]))
+        properties.foreach(edge => edge.to.removeIn(edge))
     }
-    resource.asInstanceOf[MemResource[Any]].linksIn.foreach {
+    resource.asInstanceOf[MemResource[Any]].inEMap().foreach {
       case (key, properties) =>
-        properties.foreach(edge => edge.from.asInstanceOf[Resource[Any]].removeOutE(edge.asInstanceOf[Edge[Any, Any]]))
+        properties.foreach(edge => edge.from.removeOut(edge))
     }
   }
 

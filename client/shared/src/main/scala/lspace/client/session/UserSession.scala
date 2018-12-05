@@ -6,20 +6,21 @@ import lspace.client.{Client, User}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
+import lspace.librarian.structure.Property.default._
 import lspace.types._
 
 object UserSession {
   protected val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(s"https://data.l-space.eu/schema/UserSession")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "UserSession")
   ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.`@extends` --> ClientSession.ontology
-  ontologyNode --- Property.default.`@label` --> "UserSession" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> "An user session is to secure a series of requests during a limited period of time and tied to an identified client and identified user." --- Property.default.`@language` --> "en"
+  ontologyNode --- `@extends` --> ClientSession.ontology
+  ontologyNode --- `@label` --> "UserSession" --- `@language` --> "en"
+  ontologyNode --- `@comment` --> "An user session is to secure a series of requests during a limited period of time and tied to a client and user." --- `@language` --> "en"
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   def apply(iri: String, expiration: Instant, startTime: Instant, client: Client, user: User): UserSession = {
     val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(Property.default.typed.iriUrlString, iri)
+    node.addOut(typed.iriUrlString, iri)
     node.addOut(OpenSession.keys.expirationDate, expiration)
     node.addOut(OpenSession.keys.startTime, startTime)
     node.addOut(ClientSession.keys.clientClient, client)
@@ -35,15 +36,15 @@ object UserSession {
   object keys {
     private val userNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/User")
     userNode.addLabel(Property.ontology)
-    userNode --- Property.default.`@label` --> "User" --- Property.default.`@language` --> "en"
-    userNode --- Property.default.`@comment` --> "The user the session belongs to" --- Property.default.`@language` --> "en"
-    userNode --- Property.default.`@range` --> User.ontology
+    userNode --- `@label` --> "User" --- `@language` --> "en"
+    userNode --- `@comment` --> "The user the session belongs to" --- `@language` --> "en"
+    userNode --- `@range` --> User.ontology
 
     lazy val user: Property           = Property(userNode)
     val userUser: TypedProperty[Node] = user + User.ontology
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.user
+  ontologyNode --- `@properties` --> keys.user
 }
 
 abstract class UserSession(node: Node) extends ClientSession(node) {

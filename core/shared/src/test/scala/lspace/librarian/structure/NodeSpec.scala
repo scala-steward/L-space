@@ -115,7 +115,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.out(singleProperty).size shouldBe 1
       node.out(singleProperty).head shouldBe "1234567"
     }
-    "be many and contain duplicates for cardinality list" ignore {
+    "be many and contain duplicates for cardinality list" in {
       val listProperty =
         Property("listproperty")(_range = () => List(DataType.default.`@string`), containers = List(types.`@list`))
 
@@ -158,6 +158,17 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       val node         = graph.nodes.create()
       node.addOut(numberDouble, 0.0)
       node.out(numberDouble).head.getClass shouldBe 0.0.getClass
+    }
+  }
+  "Properties" must {
+    "maintain order" in {
+      val node = graph.nodes.create()
+      node.addOut("number", 1)
+      node.addOut("number", 2)
+      node.addOut("number", 3)
+      node.addOut("number", 4)
+      node.out("number") shouldBe List(1, 2, 3, 4)
+      node.out() shouldBe List(1, 2, 3, 4)
     }
   }
 }

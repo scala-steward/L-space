@@ -4,6 +4,7 @@ import lspace.types.string.Prefix
 
 object NS {
   object vocab {
+    val Lspace = Prefix("https://ns.l-space.eu/")
     val foaf   = Prefix("http://xmlns.com/foaf/0.1/")
     val dc     = Prefix("http://purl.org/dc/terms/")
     val rdf    = Prefix("https://www.w3.org/1999/02/22-rdf-syntax-ns#")

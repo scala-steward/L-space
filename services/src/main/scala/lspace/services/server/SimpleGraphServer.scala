@@ -17,10 +17,11 @@ import io.finch.argonaut.preserveOrder._
 import lspace.librarian.structure.Graph
 
 trait SimpleGraphServer extends App {
+  def context: String
   def graph: Graph
   def port: Int
 
-  lazy val graphService                    = GraphService("", graph)
+  lazy val graphService                    = GraphService(context, graph)
   lazy val api: Service[Request, Response] = graphService.api.toService
 
   //  def main(): Unit = {

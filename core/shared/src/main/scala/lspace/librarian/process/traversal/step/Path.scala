@@ -27,7 +27,7 @@ object Path extends StepDef("Path") with StepWrapper[Path] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Path/by")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Path/by")
     byNode.addLabel(Property.ontology)
     byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
     byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"

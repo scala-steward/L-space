@@ -35,7 +35,7 @@ object Group extends StepDef("Group") with StepWrapper[Group[ClassType[Any]]] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Group/by")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Group/by")
     byNode.addLabel(Property.ontology)
     byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
     byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"

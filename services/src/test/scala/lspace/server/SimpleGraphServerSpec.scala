@@ -24,6 +24,7 @@ class SimpleGraphServerSpec extends WordSpec with Matchers with BeforeAndAfterAl
   private val _graph = graph
   val server = new SimpleGraphServer {
     lazy val graph: Graph = _graph
+    val context           = ""
 
     lazy val port: Int = 9989
   }

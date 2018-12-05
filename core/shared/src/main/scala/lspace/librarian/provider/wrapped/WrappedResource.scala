@@ -31,10 +31,10 @@ trait WrappedResource[T] extends Resource[T] {
 //  def addIns[V](key: Property, values: List[(ClassType[V], V)]): List[Edge[V, T]] =
 //    self.addIns(key, values)
 
-  def removeInE(edge: Edge[_, T]): Unit  = self.removeInE(edge)
-  def removeOutE(edge: Edge[T, _]): Unit = self.removeOutE(edge)
-  def removeInE(key: Property): Unit     = self.removeInE(key)
-  def removeOutE(key: Property): Unit    = self.removeOutE(key)
+  def removeIn(edge: Edge[_, T]): Unit  = self.removeIn(edge)
+  def removeOut(edge: Edge[T, _]): Unit = self.removeOut(edge)
+  def removeIn(key: Property): Unit     = self.removeIn(key)
+  def removeOut(key: Property): Unit    = self.removeOut(key)
 
   protected def _remove(): Unit = ??? //should never be hit
   override def remove(): Unit   = self.remove()

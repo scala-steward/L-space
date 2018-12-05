@@ -24,7 +24,7 @@ import scala.util.Try
 
 object P {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/P")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/P")
   ontologyNode.addLabel(Ontology.ontology)
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
@@ -705,7 +705,7 @@ trait EqP[T] extends P[T] {
 }
 object EqP {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/EqP")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/EqP")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@extends` --> P.ontology
   ontologyNode --- Property.default.`@label` --> "EqP" --- Property.default.`@language` --> "en"
@@ -714,7 +714,7 @@ object EqP {
 
   object keys {
     private val valueNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/compare/value")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/compare/value")
     valueNode.addLabel(Property.ontology)
     valueNode --- Property.default.`@label` --> "value" --- Property.default.`@language` --> "en"
     valueNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
@@ -745,7 +745,7 @@ trait RangeP[T] extends P[T] {
 }
 object RangeP {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/RangeP")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/RangeP")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "RangeP" --- Property.default.`@language` --> "en"
   ontologyNode --- Property.default.`@comment` --> "A compound predicate" --- Property.default.`@language` --> "en"
@@ -754,13 +754,13 @@ object RangeP {
 
   object keys {
     private val lowerNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/range/lower")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/range/lower")
     lowerNode.addLabel(Property.ontology)
     lowerNode --- Property.default.`@label` --> "lower" --- Property.default.`@language` --> "en"
     lazy val lower = Property(lowerNode)
 
     private val upperNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/range/upper")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/range/upper")
     upperNode.addLabel(Property.ontology)
     upperNode --- Property.default.`@label` --> "upper" --- Property.default.`@language` --> "en"
     lazy val upper = Property(upperNode)
@@ -791,7 +791,7 @@ trait CollectionP[T] extends P[T] {
 }
 object CollectionP {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/CollectionP")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/CollectionP")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "CollectionP" --- Property.default.`@language` --> "en"
   ontologyNode --- Property.default.`@comment` --> "A complete predicate" --- Property.default.`@language` --> "en"
@@ -800,7 +800,7 @@ object CollectionP {
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   object keys {
-    private val valueNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/compare/values")
+    private val valueNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/compare/values")
     valueNode.addLabel(Property.ontology)
     valueNode --- Property.default.`@extends` --> EqP.keys.value
     valueNode --- Property.default.`@label` --> "values" --- Property.default.`@language` --> "en"
@@ -816,7 +816,7 @@ object CollectionP {
 }
 object ObjectP {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/p/ObjectP")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/ObjectP")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "ObjectP" --- Property.default.`@language` --> "en"
   ontologyNode --- Property.default.`@comment` --> ".." --- Property.default.`@language` --> "en"
@@ -833,7 +833,7 @@ trait PredicateWrapper[+T] {
 
 abstract class PredicateCompanion(label: String, comment: String = "") {
   protected[traversal] val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(s"sptth/tbd.tld/librarian/p/${label}")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + s"librarian/p/${label}")
   ontologyNode.addLabel(Ontology.ontology)
   if (label != "")
     ontologyNode --- Property.default.`@label` --> label --- Property.default.`@language` --> "en"

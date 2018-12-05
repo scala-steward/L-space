@@ -15,7 +15,7 @@ object Tail extends StepDef("Tail") with StepWrapper[Tail] {
 
   object keys {
     private val maxNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Tail/max")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Tail/max")
     maxNode.addLabel(Property.ontology)
     maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
     maxNode --- Property.default.`@comment` --> "The maximum number of tail-results" --- Property.default.`@language` --> "en"

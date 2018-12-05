@@ -12,7 +12,7 @@ import lspace.types._
 
 object Collection {
   private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Collection")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "Result" --- Property.default.`@language` --> "en"
   ontologyNode --- Property.default.`@comment` --> "Result" --- Property.default.`@language` --> "en"
@@ -26,7 +26,7 @@ object Collection {
   }
 
   val keys = new {
-    private val startNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection/start")
+    private val startNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Collection/start")
     startNode.addLabel(Property.ontology)
     startNode --- Property.default.`@label` --> "start" --- Property.default.`@language` --> "en"
     startNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
@@ -34,7 +34,7 @@ object Collection {
     lazy val start: Property = Property(startNode)
 
     private val endNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection/end")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Collection/end")
     endNode.addLabel(Property.ontology)
     endNode --- Property.default.`@label` --> "end" --- Property.default.`@language` --> "en"
     endNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
@@ -42,7 +42,7 @@ object Collection {
     lazy val end: Property = Property(endNode)
 
     private val itemNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Collection/item")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Collection/item")
     itemNode.addLabel(Property.ontology)
     itemNode --- Property.default.`@label` --> "item" --- Property.default.`@language` --> "en"
     itemNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"

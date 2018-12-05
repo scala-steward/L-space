@@ -8,7 +8,7 @@ abstract class LDNotification(node: Node) extends WrappedNode(node)
 object LDNotification {
 
   //  object Traverse {
-  //    val uri = "data.l-space.eu/schema/action/traverse"
+  //    val uri = lspace.NS.vocab.Lspace + "action/traverse"
   //    val ontology = Ontology(uri)
   //
   //    val traversal = LinkPropertyKey("traversal", s"$uri/traversal")(NodeType(Traversal.ontology))

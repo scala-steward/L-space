@@ -15,7 +15,7 @@ object Coin extends StepDef("Coin") with StepWrapper[Coin] {
 
   object keys {
     private val pNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Coin/p")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Coin/p")
     pNode.addLabel(Property.ontology)
     pNode --- Property.default.`@label` --> "p" --- Property.default.`@language` --> "en"
     pNode --- Property.default.`@comment` --> "The p-value thresshold to determine if the traverser keeps on existing" --- Property.default.`@language` --> "en"
@@ -24,12 +24,12 @@ object Coin extends StepDef("Coin") with StepWrapper[Coin] {
     val pDouble: TypedProperty[Double] = p + DataType.default.`@double`
 
     private val seedNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Coin/seed")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Coin/seed")
     seedNode.addLabel(Property.ontology)
     seedNode --- Property.default.`@label` --> "seed" --- Property.default.`@language` --> "en"
     seedNode --- Property.default.`@comment` --> "The seed for the random-number generator" --- Property.default.`@language` --> "en"
 
-    lazy val seed                   = Property("sptth/tbd.tld/librarian/step/Coin/seed")
+    lazy val seed                   = Property(lspace.NS.vocab.Lspace + "librarian/step/Coin/seed")
     val seedInt: TypedProperty[Int] = seed + DataType.default.`@int`
   }
 

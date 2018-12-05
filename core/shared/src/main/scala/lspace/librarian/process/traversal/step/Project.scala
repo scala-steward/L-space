@@ -22,7 +22,7 @@ object Project extends StepDef("Project") with StepWrapper[Project] {
 
   object keys {
     private val byNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Project/by")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Project/by")
     byNode.addLabel(Property.ontology)
     byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
     byNode --- Property.default.`@comment` --> "A traversal ..." --- Property.default.`@language` --> "en"

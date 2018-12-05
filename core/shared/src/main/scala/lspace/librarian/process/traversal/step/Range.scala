@@ -18,7 +18,7 @@ object Range extends StepDef("Range") with StepWrapper[Range] {
 
   object keys {
     private val lowNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Range/low")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Range/low")
     lowNode.addLabel(Property.ontology)
     lowNode --- Property.default.`@label` --> "low" --- Property.default.`@language` --> "en"
     lowNode --- Property.default.`@comment` --> "The lower result-index to start from" --- Property.default.`@language` --> "en"
@@ -27,7 +27,7 @@ object Range extends StepDef("Range") with StepWrapper[Range] {
     val lowInt: TypedProperty[Int] = low + DataType.default.`@int`
 
     private val highNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Range/high")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Range/high")
     highNode.addLabel(Property.ontology)
     highNode --- Property.default.`@label` --> "high" --- Property.default.`@language` --> "en"
     highNode --- Property.default.`@comment` --> "The higher result-index to start from" --- Property.default.`@language` --> "en"

@@ -33,15 +33,6 @@ case class AppService(apps: List[JsApp]) extends Service {
     "Content-Type" -> contentType
   }
 
-//  import io.finch.catsEffect._
-//  val p: Endpoint[IO, Int] = param[Int]("foo")
-//  p.map { x => x }
-
-  val apia: Endpoint[IO, String] = get("hello" :: paths[String]) { segments: Seq[String] =>
-    Ok("Hello, World!")
-  }
-  Http.server.serve(":8080", apia.toServiceAs[Text.Plain])
-
   val static: Endpoint[IO, AsyncStream[Buf]] = get("assets" :: paths[String]) { segments: Seq[String] =>
     val path = segments.mkString("/")
     Ok(

@@ -36,7 +36,7 @@ trait MemEdge[S, E] extends MemResource[Edge[S, E]] with Edge[S, E] {
 
   override def remove(): Unit = {
     super.remove()
-    inV.removeInE(this)
-    outV.removeOutE(this)
+    inV.removeIn(this)
+    outV.removeOut(this)
   }
 }

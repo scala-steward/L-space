@@ -40,10 +40,7 @@ object DetachedGraph extends MemDataGraph {
   override protected def _storeEdge(edge: _Edge[_, _]): Unit = {
     edge.from
       .asInstanceOf[MemResource[Any]]
-      .linksOut += edge.key -> (edge.from
-      .asInstanceOf[MemResource[Any]]
-      .linksOut
-      .getOrElse(edge.key, mutable.LinkedHashSet[Edge[Any, _]]()) += edge.asInstanceOf[Edge[Any, _]])
+      ._addOut(edge.asInstanceOf[Edge[Any, _]])
   }
 
   override protected def _indexEdge[S, E](edge: _Edge[S, E]): Unit = {}

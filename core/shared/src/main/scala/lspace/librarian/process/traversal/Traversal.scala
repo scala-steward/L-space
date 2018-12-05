@@ -11,6 +11,7 @@ import lspace.librarian.process.traversal.step._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem._
 import lspace.librarian.structure._
+import lspace.librarian.structure.Property.default._
 import lspace.util.types.DefaultsToAny
 import shapeless.{::, <:!<, =:!=, HList, HNil, LUBConstraint, Poly1, Id => _, Path => _, Select => _}
 import shapeless.ops.hlist.{Collect, Mapper, Reverse, ToList, ToTraversable, Unifier}
@@ -30,21 +31,21 @@ object Traversal {
 
   val keys = new {
     private val stepNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/Traversal/step")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Traversal/step")
     stepNode.addLabel(Property.ontology)
-    stepNode --- Property.default.`@label` --> "step" --- Property.default.`@language` --> "en"
-    stepNode --- Property.default.`@comment` --> "A step in a traversal" --- Property.default.`@language` --> "en"
-    stepNode --- Property.default.`@container` --> NS.types.`@list`
-    stepNode --- Property.default.`@range` --> Step.ontology
+    stepNode --- `@label` --> "step" --- `@language` --> "en"
+    stepNode --- `@comment` --> "A step in a traversal" --- `@language` --> "en"
+    stepNode --- `@container` --> NS.types.`@list`
+    stepNode --- `@range` --> Step.ontology
     lazy val step: Property = Property(stepNode)
 
     val stepStep: TypedProperty[Node] = step + Step.ontology
   }
 
   private val ontologyNode = MemGraphDefault.ns.nodes.create(Ontology.ontology)
-  ontologyNode --- Property.default.`@id` --> "sptth/tbd.tld/librarian/Traversal"
-  ontologyNode --- Property.default.`@label` --> "Traversal" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@properties` --> keys.step
+  ontologyNode --- `@id` --> lspace.NS.vocab.Lspace.+("librarian/Traversal").toString
+  ontologyNode --- `@label` --> "Traversal" --- `@language` --> "en"
+  ontologyNode --- `@properties` --> keys.step
 
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
@@ -711,7 +712,7 @@ object Traversal {
     def id =
       Traversal[ST[Start], LongType[Long], Id :: Steps](Id() :: _traversal.steps)(target, st, DataType.default.`@long`)
 
-    def iri = _traversal.out(Property.default.typed.iriUrlString)
+    def iri = _traversal.out(typed.iriUrlString)
   }
 
   implicit class NodeStepsHelper[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: ClassType[Z], Steps <: HList](

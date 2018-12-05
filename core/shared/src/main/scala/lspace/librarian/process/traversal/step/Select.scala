@@ -42,7 +42,7 @@ object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
   }
 
   object keys {
-    private val nameNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Select/name")
+    private val nameNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Select/name")
     nameNode.addLabel(Property.ontology)
     nameNode --- Property.default.`@label` --> "name" --- Property.default.`@language` --> "en"
     nameNode --- Property.default.`@comment` --> "The name of the result to retrieve" --- Property.default.`@language` --> "en"

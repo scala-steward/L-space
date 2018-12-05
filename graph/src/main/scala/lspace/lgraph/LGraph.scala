@@ -105,13 +105,13 @@ trait LGraph extends Graph {
   }
 
   protected def _deleteResource(resource: _Resource[_]): Unit = {
-    resource.asInstanceOf[LResource[Any]].linksOut.foreach {
+    resource.asInstanceOf[LResource[Any]].outEMap().foreach {
       case (key, properties) =>
-        properties.links.foreach(edge => edge.to.removeInE(edge))
+        properties.foreach(edge => edge.to.removeIn(edge))
     }
-    resource.asInstanceOf[LResource[Any]].linksIn.foreach {
+    resource.asInstanceOf[LResource[Any]].inEMap().foreach {
       case (key, properties) =>
-        properties.links.foreach(edge => edge.from.removeOutE(edge))
+        properties.foreach(edge => edge.from.removeOut(edge))
     }
   }
 

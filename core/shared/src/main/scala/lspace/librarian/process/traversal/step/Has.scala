@@ -26,7 +26,7 @@ object Has extends StepDef("Has") with StepWrapper[Has] {
 
   object keys {
     private val keyNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Has/Key")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Has/Key")
     keyNode.addLabel(Property.ontology)
     keyNode --- Property.default.`@label` --> "Key" --- Property.default.`@language` --> "en"
     keyNode --- Property.default.`@comment` --> "A key" --- Property.default.`@language` --> "en"
@@ -35,7 +35,7 @@ object Has extends StepDef("Has") with StepWrapper[Has] {
     lazy val key: Property          = Property(keyNode)
     val keyUrl: TypedProperty[Node] = key + Property.ontology //DataType.default.propertyURLType
 
-    private val predicateNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Has/Predicate")
+    private val predicateNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Has/Predicate")
     predicateNode.addLabel(Property.ontology)
     predicateNode --- Property.default.`@label` --> "Predicate" --- Property.default.`@language` --> "en"
     predicateNode --- Property.default.`@comment` --> "A Predicate" --- Property.default.`@language` --> "en"

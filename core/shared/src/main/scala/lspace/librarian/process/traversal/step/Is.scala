@@ -16,7 +16,7 @@ object Is extends StepDef("Is") with StepWrapper[Is] {
   }
 
   object keys {
-    private val predicateNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Is/Predicate")
+    private val predicateNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Is/Predicate")
     predicateNode.addLabel(Property.ontology)
     predicateNode --- Property.default.`@label` --> "Predicate" --- Property.default.`@language` --> "en"
     predicateNode --- Property.default.`@comment` --> "A Predicate" --- Property.default.`@language` --> "en"

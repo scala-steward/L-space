@@ -64,7 +64,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
     }
   }
 
-  override def store(value: T): Unit = {
+  override def store(value: T): Unit = synchronized {
     super.store(value)
     value.label match {
       case dt: IntType[_] =>
@@ -121,7 +121,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
       .asInstanceOf[Stream[T]]
       .distinct
 
-  override def delete(value: T): Unit = {
+  override def delete(value: T): Unit = synchronized {
     super.delete(value)
     value.label match {
       case dt: IntType[_] =>

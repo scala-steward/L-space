@@ -27,7 +27,7 @@ object Not extends StepDef("Not") with StepWrapper[Not] {
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Not/traversal")
+    private val traversalNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Not/traversal")
     traversalNode.addLabel(Property.ontology)
     traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
     traversalNode --- Property.default.`@comment` --> "A traversal which must have a empty result" --- Property.default.`@language` --> "en"

@@ -17,7 +17,7 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
 
   object keys {
     private val labelNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/HasLabel/Label")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasLabel/Label")
     labelNode.addLabel(Property.ontology)
     labelNode --- Property.default.`@label` --> "Label" --- Property.default.`@language` --> "en"
     labelNode --- Property.default.`@comment` --> "A label" --- Property.default.`@language` --> "en"

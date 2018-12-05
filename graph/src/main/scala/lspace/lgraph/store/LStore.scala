@@ -13,9 +13,9 @@ object LStore {
 trait LStore[G <: LGraph] extends Store[G] {
 
   protected[store] lazy val _cache: mutable.OpenHashMap[Long, T] =
-    mutable.OpenHashMap[Long, T]()
+    new mutable.OpenHashMap[Long, T] with mutable.SynchronizedMap[Long, T] {}
   protected[store] lazy val _cacheByIri: mutable.OpenHashMap[String, Set[T]] =
-    mutable.OpenHashMap[String, Set[T]]()
+    new mutable.OpenHashMap[String, Set[T]] with mutable.SynchronizedMap[String, Set[T]] {}
 
   def store(resource: T): Unit = {
     cache(resource)
@@ -26,7 +26,7 @@ trait LStore[G <: LGraph] extends Store[G] {
   def countids                 = _cache.size
   def countiris                = _cacheByIri.size
 
-  def cache(resource: T): Unit = {
+  def cache(resource: T): Unit = synchronized {
     //    resource.status = CacheStatus.CACHED
     _cache += resource.id -> resource
     if (_cache.get(resource.id).isEmpty) throw new Exception(s"id ${resource.id} cached but not retrievable?")
@@ -35,7 +35,7 @@ trait LStore[G <: LGraph] extends Store[G] {
   }
 
   def uncache(resource: T): Unit = _cache -= resource.id
-  def uncacheByIri(resource: T): Unit = {
+  def uncacheByIri(resource: T): Unit = synchronized {
     if (resource.iri.nonEmpty) _cacheByIri.getOrElse(resource.iri, Set()) - resource match {
       case set: Set[T] if set.isEmpty => _cacheByIri -= resource.iri
       case set: Set[T]                => _cacheByIri += resource.iri -> set
@@ -50,7 +50,10 @@ trait LStore[G <: LGraph] extends Store[G] {
   def byId(id: Long): Option[T]     = cachedById(id)
   def byIri(iri: String): Stream[T] = _cacheByIri.get(iri).map(_.toStream).getOrElse(Stream())
 
-  def delete(resource: T): Unit = _cache -= resource.id
+  def delete(resource: T): Unit = synchronized {
+    uncache(resource)
+    uncacheByIri(resource)
+  }
 
   def all(): Stream[T]
 }

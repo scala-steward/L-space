@@ -2,10 +2,7 @@ package lspace.librarian.datatype
 
 import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
-
-import scala.collection.immutable.ListSet
 
 object ListSetType {
 

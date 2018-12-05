@@ -212,6 +212,18 @@ object Property {
     new Property(iri, iris, _range, containers, label, comment, _extendedClasses, _properties, base) {}
 }
 
+/**
+  *
+  * @param iri
+  * @param iris
+  * @param _range common class-types for the outgoing resource, the first type is implicit for de-/serialization
+  * @param containers cardinality w.r.t. the incoming resource, is not used anymore, cardinality is a responsibility of an API, no restrictions at the data-layer
+  * @param label a human-readable name
+  * @param comment a human-readable description
+  * @param _extendedClasses inherited properties
+  * @param _properties common meta-properties
+  * @param base base-iri of the outgoing resource
+  */
 class Property(val iri: String,
                val iris: Set[String] = Set(),
                _range: () => List[ClassType[_]] = () => List(),

@@ -18,7 +18,7 @@ object Limit extends StepDef("Limit") with StepWrapper[Limit] {
 
   object keys {
     private val maxNode =
-      MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Limit/max")
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Limit/max")
     maxNode.addLabel(Property.ontology)
     maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
     maxNode --- Property.default.`@comment` --> "The maximum number of results" --- Property.default.`@language` --> "en"

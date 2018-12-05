@@ -10,10 +10,10 @@ import lspace.types._
 
 object OpenSession {
   protected val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(s"https://data.l-space.eu/schema/OpenSession")
+    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "OpenSession")
   ontologyNode.addLabel(Ontology.ontology)
   ontologyNode --- Property.default.`@label` --> "OpenSession" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> "An open session is to secure a series of requests during a limited period of time." --- Property.default.`@language` --> "en"
+  ontologyNode --- Property.default.`@comment` --> "An open session is to secure a series of requests during a limited period of time and is not bound to a client or user." --- Property.default.`@language` --> "en"
   lazy val ontology: Ontology = Ontology(ontologyNode)
 
   def apply(iri: String, expiration: Instant, startTime: Instant): OpenSession = {

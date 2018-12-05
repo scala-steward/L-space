@@ -26,7 +26,8 @@ object Union extends StepDef("Union") with StepWrapper[Union[ClassType[Any], Cla
   }
 
   object keys {
-    private val traversalNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/Union/traversal")
+    private val traversalNode =
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Union/traversal")
     traversalNode.addLabel(Property.ontology)
     traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
     traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"

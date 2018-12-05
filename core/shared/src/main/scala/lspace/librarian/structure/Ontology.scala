@@ -75,6 +75,16 @@ object Ontology {
     new Ontology(iri, iris, _properties, label, comment, _extendedClasses, base) {}
 }
 
+/**
+  *
+  * @param iri
+  * @param iris
+  * @param _properties common meta-properties
+  * @param label a human-readable name
+  * @param comment a human-readable description
+  * @param _extendedClasses inherited ontologies
+  * @param base base-iri of the resource typed with this ontology
+  */
 class Ontology(val iri: String,
                val iris: Set[String] = Set(),
                protected val _properties: () => List[Property] = () => List(),

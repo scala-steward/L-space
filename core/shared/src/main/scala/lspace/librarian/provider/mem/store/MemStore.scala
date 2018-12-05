@@ -15,11 +15,15 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   val graph: G
 
   protected lazy val data: mutable.OpenHashMap[Long, T] =
-    mutable.OpenHashMap[Long, T]()
+    new mutable.OpenHashMap[Long, T] with mutable.SynchronizedMap[Long, T] {}
 
-  def store(resource: T): Unit = data += resource.id -> resource
-  def store(resources: List[T]): Unit = resources.foreach { resource =>
+  def store(resource: T): Unit = {
     data += resource.id -> resource
+  }
+  def store(resources: List[T]): Unit = {
+    resources.foreach { resource =>
+      data += resource.id -> resource
+    }
   }
 
   def byId(id: Long): Option[T]        = data.get(id)

@@ -38,51 +38,12 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
 
   override def cache(edge: T): Unit = {
 
-    val linksOut = edge.from
+    edge.from
       .asInstanceOf[LResource[Any]]
-      .linksOut
-      .getOrElse(edge.key, LResource.LinksSet[Any, Any]())
-
-    val linksIn = edge.to
+      ._addOut(edge.asInstanceOf[Edge[Any, _]])
+    edge.to
       .asInstanceOf[LResource[Any]]
-      .linksIn
-      .getOrElse(edge.key, LResource.LinksSet[Any, Any]())
-
-    val cacheTime = Instant.now()
-
-    if (edge.from
-          .asInstanceOf[LResource[Any]]
-          ._lastoutsync
-          .exists(_.isAfter(cacheTime.minusSeconds(120)))) {
-      edge.from
-        .asInstanceOf[LResource[Any]]
-        .linksOut += edge.key -> linksOut.copy(
-        lastsync = Some(cacheTime),
-        links = mutable.LinkedHashSet[Edge[Any, Any]]() ++= (linksOut.links
-          .asInstanceOf[mutable.LinkedHashSet[Edge[Any, Any]]] += edge.asInstanceOf[Edge[Any, Any]]).toList
-          .sortBy(_.id)
-      )
-
-      edge.to
-        .asInstanceOf[LResource[Any]]
-        .linksIn += edge.key -> linksIn.copy(
-        lastsync = Some(cacheTime),
-        links = mutable.LinkedHashSet[Edge[Any, Any]]() ++= (linksIn.links
-          .asInstanceOf[mutable.LinkedHashSet[Edge[Any, Any]]] += edge.asInstanceOf[Edge[Any, Any]]).toList.sortBy(_.id)
-      )
-    } else {
-      edge.from
-        .asInstanceOf[LResource[Any]]
-        .linksOut += edge.key -> linksOut.copy(
-        links = mutable.LinkedHashSet[Edge[Any, Any]]() ++= (linksOut.links
-          .asInstanceOf[mutable.LinkedHashSet[Edge[Any, Any]]] += edge.asInstanceOf[Edge[Any, Any]]).toList
-          .sortBy(_.id))
-
-      edge.to
-        .asInstanceOf[LResource[Any]]
-        .linksIn += edge.key -> linksIn.copy(links = mutable.LinkedHashSet[Edge[Any, Any]]() ++= (linksIn.links
-        .asInstanceOf[mutable.LinkedHashSet[Edge[Any, Any]]] += edge.asInstanceOf[Edge[Any, Any]]).toList.sortBy(_.id))
-    }
+      ._addIn(edge.asInstanceOf[Edge[_, Any]])
 
     super.cache(edge)
     if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
@@ -106,37 +67,12 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
         graph.valueStore.uncacheByIri(value)
     }
 
-    val linksOut = edge.from
+    edge.from
       .asInstanceOf[LResource[Any]]
-      .linksOut
-      .getOrElse(edge.key, LResource.LinksSet[Any, Any]())
-
-    val linksIn = edge.to
+      .removeOut(edge.asInstanceOf[Edge[Any, _]])
+    edge.to
       .asInstanceOf[LResource[Any]]
-      .linksIn
-      .getOrElse(edge.key, LResource.LinksSet[Any, Any]())
-
-    linksOut.links.asInstanceOf[mutable.LinkedHashSet[Edge[Any, _]]] - edge.asInstanceOf[Edge[Any, _]] match {
-      case set if set.isEmpty =>
-        edge.from
-          .asInstanceOf[LResource[Any]]
-          .linksOut -= edge.key
-      case set =>
-        edge.from
-          .asInstanceOf[LResource[Any]]
-          .linksOut += edge.key -> LinksSet(linksOut.lastsync, set.asInstanceOf[mutable.LinkedHashSet[Edge[Any, Any]]])
-    }
-
-    linksIn.links.asInstanceOf[mutable.LinkedHashSet[Edge[_, Any]]] - edge.asInstanceOf[Edge[_, Any]] match {
-      case set if set.isEmpty =>
-        edge.to
-          .asInstanceOf[LResource[Any]]
-          .linksIn -= edge.key
-      case set =>
-        edge.to
-          .asInstanceOf[LResource[Any]]
-          .linksIn += edge.key -> LinksSet(linksOut.lastsync, set.asInstanceOf[mutable.LinkedHashSet[Edge[Any, Any]]])
-    }
+      .removeIn(edge.asInstanceOf[Edge[_, Any]])
 
     super.uncache(edge)
   }

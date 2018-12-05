@@ -192,6 +192,10 @@ object DataType {
   }
 }
 
+/**
+  *
+  * @tparam T
+  */
 trait DataType[+T] extends ClassType[T] {
 //  type CT = DataType[_]
 

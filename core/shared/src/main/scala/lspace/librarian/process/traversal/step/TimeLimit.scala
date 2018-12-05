@@ -18,7 +18,8 @@ object TimeLimit extends StepDef("TimeLimit") with StepWrapper[TimeLimit] {
   }
 
   object keys {
-    private val durationNode = MemGraphDefault.ns.nodes.upsert("sptth/tbd.tld/librarian/step/TimeLimit/duration")
+    private val durationNode =
+      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/TimeLimit/duration")
     durationNode.addLabel(Property.ontology)
     durationNode --- Property.default.`@label` --> "duration" --- Property.default.`@language` --> "en"
     durationNode --- Property.default.`@comment` --> "The maximum time the underlaying traversal may take" --- Property.default.`@language` --> "en"
