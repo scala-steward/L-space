@@ -3,7 +3,7 @@ import sbtcrossproject.CrossProject
 // shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 lazy val settings = commonSettings
 
 lazy val compilerOptions = Seq(
@@ -18,20 +18,22 @@ lazy val compilerOptions = Seq(
 //  "-Ypartial-unification",
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
+//  "-Ytyper-debug",
+//  "-Ylog:all",
+//  "-verbose",
   "-deprecation",
   "-encoding",
   "utf8"
 )
 
 lazy val projectSettings = Seq(
-  organization := "eu.l-space",
-  version := "0.2.0-SNAPSHOT",
+  organization := "eu.l-space"
 )
 
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
-  scalaVersion := "2.12.7",
-  crossScalaVersions := Seq("2.11.12", "2.12.7"),
+  scalaVersion := "2.12.8",
+  crossScalaVersions := Seq("2.11.12", "2.12.8"),
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     "jitpack" at "https://jitpack.io"
