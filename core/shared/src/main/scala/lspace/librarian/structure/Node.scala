@@ -24,11 +24,20 @@ trait Node extends Resource[Node] {
 
   def labels: List[Ontology]
 //  def addLabel(iri: String): Unit = addLabel(graph.ns.getOntology(iri).getOrElse(Ontology(iri)))
-  def addLabel(classType: Ontology): Ontology
+  protected def _addLabel(ontology: Ontology): Unit = {
+    if (!Ontology.allOntologies.byIri.contains(ontology.iri) && graph.ns.getOntology(ontology.iri).isEmpty)
+      graph.ns.storeOntology(ontology)
+  }
+  def addLabel(ontology: Ontology): Unit
 
   def remove(): Unit = graph.nodes.delete(this)
 
   def removeLabel(classType: Ontology)
 
-  def prettyPrint: String = s"node:${if (iri.nonEmpty) iri else id.toString}"
+  override def equals(o: scala.Any): Boolean = o match {
+    case resource: graph._Node => sameResource(resource)
+    case _                     => false
+  }
+
+  def prettyPrint: String = s"n:${labels.map(_.iri).mkString("::")}:${if (iri.nonEmpty) iri else id.toString}"
 }

@@ -18,7 +18,7 @@ object Coalesce extends StepDef("Coalesce") with StepWrapper[Coalesce[ClassType[
           .out(keys.traversalTraversal)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
         node
       )

@@ -8,7 +8,7 @@ abstract class States extends Table[States, State] {
   object name extends StringColumn with PartitionKey
   object id   extends LongColumn
 
-  def findByName(name: String): Future[Option[State]] = {
-    select.where(_.name eqs name).one()
+  def findByName(name: String): Future[List[State]] = {
+    select.where(_.name eqs name).fetch()
   }
 }

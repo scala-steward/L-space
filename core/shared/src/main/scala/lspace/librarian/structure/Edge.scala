@@ -19,7 +19,8 @@ object Edge {
   * @tparam S outV-type, edge-start
   * @tparam E inV-type, edge-end
   */
-trait Edge[S, E] extends Resource[Edge[S, E]] {
+trait Edge[+S, +E] extends Resource[Edge[S, E]] {
+
   def key: Property
   val value: Edge[S, E]      = this
   def labels: List[Property] = List(key)
@@ -31,17 +32,23 @@ trait Edge[S, E] extends Resource[Edge[S, E]] {
     * Edge to (value-object)
     * @return
     */
-  def inV: Resource[E]
-  def to: Resource[E] = inV
+  def inV: Resource[E] = to
+  def to: Resource[E]
 
   /**
     * Edge from (resource-object)
     * @return
     */
-  def outV: Resource[S]
-  def from: Resource[S] = outV
+  def outV: Resource[S] = from
+  def from: Resource[S]
 
   def remove(): Unit = graph.edges.delete(this)
 
-  override def toString: String = s"edge:${if (iri.nonEmpty) iri else id.toString}"
+  override def equals(o: scala.Any): Boolean = o match {
+    case resource: graph._Edge[_, _] => sameResource(resource)
+    case _                           => false
+  }
+
+  def prettyPrint: String =
+    s"e:${if (iri.nonEmpty) iri else id.toString}:${from.prettyPrint} --- ${key.iri} --> ${to.prettyPrint}"
 }

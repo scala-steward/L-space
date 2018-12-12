@@ -9,6 +9,6 @@ abstract class WrappedEdge[S, E](override val self: Edge[S, E]) extends Edge[S, 
   override val value: Edge[S, E] = self.value
   //  override def addType(classType: Property): Unit = self.addType(classType)
 
-  def inV: Resource[E]  = self.inV
-  def outV: Resource[S] = self.outV
+  def to: Resource[E]   = self.to
+  def from: Resource[S] = self.from
 }

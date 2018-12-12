@@ -10,10 +10,10 @@ import lspace.librarian.structure.{Graph, Resource}
   * @param tempGraph a temporary graph with modifications on top of the original graph
   */
 class TransactionStreamComputer(tempGraph: Graph) extends DefaultStreamComputer {
-  private case class TransactionStreamComputerTraverser[+T](path: TraversalPath = TraversalPath(),
-                                                            loops: Int = 0,
-                                                            mit: Option[Instant] = None,
-                                                            permissions: List[String] = List())(_get: T)
+  private class TransactionStreamComputerTraverser[+T](val path: TraversalPath = TraversalPath(),
+                                                       val loops: Int = 0,
+                                                       val mit: Option[Instant] = None,
+                                                       val permissions: List[String] = List())(val _get: T)
       extends Traverser[T] {
     lazy val get: T = (_get match {
       case r: Resource[_] =>
@@ -26,7 +26,7 @@ class TransactionStreamComputer(tempGraph: Graph) extends DefaultStreamComputer 
                  loops: Int = 0,
                  mit: Option[Instant] = None,
                  permissions: List[String] = List()): Traverser[V] =
-      TransactionStreamComputerTraverser(path, loops, mit, permissions)(get)
+      new TransactionStreamComputerTraverser(path, loops, mit, permissions)(get)
 
   }
 
@@ -35,5 +35,5 @@ class TransactionStreamComputer(tempGraph: Graph) extends DefaultStreamComputer 
                                   loops: Int = 0,
                                   mit: Option[Instant] = None,
                                   permissions: List[String] = List()): Traverser[T] =
-    TransactionStreamComputerTraverser(path, loops, mit, permissions)(get)
+    new TransactionStreamComputerTraverser(path, loops, mit, permissions)(get)
 }

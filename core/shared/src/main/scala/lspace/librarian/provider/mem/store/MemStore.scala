@@ -1,11 +1,12 @@
 package lspace.librarian.provider.mem.store
 
-import lspace.librarian.provider.mem.{MemEdge, MemGraph, MemResource}
-import lspace.librarian.structure._
-import lspace.librarian.structure.Property.default._
+import java.util.concurrent.ConcurrentHashMap
+
+import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure.store.Store
 
-import scala.collection.mutable
+import scala.collection._
+import scala.collection.JavaConverters._
 
 object MemStore {
 //  def apply[T <: Resource[_]](iri: String, graph: MemGraph): MemStore[T] =
@@ -14,24 +15,28 @@ object MemStore {
 trait MemStore[G <: MemGraph] extends Store[G] {
   val graph: G
 
-  protected lazy val data: mutable.OpenHashMap[Long, T] =
-    new mutable.OpenHashMap[Long, T] with mutable.SynchronizedMap[Long, T] {}
+  protected[mem] lazy val data: concurrent.Map[Long, T2] =
+    new ConcurrentHashMap[Long, T2]().asScala
 
   def store(resource: T): Unit = {
-    data += resource.id -> resource
+    data += resource.id -> resource.asInstanceOf[T2]
   }
   def store(resources: List[T]): Unit = {
     resources.foreach { resource =>
-      data += resource.id -> resource
+      data += resource.id -> resource.asInstanceOf[T2]
     }
   }
 
-  def byId(id: Long): Option[T]        = data.get(id)
-  def byId(ids: List[Long]): Stream[T] = ids.toStream.flatMap(data.get)
+  def byId(id: Long): Option[T2]        = data.get(id)
+  def byId(ids: List[Long]): Stream[T2] = ids.toStream.flatMap(data.get)
 
-  def delete(resource: T): Unit        = data -= resource.id
-  def delete(resources: List[T]): Unit = resources.foreach(delete)
+  def delete(resource: T): Unit = {
+    data -= resource.id
+  }
+  def delete(resources: List[T]): Unit = {
+    resources.foreach(delete)
+  }
 
-  def all(): Stream[T] = data.toStream.map(_._2)
-  def count(): Long    = all().size
+  def all(): Stream[T2] = data.toStream.map(_._2)
+  def count(): Long     = all().size
 }

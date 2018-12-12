@@ -8,7 +8,7 @@ import scala.collection.mutable
 object MemResource {}
 
 trait MemResource[T] extends Resource[T] {
-  implicit def graph: Graph
+  val graph: MemGraph
 //  @transient lazy val id: Long = graph.idGenerator.next
 
   override def iri: String =
@@ -46,12 +46,12 @@ trait MemResource[T] extends Resource[T] {
   //  override def keys: Set[Property] = linksOut.keySet ++ linksIn.keySet toSet
 
   def out(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatten).map(_.inV.value)
-    else linksOut.values.flatten.map(_.inV.value).toList
+    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatten).map(_.to.value)
+    else linksOut.values.flatten.map(_.to.value).toList
 
   def outMap(key: Property*): Map[Property, List[Any]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.map(_.inV.value).toList)
-    else outE(key: _*).groupBy(_.key).mapValues(_.map(_.inV.value))
+    if (key.isEmpty) linksOut.toMap.mapValues(_.map(_.to.value).toList)
+    else outE(key: _*).groupBy(_.key).mapValues(_.map(_.to.value))
   }
 
   def outE(key: Property*): List[Edge[T, Any]] =
@@ -64,12 +64,12 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def in(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toVector.flatten).map(_.outV.value)
-    else linksIn.values.toList.flatten.map(_.outV.value)
+    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toVector.flatten).map(_.from.value)
+    else linksIn.values.toList.flatten.map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] = {
-    if (key.isEmpty) linksIn.toMap.mapValues(_.map(_.outV.value).toList)
-    else inE(key: _*).groupBy(_.key).mapValues(_.map(_.outV.value))
+    if (key.isEmpty) linksIn.toMap.mapValues(_.map(_.from.value).toList)
+    else inE(key: _*).groupBy(_.key).mapValues(_.map(_.from.value))
   }
 
   def inE(key: Property*): List[Edge[Any, T]] =
@@ -84,7 +84,7 @@ trait MemResource[T] extends Resource[T] {
   private def validateDT[V](dt: DataType[V], value: V) =
     if (dt.iri.nonEmpty) dt else ClassType.valueToOntologyResource(value)
 
-  def removeIn(edge: Edge[_, T]): Unit = synchronized {
+  def removeIn[V >: T](edge: Edge[_, V]): Unit = synchronized {
     linksIn.get(edge.key).foreach { links =>
       if (links.contains(edge)) {
         val newSet = links.filterNot(_ == edge)
@@ -94,7 +94,7 @@ trait MemResource[T] extends Resource[T] {
       }
     }
   }
-  def removeOut(edge: Edge[T, _]): Unit = synchronized {
+  def removeOut[V >: T](edge: Edge[V, _]): Unit = synchronized {
     linksOut.get(edge.key).foreach { links =>
       if (links.contains(edge)) {
         val newSet = links.filterNot(_ == edge)

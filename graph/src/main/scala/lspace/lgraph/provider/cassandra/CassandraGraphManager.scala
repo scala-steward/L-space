@@ -2,14 +2,17 @@ package lspace.lgraph.provider.cassandra
 
 import com.outworkers.phantom.dsl._
 import lspace.lgraph.{GraphManager, LGraph, LGraphIdProvider}
+import monix.execution.atomic.AtomicLong
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.Success
 
 class CassandraGraphManager[G <: LGraph](override val graph: G, override val database: CassandraGraph)
     extends GraphManager[G](graph)
     with DatabaseProvider[CassandraGraph]
     /*with DatabaseProvider[LGraphDatabase] */ {
+  val random = Math.random()
 
   Await.result(Future.sequence(
                  Seq(
@@ -17,18 +20,28 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
                  )),
                60 seconds)
 
+  private var idState = State("all", 1000l)
   lazy val idProvider: LGraphIdProvider = new LGraphIdProvider {
     protected def newIdRange: Vector[Long] = {
-      Await
+      val idStates = Await
         .result(database.states.findByName("all"), 5 seconds)
+      if (idStates.size > 1) throw new Exception("???")
+      idStates.headOption
         .map { idSpace =>
-          val range: Vector[Long] = (idSpace.last to (idSpace.last + 999) toVector)
-          database.states.storeRecord(State("all", idSpace.last + 1000))
-          range
+          if (idSpace.last >= idState.last) {
+            idState = State("all", idSpace.last + 1000)
+            Await.result(database.states.storeRecord(State("all", idState.last - 1)), 10 seconds)
+            (idSpace.last to (idState.last - 1) toVector)
+          } else {
+            idState = State("all", idState.last + 1000)
+            Await.result(database.states.storeRecord(State("all", idState.last - 1)), 10 seconds)
+            (idSpace.last to (idState.last - 1) toVector)
+          }
         }
         .getOrElse {
-          database.states.storeRecord(State("all", 1000))
-          1000l to 1999 toVector
+          idState = State("all", idState.last + 1000)
+          Await.result(database.states.storeRecord(State("all", idState.last - 1)), 10 seconds)
+          (idState.last - 1000) to idState.last toVector
         }
     }
   }

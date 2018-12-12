@@ -19,7 +19,7 @@ object Union extends StepDef("Union") with StepWrapper[Union[ClassType[Any], Cla
           .out(keys.traversalTraversal)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
         node
       )

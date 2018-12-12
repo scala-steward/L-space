@@ -19,7 +19,7 @@ object And extends StepDef("And") with StepWrapper[And] {
           .out(keys.traversalTraversal)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
         node
       )

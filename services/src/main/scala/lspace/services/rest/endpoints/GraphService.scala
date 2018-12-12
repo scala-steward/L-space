@@ -63,7 +63,7 @@ case class GraphService(context: String, graph: Graph) extends Service {
         jsonld.resource(obj).map {
           case traversalNode: Node =>
             val start  = Instant.now()
-            val result = Traversal.wrap(traversalNode)(graph)(ClassType.default[Any]).toUntypedStream.toList
+            val result = Traversal.wrap(traversalNode)(graph).toUntypedStream.toList
             val collection = Collection(start, Instant.now(), result)(new DataType[Any] {
               override def iri: String = ""
             })

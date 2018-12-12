@@ -7,7 +7,7 @@ object MemTransaction {
   def apply(parent: MemGraph): MemTransaction = new MemTransaction(parent)
 }
 
-class MemTransaction(val parent: MemGraph) extends Transaction {
+class MemTransaction(override val parent: MemGraph) extends Transaction(parent) {
   val iri: String  = parent.iri + "/" + java.time.Instant.now() + "/" + (Math.random() * 100000 toInt)
   private val self = this
   private val _iri = iri
@@ -22,14 +22,20 @@ class MemTransaction(val parent: MemGraph) extends Transaction {
   override def commit(): Unit = {
     if (isOpen) {
       super.commit()
-      values.added
-        .map(_.asInstanceOf[MemValue[Any]])
-        .map(value => parent.values.create(value.id)(value.value)(value.label))
-      nodes.added.map(node => parent.nodes.create(node.id)(node.labels: _*))
-      edges.added.map(edge => parent.edges.create(edge.id, edge.from.id, edge.key, edge.to.id))
-      edges.deleted.flatMap(parent.edges.hasId).foreach(_.remove())
-      nodes.deleted.flatMap(parent.nodes.hasId).foreach(_.remove())
-      values.deleted.flatMap(parent.values.hasId).foreach(_.remove())
+      values.added.toList.map(value => parent.newValue(value.id, value.value, value.label))
+//      parent.valueStore.store()
+      nodes.added.toList.map(_._2).map { node =>
+        val newNode = parent.newNode(node.id)
+        node.labels.foreach(newNode._addLabel)
+        newNode
+      }
+//      parent.nodeStore.store()
+      edges.added.toList.map(edge => parent.newEdge(edge.id, edge.from.id, edge.key, edge.to.id))
+//      parent.edgeStore.store()
+
+      edges.deleted.values.foreach(_.remove())
+      nodes.deleted.values.foreach(_.remove())
+      values.deleted.values.foreach(_.remove())
     }
   }
 

@@ -39,7 +39,7 @@ trait NameSpaceGraph extends DataGraph {
   }
 
   def getOntologies(iri: String*): List[Ontology] = {
-    if (iri.isEmpty) ns.ontologies.byIri.values.toList
+    if (iri.isEmpty) ontologies.byIri.values.toList
     else iri.toList.flatMap(getOntology)
   }
 
@@ -53,12 +53,12 @@ trait NameSpaceGraph extends DataGraph {
   protected def ontologyFromCache(id: Long): Option[Ontology] =
     Ontology.allOntologies.byId
       .get(id)
-      .orElse(ns.ontologies.byId.get(id))
+      .orElse(ontologies.byId.get(id))
 
   protected def ontologyFromCache(iri: String): Option[Ontology] =
     MemGraphDefault.ns
       .getOntology(iri)
-      .orElse(ns.ontologies.byIri
+      .orElse(ontologies.byIri
         .get(iri))
 
   def getOntology(iri: String): Option[Ontology] = {
@@ -70,9 +70,9 @@ trait NameSpaceGraph extends DataGraph {
 
   private def ontologyFromNode(node: _Node): Ontology = {
     val ontology = Ontology(node)
-    ns.ontologies.byId += node.id -> ontology
-    ns.ontologies.byIri += iri    -> ontology
-    ontology.iris.foreach(iri => ns.ontologies.byIri += iri -> ontology)
+    ontologies.byId += node.id -> ontology
+    ontologies.byIri += iri    -> ontology
+    ontology.iris.foreach(iri => ontologies.byIri += iri -> ontology)
     if (graph != MemGraphDefault) MemGraphDefault.ns.storeOntology(ontology)
     ontology
   }
@@ -84,7 +84,7 @@ trait NameSpaceGraph extends DataGraph {
       node.addLabel(Ontology.ontology)
       node
     } else
-      ns.nodes
+      nodes
         .hasIri(ontology.iri)
         .find(n => n.hasLabel(Ontology.ontology).isDefined && n.hasLabel(DataType.ontology).isEmpty)
 //      .filter(o => ontology.iris diff o.iris nonEmpty)
@@ -93,8 +93,12 @@ trait NameSpaceGraph extends DataGraph {
 //        node.addLabel(Ontology.ontology)
           val node = Ontology.allOntologies.idByIri
             .get(ontology.iri)
-            .map(id => ns.nodes.create(id)(Ontology.ontology))
-            .getOrElse(ns.nodes.create(Ontology.ontology))
+            .map { id =>
+              val node = getOrCreateNode(id)
+              node.addLabel(Ontology.ontology)
+              node
+            }
+            .getOrElse(nodes.create(Ontology.ontology))
 
           node.addOut(default.typed.iriUrlString, ontology.iri)
           ontology.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
@@ -112,17 +116,17 @@ trait NameSpaceGraph extends DataGraph {
           ontology.base.foreach { base =>
             node.addOut(Property.default.`@base`, base)
           }
-          ns.ontologies.byId += node.id       -> ontology
-          ns.ontologies.byIri += ontology.iri -> ontology
+          ontologies.byId += node.id       -> ontology
+          ontologies.byIri += ontology.iri -> ontology
           ontology.iris.foreach { iri =>
-            ns.ontologies.byIri += iri -> ontology
+            ontologies.byIri += iri -> ontology
           }
           node
         }
   }
 
   def getProperties(iri: String*): List[Property] = {
-    if (iri.isEmpty) ns.properties.byIri.values.toList
+    if (iri.isEmpty) properties.byIri.values.toList
     else iri.toList.flatMap(getProperty)
   }
 
@@ -136,12 +140,12 @@ trait NameSpaceGraph extends DataGraph {
   protected def propertyFromCache(id: Long): Option[Property] =
     Property.allProperties.byId
       .get(id)
-      .orElse(ns.properties.byId.get(id))
+      .orElse(properties.byId.get(id))
 
   protected def propertyFromCache(iri: String): Option[Property] =
     MemGraphDefault.ns
       .getProperty(iri)
-      .orElse(ns.properties.byIri
+      .orElse(properties.byIri
         .get(iri))
 
   def getProperty(iri: String): Option[Property] = {
@@ -207,13 +211,17 @@ trait NameSpaceGraph extends DataGraph {
       node.addLabel(Property.ontology)
       node
     } else
-      ns.nodes.hasIri(property.iri).find(_.hasLabel(Property.ontology).isDefined).getOrElse {
+      nodes.hasIri(property.iri).find(_.hasLabel(Property.ontology).isDefined).getOrElse {
 //      val node = ns.nodes.upsert(property.iri, property.iris)
 //      node.addLabel(Property.ontology)
         val node = Property.allProperties.idByIri
           .get(property.iri)
-          .map(id => ns.nodes.create(id)(Property.ontology))
-          .getOrElse(ns.nodes.create(Property.ontology))
+          .map { id =>
+            val node = getOrCreateNode(id)
+            node.addLabel(Property.ontology)
+            node
+          }
+          .getOrElse(nodes.create(Property.ontology))
 
         node.addOut(default.typed.iriUrlString, property.iri)
         property.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
@@ -235,10 +243,10 @@ trait NameSpaceGraph extends DataGraph {
         property.base.foreach { base =>
           node.addOut(Property.default.`@base`, base)
         }
-        ns.properties.byId += node.id       -> property
-        ns.properties.byIri += property.iri -> property
+        properties.byId += node.id       -> property
+        properties.byIri += property.iri -> property
         property.iris.foreach { iri =>
-          ns.properties.byIri += iri -> property
+          properties.byIri += iri -> property
         }
         node
       }
@@ -285,12 +293,12 @@ trait NameSpaceGraph extends DataGraph {
   protected def datatypeFromCache(id: Long): Option[DataType[_]] =
     DataType.allDataTypes.byId
       .get(id)
-      .orElse(ns.datatypes.byId.get(id))
+      .orElse(datatypes.byId.get(id))
 
   protected def datatypeFromCache(iri: String): Option[DataType[_]] =
     MemGraphDefault.ns
       .getDataType(iri)
-      .orElse(ns.datatypes.byIri
+      .orElse(datatypes.byIri
         .get(iri))
 
   def getDataType[T: DefaultsToAny](iri: String): Option[DataType[T]] = {
@@ -320,15 +328,20 @@ trait NameSpaceGraph extends DataGraph {
       node.addLabel(DataType.ontology)
       node
     } else
-      ns.nodes
+      nodes
         .hasIri(dataType.iri)
         .find(_.hasLabel(DataType.ontology).isDefined)
         .getOrElse {
 //      val node = ns.nodes.upsert(dataType.iri, dataType.iris)
           val node = DataType.allDataTypes.idByIri
             .get(dataType.iri)
-            .map(id => ns.nodes.create(id)(Ontology.ontology, DataType.ontology))
-            .getOrElse(ns.nodes.create(Ontology.ontology, DataType.ontology))
+            .map { id =>
+              val node = getOrCreateNode(id)
+              node.addLabel(Ontology.ontology)
+              node.addLabel(DataType.ontology)
+              node
+            }
+            .getOrElse(nodes.create(Ontology.ontology, DataType.ontology))
           node.addOut(default.typed.iriUrlString, dataType.iri)
           dataType.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
 
@@ -367,10 +380,10 @@ trait NameSpaceGraph extends DataGraph {
           dataType.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
 
           dataType.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
-          ns.datatypes.byIri += dataType.iri -> dataType
-          ns.datatypes.byId += node.id       -> dataType
+          datatypes.byIri += dataType.iri -> dataType
+          datatypes.byId += node.id       -> dataType
           dataType.iris.foreach { iri =>
-            ns.datatypes.byIri += iri -> dataType
+            datatypes.byIri += iri -> dataType
           }
           node
         }

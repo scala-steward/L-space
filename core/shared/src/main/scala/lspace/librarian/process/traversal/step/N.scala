@@ -22,10 +22,10 @@ object N extends StepDef("N") with StepWrapper[N] {
     nodeNode --- Property.default.`@label` --> "node" --- Property.default.`@language` --> "en"
     nodeNode --- Property.default.`@comment` --> "A node" --- Property.default.`@language` --> "en"
     nodeNode --- Property.default.`@container` --> types.`@list`
-    nodeNode --- Property.default.`@range` --> DataType.default.nodeURLType
+    nodeNode --- Property.default.`@range` --> DataType.default.`@nodeURL`
 
     lazy val node: Property          = Property(nodeNode)
-    val nodeUrl: TypedProperty[Node] = node + DataType.default.nodeURLType
+    val nodeUrl: TypedProperty[Node] = node + DataType.default.`@nodeURL`
   }
 
   def apply(nodes: List[Node] = List()): N = {

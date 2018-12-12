@@ -14,6 +14,7 @@ object InEMap extends StepDef("InEMap") with StepWrapper[InEMap] {
     case _ =>
       new InEMap(node
                    .out(MoveStep.keys.labelUrl)
+                   .map(_.iri)
                    .map(Property.apply)
                    .toSet,
                  node)

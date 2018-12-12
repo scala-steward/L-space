@@ -34,13 +34,21 @@ trait RemoteGraph extends Graph {
   override def nodes: Nodes                       = throw new Exception("remote graph has no local nodes") //g.V.toStream
   override def values: Values                     = throw new Exception("remote graph has no local values:") //g.VR.toStream
 
-  protected def _createNode(id: Long)(ontology: Ontology*): _Node =
+  override protected def newNode(id: Long): GNode = throw new Exception("remote graphs do not (yet) support writing")
+  override protected def getOrCreateNode(id: Long): GNode =
+    throw new Exception("remote graphs do not (yet) support writing")
+  override protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
+    throw new Exception("remote graphs do not (yet) support writing")
+  override protected def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
     throw new Exception("remote graphs do not (yet) support writing")
   protected def _createEdge[S, E](id: Long)(from: Resource[S], key: Property, to: Resource[E]): Edge[S, E] =
     throw new Exception("remote graphs do not (yet) support writing")
-  def newValue[T](dataType: LiteralType[T], value: T): Value[T] =
+
+  override protected def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
     throw new Exception("remote graphs do not (yet) support writing")
-  override def _createValue[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] =
+//  def newValue[T](dataType: LiteralType[T], value: T): Value[T] =
+//    throw new Exception("remote graphs do not (yet) support writing")
+  override def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] =
     throw new Exception("remote graphs do not (yet) support writing")
 
   /**
@@ -52,10 +60,10 @@ trait RemoteGraph extends Graph {
 
 //  protected def `@idStore`: ValueStore[this.type] = ???
 
-  override protected def _createEdge[S, E](id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] =
+  override protected def createEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
     ???
 
-  override protected def _deleteResource(resource: _Resource[_]): Unit = ???
+  override protected def deleteResource[T <: _Resource[_]](resource: T): Unit = ???
 
   protected def _deleteNode(node: Node): Unit       = ???
   protected def _deleteEdge(edge: Edge[_, _]): Unit = ???

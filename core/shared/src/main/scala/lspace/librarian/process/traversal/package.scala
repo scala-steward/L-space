@@ -74,7 +74,7 @@ package object traversal {
       new Impl[OutMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: OutMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.propertyURLType),
+          new MapType(List(DataType.default.`@property`),
                       List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
@@ -84,7 +84,7 @@ package object traversal {
       new Impl[OutEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: OutEMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.propertyURLType),
+          new MapType(List(DataType.default.`@property`),
                       List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
@@ -94,7 +94,7 @@ package object traversal {
       new Impl[InMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: InMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.propertyURLType),
+          new MapType(List(DataType.default.`@property`),
                       List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }
@@ -104,7 +104,7 @@ package object traversal {
       new Impl[InEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
         override def convert(hlist: InEMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.propertyURLType),
+          new MapType(List(DataType.default.`@property`),
                       List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
             .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
         }

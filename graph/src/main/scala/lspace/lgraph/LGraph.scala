@@ -4,6 +4,7 @@ import java.time.Instant
 
 import lspace.lgraph.index.{IndexManager, IndexProvider, LIndex}
 import lspace.lgraph.store._
+import lspace.lgraph.util.CacheReaper
 import lspace.librarian.process.computer.DefaultStreamComputer
 import monix.eval.Task
 import lspace.librarian.process.traversal.Traversal
@@ -21,6 +22,13 @@ object LGraph {
     val graph = new LDataGraph {
       val iri: String  = _iri
       private val self = this
+
+      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
+
+      override def init(): Unit = {
+        super.init()
+        cacheReaper
+      }
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 
@@ -64,9 +72,10 @@ object LGraph {
       }
 
       val stateManager: GraphManager[this.type] = storeProvider.stateManager(this)
-      override def idProvider: IdProvider       = stateManager.idProvider
+      lazy val idProvider: IdProvider           = stateManager.idProvider
 
       override def close(): Unit = {
+        cacheReaper.kill()
         super.close()
         stateManager.close()
       }
@@ -78,33 +87,127 @@ object LGraph {
 }
 
 trait LGraph extends Graph {
+  type GNode       = _Node with LNode
+  type GEdge[S, E] = _Edge[S, E] with LEdge[S, E]
+  type GValue[T]   = _Value[T] with LValue[T]
 //  def createStoreManager[G <: LGraph]: G => StoreManager[G]
 //  def stateManager: GraphManager[this.type]
-  def storeManager: StoreManager[this.type]
+  protected[lgraph] def storeManager: StoreManager[this.type]
 
   override protected[lgraph] val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
   override protected[lgraph] val edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
   override protected[lgraph] val valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
 
-  override protected def _createNode(id: Long)(ontology: Ontology*): _Node = {
-    val node = LNode(id, thisgraph)
+  object writenode
+  protected[lgraph] def newNode(id: Long): GNode = writenode.synchronized {
+    nodeStore
+      .cachedById(id)
+      .getOrElse {
+        def _id = id
+
+        val node = new _Node with LNode {
+          val id            = _id
+          val graph: LGraph = thisgraph
+        }
+//        nodeStore.cache(node.asInstanceOf[GNode])
+        node
+      }
+      .asInstanceOf[GNode]
+  }
+
+  override protected def getOrCreateNode(id: Long): GNode = synchronized {
+    val node = super.getOrCreateNode(id)
     node._lastoutsync = Some(Instant.now())
-    ontology.foreach(node.addLabel)
+    node._lastinsync = Some(Instant.now())
     node
   }
-  override protected def _createEdge[S, E](
-      id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] = {
-    val edge = LEdge(thisgraph)(id, from, key, to)
+
+  override protected[lgraph] def storeNode(node: GNode): Unit = super.storeNode(node)
+
+  object writeedge
+  protected[lgraph] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
+    writeedge.synchronized {
+      edgeStore
+        .cachedById(id)
+        .getOrElse {
+          def _id = id
+
+          def _from = from
+
+          def _key = key
+
+          def _to = to
+
+          val edge = new _Edge[S, E] with LEdge[S, E] {
+            val id: Long           = _id
+            val from: GResource[S] = _from
+            val key: Property      = _key
+            val to: GResource[E]   = _to
+            val graph: LGraph      = thisgraph
+          }
+//          edgeStore.cache(edge.asInstanceOf[GEdge[_, _]])
+          edge
+        }
+        .asInstanceOf[GEdge[S, E]]
+    }
+
+  protected[lgraph] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+    val _from = resources
+      .hasId(from)
+      .map(_.asInstanceOf[GResource[Any]])
+      .getOrElse {
+        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
+      }
+    val _to =
+      resources
+        .hasId(to)
+        .map(_.asInstanceOf[GResource[Any]])
+        .getOrElse {
+          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
+        }
+
+    val edge = createEdge(id, _from, key, _to)
+    edge.asInstanceOf[GEdge[Any, Any]]
+  }
+
+  override protected def createEdge[S, E](id: Long,
+                                          from: GResource[S],
+                                          key: Property,
+                                          to: GResource[E]): GEdge[S, E] = {
+    val edge = super.createEdge(id, from, key, to)
     edge._lastoutsync = Some(Instant.now())
+    edge._lastinsync = Some(Instant.now())
     edge
   }
-  override protected def _createValue[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] = {
-    val rv = LValue(id, value, dt, thisgraph)
+
+  object writevalue
+  protected[lgraph] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
+    writevalue
+      .synchronized {
+        valueStore.cachedById(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
+          def _id    = id
+          def _value = value
+          def _label = label
+          val gValue = new _Value[T] with LValue[T] {
+            val id: Long           = _id
+            val value: T           = _value
+            val label: DataType[T] = _label
+            val graph: LGraph      = thisgraph
+          }
+//          valueStore.cache(gValue.asInstanceOf[GValue[_]])
+          gValue
+        }
+      }
+      .asInstanceOf[GValue[T]]
+
+  override protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
+    val rv = super.createValue(id, value, dt)
     rv._lastoutsync = Some(Instant.now())
+    rv._lastinsync = Some(Instant.now())
     rv
   }
 
-  protected def _deleteResource(resource: _Resource[_]): Unit = {
+  protected def deleteResource[T <: _Resource[_]](resource: T): Unit = {
     resource.asInstanceOf[LResource[Any]].outEMap().foreach {
       case (key, properties) =>
         properties.foreach(edge => edge.to.removeIn(edge))
@@ -115,7 +218,7 @@ trait LGraph extends Graph {
     }
   }
 
-  override def transaction: Transaction = new LTransaction(thisgraph)
+  override def transaction: Transaction = LTransaction(thisgraph)
 
   val computer = DefaultStreamComputer()
   def buildTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](

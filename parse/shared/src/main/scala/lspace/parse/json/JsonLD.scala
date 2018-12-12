@@ -329,10 +329,10 @@ class JsonLD(graph: Graph) {
   }
 
   private def valueToJson(value: Any)(dt: DataType[_]): Json = value match {
-    case v: Ontology if dt.iri == DataType.default.ontologyURLType.iri       => Json.jString(v.iri)
-    case v: Property if dt.iri == DataType.default.propertyURLType.iri       => Json.jString(v.iri)
-    case v: DataType[_] if dt.iri == DataType.default.dataTypeURLType.iri    => Json.jString(v.iri)
-    case v: IriResource if dt.iri == DataType.default.uRLType.iri            => Json.jString(v.iri)
+    case v: Ontology if dt.iri == DataType.default.`@class`.iri              => Json.jString(v.iri)
+    case v: Property if dt.iri == DataType.default.`@property`.iri           => Json.jString(v.iri)
+    case v: DataType[_] if dt.iri == DataType.default.`@datatype`.iri        => Json.jString(v.iri)
+    case v: IriResource if dt.iri == DataType.default.`@url`.iri             => Json.jString(v.iri)
     case v: String if dt.iri == DataType.default.`@string`.iri               => Json.jString(v)
     case v: Boolean if dt.iri == DataType.default.`@boolean`.iri             => Json.jBool(v)
     case v: Int if dt.iri == DataType.default.`@int`.iri                     => Json.jNumber(v)
@@ -1160,7 +1160,7 @@ class JsonLD(graph: Graph) {
         tpes
           .map(builder.expandIri(_))
           .map { iri =>
-            if (iri == types.`@id`) DataType.default.uRLType
+            if (iri == types.`@id`) DataType.default.`@url`
             else //key.range.collectFirst { case key if key.iri == iri => key }
               //          .orElse {
               graph.ns
@@ -1448,7 +1448,7 @@ class JsonLD(graph: Graph) {
               //        case tpe: ColorType[_] =>
               case BoolType.boolType => json.bool.map(tpe -> _)
             }
-            value.orElse(jsonToValue(DataType.default.uRLType, json, builder).toOption) //.getOrElse(throw FromJsonException(s"@type ${classType.iri} not corresponding with data-structure")))
+            value.orElse(jsonToValue(DataType.default.`@url`, json, builder).toOption) //.getOrElse(throw FromJsonException(s"@type ${classType.iri} not corresponding with data-structure")))
           case tpe: StructuredValue[_] =>
             tpe match {
               case tpe: GeometricType[_] =>
@@ -1471,7 +1471,7 @@ class JsonLD(graph: Graph) {
                   case tpe: MapType[_, _] =>
                     json.array.map { array =>
                       array
-                        .map(json =>
+                        .flatMap(json =>
                           json.array.filter(_.lengthCompare(2) == 0).map { array =>
                             (jsonToValue(tpe.keyRange.headOption.getOrElse(DataType.default.`@string`),
                                          array.head,
@@ -1485,7 +1485,7 @@ class JsonLD(graph: Graph) {
                               case Failure(error) => throw error
                             })
                         })
-                        .map(_.toList.toMap)
+                        .toMap
                     }
                   case tpe: ListSetType[_] =>
                     json.array
@@ -1537,13 +1537,13 @@ class JsonLD(graph: Graph) {
                 //TODO: check for valid iri
                 val node = DetachedGraph.nodes.create()
                 node.addOut(Property.default.typed.iriUrlString, builder.expandIri(iri))
-                DataType.default.uRLType -> node //.asInstanceOf[T]
+                DataType.default.`@url` -> node //.asInstanceOf[T]
               }
               .orElse(json.obj
                 .map { obj =>
                   resource(obj, builder) match {
                     case Success(resource) =>
-                      DataType.default.uRLType -> resource //.asInstanceOf[T]
+                      DataType.default.`@url` -> resource //.asInstanceOf[T]
                     case Failure(error) => throw error
                   }
                 }

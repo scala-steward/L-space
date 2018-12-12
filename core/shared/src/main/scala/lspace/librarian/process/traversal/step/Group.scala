@@ -28,7 +28,7 @@ object Group extends StepDef("Group") with StepWrapper[Group[ClassType[Any]]] {
       Group(node
               .out(keys.byTraversal)
               .take(1)
-              .map(Traversal.wrap(_)(DetachedGraph)(ClassType.default[Any]))
+              .map(Traversal.wrap(_)(DetachedGraph))
               .head,
             node)
   }

@@ -18,27 +18,27 @@ trait DataGraph extends Graph {
 //    def +(label: String): Node = create(ns.getOntology(label).getOrElse(Ontology(label)))
 //  }
 
-  abstract override protected def _createNode(_id: Long)(ontology: Ontology*): _Node = {
+  override protected def getOrCreateNode(id: Long): GNode = {
 //    println(s"datagraph._createnode")
-    val node = super._createNode(_id)(ontology: _*)
+    val node = super.getOrCreateNode(id)
 //    println(s"done datagraph.super._createNode")
-    _storeNode(node)
+//    storeNode(node)
     _indexNode(node)
 
-    ontology.foreach { ontology =>
-      if (!Ontology.allOntologies.byIri.contains(ontology.iri) && ns.getOntology(ontology.iri).isEmpty)
-        ns.storeOntology(ontology)
-    }
+//    ontology.foreach { ontology =>
+//      if (!Ontology.allOntologies.byIri.contains(ontology.iri) && ns.getOntology(ontology.iri).isEmpty)
+//        ns.storeOntology(ontology)
+//    }
 //    println("done datagraph._createnode")
     node
   }
 
-  override protected def _deleteNode(node: _Node): Unit = {
+  override protected def deleteNode(node: GNode): Unit = {
     //    `@typeIndex`.delete()
-    super._deleteNode(node)
+    super.deleteNode(node)
   }
 
-  protected def _indexNode(node: _Node): Unit = {
+  protected def _indexNode(node: GNode): Unit = {
 //    `@typeIndex`.store(Vector(Map(node.labels.map(o => Property.default.`@type` -> o))))
   }
 
@@ -51,13 +51,15 @@ trait DataGraph extends Graph {
     * @tparam E
     * @return
     */
-  abstract override protected def _createEdge[S, E](
-      id: Long)(_from: _Resource[S], key: Property, _to: _Resource[E]): _Edge[S, E] = {
-    val edge = super._createEdge(id)(_from, key, _to)
+  abstract override protected def createEdge[S, E](id: Long,
+                                                   _from: GResource[S],
+                                                   key: Property,
+                                                   _to: GResource[E]): GEdge[S, E] = {
+    val edge = super.createEdge(id, _from, key, _to)
 
     if (ns.getProperty(key.iri).isEmpty) ns.storeProperty(key)
 
-    _storeEdge(edge)
+//    storeEdge(edge)
     _indexEdge(edge)
 
 //    if (!Property.allProperties.contains(key.iri) && ns.getProperty(key.iri).isEmpty) ns.storeProperty(key)
@@ -66,12 +68,12 @@ trait DataGraph extends Graph {
     edge
   }
 
-  override protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
+  override protected def deleteEdge(edge: GEdge[_, _]): Unit = {
 
-    super._deleteEdge(edge)
+    super.deleteEdge(edge)
   }
 
-  protected def _indexEdge[S, E](edge: _Edge[S, E]): Unit = {
+  protected def _indexEdge[S, E](edge: GEdge[S, E]): Unit = {
 
     val from = edge.from
     val key  = edge.key
@@ -90,22 +92,22 @@ trait DataGraph extends Graph {
     }
   }
 
-  abstract override protected def _createValue[T](_id: Long)(_value: T)(dt: DataType[T]): _Value[T] = {
+  abstract override protected def createValue[T](_id: Long, _value: T, dt: DataType[T]): GValue[T] = {
 //    println(s"datagraph._create value ${_id} ${_value}")
-    val value = super._createValue(_id)(_value)(dt)
-    if (ns.getDataType(dt.iri).isEmpty) ns.storeDataType(dt)
-
-    _storeValue(value)
-    if (dt != DataType.default.`@boolean`) _indexValue(value)
+    val value = super.createValue(_id, _value, dt)
+//    if (ns.getDataType(dt.iri).isEmpty) ns.storeDataType(dt)
+//
+//    storeValue(value)
+    if (dt != DataType.default.`@boolean`) _indexValue(value.asInstanceOf[GValue[_]])
 
     value
   }
 
-  override protected def _deleteValue(value: _Value[_]): Unit = {
-    super._deleteValue(value)
+  override protected def deleteValue(value: GValue[_]): Unit = {
+    super.deleteValue(value)
   }
 
-  protected def _indexValue(value: _Value[_]): Unit = {
+  protected def _indexValue(value: GValue[_]): Unit = {
     index
       .getOrCreateIndex(Set(value.label))
       .store(Vector((Map(value.label -> List(value)), value)))

@@ -23,10 +23,10 @@ object R extends StepDef("R") with StepWrapper[R] {
     resourceNode --- Property.default.`@label` --> "resource" --- Property.default.`@language` --> "en"
     resourceNode --- Property.default.`@comment` --> "A resource" --- Property.default.`@language` --> "en"
     resourceNode --- Property.default.`@container` --> types.`@list`
-    resourceNode --- Property.default.`@range` --> DataType.default.edgeURLType
+    resourceNode --- Property.default.`@range` --> DataType.default.`@edgeURL`
 
     lazy val resource: Property         = Property(resourceNode)
-    val resourceUrl: TypedProperty[Any] = resource + DataType.default.uRLType
+    val resourceUrl: TypedProperty[Any] = resource + DataType.default.`@url`
   }
 
   def apply(values: List[Resource[_]]): R = {
@@ -37,8 +37,8 @@ object R extends StepDef("R") with StepWrapper[R] {
         node.addOut(
           keys.resource,
           v match {
-            case node: Node       => DataType.default.nodeURLType.asInstanceOf[ClassType[Any]]
-            case edge: Edge[_, _] => DataType.default.edgeURLType.asInstanceOf[ClassType[Any]]
+            case node: Node       => DataType.default.`@nodeURL`.asInstanceOf[ClassType[Any]]
+            case edge: Edge[_, _] => DataType.default.`@edgeURL`.asInstanceOf[ClassType[Any]]
             case value: Value[_]  => value.label.asInstanceOf[ClassType[Any]]
           },
           v

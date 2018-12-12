@@ -48,7 +48,18 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
 }
 
 case class HasLabel private (override val value: Node) extends WrappedNode(value) with HasStep {
-  def label: List[IriResource] =
-    out(HasLabel.keys.label).collect { case node: Node => node }
+  def label: List[ClassType[_]] =
+    out(HasLabel.keys.label)
+      .collect {
+        case node: Node => node
+      }
+      .flatMap(node => graph.ns.getClassType(node.iri))
+      .collect {
+        case ct if ct == DataType.ontology => DataType.default.`@datatype`
+        case ct if ct == Ontology.ontology => DataType.default.`@class`
+        case ct if ct == Property.ontology => DataType.default.`@property`
+        case ct                            => ct
+//TODO:           .getOrElse(throw new Exception("HasLabel with unknown/uncached ontology"))
+      }
   override def prettyPrint: String = "hasLabel(" + label.map(_.iri).mkString(", ") + ")"
 }

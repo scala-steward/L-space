@@ -4,23 +4,18 @@ import lspace.librarian.structure._
 
 import scala.collection.mutable
 
-object MemNode {
-//  protected[provider] def apply(implicit _graph: MemGraph): MemNode = new MemNode {
-//    implicit val graph: MemGraph = _graph
-//    val id: Long                 = graph.idGenerator.next
-//  }
-
-//  protected[provider] def apply(_id: Long)(implicit _graph: MemGraph): MemNode = new MemNode {
-//    implicit val graph: Graph = _graph
-//    val id: Long              = _id
-//  }
-}
+object MemNode {}
 
 trait MemNode extends MemResource[Node] with Node {
 
-  private val types          = mutable.HashSet[Ontology]()
-  def labels: List[Ontology] = types.toList
-  def addLabel(ontology: Ontology): Ontology = synchronized {
+  private val types = mutable.HashSet[Ontology]()
+
+  /**
+    * add ontology, do not store
+    * @param ontology
+    */
+  override protected[mem] def _addLabel(ontology: Ontology): Unit = synchronized {
+    super._addLabel(ontology)
     //    val o = if (ontology.graph != graph) graph.getOntology(ontology.iri).getOrElse(graph.storeOntology(ontology)) else ontology
     val o       = ontology
     val labels2 = labels
@@ -34,8 +29,17 @@ trait MemNode extends MemResource[Node] with Node {
         types += o
       }
     }
-    //TODO: store and index
-    o
+  }
+  def labels: List[Ontology] = types.toList
+
+  /**
+    * adds and stores ontology
+    * @param ontology
+    */
+  def addLabel(ontology: Ontology): Unit = synchronized {
+    _addLabel(ontology)
+    graph.storeNode(this.asInstanceOf[graph.GNode])
+    //TODO: index
   }
 
   def removeLabel(classType: Ontology): Unit = types -= classType

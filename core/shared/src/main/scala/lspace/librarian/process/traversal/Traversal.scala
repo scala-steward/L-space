@@ -20,12 +20,12 @@ import scala.collection.immutable.ListSet
 
 object Traversal {
 
-  def wrap[ET <: ClassType[_]](node: Node)(target: Graph)(et: ET): Traversal[ClassType[Any], ET, HList] = {
+  def wrap(node: Node)(target: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
     implicit val graph: Graph = target
 
     node match {
-      case node: Traversal[ClassType[Any], ET, HList] => node
-      case _                                          => Traversal[ClassType[Any], ET](node)(graph, ClassType.default[Any], et)
+      case node: Traversal[ClassType[Any], ClassType[Any], HList] => node
+      case _                                                      => Traversal(node, graph)
     }
   }
 
@@ -728,7 +728,7 @@ object Traversal {
       Traversal[ST[Start], IriType[Ontology], Label :: Steps](Label(key.toSet) :: _traversal.steps)(
         target,
         st,
-        DataType.default.ontologyURLType)
+        DataType.default.`@class`)
   }
 
   implicit class EdgeStepsHelper[Start, ST[+Z] <: ClassType[Z], In, Out, ET[+Z] <: ClassType[Z], Steps <: HList](
@@ -758,7 +758,7 @@ object Traversal {
       Traversal[ST[Start], IriType[Property], Label :: Steps](Label(key.toSet) :: _traversal.steps)(
         target,
         st,
-        DataType.default.propertyURLType)
+        DataType.default.`@property`)
     //    def label(): Traversal[Start, Property, Label, Containers] =
     //      Traversal[Start, Property, Label, Containers](Label())
   }
@@ -1040,23 +1040,102 @@ object Traversal {
     }
   }
 
-  def apply[ST0 <: ClassType[_], ET0 <: ClassType[_]](
-      value0: Node)(target0: Graph, st0: ST0, et0: ET0): Traversal[ST0, ET0, HList] = {
+  def apply(value0: Node, target0: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
     val types = value0.labels
     val steps0 = value0.out(Traversal.keys.stepStep).foldLeft[HList](HNil) {
       case (hlist, node) => Step.toStep(node) :: hlist
     }
 
-    new Traversal[ST0, ET0, HList] {
+    def findNearestParent(labels: List[ClassType[_]]): ClassType[_] = {
+      if (labels.isEmpty) new DataType[Any] {
+        override def iri: String = ""
+      } else if (labels.toSet.size == 1) labels.head
+      else
+        labels.toSet match {
+          case set if set.forall(_.`extends`(DataType.default.`@number`))   => DataType.default.`@number`
+          case set if set.forall(_.`extends`(DataType.default.`@temporal`)) => DataType.default.`@temporal`
+          case set if set.forall(_.`extends`(DataType.default.`@geo`))      => DataType.default.`@geo`
+          case _ =>
+            new DataType[Any] {
+              override def iri: String = ""
+            }
+        }
+    }
+    def stepsToContainerStructure(steps: List[Any]): ClassType[_] = {
+      import scala.collection.immutable.::
+      steps.collect {
+        case step: OutMap   => step
+        case step: OutEMap  => step
+        case step: InMap    => step
+        case step: InEMap   => step
+        case step: Group[_] => step
+        case step: Path     => step
+        case step: Project  => step
+        case step: HasLabel => step
+        //case step: Union => //collect differentiating HasLabel steps
+      } match {
+        case Nil =>
+          new DataType[Any] {
+            override def iri: String = ""
+          }
+        case step :: steps =>
+          step match {
+            case step: HasLabel => findNearestParent(step.label.map(_.iri).flatMap(target0.ns.getClassType(_)))
+            case step: OutMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+            case step: OutEMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+            case step: InMap    => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+            case step: InEMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+            case step: Group[_] =>
+              MapType(List(stepsToContainerStructure(step.by.stepsList)), List(stepsToContainerStructure(steps)))
+            case step: Path => ListType(List(stepsToContainerStructure(step.by.stepsList)))
+            case step: Project =>
+              step.by.size match {
+                case 2 =>
+                  Tuple2Type(List(stepsToContainerStructure(step.by(0).stepsList)),
+                             List(stepsToContainerStructure(step.by(1).stepsList)))
+                case 3 =>
+                  Tuple3Type(
+                    List(stepsToContainerStructure(step.by(0).stepsList)),
+                    List(stepsToContainerStructure(step.by(1).stepsList)),
+                    List(stepsToContainerStructure(step.by(2).stepsList))
+                  )
+                case 4 =>
+                  Tuple4Type(
+                    List(stepsToContainerStructure(step.by(0).stepsList)),
+                    List(stepsToContainerStructure(step.by(1).stepsList)),
+                    List(stepsToContainerStructure(step.by(2).stepsList)),
+                    List(stepsToContainerStructure(step.by(3).stepsList))
+                  )
+              }
+          }
+      }
+    }
+
+    new Traversal[ClassType[Any], ClassType[Any], HList] {
       val steps         = steps0
       val self: Node    = value0
       val target: Graph = target0
-      val st: ST0       = st0
-      val et: ET0       = et0
+      val st: ClassType[Any] = new DataType[Any] {
+        override def iri: String = ""
+      }
+      val et: ClassType[Any] = stepsToContainerStructure(steps.runtimeList)
     }
   }
-
-  def stepsToContainerStructure(steps: List[Step]): HList = HNil
+//  def apply[ST0 <: ClassType[_], ET0 <: ClassType[_]](
+//      value0: Node)(target0: Graph, st0: ST0, et0: ET0): Traversal[ST0, ET0, HList] = {
+//    val types = value0.labels
+//    val steps0 = value0.out(Traversal.keys.stepStep).foldLeft[HList](HNil) {
+//      case (hlist, node) => Step.toStep(node) :: hlist
+//    }
+//
+//    new Traversal[ST0, ET0, HList] {
+//      val steps         = steps0
+//      val self: Node    = value0
+//      val target: Graph = target0
+//      val st: ST0       = st0
+//      val et: ET0       = et0
+//    }
+//  }
 
   def getCT[ST <: ClassType[_],
             ET <: ClassType[_],
@@ -1122,9 +1201,9 @@ object Traversal {
 
     lazy val ct = getCT[ST, ET, Steps, RSteps, Containers, Out, CT](traversal)(reverse, f, lf)
 
-    private[this] lazy val stream =
+    private[this] def stream =
       traversal.target.buildTraversersStream[ST, ET, Steps, Out](traversal)(ct)
-    private[this] lazy val astream =
+    private[this] def astream =
       traversal.target.buildAsyncTraversersStream[ST, ET, Steps, Out](traversal)(ct)
 
     def iterate()    = stream.foreach(t => Unit)

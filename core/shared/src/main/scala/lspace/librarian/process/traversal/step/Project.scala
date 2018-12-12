@@ -16,7 +16,7 @@ object Project extends StepDef("Project") with StepWrapper[Project] {
     case _ =>
       new Project(node
                     .out(Project.keys.byTraversal)
-                    .map(Traversal.wrap(_)(DetachedGraph)(ClassType.default[Any])),
+                    .map(Traversal.wrap(_)(DetachedGraph)),
                   node)
   }
 

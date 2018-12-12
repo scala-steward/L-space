@@ -11,7 +11,7 @@ object LTransaction {
   def apply(parent: LGraph): LTransaction = new LTransaction(parent)
 }
 
-class LTransaction(val parent: LGraph) extends Transaction {
+class LTransaction(override val parent: LGraph) extends Transaction(parent) {
   val iri: String  = parent.iri + "/" + java.time.Instant.now() + "/" + (Math.random() * 100000 toInt)
   private val self = this
   private val _iri = iri
@@ -26,28 +26,46 @@ class LTransaction(val parent: LGraph) extends Transaction {
   override def commit(): Unit = {
     if (isOpen) {
       super.commit()
+
+      parent.edgeStore.markDeleted(edges.deleted.keySet.toSet)
+      parent.valueStore.markDeleted(edges.deleted.keySet.toSet)
+      parent.nodeStore.markDeleted(edges.deleted.keySet.toSet)
+
+      val addedValues = values.added.toList.map(value => parent.newValue(value.id, value.value, value.label))
+      parent.valueStore.cache(addedValues.asInstanceOf[List[parent.valueStore.T]])
+      val addedNodes = nodes.added.toList.map(_._2).map { node =>
+        val newNode = parent.newNode(node.id)
+        node.labels.foreach(newNode._addLabel)
+        newNode
+      }
+      parent.nodeStore.cache(addedNodes.asInstanceOf[List[parent.nodeStore.T]])
+      val addedEdges = edges.added.toList.map(edge => parent.newEdge(edge.id, edge.from.id, edge.key, edge.to.id))
+      parent.edgeStore.cache(addedEdges.asInstanceOf[List[parent.edgeStore.T]])
+
+//      addedValues.asInstanceOf[List[parent.GValue[_]]].foreach(parent.valueStore.cache)
+//      addedNodes.foreach(parent.nodeStore.cache)
+//      addedEdges.asInstanceOf[List[parent.GEdge[_, _]]].foreach(parent.edgeStore.cache)
+
+      val removedEdges  = edges.deleted.values.toList
+      val removedNodes  = nodes.deleted.values.toList
+      val removedValues = values.deleted.values.toList
+
       Task
         .sequence(Seq(
-          parent.storeManager.storeNodes(nodes.added.toList),
-          parent.storeManager.storeValues(values.added.toList),
-          parent.storeManager.storeEdges(edges.added.toList),
-          parent.storeManager.deleteEdges(edges.deleted.toList.flatMap(id =>
-            parent.edgeStore.cachedById(id).orElse(parent.storeManager.edgeById(id)))),
-          parent.storeManager.deleteNodes(nodes.deleted.toList.flatMap(id =>
-            parent.nodeStore.cachedById(id).orElse(parent.storeManager.nodeById(id)))),
-          parent.storeManager.deleteValues(values.deleted.toList.flatMap(id =>
-            parent.valueStore.cachedById(id).orElse(parent.storeManager.valueById(id)))),
+          parent.storeManager.storeValues(addedValues),
+          parent.storeManager.storeNodes(addedNodes),
+          parent.storeManager.storeEdges(addedEdges),
+          parent.storeManager.deleteEdges(removedEdges),
+          parent.storeManager.deleteNodes(removedNodes),
+          parent.storeManager.deleteValues(removedValues),
           Task {
-            val edgesToUnCache  = edges.deleted.toList.flatMap(id => parent.edgeStore.cachedById(id))
-            val nodesToUnCache  = nodes.deleted.toList.flatMap(id => parent.nodeStore.cachedById(id))
-            val valuesToUnCache = values.deleted.toList.flatMap(id => parent.valueStore.cachedById(id))
+            removedNodes.foreach(parent.nodeStore.uncacheByIri)
+            removedValues.foreach(parent.valueStore.uncacheByIri)
+            removedEdges.foreach(parent.edgeStore.uncacheByIri)
 
-            nodesToUnCache.foreach(parent.nodeStore.uncacheByIri)
-            edgesToUnCache.foreach(parent.edgeStore.uncacheByIri)
-            valuesToUnCache.foreach(parent.valueStore.uncacheByIri)
-            nodesToUnCache.foreach(parent.nodeStore.uncache)
-            edgesToUnCache.foreach(parent.edgeStore.uncache)
-            valuesToUnCache.foreach(parent.valueStore.uncache)
+            removedEdges.foreach(parent.edgeStore.uncacheById)
+            removedNodes.foreach(parent.nodeStore.uncacheById)
+            removedValues.foreach(parent.valueStore.uncacheById)
           }
         ))
         .onErrorHandleWith {
@@ -62,7 +80,7 @@ class LTransaction(val parent: LGraph) extends Transaction {
             close()
             Task.unit
         }
-        .runSyncUnsafe(300 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+        .runSyncUnsafe(3000 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
     } else {
       close()
     }
@@ -80,10 +98,10 @@ class LTransaction(val parent: LGraph) extends Transaction {
     */
   override def rollback(): Unit = open = false //return claimed id's?
 
-  override def _deleteNode(node: _Node): Unit = {
+  override def deleteNode(node: GNode): Unit = {
     //1st prepare statements to remove objects from store/index (or remove first and then cache?)
-    super._deleteNode(node)
+    super.deleteNode(node)
   }
-  override def _deleteEdge(edge: _Edge[_, _]): Unit = super._deleteEdge(edge)
-  override def _deleteValue(value: _Value[_]): Unit = super._deleteValue(value)
+  override def deleteEdge(edge: GEdge[_, _]): Unit = super.deleteEdge(edge)
+  override def deleteValue(value: GValue[_]): Unit = super.deleteValue(value)
 }

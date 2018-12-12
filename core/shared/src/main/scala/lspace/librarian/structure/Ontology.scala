@@ -60,9 +60,10 @@ object Ontology {
 
   val allOntologies = new {
     val ontologies = List(ontology, Property.ontology, DataType.ontology)
-    val byId       = (200l to 200l + ontologies.size - 1 toList).zip(ontologies).toMap
-    val byIri      = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
-    val idByIri    = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+    if (ontologies.size > 50) throw new Exception("extend default-ontology-id range!")
+    val byId    = (200l to 200l + ontologies.size - 1 toList).zip(ontologies).toMap
+    val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
+    val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
   }
 
   def apply(iri: String)(implicit

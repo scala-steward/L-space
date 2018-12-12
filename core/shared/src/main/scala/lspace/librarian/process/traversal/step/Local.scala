@@ -19,7 +19,7 @@ object Local extends StepDef("Local") with StepWrapper[Local] {
           .take(1)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
           .head,
         node

@@ -2,14 +2,9 @@ package lspace.lgraph.store
 
 import java.time.Instant
 
-import lspace.lgraph.LResource.LinksSet
 import lspace.lgraph.{LGraph, LResource}
-import lspace.librarian.structure.Property.default.{`@id`, `@ids`}
 import lspace.librarian.structure.store.EdgeStore
 import lspace.librarian.structure.{Edge, Property}
-
-import scala.collection.mutable
-import scala.concurrent.duration._
 
 object LEdgeStore {
   def apply[G <: LGraph](iri: String, graph: G): LEdgeStore[G] = new LEdgeStore(iri, graph)
@@ -24,16 +19,16 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
 
     graph.storeManager
       .storeEdges(List(edge))
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-    //      .runToFuture(monix.execution.Scheduler.global)
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def store(edges: List[T]): Unit = {
     edges.foreach(super.store)
     graph.storeManager
       .storeEdges(edges)
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-    //      .runToFuture(monix.execution.Scheduler.global)
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def cache(edge: T): Unit = {
@@ -46,26 +41,27 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
       ._addIn(edge.asInstanceOf[Edge[_, Any]])
 
     super.cache(edge)
+
     if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
       case node: graph._Node =>
-        graph.nodeStore.store(node)
+        graph.nodeStore.cache(node.asInstanceOf[graph.GNode])
       case edge: graph._Edge[_, _] =>
-        graph.edgeStore.store(edge)
+        cache(edge.asInstanceOf[graph.GEdge[_, _]])
       case value: graph._Value[_] =>
-        graph.valueStore.store(value)
+        graph.valueStore.cache(value.asInstanceOf[graph.GValue[_]])
     }
   }
 
   override def uncache(edge: T): Unit = {
 
-    if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
-      case node: graph._Node =>
-        graph.nodeStore.uncacheByIri(node)
-      case edge: graph._Edge[_, _] =>
-        graph.edgeStore.uncacheByIri(edge)
-      case value: graph._Value[_] =>
-        graph.valueStore.uncacheByIri(value)
-    }
+//    if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
+//      case node: graph.nodeStore.T =>
+//        graph.nodeStore.uncacheByIri(node)
+//      case edge: T =>
+//        uncacheByIri(edge)
+//      case value: graph.valueStore.T =>
+//        graph.valueStore.uncacheByIri(value)
+//    }
 
     edge.from
       .asInstanceOf[LResource[Any]]
@@ -77,18 +73,24 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     super.uncache(edge)
   }
 
-  override def byIri(iri: String): Stream[T] = super.byIri(iri) ++ graph.storeManager.edgeByIri(iri) distinct
+  override def byIri(iri: String): Stream[T2] =
+    cachedByIri(iri).filterNot(e => isDeleted(e.id)) ++ graph.storeManager
+      .edgeByIri(iri)
+      .asInstanceOf[Stream[T2]] distinct
 
-  override def byId(id: Long): Option[T] = super.byId(id).orElse(graph.storeManager.edgeById(id).headOption)
+  override def byId(id: Long): Option[T2] =
+    cachedById(id).orElse(graph.storeManager.edgeById(id).map(_.asInstanceOf[T2]))
 
-  def byId(ids: List[Long]): Stream[T] = {
-    val byCache          = ids.map(id => id -> byId(id))
-    val (noCache, cache) = byCache.partition(_._2.isEmpty)
-    (cache.flatMap(_._2) toStream) ++ (if (noCache.nonEmpty) graph.storeManager.edgesById(noCache.map(_._1))
+  def byId(ids: List[Long]): Stream[T2] = {
+    val (deleted, tryable) = ids.partition(isDeleted)
+    val byCache            = tryable.map(id => id -> cachedById(id))
+    val (noCache, cache)   = byCache.partition(_._2.isEmpty)
+    (cache.flatMap(_._2) toStream) ++ (if (noCache.nonEmpty)
+                                         graph.storeManager.edgesById(noCache.map(_._1)).asInstanceOf[Stream[T2]]
                                        else Stream())
   }
 
-  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Stream[T] = {
+  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Stream[T2] = {
     fromId match {
       case None =>
         key match {
@@ -124,21 +126,24 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
   def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): Stream[T] = ???
 
   override def delete(edge: T): Unit = {
+    _deleted += edge.id -> Instant.now()
     super.delete(edge)
     graph.storeManager
       .deleteEdges(List(edge))
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-    //      .runToFuture(monix.execution.Scheduler.global)
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def delete(edges: List[T]): Unit = {
+    val delTime = Instant.now()
+    edges.foreach(edge => _deleted += edge.id -> delTime)
     edges.foreach(super.delete)
     graph.storeManager
       .deleteEdges(edges)
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-    //      .runToFuture(monix.execution.Scheduler.global)
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  def all(): Stream[graph._Edge[_, _]] = graph.storeManager.edges
-  def count(): Long                    = graph.storeManager.edgeCount()
+  def all(): Stream[T2] = _cache.toStream.map(_._2).filterNot(v => isDeleted(v.id)) ++ graph.storeManager.edges distinct
+  def count(): Long     = graph.storeManager.edgeCount()
 }

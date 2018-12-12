@@ -12,14 +12,17 @@ object LResource {
 }
 
 trait LResource[T] extends Resource[T] {
-  def graph: LGraph
+  val graph: LGraph
 
+  protected[lgraph] var _lastused: Instant            = Instant.now()
   protected[lgraph] var _lastoutsync: Option[Instant] = None
   private val linksOut: mutable.OpenHashMap[Property, LinksSet[T, _]] =
     mutable.OpenHashMap[Property, LinksSet[T, _]]()
+  private val linksOutWriteLock = new Object
 
-  def _addOut(edge: Edge[T, _]): Unit = synchronized {
-    val time = Instant.now()
+  def _addOut(edge: Edge[T, _], `@lastaccess`: Instant = Instant.now()): Unit = linksOutWriteLock.synchronized {
+    val time = `@lastaccess`
+    _lastused = `@lastaccess`
     val linksset = linksOut
       .getOrElse(edge.key, LResource.LinksSet[T, Any]())
     if (_lastoutsync
@@ -44,9 +47,11 @@ trait LResource[T] extends Resource[T] {
   protected[lgraph] var _lastinsync: Option[Instant] = None
   private val linksIn: mutable.OpenHashMap[Property, LinksSet[_, T]] =
     mutable.OpenHashMap[Property, LinksSet[_, T]]()
+  private val linksInWriteLock = new Object
 
-  def _addIn(edge: Edge[_, T]): Unit = synchronized {
-    val time = Instant.now()
+  def _addIn(edge: Edge[_, T], `@lastaccess`: Instant = Instant.now()): Unit = linksInWriteLock.synchronized {
+    val time = `@lastaccess`
+    _lastused = `@lastaccess`
     val linksset = linksIn
       .getOrElse(edge.key, LResource.LinksSet[Any, T]())
     if (_lastinsync
@@ -66,15 +71,19 @@ trait LResource[T] extends Resource[T] {
           .reverse)
   }
 
-  private def _outE(key: Property*): List[Edge[T, Any]] =
+  private def _outE(key: Property*): List[Edge[T, Any]] = {
+    _lastused = Instant.now()
     if (key.nonEmpty)
       key
         .flatMap { key =>
           val linksSet = linksOut.getOrElse(key, LinksSet())
           if (linksSet.lastsync.isDefined) linksSet.links.asInstanceOf[List[Edge[T, Any]]]
           else {
-            val edges = graph.storeManager.edgesByFromIdAndKey(id, key).toList.asInstanceOf[List[Edge[T, Any]]]
-            linksOut += key -> LinksSet[T, Any](Some(Instant.now), List(edges: _*))
+            val edges = (linksSet.links.asInstanceOf[List[Edge[T, Any]]] ++ graph.storeManager
+              .edgesByFromIdAndKey(id, key)
+              .toList
+              .asInstanceOf[List[Edge[T, Any]]]).distinct
+            linksOut += key -> LinksSet[T, Any](Some(Instant.now), edges)
             edges
           }
         }
@@ -85,9 +94,17 @@ trait LResource[T] extends Resource[T] {
         linksOut.flatMap(_._2.links.asInstanceOf[List[Edge[T, Any]]]).toList
       else {
         _lastoutsync = Some(Instant.now())
-        graph.storeManager.edgesByFromId(id).toList.asInstanceOf[List[Edge[T, Any]]]
+        val edges = (linksOut
+          .flatMap(_._2.links.asInstanceOf[List[Edge[T, Any]]])
+          .toList ++ graph.storeManager.edgesByFromId(id).toList.asInstanceOf[List[Edge[T, Any]]]).distinct
+        edges.groupBy(_.key).foreach {
+          case (key, edges) =>
+            linksOut += key -> LinksSet[T, Any](Some(Instant.now), edges)
+        }
+        edges
       }
     }
+  }
 
   def out(key: Property*): List[Any] =
     _outE(key: _*)
@@ -103,36 +120,49 @@ trait LResource[T] extends Resource[T] {
     _outE(key.toList: _*).groupBy(_.key)
   }
 
-  private def _inE(key: Property*): List[Edge[Any, T]] =
+  private def _inE(key: Property*): List[Edge[Any, T]] = {
+    _lastused = Instant.now()
     if (key.nonEmpty) key.flatMap { key =>
       val linksSet = linksIn.getOrElse(key, LinksSet())
       if (linksSet.lastsync.isDefined) linksSet.links.asInstanceOf[List[Edge[Any, T]]]
       else {
-        val edges = graph.storeManager.edgesByToIdAndKey(id, key).toList.asInstanceOf[List[Edge[Any, T]]]
+        val edges = (linksSet.links.asInstanceOf[List[Edge[Any, T]]] ++ graph.storeManager
+          .edgesByToIdAndKey(id, key)
+          .toList
+          .asInstanceOf[List[Edge[Any, T]]]).distinct
         linksIn += key -> LinksSet[Any, T](Some(Instant.now), List(edges: _*))
         edges
       }
     }.toList
     else {
-      if (_lastoutsync.isDefined)
+      if (_lastinsync.isDefined)
         linksIn.flatMap(_._2.links.asInstanceOf[List[Edge[Any, T]]]).toList
       else {
-        _lastoutsync = Some(Instant.now())
-        graph.storeManager.edgesByToId(id).toList.asInstanceOf[List[Edge[Any, T]]]
+        _lastinsync = Some(Instant.now())
+        val edges = (linksIn
+          .flatMap(_._2.links.asInstanceOf[List[Edge[Any, T]]])
+          .toList ++ graph.storeManager.edgesByToId(id).toList.asInstanceOf[List[Edge[Any, T]]]).distinct
+        edges.groupBy(_.key).foreach {
+          case (key, edges) =>
+            linksIn += key -> LinksSet[Any, T](Some(Instant.now), edges)
+        }
+        edges
       }
     }
+  }
 
   def in(key: Property*): List[Any] =
     _inE(key: _*)
-      .map(_.to.value)
+      .map(_.from.value)
 
-  def inMap(key: Property*): Map[Property, List[Any]] = _inE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.to.value))
+  def inMap(key: Property*): Map[Property, List[Any]] =
+    _inE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.from.value))
 
   def inE(key: Property*): List[Edge[Any, T]] = _inE(key: _*)
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = _inE(key.toList: _*).groupBy(_.key)
 
-  def removeIn(edge: Edge[_, T]): Unit = synchronized {
+  def removeIn[V >: T](edge: Edge[_, V]): Unit = synchronized {
     linksIn.get(edge.key).foreach { linksset =>
       linksset.links.asInstanceOf[List[Edge[Any, T]]].filterNot(_ == edge.asInstanceOf[Edge[Any, T]]) match {
         case set if set.isEmpty =>
@@ -142,7 +172,7 @@ trait LResource[T] extends Resource[T] {
       }
     }
   }
-  def removeOut(edge: Edge[T, _]): Unit = synchronized {
+  def removeOut[V >: T](edge: Edge[V, _]): Unit = synchronized {
     linksOut.get(edge.key).foreach { linksset =>
       linksset.links.asInstanceOf[List[Edge[T, Any]]].filterNot(_ == edge.asInstanceOf[Edge[T, Any]]) match {
         case set if set.isEmpty =>

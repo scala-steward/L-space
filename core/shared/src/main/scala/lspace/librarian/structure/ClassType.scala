@@ -5,19 +5,21 @@ import java.time.{Instant, LocalDate, LocalTime}
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.types.vector.{Geometry, Point}
+import lspace.types.vector._
+
+import scala.collection.immutable.ListSet
 
 object ClassType {
 
   def valueToOntologyResource[T](value: T): DataType[T] = {
     (value match {
-      case r: Node        => DataType.default.nodeURLType
-      case r: Edge[_, _]  => DataType.default.edgeURLType
-      case r: Value[_]    => DataType.default.valueURLType
-      case r: Ontology    => DataType.default.ontologyURLType
-      case r: Property    => DataType.default.propertyURLType
-      case r: DataType[_] => DataType.default.dataTypeURLType
-      case r: IriResource => DataType.default.uRLType
+      case r: Node        => DataType.default.`@nodeURL`
+      case r: Edge[_, _]  => DataType.default.`@edgeURL`
+      case r: Value[_]    => DataType.default.`@valueURL`
+      case r: Ontology    => DataType.default.`@class`
+      case r: Property    => DataType.default.`@property`
+      case r: DataType[_] => DataType.default.`@datatype`
+      case r: IriResource => DataType.default.`@url`
       case v: String      => DataType.default.`@string`
       case v: Int         => DataType.default.`@int`
       case v: Double      => DataType.default.`@double`
@@ -26,14 +28,23 @@ object ClassType {
       case v: LocalDate   => DataType.default.`@date`
       case v: LocalTime   => DataType.default.`@time`
       case v: Boolean     => DataType.default.`@boolean`
-      case v: Point       => DataType.default.`@geopoint`
-      //      case v: Geometry => DataType.default.geoType
-      //      case v: List[_] => DataType.default.listType()
-      //      case v: ListSet[_] => DataType.default.listsetType()
-      //      case v: Set[_] => DataType.default.setType()
-      //      case v: Vector[_] => DataType.default.vectorType()
-      //      case v: Map[_, _] => DataType.default.mapType()
-      case _ => throw new Exception(s"not a known range ${value.getClass}")
+      case v: Geometry =>
+        v match {
+          case v: Point         => DataType.default.`@geopoint`
+          case v: MultiPoint    => DataType.default.`@geomultipoint`
+          case v: Line          => DataType.default.`@geoline`
+          case v: MultiLine     => DataType.default.`@geomultiline`
+          case v: Polygon       => DataType.default.`@geopolygon`
+          case v: MultiPolygon  => DataType.default.`@geomultipolygon`
+          case v: MultiGeometry => DataType.default.`@geomultigeo`
+          case _                => DataType.default.`@geo`
+        }
+      case v: Map[_, _]  => DataType.default.mapType()
+      case v: ListSet[_] => DataType.default.listsetType()
+      case v: List[_]    => DataType.default.listType()
+      case v: Set[_]     => DataType.default.setType()
+      case v: Vector[_]  => DataType.default.vectorType()
+      case _             => throw new Exception(s"not a known range ${value.getClass}")
     }).asInstanceOf[DataType[T]]
   }
 

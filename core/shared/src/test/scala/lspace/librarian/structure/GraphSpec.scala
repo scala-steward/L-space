@@ -5,7 +5,7 @@ import java.time.Instant
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.util.SampleGraph
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, Outcome, WordSpec}
 
 trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   def graph: Graph
@@ -18,6 +18,11 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
 
   override def beforeAll = SampleGraph.loadSocial(sampleGraph)
+
+  override def afterAll(): Unit = {
+    graph.close()
+    sampleGraph.close()
+  }
 
   "idProvider" should {
     "provide an unused id on .next" in {
@@ -90,6 +95,10 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         node.out().size shouldBe 1
         node.in().size shouldBe 0
         node.labels.size shouldBe 0
+        graph.nodes.hasId(node.id).size shouldBe 1
+        graph.g.N.hasId(node.id).toList.size shouldBe 1
+        graph.values.byValue("upsert-node-iri").size shouldBe 1
+        graph.values.byValue("upsert-node-iri").flatMap(_.in()).size shouldBe 1
         graph.nodes.hasIri("upsert-node-iri").size shouldBe 1
       }
       "returns an existing node when a node is already identified by this iri" in {
@@ -138,22 +147,29 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   "A graph" should {
     "merge nodes to a single node when upserting an existing iri and multiple nodes are found" in {
       val graph = createGraph("graphspec-mergeNodes")
-      1.to(10).map(i => graph.nodes.create()).map { node =>
-        node.addOut(Property.default.typed.createdonDateTime, Instant.now())
-        node.addOut(Property.default.typed.iriUrlString, "someuniqueurl")
+      try {
+        1.to(10).map(i => graph.nodes.create()).map { node =>
+          node.addOut(Property.default.typed.createdonDateTime, Instant.now())
+          node.addOut(Property.default.typed.iriUrlString, "someuniqueurl")
+        }
+        val transaction = graph.transaction
+        1.to(90).map(i => transaction.nodes.create()).map { node =>
+          node.addOut(Property.default.typed.createdonDateTime, Instant.now())
+          node.addOut(Property.default.typed.iriUrlString, "someuniqueurl")
+        }
+        transaction.nodes.hasIri("someuniqueurl").size shouldBe 100
+        transaction.nodes.upsert("someuniqueurl")
+        //      transaction.nodes.upsert("someuniqueurl")
+        transaction.nodes.hasIri("someuniqueurl").size shouldBe 1
+        transaction.commit()
+        graph.nodes.hasIri("someuniqueurl").size shouldBe 1
+      } catch {
+        case t: Throwable =>
+          t.printStackTrace()
+          fail(t.getMessage)
+      } finally {
+        graph.close()
       }
-      val transaction = graph.transaction
-      1.to(90).map(i => transaction.nodes.create()).map { node =>
-        node.addOut(Property.default.typed.createdonDateTime, Instant.now())
-        node.addOut(Property.default.typed.iriUrlString, "someuniqueurl")
-      }
-      transaction.nodes.hasIri("someuniqueurl").size shouldBe 100
-      transaction.nodes.upsert("someuniqueurl")
-//      transaction.nodes.upsert("someuniqueurl")
-      transaction.nodes.hasIri("someuniqueurl").size shouldBe 1
-      transaction.commit()
-      graph.nodes.hasIri("someuniqueurl").size shouldBe 1
-      graph.close()
     }
 
     "supports transactions" in {
@@ -161,29 +177,29 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       val graphFilled = createSampleGraph("graphspec-support-transactions-filled")
       val transaction = graph.transaction
 
-      graph.nodes.count shouldBe 0
-      graph.edges.count shouldBe 0
-      graph.values.count shouldBe 0
+      graph.nodes().size shouldBe 0
+      graph.edges().size shouldBe 0
+      graph.values().size shouldBe 0
 
-      graphFilled.nodes.count should not be 0
-      graphFilled.edges.count should not be 0
-      graphFilled.values.count should not be 0
+      graphFilled.nodes().size should not be 0
+      graphFilled.edges().size should not be 0
+      graphFilled.values().size should not be 0
 
       SampleGraph.loadSocial(transaction)
 
-      graph.nodes.count shouldBe 0
-      graph.edges.count shouldBe 0
-      graph.values.count shouldBe 0
+      graph.nodes().size shouldBe 0
+      graph.edges().size shouldBe 0
+      graph.values().size shouldBe 0
 
-      graphFilled.nodes.count shouldBe transaction.nodes.count
-      graphFilled.edges.count shouldBe transaction.edges.count
-      graphFilled.values.count shouldBe transaction.values.count
+      graphFilled.nodes().size shouldBe transaction.nodes.count
+      graphFilled.edges().size shouldBe transaction.edges.count
+      graphFilled.values().size shouldBe transaction.values.count
 
       transaction.commit()
 
-      graphFilled.nodes.count shouldBe graph.nodes.count
-      graphFilled.edges.count shouldBe graph.edges.count
-      graphFilled.values.count shouldBe graph.values.count
+      graphFilled.nodes().size shouldBe graph.nodes.count
+      graphFilled.edges().size shouldBe graph.edges.count
+      graphFilled.values().size shouldBe graph.values.count
 
       graphFilled.close()
       graph.close()
@@ -246,21 +262,24 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "Graphs" can {
     "be merged" in {
-      val newGraph = createGraph("graphspec2")
+      val newGraph = createGraph("graphspec2merge")
 
-      newGraph.nodes.count shouldBe 0
-      newGraph.edges.count shouldBe 0
-      newGraph.values.count shouldBe 0
+      newGraph.nodes().size shouldBe 0
+      newGraph.edges().size shouldBe 0
+      newGraph.values().size shouldBe 0
 
       newGraph ++ sampleGraph
 
 //      println(newGraph.g.N.toList.map(_.iri))
 //      println(newGraph.g.N.toList.map(_.id))
-//      println(graph.g.N.toList.map(_.iri))
-//      println(graph.g.N.toList.map(_.id))
-      newGraph.nodes.count shouldBe sampleGraph.nodes.count
-      newGraph.edges.count shouldBe sampleGraph.edges.count
-      newGraph.values.count shouldBe sampleGraph.values.count
+//      println(sampleGraph.g.N.toList.map(_.iri))
+//      println(sampleGraph.g.N.toList.map(_.id))
+//      println(sampleGraph.g.V.toList)
+//      println(newGraph.g.V.toList)
+
+      newGraph.nodes().size shouldBe sampleGraph.nodes.count
+      newGraph.edges().size shouldBe sampleGraph.edges.count
+      newGraph.values().size shouldBe sampleGraph.values.count
 
       newGraph.close()
     }

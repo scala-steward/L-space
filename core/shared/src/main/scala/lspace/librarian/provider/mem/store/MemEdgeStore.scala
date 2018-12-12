@@ -16,18 +16,18 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       ._addIn(edge.asInstanceOf[Edge[_, Any]])
 
     if ((edge.key == `@id` || edge.key == `@ids`) && edge.to.isInstanceOf[graph._Value[String]])
-      graph.`@idStore`.store(edge.to.asInstanceOf[graph._Value[String]])
+      graph.`@idStore`.store(edge.to.asInstanceOf[graph.GValue[_]])
 
     super.store(edge)
   }
 
-  def byIri(iri: String): Stream[T] =
+  def byIri(iri: String): Stream[T2] =
     graph.`@idStore`.byValue(iri, DataType.default.`@string`)
       .flatMap(_.in(`@id`, `@ids`).filter(_.isInstanceOf[Edge[_, _]]))
-      .asInstanceOf[Stream[T]]
+      .asInstanceOf[Stream[T2]]
       .distinct
 
-  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Stream[T] = {
+  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Stream[T2] = {
     val edges = fromId match {
       case None =>
         key match {
@@ -47,13 +47,13 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
     }
     toId match {
       case None =>
-        edges.asInstanceOf[Stream[T]]
+        edges.asInstanceOf[Stream[T2]]
       case Some(toId) =>
-        edges.filter(_.to.id == toId).asInstanceOf[Stream[T]]
+        edges.filter(_.to.id == toId).asInstanceOf[Stream[T2]]
     }
   }
 
-  def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): Stream[T] = {
+  def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): Stream[T2] = {
     val edges = fromIri match {
       case None =>
         key match {
@@ -74,9 +74,9 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
     }
     toIri match {
       case None =>
-        edges.asInstanceOf[Stream[T]]
+        edges.asInstanceOf[Stream[T2]]
       case Some(toIri) =>
-        edges.filter(_.to.iris.contains(toIri)).asInstanceOf[Stream[T]]
+        edges.filter(_.to.iris.contains(toIri)).asInstanceOf[Stream[T2]]
     }
   }
 }

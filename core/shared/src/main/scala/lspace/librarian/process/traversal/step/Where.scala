@@ -19,7 +19,7 @@ object Where extends StepDef("Where") with StepWrapper[Where] {
           .take(1)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
           .head,
         node

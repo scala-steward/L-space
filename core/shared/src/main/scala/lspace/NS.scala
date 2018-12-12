@@ -112,6 +112,7 @@ object NS {
     val `@nodeURL`           = "@nodeURL"
     val `@edgeURL`           = "@edgeURL"
     val `@valueURL`          = "@valueURL"
+    val `@url`               = "@url"
 
     val `@range`         = "@range"
     val `@start`         = "@start"

@@ -63,23 +63,19 @@ object Property {
       Property(NS.types.`@container`)(_range = () => `@string` :: Nil, containers = NS.types.`@list` :: Nil)
     val `@range`: Property = Property(NS.types.`@range`)(
       iris = Set(NS.types.schemaRange),
-      _range = () =>
-        DataType.default.ontologyURLType :: DataType.default.propertyURLType :: DataType.default.dataTypeURLType :: Nil,
+      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
     val `@type`: Property = Property(NS.types.`@type`)(
-      _range = () =>
-        DataType.default.ontologyURLType :: DataType.default.propertyURLType :: DataType.default.dataTypeURLType :: Nil,
+      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
     val `@extends`: Property = Property(NS.types.`@extends`)(
       iris = Set(NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf),
-      _range = () =>
-        DataType.default.ontologyURLType :: DataType.default.propertyURLType :: DataType.default.dataTypeURLType :: Nil,
+      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
-    val `@properties`: Property = Property(NS.types.`@properties`)(_range =
-                                                                     () => DataType.default.propertyURLType :: Nil,
+    val `@properties`: Property = Property(NS.types.`@properties`)(_range = () => DataType.default.`@property` :: Nil,
                                                                    containers = NS.types.`@set` :: Nil)
     val `@language`: Property =
       Property(NS.types.`@language`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)

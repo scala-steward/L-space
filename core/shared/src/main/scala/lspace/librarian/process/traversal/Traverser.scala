@@ -25,12 +25,12 @@ trait Traverser[+T] {
                path: TraversalPath = TraversalPath(),
                loops: Int = 0,
                mit: Option[Instant] = None,
-               permissions: List[String] = List()): Traverser[V]
+               permissions: List[String] = List[String]()): Traverser[V]
 
   //TODO: labeled-path
   def copy[V](get: V = get,
               path: TraversalPath = path,
               loops: Int = loops,
               mit: Option[Instant] = mit,
-              permissions: List[String] = permissions): Traverser[V] = apply(get, path, loops, mit, permissions)
+              permissions: List[String] = permissions): Traverser[V] = apply[V](get, path, loops, mit, permissions)
 }

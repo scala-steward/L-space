@@ -46,35 +46,31 @@ trait IndexGraph extends Graph {
     getIndex(values.map(_.keySet)).toList.flatMap(_.find(values))
   }
 
-  abstract override protected def _createNode(_id: Long)(ontology: Ontology*): _Node = {
-    val node = super._createNode(_id)(ontology: _*)
-    _storeNode(node)
-    node
-  }
-
-  override protected def _deleteNode(node: _Node): Unit = {
+  override protected def deleteNode(node: GNode): Unit = {
     //    `@typeIndex`.delete()
-    super._deleteNode(node)
+    super.deleteNode(node)
   }
 
-  abstract override protected def _createEdge[S, E](
-      id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] = {
-    val edge = super._createEdge(id)(from, key, to)
-    _storeEdge(edge)
+  abstract override protected def createEdge[S, E](id: Long,
+                                                   from: GResource[S],
+                                                   key: Property,
+                                                   to: GResource[E]): GEdge[S, E] = {
+    val edge = super.createEdge(id, from, key, to)
+    storeEdge(edge.asInstanceOf[GEdge[_, _]])
     edge
   }
 
-  override protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
-    super._deleteEdge(edge)
+  override protected def deleteEdge(edge: GEdge[_, _]): Unit = {
+    super.deleteEdge(edge)
   }
 
-  abstract override protected def _createValue[T](_id: Long)(_value: T)(dt: DataType[T]): _Value[T] = {
-    val value = super._createValue(_id)(_value)(dt)
-    _storeValue(value)
+  abstract override protected def createValue[T](_id: Long, _value: T, dt: DataType[T]): GValue[T] = {
+    val value = super.createValue(_id, _value, dt)
+    storeValue(value.asInstanceOf[GValue[_]])
     value
   }
 
-  override protected def _deleteValue(value: _Value[_]): Unit = {
-    super._deleteValue(value)
+  override protected def deleteValue(value: GValue[_]): Unit = {
+    super.deleteValue(value)
   }
 }

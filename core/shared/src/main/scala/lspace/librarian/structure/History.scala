@@ -16,47 +16,52 @@ object History {
   */
 trait History extends Graph {
 
-  abstract override protected def _createNode(id: Long)(ontology: Ontology*): _Node = {
-    val createdNode = super._createNode(id)(ontology: _*)
+  override protected def getOrCreateNode(id: Long): GNode = {
+    val createdNode = super.getOrCreateNode(id)
 
     //TODO: make time configurable
     edges.create(createdNode,
                  Property.default.`@createdon`,
-                 _createValue(idProvider.next)(Instant.now())(DateTimeType.datetimeType))
+                 createValue(idProvider.next, Instant.now(), DateTimeType.datetimeType))
 
     createdNode
   }
 
-  abstract override protected def _createEdge[S, E](
-      id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] = {
-    val createdEdge = super._createEdge(id)(from, key, to)
+  override protected def createEdge[S, E](id: Long,
+                                          from: GResource[S],
+                                          key: Property,
+                                          to: GResource[E]): GEdge[S, E] = {
+    val createdEdge = super.createEdge(id, from, key, to)
 
-    _createEdge(idProvider.next)(createdEdge,
-                                 Property.default.`@createdon`,
-                                 _createValue(idProvider.next)(Instant.now())(DateTimeType.datetimeType))
+    super.createEdge[Edge[S, E], Instant](
+      idProvider.next,
+      createdEdge.asInstanceOf[GResource[Edge[S, E]]],
+      Property.default.`@createdon`,
+      createValue(idProvider.next, Instant.now(), DateTimeType.datetimeType).asInstanceOf[GResource[Instant]]
+    )
 
     createdEdge
   }
 
-  abstract override protected def _createValue[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] = {
-    val createdValue = super._createValue(id)(value)(dt)
+  abstract override protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
+    val createdValue = super.createValue(id, value, dt)
 
     edges.create(createdValue,
                  Property.default.`@createdon`,
-                 _createValue(idProvider.next)(Instant.now())(DateTimeType.datetimeType))
+                 createValue(idProvider.next, Instant.now(), DateTimeType.datetimeType))
 
     createdValue
   }
 
-  override protected def _deleteNode(node: _Node): Unit = {
+  override protected def deleteNode(node: GNode): Unit = {
     edges.create(node, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
   }
 
-  override protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
+  override protected def deleteEdge(edge: GEdge[_, _]): Unit = {
     edges.create(edge, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
   }
 
-  override protected def _deleteValue(value: _Value[_]): Unit = {
+  override protected def deleteValue(value: GValue[_]): Unit = {
     edges.create(value, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
   }
 }

@@ -1,24 +1,18 @@
 package lspace.librarian.structure
 
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
-
 import lspace.librarian.structure
 import monix.eval.Task
 import lspace.librarian.process.traversal._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.structure.Property.default
-import lspace.NS
 import lspace.librarian.datatype.GraphType
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.provider.wrapped.WrappedResource
-import lspace.librarian.structure.index.Index
-import lspace.librarian.structure.store.{EdgeStore, NodeStore, Store, ValueStore}
+import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.librarian.structure.util.{GraphUtils, IdProvider}
 import shapeless.{::, HList, HNil}
 
 import scala.collection.mutable
-import scala.util.control.NonFatal
 
 object Graph {
   val graphs: mutable.HashMap[String, Graph] = mutable.HashMap[String, Graph]()
@@ -62,12 +56,19 @@ object Graph {
 }
 
 trait Graph extends IriResource {
-  abstract class _Resource[T] extends structure.Resource[T]
-  abstract class _Node        extends _Resource[structure.Node] with structure.Node
-  abstract class _Edge[S, E]  extends _Resource[structure.Edge[S, E]] with structure.Edge[S, E]
-  abstract class _Value[T]    extends _Resource[T] with structure.Value[T]
+  trait _Resource[+T]        extends structure.Resource[T]
+  abstract class _Node       extends _Resource[structure.Node] with structure.Node
+  abstract class _Edge[S, E] extends _Resource[structure.Edge[S, E]] with structure.Edge[S, E]
+  abstract class _Value[T]   extends _Resource[T] with structure.Value[T]
 
-  implicit lazy val thisgraph: this.type = this
+  type GResource[T] <: _Resource[T]
+  type GNode <: _Node             // with GResource[Node]
+  type GEdge[S, E] <: _Edge[S, E] //with GResource[Edge[S, E]]
+  type GValue[T] <: _Value[T]     // with GResource[T]
+
+  override lazy val hashCode: Int = iri.hashCode
+
+  lazy val thisgraph: this.type = this
   def ns: NameSpaceGraph
 
   def idProvider: IdProvider
@@ -129,14 +130,18 @@ trait Graph extends IriResource {
     }
     private def upsertR[V](value: Resource[V]): Resource[V] = {
       value match {
-        case resource: _Resource[V]       => resource
+//        case resource: _Resource[V]       => resource
         case resource: WrappedResource[V] => upsertR(resource.self)
         case resource: Resource[V] =>
           resource match {
+            case node: _Node => node
             case node: Node =>
               nodes.upsert(node).asInstanceOf[Resource[V]]
+            case edge: _Edge[_, _] => edge
             case edge: Edge[_, _] =>
               edges.upsert(edge).asInstanceOf[Resource[V]]
+            case value: _Value[V] =>
+              value
             case value: Value[V] =>
               values.upsert(value).asInstanceOf[Resource[V]]
             case _ =>
@@ -170,25 +175,6 @@ trait Graph extends IriResource {
       else List[Edge[_, _]]()
     }
 
-    def create[S, E](id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E] =
-      _createEdge(id)(from, key, to)
-    final def create(id: Long, fromId: Long, key: Property, toId: Long): _Edge[Any, Any] = {
-      val _from = resources
-        .hasId(fromId)
-        .map(_.asInstanceOf[_Resource[Any]])
-        .getOrElse {
-          throw new Exception(s"cannot create edge, from-resource with id ${fromId} not found")
-        }
-      val _to =
-        resources
-          .hasId(toId)
-          .map(_.asInstanceOf[_Resource[Any]])
-          .getOrElse {
-            throw new Exception(s"cannot create edge, to-resource with id ${toId} not found")
-          }
-      _createEdge(id)(_from, key, _to)
-    }
-
     /**
       * creates and stores an edge
       * @param from
@@ -200,24 +186,28 @@ trait Graph extends IriResource {
       */
     final def create[S, E](from: Resource[S], key: Property, to: Resource[E]): Edge[S, E] = {
       val _from = from match {
-        case from: _Resource[S] => from
+        case from: _Node       => from.asInstanceOf[GResource[S]]
+        case from: _Edge[_, _] => from.asInstanceOf[GResource[S]]
+        case from: _Value[_]   => from.asInstanceOf[GResource[S]]
         case _ =>
           resources
             .hasIri(from.iri)
             .headOption
             .getOrElse(resources.upsert(from))
-            .asInstanceOf[_Resource[S]]
+            .asInstanceOf[GResource[S]]
       }
       val _to = to match {
-        case to: _Resource[E] => to
+        case to: _Node       => to.asInstanceOf[GResource[E]]
+        case to: _Edge[_, _] => to.asInstanceOf[GResource[E]]
+        case to: _Value[_]   => to.asInstanceOf[GResource[E]]
         case _ =>
           resources
             .hasIri(to.iri)
             .headOption
             .getOrElse(resources.upsert(to))
-            .asInstanceOf[_Resource[E]]
+            .asInstanceOf[GResource[E]]
       }
-      _createEdge(idProvider.next)(_from, key, _to)
+      createEdge(idProvider.next, _from, key, _to)
     }
 
     def upsert[S, E](edge: Edge[S, E]): Edge[S, E] = {
@@ -225,7 +215,7 @@ trait Graph extends IriResource {
         val newEdge = resources.upsert(edge.from).addOut(edge.key, resources.upsert(edge.to))
         newEdge
       } else edge
-    }.asInstanceOf[Edge[S, E]]
+    }
 
     /**
       * adds an edge and upserts the 'from' and 'to' resource and adds (meta) edges on edges as long as edges have edges
@@ -241,10 +231,10 @@ trait Graph extends IriResource {
         addMeta(edge, newEdge)
         newEdge
       } else edge
-    }.asInstanceOf[Edge[S, E]]
+    }
 
     final def delete(edge: Edge[_, _]): Unit = edge match {
-      case edge: _Edge[_, _] => _deleteEdge(edge)
+      case edge: _Edge[_, _] => deleteEdge(edge.asInstanceOf[GEdge[_, _]])
       case _                 => //LOG???
     }
 
@@ -300,8 +290,11 @@ trait Graph extends IriResource {
 
     }
 
-    final def create(ontology: Ontology*): Node           = _createNode(idProvider.next)(ontology: _*)
-    final def create(id: Long)(ontology: Ontology*): Node = _createNode(id)(ontology: _*)
+    final def create(ontology: Ontology*): Node = {
+      val node = getOrCreateNode(idProvider.next)
+      ontology.foreach(node.addLabel)
+      node
+    }
 
     /**
       *
@@ -322,7 +315,15 @@ trait Graph extends IriResource {
         node
       } else if (nodes.size > 1) {
         GraphUtils.mergeNodes(nodes.toSet)
-      } else nodes.head
+      } else {
+//        println(s"found existing $iri")
+//        try {
+//          throw new Exception(iri)
+//        } catch {
+//          case t => t.printStackTrace()
+//        }
+        nodes.head
+      }
       val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty)
       if (newIris.nonEmpty) newIris.foreach(node.addOut(default.`@ids`, _))
       node
@@ -347,7 +348,8 @@ trait Graph extends IriResource {
       * @return
       */
     def post(node: Node): Node = node match {
-      case node: _Node => node
+      case node: _Node => //match on GNode does also accept _Node instances from other Graphs???? Why?
+        node
       case _ =>
         val newNode =
           if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create()
@@ -357,7 +359,7 @@ trait Graph extends IriResource {
     }
 
     final def delete(node: Node): Unit = node match {
-      case node: _Node => _deleteNode(node)
+      case node: _Node => deleteNode(node.asInstanceOf[GNode])
       case _           => //LOG???
     }
 
@@ -410,10 +412,10 @@ trait Graph extends IriResource {
       else List[Value[_]]()
     }
 
-    def byValue[T, TOut, CTOut <: ClassType[TOut]](value: T)(
-        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): List[Value[_]] =
-      valueStore.byValue(value, clsTpbl.ct.asInstanceOf[DataType[T]]).toList.asInstanceOf[List[Value[_]]]
-    def byValue[T](valueSet: List[(T, DataType[T])]): List[Value[_]] = {
+    def byValue[T, TOut, CTOut <: ClassType[_]](value: T)(
+        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): List[Value[T]] =
+      valueStore.byValue(value, clsTpbl.ct.asInstanceOf[DataType[T]]).toList.asInstanceOf[List[Value[T]]]
+    def byValue[T](valueSet: List[(T, DataType[T])]): List[Value[T]] = {
 //      val valueList = valueSet.distinct.filter(_ != null)
 //      if (valueList.nonEmpty) values().filter(v => valueSet.map(_._2).contains(v.value)).toList
 //      //      or(
@@ -422,32 +424,45 @@ trait Graph extends IriResource {
 //      else List[Value[_]]()
 
       valueSet.flatMap { value =>
-        valueStore.byValue(value._1, value._2).toList.asInstanceOf[List[Value[_]]]
+        valueStore.byValue(value._1, value._2).toList.asInstanceOf[List[Value[T]]]
       } distinct
     }
 
-    def create[T](id: Long)(value: T)(dt: DataType[T]): _Value[T] = _createValue(id)(value)(dt)
-    final def create[T, TOut, CTOut <: ClassType[TOut]](value: T)(
+    final def create[T, TOut, CTOut <: ClassType[_]](value: T)(
         implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Value[T] = { //add implicit DataType[T]
-      byValue(value).headOption.map(_.asInstanceOf[_Value[T]]).getOrElse {
-        _createValue(idProvider.next)(value)(ClassType.valueToOntologyResource(value))
+      byValue(value).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
+        createValue(idProvider.next, value, ClassType.valueToOntologyResource(value))
       }
     }
     final def create[T](value: T, dt: DataType[T]): Value[T] = { //add implicit DataType[T]
-      byValue(value -> dt :: Nil).headOption.map(_.asInstanceOf[_Value[T]]).getOrElse {
-        _createValue(idProvider.next)(value)(dt)
+      byValue(value -> dt :: Nil).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
+        createValue(idProvider.next, value, dt)
       }
     }
 
+    def upsert[V, TOut, CTOut <: ClassType[_]](value: V)(
+        implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Value[V] = {
+      val values = byValue(value)
+      val _value: Value[V] = if (values.isEmpty) {
+        create(value)
+      } else if (values.size > 1) {
+        GraphUtils.mergeValues(values.toSet)
+      } else values.head
+      _value
+    }
+
+    final def upsert[V](value: V, dt: DataType[V]): Value[V] = {
+      val values = byValue(List(value -> dt))
+      val _value: Value[V] = if (values.isEmpty) {
+        create(value, dt)
+//      } else if (values.size > 1) {
+//        GraphUtils.mergeValues(values.toSet)
+      } else values.head
+      _value
+    }
     final def upsert[V](value: Value[V]): Value[V] = {
       if (value.graph != this) {
-        hasIri(value.iri) match {
-          case List() => create(value.value, value.label)
-          case List(storedValue: Value[_]) if storedValue.value == value.value =>
-            storedValue.asInstanceOf[Value[V]]
-          case List(value: Value[_], _*) =>
-            throw new Exception("multiple values with the same iri, what should we do?! Dedup?")
-        }
+        upsert(value.value, value.label)
       } else value
     }
 
@@ -473,7 +488,7 @@ trait Graph extends IriResource {
     }
 
     final def delete(value: Value[_]): Unit = value match {
-      case value: _Value[_] => _deleteValue(value)
+      case value: _Value[_] => deleteValue(value.asInstanceOf[GValue[_]])
       case _                => //LOG???
     }
 
@@ -502,24 +517,63 @@ trait Graph extends IriResource {
 
   def values: Values = new Values {}
 
-  protected def _createNode(id: Long)(ontology: Ontology*): _Node
-  final def +(label: Ontology): Node          = nodes.create(label)
-  protected def _storeNode(node: _Node): Unit = nodeStore.store(node)
+  protected def newNode(id: Long): GNode
+  protected def getOrCreateNode(id: Long): GNode = {
+    nodeStore.byId(id).getOrElse {
+      val node = newNode(id)
+      storeNode(node)
+      node
+    }
+  }
+  final def +(label: Ontology): Node         = nodes.create(label)
+  protected def storeNode(node: GNode): Unit = nodeStore.store(node)
 
-  protected def _createEdge[S, E](id: Long)(from: _Resource[S], key: Property, to: _Resource[E]): _Edge[S, E]
+  protected def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E]
+  protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any]
+  protected def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+    if (ns.getProperty(key.iri).isEmpty) ns.storeProperty(key)
 
-  protected def _storeEdge(edge: _Edge[_, _]): Unit = edgeStore.store(edge)
+    val _from = resources
+      .hasId(from)
+      .map(_.asInstanceOf[GResource[Any]])
+      .getOrElse {
+        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
+      }
+    val _to =
+      resources
+        .hasId(to)
+        .map(_.asInstanceOf[GResource[Any]])
+        .getOrElse {
+          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
+        }
+    val edge = createEdge(idProvider.next, _from, key, _to)
+    storeEdge(edge.asInstanceOf[GEdge[_, _]])
+    edge
+  }
+  protected def createEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] = {
+    val edge = newEdge(id, from, key, to)
+    storeEdge(edge.asInstanceOf[GEdge[_, _]])
+    edge
+  }
 
-  protected def _createValue[T](id: Long)(value: T)(dt: DataType[T]): _Value[T]
+  protected def storeEdge(edge: GEdge[_, _]): Unit = edgeStore.store(edge)
 
-  protected def _storeValue(value: _Value[_]): Unit = valueStore.store(value)
+  protected def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T]
+  protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
+    if (ns.getDataType(dt.iri).isEmpty) ns.storeDataType(dt)
+    val _value = newValue(id, value, dt)
+    storeValue(_value.asInstanceOf[GValue[_]])
+    _value
+  }
+
+  protected def storeValue(value: GValue[_]): Unit = valueStore.store(value)
 
   /**
     * deletes the Node from the graph
     * @param value
     */
-  protected def _deleteNode(node: _Node): Unit = {
-    _deleteResource(node)
+  protected def deleteNode(node: GNode): Unit = {
+    deleteResource(node)
     nodeStore.delete(node)
   }
 
@@ -527,8 +581,8 @@ trait Graph extends IriResource {
     * deletes the Edge from the graph
     * @param value
     */
-  protected def _deleteEdge(edge: _Edge[_, _]): Unit = {
-    _deleteResource(edge)
+  protected def deleteEdge(edge: GEdge[_, _]): Unit = {
+    deleteResource(edge)
     edgeStore.delete(edge)
   }
 
@@ -536,8 +590,8 @@ trait Graph extends IriResource {
     * deletes the Value from the graph
     * @param value
     */
-  protected def _deleteValue(value: _Value[_]): Unit = {
-    _deleteResource(value)
+  protected def deleteValue(value: GValue[_]): Unit = {
+    deleteResource(value)
     valueStore.delete(value)
   }
 
@@ -545,7 +599,7 @@ trait Graph extends IriResource {
     * TODO: rename to _deleteProperties/_deleteEdges?
     * @param resource
     */
-  protected def _deleteResource(resource: _Resource[_]): Unit
+  protected def deleteResource[T <: _Resource[_]](resource: T): Unit
 
   private def addMeta[S <: Resource[_], T, RT[Z] <: Resource[Z]](source: S, target: RT[T]): Unit =
     source.outE().filterNot(p => Graph.baseKeys.contains(p.key)).foreach { edge =>

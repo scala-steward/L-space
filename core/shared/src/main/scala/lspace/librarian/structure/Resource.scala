@@ -13,7 +13,7 @@ object Resource {
   }
 }
 
-trait Resource[T] extends IriResource {
+trait Resource[+T] extends IriResource {
 //  @transient
   /**
     * id is a unique identifier of a resource in a graph
@@ -25,7 +25,7 @@ trait Resource[T] extends IriResource {
     * Get the graph that this resource is within.
     * @return
     */
-  implicit def graph: Graph
+  val graph: Graph
 
   def value: T
   def self: Resource[T] = this
@@ -50,15 +50,13 @@ trait Resource[T] extends IriResource {
 
   //  def start(): Traversal[Resource[T], Resource[T], R :: HNil, HNil] = Traversal[Resource[T], Resource[T], HNil]()(graph, LabelsHList(HNil)).R[T](this)
 
-  def sameResource(resource: Resource[_]): Boolean = resource.id == id && resource.graph == graph
+  def sameResource(resource: Resource[_]): Boolean = resource.id == id //&& resource.graph == graph
 
   override def equals(o: scala.Any): Boolean = o match {
     case resource: Resource[_] => sameResource(resource)
     case _                     => false
   }
-  def hashcode: Int = id.hashCode()
-
-  override def hashCode(): Int = hashcode
+  override lazy val hashCode: Int = id.hashCode() + graph.hashCode
 
   def hasLabel[L](label: ClassType[L]*): Option[Resource[L]] = {
     if (labels.exists(tpe => label.contains(tpe)) || {
@@ -144,14 +142,11 @@ trait Resource[T] extends IriResource {
       value
     )
   def addOut[V, V0, VT0 <: ClassType[_]](key: Property, value: V)(implicit ev1: V <:!< ClassType[_],
-                                                                  dt: ClassTypeable.Aux[V, V0, VT0]): Edge[T, V0] = {
+                                                                  ct: ClassTypeable.Aux[V, V0, VT0]): Edge[T, V0] = {
     val toResource = value match {
       case resource: Resource[_] => graph.resources.upsert(resource)
       case _ =>
-        dt.ct match {
-          case dt: DataType[V] =>
-            graph.values.create(value, dt)
-        }
+        graph.values.upsert(value)(ct)
     }
     graph.edges.create(this, key, toResource.asInstanceOf[Resource[V0]])
   }
@@ -162,8 +157,10 @@ trait Resource[T] extends IriResource {
       case resource: Resource[V] => resource.asInstanceOf[Resource[V]]
       case _ =>
         dt match {
-          case dt: DataType[V] =>
-            graph.values.create(value, dt)
+          case dt: DataType[V] if dt.iri.nonEmpty =>
+            graph.values.upsert(value, dt)
+          case ct: ClassType[V] =>
+            graph.values.upsert(value, ClassType.valueToOntologyResource(value))
         }
     }
     graph.edges.create(this, key, toResource)
@@ -177,7 +174,7 @@ trait Resource[T] extends IriResource {
   def addOut[V](key: TypedProperty[V], value: V): Edge[T, V] = {
     val toResource = value match {
       case resource: Resource[V] => graph.resources.upsert(resource).asInstanceOf[Resource[V]]
-      case _                     => graph.values.create(value, key.range.asInstanceOf[DataType[V]])
+      case _                     => graph.values.upsert(value, key.range.asInstanceOf[DataType[V]])
     }
     graph.edges.create(this, key.key, toResource)
   }
@@ -207,25 +204,24 @@ trait Resource[T] extends IriResource {
       value
     )
   def addIn[V, V0, VT0 <: ClassType[_]](key: Property, value: V)(implicit ev1: V <:!< ClassType[_],
-                                                                 dt: ClassTypeable.Aux[V, V0, VT0]): Edge[V0, T] = {
+                                                                 ct: ClassTypeable.Aux[V, V0, VT0]): Edge[V0, T] = {
     val toResource = value match {
       case resource: Resource[_] => graph.resources.upsert(resource)
       case _ =>
-        dt.ct match {
-          case dt: DataType[V] =>
-            graph.values.create(value, dt)
-        }
+        graph.values.upsert(value)(ct)
     }
     graph.edges.create(toResource.asInstanceOf[Resource[V0]], key, this)
   }
   def addIn[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
       implicit ev1: V <:!< ClassType[_]): Edge[V, T] = {
     val toResource = value match {
-      case resource: Resource[V] => graph.resources.upsert(resource).asInstanceOf[Resource[V]]
+      case resource: Resource[V] => graph.resources.upsert(resource)
       case _ =>
         dt match {
-          case dt: DataType[V] =>
-            graph.values.create(value, dt)
+          case dt: DataType[V] if dt.iri.nonEmpty =>
+            graph.values.upsert(value, dt)
+          case ct: ClassType[V] =>
+            graph.values.upsert(value, ClassType.valueToOntologyResource(value))
         }
     }
     graph.edges.create(toResource, key, this)
@@ -238,13 +234,13 @@ trait Resource[T] extends IriResource {
 
   def addBoth[V, R[T] <: Resource[T]](key: Property, value: R[V]): (Edge[T, V], Edge[V, T]) = {
     val fromCT = this match {
-      case node: Node       => DataType.default.nodeURLType
-      case edge: Edge[_, _] => DataType.default.edgeURLType
+      case node: Node       => DataType.default.`@nodeURL`
+      case edge: Edge[_, _] => DataType.default.`@edgeURL`
       case value: Value[_]  => value.label
     }
     val valueCT = value match {
-      case node: Node       => DataType.default.nodeURLType
-      case edge: Edge[_, _] => DataType.default.edgeURLType
+      case node: Node       => DataType.default.`@nodeURL`
+      case edge: Edge[_, _] => DataType.default.`@edgeURL`
       case value: Value[_]  => value.label
     }
 
@@ -254,10 +250,12 @@ trait Resource[T] extends IriResource {
       .asInstanceOf[Edge[V, T]]
   }
 
-  def removeIn(edge: Edge[_, T]): Unit
-  def removeOut(edge: Edge[T, _]): Unit
+  def removeIn[V >: T](edge: Edge[_, V]): Unit
+  def removeOut[V >: T](edge: Edge[V, _]): Unit
   def removeIn(key: Property): Unit
   def removeOut(key: Property): Unit
 
   def remove(): Unit
+
+  def prettyPrint: String
 }

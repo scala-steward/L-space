@@ -23,10 +23,10 @@ object E extends StepDef("E") with StepWrapper[E] {
     edgeNode --- Property.default.`@label` --> "edge" --- Property.default.`@language` --> "en"
     edgeNode --- Property.default.`@comment` --> "An edge" --- Property.default.`@language` --> "en"
     edgeNode --- Property.default.`@container` --> types.`@list`
-    edgeNode --- Property.default.`@range` --> DataType.default.edgeURLType
+    edgeNode --- Property.default.`@range` --> DataType.default.`@edgeURL`
 
     lazy val edge: Property                    = Property(edgeNode)
-    val edgeUrl: TypedProperty[Edge[Any, Any]] = edge + DataType.default.edgeURLType
+    val edgeUrl: TypedProperty[Edge[Any, Any]] = edge + DataType.default.`@edgeURL`
   }
 
   def apply(links: List[Edge[Any, Any]]): E = {

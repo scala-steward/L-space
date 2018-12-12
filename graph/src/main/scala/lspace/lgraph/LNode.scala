@@ -4,22 +4,17 @@ import lspace.librarian.structure.{Node, Ontology, Property}
 
 import scala.collection.mutable
 
-object LNode {
-  def apply(id: Long, graph: LGraph): graph._Node with LNode = {
-    val _id    = id
-    val _graph = graph
-    new graph._Node with LNode {
-      val id    = _id
-      val graph = _graph
-    }
-  }
-
-}
+object LNode {}
 
 trait LNode extends LResource[Node] with Node {
-  private val types          = mutable.HashSet[Ontology]()
-  def labels: List[Ontology] = types.toList
-  def addLabel(ontology: Ontology): Ontology = {
+  private val types = mutable.HashSet[Ontology]()
+
+  /**
+    * add ontology, do not store
+    * @param ontology
+    */
+  override protected[lgraph] def _addLabel(ontology: Ontology): Unit = synchronized {
+    super._addLabel(ontology)
     //    val o = if (ontology.graph != graph) graph.getOntology(ontology.iri).getOrElse(graph.storeOntology(ontology)) else ontology
     val o       = ontology
     val labels2 = labels
@@ -29,12 +24,17 @@ trait LNode extends LResource[Node] with Node {
           //          outE(graph.TYPE).filter(p => ct.iri == p.inV.iri).foreach(_.remove())
           types -= ct
         }
-//        addOut(Property.default.`@type`, o)
+        //        addOut(graph.TYPE, classType)
         types += o
       }
     }
-    //TODO: store and index
-    o
+  }
+
+  def labels: List[Ontology] = types.toList
+  def addLabel(ontology: Ontology): Unit = synchronized {
+    _addLabel(ontology)
+    graph.storeNode(this.asInstanceOf[graph.GNode])
+    //TODO: index
   }
 
   def removeLabel(classType: Ontology): Unit = {

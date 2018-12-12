@@ -261,8 +261,10 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.order(_.out("balance").hasLabel(`@double`), false).limit(1).out("name").head shouldBe "Gray"
     }
     "a Max-step" in {
+      g.N.out("balance").hasLabel(DataType.default.`@int`).max.head shouldBe 300
       g.N.out("balance").hasLabel(DataType.default.`@double`).max.head shouldBe 2230.30
       g.N.out("balance").hasLabel(DataType.default.`@number`).max.head shouldBe 2230.30
+      g.N.out("balance").hasLabel(DataType.default.`@double`).max.in("balance").count().head shouldBe 1
       g.N.out("balance").hasLabel(DataType.default.`@double`).max.in("balance").out("name").head shouldBe "Gray"
     }
     "a Min-step" in {

@@ -23,10 +23,10 @@ object V extends StepDef("V") with StepWrapper[V] {
     valueNode --- Property.default.`@label` --> "value" --- Property.default.`@language` --> "en"
     valueNode --- Property.default.`@comment` --> "A value" --- Property.default.`@language` --> "en"
     valueNode --- Property.default.`@container` --> types.`@list`
-    valueNode --- Property.default.`@range` --> DataType.default.valueURLType
+    valueNode --- Property.default.`@range` --> DataType.default.`@valueURL`
 
     lazy val value: Property                = Property(valueNode)
-    val valueUrl: TypedProperty[Value[Any]] = value + DataType.default.valueURLType
+    val valueUrl: TypedProperty[Value[Any]] = value + DataType.default.`@valueURL`
   }
 
   def apply(values: List[Any] = List()): V = {

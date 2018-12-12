@@ -18,7 +18,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           .take(1)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
           .head,
         node
@@ -26,7 +26,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           .take(1)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)(ClassType.default[Any])
+              .wrap(_)(DetachedGraph)
               .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
           .headOption,
         node.out(keys.maxInt).headOption,

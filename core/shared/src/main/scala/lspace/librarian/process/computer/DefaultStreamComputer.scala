@@ -12,12 +12,12 @@ object DefaultStreamComputer {
   def apply(): DefaultStreamComputer = new DefaultStreamComputer()
 }
 
-class DefaultStreamComputer extends GraphComputer {
+class DefaultStreamComputer() extends GraphComputer {
   val iri: String = "DefaultStreamComputer"
 
   private def toValue(v: Any): Any = v match {
-    case resource: Resource[_] => resource.value
-    case value                 => value
+    case resource: Resource[Any] => resource.value
+    case value                   => value
   }
 
   def traverse[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList, Out, GT <: Graph](
@@ -42,17 +42,18 @@ class DefaultStreamComputer extends GraphComputer {
     }
   }
 
-  private def is(step: Is, traversers: Stream[Traverser[_]]): Stream[Traverser[_]] = {
+  private def is(step: Is, traversers: Stream[Traverser[Any]]): Stream[Traverser[Any]] = {
     traversers.filter { traverser =>
       step.predicate.forall(_.assert(traverser.get match {
-        case r: Resource[_] => r.value
-        case v              => v
+        case r: Resource[Any] => r.value
+        case v                => v
       }))
     }
   }
 
-  protected def addResourceStep[STEP <: ResourceStep, GT <: Graph](step: STEP, traverser: Option[Traverser[_]] = None)(
-      implicit graph: GT): Stream[Traverser[Resource[_]]] = {
+  protected def addResourceStep[STEP <: ResourceStep, GT <: Graph](
+      step: STEP,
+      traverser: Option[Traverser[Any]] = None)(implicit graph: GT): Stream[Traverser[Resource[Any]]] = {
     implicit val implgraph = graph
     import graph._
     step match {
@@ -64,91 +65,91 @@ class DefaultStreamComputer extends GraphComputer {
         step.resources match {
           case List() =>
             nodes()
-              .map(node => traverser.fold[Traverser[_]](createTraverser(node))(_.copy(get = node)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(node => traverser.fold[Traverser[Any]](createTraverser(node))(_.copy(get = node)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
           case list: List[Node] =>
             list.toStream
-              .map(node => traverser.fold[Traverser[_]](createTraverser(node))(_.copy(get = node)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(node => traverser.fold[Traverser[Any]](createTraverser(node))(_.copy(get = node)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
         }
       case step: N =>
         nodes()
           .filter(step.resources.contains)
-          .map(node => traverser.fold[Traverser[_]](createTraverser(node))(_.copy(get = node)))
-          .asInstanceOf[Stream[Traverser[Resource[_]]]]
+          .map(node => traverser.fold[Traverser[Any]](createTraverser(node))(_.copy(get = node)))
+          .asInstanceOf[Stream[Traverser[Resource[Any]]]]
       case step: V if step.resources.forall {
-            case value: Value[_] => value.graph == this
+            case value: Value[Any] => value.graph == this
           } =>
         step.resources match {
           case List() =>
             values()
-              .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
           case list: List[Value[Any]] =>
             implgraph.values
               .byValue(list.map(v => v.value -> v.label))
               .toStream
-              .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
         }
       case step: V =>
         implgraph.values
           .byValue(step.resources.map(v => v.value -> v.label))
           .toStream
-          .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-          .asInstanceOf[Stream[Traverser[Resource[_]]]]
+          .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+          .asInstanceOf[Stream[Traverser[Resource[Any]]]]
       case step: E if step.resources.forall {
             case property: Edge[_, _] => property.graph == this
           } =>
         step.resources match {
           case List() =>
             edges()
-              .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
           case list: List[Edge[_, _]] =>
             list.toStream
-              .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
         }
       case step: E =>
         edges()
           .filter(step.resources.contains)
-          .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-          .asInstanceOf[Stream[Traverser[Resource[_]]]]
+          .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+          .asInstanceOf[Stream[Traverser[Resource[Any]]]]
       case step: R if step.resources.forall {
-            case value: Resource[_] => value.graph == this
+            case value: Resource[Any] => value.graph == this
           } =>
         step.resources match {
           case List() =>
             (nodes() ++ edges() ++ values())
-              .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
-          case list: List[Resource[_]] =>
+              .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
+          case list: List[Resource[Any]] =>
             list.toStream
-              .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-              .asInstanceOf[Stream[Traverser[Resource[_]]]]
+              .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+              .asInstanceOf[Stream[Traverser[Resource[Any]]]]
         }
       case step: R =>
         (nodes() ++ edges() ++ values())
           .filter(step.resources.contains)
-          .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-          .asInstanceOf[Stream[Traverser[Resource[_]]]]
+          .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+          .asInstanceOf[Stream[Traverser[Resource[Any]]]]
       case _ =>
         nodes()
-          .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-          .asInstanceOf[Stream[Traverser[Resource[_]]]] ++
+          .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+          .asInstanceOf[Stream[Traverser[Resource[Any]]]] ++
           edges()
-            .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-            .asInstanceOf[Stream[Traverser[Resource[_]]]] ++
+            .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+            .asInstanceOf[Stream[Traverser[Resource[Any]]]] ++
           values()
-            .map(v => traverser.fold[Traverser[_]](createTraverser(v))(_.copy(get = v)))
-            .asInstanceOf[Stream[Traverser[Resource[_]]]]
+            .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
+            .asInstanceOf[Stream[Traverser[Resource[Any]]]]
     }
   }
 
   object ResourceLess {
-    protected[computer] def addSteps(steps: List[Step], traversers: Stream[Traverser[_]])(
-        implicit graph: Graph): Stream[Traverser[_]] = {
+    protected[computer] def addSteps(steps: List[Step], traversers: Stream[Traverser[Any]])(
+        implicit graph: Graph): Stream[Traverser[Any]] = {
 //      implicit val implgraph = graph
 
       steps.span {
@@ -158,7 +159,7 @@ class DefaultStreamComputer extends GraphComputer {
         case _ => true
       } match {
         case (untilFilter, List()) =>
-          untilFilter.foldLeft[Stream[Traverser[_]]](traversers) {
+          untilFilter.foldLeft[Stream[Traverser[Any]]](traversers) {
             case (stream, step) => addStep(stream)(step)
           }
         case (List(), (rstep: ResourceStep) :: fromFilter) =>
@@ -230,8 +231,8 @@ class DefaultStreamComputer extends GraphComputer {
       }
     }
 
-    protected[computer] def addStep(traversers: Stream[Traverser[_]])(step: Step)(
-        implicit graph: Graph): Stream[Traverser[_]] = {
+    protected[computer] def addStep(traversers: Stream[Traverser[Any]])(step: Step)(
+        implicit graph: Graph): Stream[Traverser[Any]] = {
       //    steps.foldLeft(traverser) {
       step match {
         case step: Coin => //TODO: deterministic flow of the traversal, different executions cannot produce different result sets for identical seeds, even for distributed execution
@@ -241,18 +242,22 @@ class DefaultStreamComputer extends GraphComputer {
         case step: Is =>
           is(step, traversers)
         case step: As[_, _] =>
-          traversers.map(t => t.copy(path = t.path.copy(labeled = t.path.labeled + (step.label -> t.get))))
+          traversers.map { t =>
+            val labeled = t.path.labeled + (step.label -> t.get)
+            val path    = t.path.copy(labeled = labeled)
+            t.copy(path = path)
+          }
       }
     }
   }
 
   object Resourced {
-    protected[computer] def addSteps(steps: List[Step], traversers: Option[Stream[Traverser[Resource[_]]]] = None)(
-        implicit graph: Graph): Stream[Traverser[_]] = {
-      implicit val implgraph = graph
+    protected[computer] def addSteps(steps: List[Step], traversers: Option[Stream[Traverser[Resource[Any]]]] = None)(
+        implicit graph: Graph): Stream[Traverser[Any]] = {
+//      implicit val implgraph = graph
       import graph._
 
-      if (steps.isEmpty) traversers.getOrElse(Stream[Traverser[Resource[_]]]())
+      if (steps.isEmpty) traversers.getOrElse(Stream[Traverser[Resource[Any]]]())
       else
         steps.span {
           case _: BarrierStep | _: ClipStep | _: Project | _: ResourceStep | _: CollectingStep | _: MapStep | _: Id |
@@ -261,11 +266,13 @@ class DefaultStreamComputer extends GraphComputer {
           case _ => true
         } match {
           case (untilFilter, List()) =>
-            untilFilter.foldLeft[Stream[Traverser[Resource[_]]]](
-              traversers.getOrElse(
-                nodes().map(v => createTraverser(v)) ++
-                  edges().map(v => createTraverser(v)) ++
-                  values().map(v => createTraverser(v)))) {
+            untilFilter.foldLeft[Stream[Traverser[Resource[Any]]]](
+              traversers
+                .getOrElse(
+                  nodes().map(v => createTraverser(v)) ++
+                    edges().map(v => createTraverser(v)) ++
+                    values().map(v => createTraverser(v)))
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]) {
               case (stream, step) => addStep(stream)(step)
             }
           case (List(), (rstep: ResourceStep) :: fromFilter) =>
@@ -275,10 +282,12 @@ class DefaultStreamComputer extends GraphComputer {
             addSteps(fromFilter, Some(newTraversers))
           case (untilFilter, fromFilter) =>
             val untilFilterStream = untilFilter.foldLeft(
-              traversers.getOrElse(
-                nodes().map(v => createTraverser(v)) ++
-                  edges().map(v => createTraverser(v)) ++
-                  values().map(v => createTraverser(v)))) {
+              traversers
+                .getOrElse(
+                  nodes().map(v => createTraverser(v)) ++
+                    edges().map(v => createTraverser(v)) ++
+                    values().map(v => createTraverser(v)))
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]) {
               case (stream, step) => addStep(stream)(step)
             }
             fromFilter.head match {
@@ -435,8 +444,8 @@ class DefaultStreamComputer extends GraphComputer {
                               .map(v => v -> traverser))
                           .map { t =>
                             t._1.get match {
-                              case resource: Resource[_] => resource.value -> t._2
-                              case v: Any                => v              -> t._2
+                              case resource: Resource[Any] => resource.value -> t._2
+                              case v: Any                  => v              -> t._2
                             }
                           }
                           .sortWith {
@@ -489,19 +498,27 @@ class DefaultStreamComputer extends GraphComputer {
                 step match {
                   case step: OutMap =>
                     untilFilterStream.map { t =>
-                      t.copy(t.get.outEMap(step.label.toList: _*).mapValues(_.map(_.to)).map {
-                        case (property, values) =>
-                          property -> addSteps(fromFilter.tail, Some(values.toStream.map(v => t.copy(v))))
-                            .map(_.get)
-                            .map(toValue)
-                            .toList
-                      })
+                      t.copy(
+                        t.get
+                          .outEMap(step.label.toList: _*)
+                          .mapValues(_.map(_.to))
+                          .map {
+                            case (property, values) =>
+                              property -> addSteps(
+                                fromFilter.tail,
+                                Some(values.toStream.asInstanceOf[Stream[Resource[Any]]].map(v => t.copy(v))))
+                                .map(_.get)
+                                .map(toValue)
+                                .toList
+                          })
                     }
                   case step: OutEMap =>
                     untilFilterStream.map { t =>
                       t.copy(t.get.outEMap(step.label.toList: _*).map {
                         case (property, values) =>
-                          property -> addSteps(fromFilter.tail, Some(values.toStream.map(v => t.copy(v))))
+                          property -> addSteps(
+                            fromFilter.tail,
+                            Some(values.toStream.asInstanceOf[Stream[Resource[Any]]].map(v => t.copy(v))))
                             .map(_.get)
                             .map(toValue)
                             .toList
@@ -511,7 +528,9 @@ class DefaultStreamComputer extends GraphComputer {
                     untilFilterStream.map { t =>
                       t.copy(t.get.inEMap(step.label.toList: _*).mapValues(_.map(_.from)).map {
                         case (property, values) =>
-                          property -> addSteps(fromFilter.tail, Some(values.toStream.map(v => t.copy(v))))
+                          property -> addSteps(
+                            fromFilter.tail,
+                            Some(values.toStream.asInstanceOf[Stream[Resource[Any]]].map(v => t.copy(v))))
                             .map(_.get)
                             .map(toValue)
                             .toList
@@ -521,7 +540,9 @@ class DefaultStreamComputer extends GraphComputer {
                     untilFilterStream.map { t =>
                       t.copy(t.get.inEMap(step.label.toList: _*).map {
                         case (property, values) =>
-                          property -> addSteps(fromFilter.tail, Some(values.toStream.map(v => t.copy(v))))
+                          property -> addSteps(
+                            fromFilter.tail,
+                            Some(values.toStream.asInstanceOf[Stream[Resource[Any]]].map(v => t.copy(v))))
                             .map(_.get)
                             .map(toValue)
                             .toList
@@ -549,42 +570,50 @@ class DefaultStreamComputer extends GraphComputer {
         }
     }
 
-    protected[computer] def addStep(traversers: Stream[Traverser[Resource[_]]])(step: Step)(
-        implicit graph: Graph): Stream[Traverser[Resource[_]]] = {
+    protected[computer] def addStep(traversers: Stream[Traverser[Resource[Any]]])(step: Step)(
+        implicit graph: Graph): Stream[Traverser[Resource[Any]]] = {
       //    steps.foldLeft(traverser) {
       step match {
         case step: MoveStep =>
           step match {
             case step: Out =>
-              traversers.flatMap(
-                traverser =>
-                  traverser.get
-                    .outE(step.label.toList: _*)
-                    .toStream
-                    .map(r => traverser.copy(r.inV, path = traverser.path.copy(traverser.path.resources :+ r))))
+              traversers
+                .flatMap(
+                  traverser =>
+                    traverser.get
+                      .outE(step.label.toList: _*)
+                      .toStream
+                      .map(r => traverser.copy(r.inV, path = traverser.path.copy(traverser.path.resources :+ r))))
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: OutE =>
               traversers.flatMap(
                 traverser =>
                   traverser.get
                     .outE(step.label.toList: _*)
                     .toStream
-                    .map(r => traverser.copy(r, path = traverser.path.copy(traverser.path.resources :+ r)))
-                    .asInstanceOf[Stream[Traverser[Resource[_]]]])
+                    .map(r =>
+                      traverser
+                        .copy(r, path = traverser.path.copy(traverser.path.resources :+ r)))
+                    .asInstanceOf[Stream[Traverser[Resource[Any]]]])
             case step: In =>
-              traversers.flatMap(
-                traverser =>
-                  traverser.get
-                    .inE(step.label.toList: _*)
-                    .toStream
-                    .map(r => traverser.copy(r.outV, path = traverser.path.copy(traverser.path.resources :+ r))))
+              traversers
+                .flatMap(
+                  traverser =>
+                    traverser.get
+                      .inE(step.label.toList: _*)
+                      .toStream
+                      .map(r => traverser.copy(r.outV, path = traverser.path.copy(traverser.path.resources :+ r))))
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: InE =>
               traversers.flatMap(
                 traverser =>
                   traverser.get
                     .inE(step.label.toList: _*)
                     .toStream
-                    .map(r => traverser.copy(r, path = traverser.path.copy(traverser.path.resources :+ r)))
-                    .asInstanceOf[Stream[Traverser[Resource[_]]]])
+                    .map(r =>
+                      traverser
+                        .copy(r, path = traverser.path.copy(traverser.path.resources :+ r)))
+                    .asInstanceOf[Stream[Traverser[Resource[Any]]]])
           }
         case step: FilterStep =>
           step match {
@@ -664,7 +693,7 @@ class DefaultStreamComputer extends GraphComputer {
                 Math.random() < step.p //get next seeded random value
               }
             case step: Is =>
-              is(step, traversers).asInstanceOf[Stream[Traverser[Resource[_]]]]
+              is(step, traversers).asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Where =>
               traversers.filter(traverser => addSteps(step.traversal.stepsList, Some(Stream(traverser))).nonEmpty)
             case step: And =>
@@ -680,7 +709,7 @@ class DefaultStreamComputer extends GraphComputer {
               traversers
                 .flatMap(traverser =>
                   step.traversals.flatMap(traversal => addSteps(traversal.stepsList, Some(Stream(traverser)))))
-                .asInstanceOf[Stream[Traverser[Resource[_]]]]
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Coalesce[_, _] =>
               traversers
                 .flatMap(
@@ -689,11 +718,11 @@ class DefaultStreamComputer extends GraphComputer {
                       .map(traversal => addSteps(traversal.stepsList, Some(Stream(traverser))))
                       .collectFirst { case result if result.nonEmpty => result }
                       .getOrElse(Stream()))
-                .asInstanceOf[Stream[Traverser[Resource[_]]]]
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Local =>
               traversers
                 .flatMap(traverser => addSteps(step.traversal.stepsList, Some(Stream(traverser))))
-                .asInstanceOf[Stream[Traverser[Resource[_]]]]
+                .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Repeat[_] =>
               traversers.flatMap(traverser => repeat(step, traverser))
           }
@@ -715,13 +744,13 @@ class DefaultStreamComputer extends GraphComputer {
       }
     }
 
-    protected def repeat(step: Repeat[_], traverser: Traverser[Resource[_]], repeats: Int = 0)(
-        implicit graph: Graph): Stream[Traverser[Resource[_]]] = {
+    protected def repeat(step: Repeat[_], traverser: Traverser[Resource[Any]], repeats: Int = 0)(
+        implicit graph: Graph): Stream[Traverser[Resource[Any]]] = {
       val collect = step.collect.getOrElse(false)
       if (repeats > 30) Stream(traverser) //TODO: how to handle possible infinite loops
       else
         addSteps(step.traversal.stepsList, Some(Stream(traverser)))
-          .asInstanceOf[Stream[Traverser[Resource[_]]]]
+          .asInstanceOf[Stream[Traverser[Resource[Any]]]]
           .flatMap { traverser =>
             step.until match {
               case Some(until) =>
@@ -755,8 +784,8 @@ class DefaultStreamComputer extends GraphComputer {
     }
   }
 
-  protected def select(step: Select[_], traversers: Stream[Traverser[_]])(
-      implicit graph: Graph): Stream[Traverser[_]] = {
+  protected def select(step: Select[_], traversers: Stream[Traverser[Any]])(
+      implicit graph: Graph): Stream[Traverser[Any]] = {
     traversers.map { t =>
       step.names match {
         case List() =>

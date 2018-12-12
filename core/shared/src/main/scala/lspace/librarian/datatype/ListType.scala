@@ -16,9 +16,9 @@ object ListType {
         .map(node.graph.ns.getClassType))
   }
 
-  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
-      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =
-    new ListType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListType[TOut]]
+//  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+//      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =
+//    new ListType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListType[TOut]]
 
   implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[TOut]](
       implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[ListType[T], List[TOut], ListType[TOut]] =
@@ -29,7 +29,7 @@ object ListType {
     }
 }
 
-class ListType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
+case class ListType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
   lazy val iri = s"${NS.types.`@list`}/${valueRange.map(_.iri).sorted.mkString("+")}"
   //  override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(CollectionType[V](valueRange))
 

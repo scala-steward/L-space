@@ -25,9 +25,9 @@ object ListSetType {
     ).asInstanceOf[ListSetType[Any]]
   }
 
-  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
-      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListSetType[TOut] =
-    new ListSetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListSetType[TOut]]
+//  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+//      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListSetType[TOut] =
+//    new ListSetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListSetType[TOut]]
 
   implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
     : ClassTypeable.Aux[ListSetType[T], List[TOut], ListSetType[TOut]] =
@@ -38,7 +38,7 @@ object ListSetType {
     }
 }
 
-class ListSetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
+case class ListSetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
 
   val iri: String = s"${NS.types.`@listset`}/${valueRange.map(_.iri).sorted.mkString("+")}"
   //  override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(CollectionType[V](valueRange))

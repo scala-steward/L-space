@@ -10,7 +10,8 @@ object Store {}
 trait Store[G <: Graph] {
   def iri: String
   val graph: G
-  type T <: Resource[_]
+  type T <: graph._Resource[_]
+  type T2 <: graph._Resource[_]
 
   lazy val id: Long = iri.hashCode()
 
@@ -19,28 +20,28 @@ trait Store[G <: Graph] {
   def store(resource: T): Unit
   def store(resources: List[T]): Unit
 
-  def byId(id: Long): Option[T]
-  def byId(ids: List[Long]): Stream[T]
-  def byIri(iri: String): Stream[T]
+  def byId(id: Long): Option[T2]
+  def byId(ids: List[Long]): Stream[T2]
+  def byIri(iri: String): Stream[T2]
 
   def -(resource: T): Unit = delete(resource)
   def delete(resource: T): Unit
   def delete(resources: List[T]): Unit
 
-  def all(): Stream[T]
+  def all(): Stream[T2]
   def count(): Long
 }
 trait NodeStore[G <: Graph] extends Store[G] {
-  type T = graph._Node
+  type T  = graph.GNode
+  type T2 = graph.GNode
 }
 trait EdgeStore[G <: Graph] extends Store[G] {
-  type T = graph._Edge[_, _]
-
-  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Stream[T]
-  def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): Stream[T]
+  type T  = graph.GEdge[_, _]
+  type T2 = graph.GEdge[Any, Any]
 }
 trait ValueStore[G <: Graph] extends Store[G] {
-  type T = graph._Value[_]
+  type T  = graph.GValue[_]
+  type T2 = graph.GValue[Any]
 
-  def byValue[V](value: V, dt: DataType[V]): Stream[T]
+  def byValue[V](value: V, dt: DataType[V]): Stream[graph.GValue[V]]
 }

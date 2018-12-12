@@ -7,7 +7,7 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
-import shapeless.HList
+import shapeless.{HList, HNil}
 import lspace.types._
 
 object Order extends StepDef("Order") with StepWrapper[Order] {
@@ -27,7 +27,9 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
       Order(
         node
           .out(Order.keys.byTraversal)
-          .map(Traversal.wrap(_)(DetachedGraph)(DataType.default.default))
+          .map(Traversal.wrap(_)(DetachedGraph))
+          .filter(_.et.isInstanceOf[DataType[_]])
+          .map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])
           .head,
         node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true),
         node

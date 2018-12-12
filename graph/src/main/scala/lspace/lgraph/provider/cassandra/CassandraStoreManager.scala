@@ -24,7 +24,7 @@ object CassandraStoreManager {
     }
   val loadBalancer = {
     Consumer
-      .loadBalance(parallelism = 200, cassandraQueryConsumer)
+      .loadBalance(parallelism = 50, cassandraQueryConsumer)
   }
 }
 
@@ -56,101 +56,111 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
     60 seconds
   )
 
-  private def pagedNodesF(f: () => ListResult[Node], pagingState: Option[PagingState] = None): Stream[graph._Node] = {
+  private def pagedNodesF(f: () => ListResult[Node], pagingState: Option[PagingState] = None): Stream[graph.GNode] = {
     val result = f()
-    result.records.toStream.map(node =>
-      nodeStore.cachedById(node.id).getOrElse {
-        val _node = LNode(node.id, graph).asInstanceOf[graph._Node]
+    result.records.toStream
+      .filterNot(n => graph.nodeStore.isDeleted(n.id))
+      .map(node =>
+        nodeStore.cachedById(node.id).getOrElse {
+          val _node = graph.newNode(node.id)
 
-        node.labels
-          .map { id =>
-            Ontology.allOntologies.byId.getOrElse(id, graph.ns.getOntologies(id).head)
-          }
-          .foreach(o => _node.addLabel(o))
-        _node
-    }) #::: (if (!result.result.isExhausted()) pagedNodesF(f, Some(result.pagingState)) else Stream())
+          node.labels
+            .map { id =>
+              Ontology.allOntologies.byId.getOrElse(id, graph.ns.getOntologies(id).head)
+            }
+            .foreach(o => _node.addLabel(o))
+          _node
+      }) #::: (if (!result.result.isExhausted()) pagedNodesF(f, Some(result.pagingState)) else Stream())
   }
   private def pagedEdgesF(f: () => ListResult[Edge],
-                          pagingState: Option[PagingState] = None): Stream[graph._Edge[_, _]] = {
+                          pagingState: Option[PagingState] = None): Stream[graph.GEdge[Any, Any]] = {
     val result = f()
 
-    result.records.toStream.map(edge =>
-      edgeStore.cachedById(edge.id).getOrElse {
-        val from = edge.fromType match {
-          case 0 => nodeStore.cachedById(edge.fromId).getOrElse(nodeStore.byId(edge.fromId).get)
+    result.records.toStream
+      .filterNot(
+        e =>
+          graph.edgeStore.isDeleted(e.id) || graph.edgeStore.isDeleted(e.fromId) || graph.edgeStore
+            .isDeleted(e.toId) || graph.nodeStore.isDeleted(e.fromId) || graph.valueStore
+            .isDeleted(e.fromId) || graph.nodeStore.isDeleted(e.toId) || graph.valueStore.isDeleted(e.toId))
+      .map(edge =>
+        edgeStore.cachedById(edge.id).getOrElse {
+          val from = edge.fromType match {
+            case 0 => nodeStore.cachedById(edge.fromId).getOrElse(nodeStore.byId(edge.fromId).get)
 //              .getOrElse(LNode(edge.from, graph).asInstanceOf[graph._Node])
-          case 1 => edgeStore.cachedById(edge.fromId).getOrElse(edgeStore.byId(edge.fromId).get)
-          case 2 => valueStore.cachedById(edge.fromId).getOrElse(valueStore.byId(edge.fromId).get)
-        }
-        val to = edge.toType match {
-          case 0 => nodeStore.cachedById(edge.toId).getOrElse(nodeStore.byId(edge.toId).get)
-          case 1 => edgeStore.cachedById(edge.toId).getOrElse(edgeStore.byId(edge.toId).get)
-          case 2 => valueStore.cachedById(edge.toId).getOrElse(valueStore.byId(edge.toId).get)
-        }
+            case 1 => edgeStore.cachedById(edge.fromId).getOrElse(edgeStore.byId(edge.fromId).get)
+            case 2 => valueStore.cachedById(edge.fromId).getOrElse(valueStore.byId(edge.fromId).get)
+          }
+          val to = edge.toType match {
+            case 0 => nodeStore.cachedById(edge.toId).getOrElse(nodeStore.byId(edge.toId).get)
+            case 1 => edgeStore.cachedById(edge.toId).getOrElse(edgeStore.byId(edge.toId).get)
+            case 2 => valueStore.cachedById(edge.toId).getOrElse(valueStore.byId(edge.toId).get)
+          }
 //        println("pagedEdgesF " + edge.key)
-        LEdge(graph)(
-          edge.id,
-          from.asInstanceOf[graph._Resource[_]],
-          Property.allProperties.byId.getOrElse(edge.key, graph.ns.getProperties(edge.key).head),
-          to.asInstanceOf[graph._Resource[_]]
-        ).asInstanceOf[graph._Edge[_, _]]
-    }) #::: (if (!result.result.isExhausted()) pagedEdgesF(f, Some(result.pagingState)) else Stream())
+          graph.newEdge(
+            edge.id,
+            from.asInstanceOf[graph.GResource[Any]],
+            Property.allProperties.byId.getOrElse(edge.key, graph.ns.getProperties(edge.key).head),
+            to.asInstanceOf[graph.GResource[Any]]
+          )
+      }) #::: (if (!result.result.isExhausted()) pagedEdgesF(f, Some(result.pagingState)) else Stream())
   }
   private def pagedValuesF(f: () => ListResult[Value],
-                           pagingState: Option[PagingState] = None): Stream[graph._Value[_]] = {
+                           pagingState: Option[PagingState] = None): Stream[graph.GValue[Any]] = {
     val result = f()
-    result.records.toStream.map(value =>
-      valueStore.cachedById(value.id).getOrElse {
-        val datatype    = DataType.allDataTypes.byId.getOrElse(value.label, graph.ns.getDataTypes(value.label).head)
-        val parsedValue = jsonld.jsonToValue(datatype, Parse.parseOption(value.value).get).get._2
-        LValue(value.id, parsedValue, datatype, graph).asInstanceOf[graph._Value[_]]
-    }) #::: (if (!result.result.isExhausted()) pagedValuesF(f, Some(result.pagingState)) else Stream())
+    result.records.toStream
+      .filterNot(v => graph.valueStore.isDeleted(v.id))
+      .map(value =>
+        valueStore.cachedById(value.id).getOrElse {
+          val datatype    = DataType.allDataTypes.byId.getOrElse(value.label, graph.ns.getDataTypes(value.label).head)
+          val parsedValue = jsonld.jsonToValue(datatype, Parse.parseOption(value.value).get).get._2
+          graph.newValue(value.id, parsedValue, datatype)
+      }) #::: (if (!result.result.isExhausted()) pagedValuesF(f, Some(result.pagingState)) else Stream())
   }
 
-  override def nodeById(id: Long): Option[graph._Node] =
+  override def nodeById(id: Long): Option[graph.GNode] =
     pagedNodesF(
       () =>
         Await
           .result(database.nodes.findById(id), 5 seconds)).headOption
 
-  override def nodesById(ids: List[Long]): Stream[graph._Node] =
+  override def nodesById(ids: List[Long]): Stream[graph.GNode] =
     pagedNodesF(
       () =>
         Await
           .result(database.nodes.findByIds(ids), 5 seconds))
 
-  override def nodeByIri(iri: String): Stream[graph._Node] =
+  override def nodeByIri(iri: String): Stream[graph.GNode] =
     pagedNodesF(
       () =>
         Await
           .result(database.nodesByIri.findByIris(graph.valueStore.byValue(iri).map(_.id).toList), 5 seconds))
 
-  override def nodesByIri(iris: List[String]): Stream[graph._Node] =
+  override def nodesByIri(iris: List[String]): Stream[graph.GNode] =
     pagedNodesF(
       () =>
         Await
           .result(database.nodesByIri.findByIris(iris.flatMap(iri => graph.valueStore.byValue(iri).map(_.id).toList)),
                   5 seconds))
 
-  override def edgeById(id: Long): Option[graph._Edge[_, _]] =
+  override def edgeById(id: Long): Option[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edges.findById(id), 5 seconds)).headOption
 
-  override def edgesById(ids: List[Long]): Stream[graph._Edge[_, _]] =
+  override def edgesById(ids: List[Long]): Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edges.findByIds(ids), 5 seconds))
 
-  override def edgesByFromId(fromId: Long): Stream[graph._Edge[_, _]] =
+  override def edgesByFromId(fromId: Long): Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edgesByFrom.findByFrom(fromId), 5 seconds))
 
-  override def edgesByFromIdAndKey(fromId: Long, key: Property): Stream[graph._Edge[_, _]] =
+  override def edgesByFromIdAndKey(fromId: Long, key: Property): Stream[graph.GEdge[Any, Any]] =
     Property.allProperties.idByIri
       .get(key.iri)
       .orElse(
@@ -164,13 +174,13 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
             .result(database.edgesByFromAndKey.findByFromAndKey(fromId, keyId), 5 seconds)))
       .getOrElse(Stream())
 
-  override def edgesByToId(toId: Long): Stream[graph._Edge[_, _]] =
+  override def edgesByToId(toId: Long): Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edgesByTo.findByTo(toId), 5 seconds))
 
-  override def edgesByToIdAndKey(toId: Long, key: Property): Stream[graph._Edge[_, _]] =
+  override def edgesByToIdAndKey(toId: Long, key: Property): Stream[graph.GEdge[Any, Any]] =
     Property.allProperties.idByIri
       .get(key.iri)
       .orElse(
@@ -184,13 +194,13 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
             .result(database.edgesByToAndKey.findByToAndKey(toId, keyId), 5 seconds)))
       .getOrElse(Stream())
 
-  override def edgesByFromIdAndToId(fromId: Long, toId: Long): Stream[graph._Edge[_, _]] =
+  override def edgesByFromIdAndToId(fromId: Long, toId: Long): Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edgesByFromAndTo.findByFromAndKeyAndTo(fromId, toId), 5 seconds))
 
-  override def edgesByFromIdAndKeyAndToId(fromId: Long, key: Property, toId: Long): Stream[graph._Edge[_, _]] =
+  override def edgesByFromIdAndKeyAndToId(fromId: Long, key: Property, toId: Long): Stream[graph.GEdge[Any, Any]] =
     Property.allProperties.idByIri
       .get(key.iri)
       .orElse(
@@ -204,67 +214,67 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
             .result(database.edgesByFromAndKeyAndTo.findByFromAndKeyAndTo(fromId, keyId, toId), 5 seconds)))
       .getOrElse(Stream())
 
-//  override def edgesByKey(key: Property): Stream[graph._Edge[_, _]] =
+//  override def edgesByKey(key: Property): Stream[graph.GEdge[_, _]] =
 //    pagedEdgesF(
 //      () =>
 //        Await
 //          .result(database.edgesByKey.findById(ids), 5 seconds))
 
-  override def edgeByIri(iri: String): Stream[graph._Edge[_, _]] =
+  override def edgeByIri(iri: String): Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edgesByIri.findByIris(graph.valueStore.byValue(iri).map(_.id).toList), 5 seconds))
 
-  override def edgesByIri(iris: List[String]): Stream[graph._Edge[_, _]] =
+  override def edgesByIri(iris: List[String]): Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
           .result(database.edgesByIri.findByIris(iris.flatMap(iri => graph.valueStore.byValue(iri).map(_.id).toList)),
                   5 seconds))
 
-  override def valueById(id: Long): Option[graph._Value[_]] =
+  override def valueById(id: Long): Option[graph.GValue[Any]] =
     pagedValuesF(
       () =>
         Await
           .result(database.values.findById(id), 5 seconds)).headOption
 
-  override def valuesById(ids: List[Long]): Stream[graph._Value[_]] =
+  override def valuesById(ids: List[Long]): Stream[graph.GValue[Any]] =
     pagedValuesF(
       () =>
         Await
           .result(database.values.findByIds(ids), 5 seconds))
 
-  override def valueByIri(iri: String): Stream[graph._Value[_]] =
+  override def valueByIri(iri: String): Stream[graph.GValue[Any]] =
     pagedValuesF(
       () =>
         Await
           .result(database.valuesByIri.findByIris(graph.valueStore.byValue(iri).map(_.id).toList), 5 seconds))
 
-  override def valuesByIri(iris: List[String]): Stream[graph._Value[_]] =
+  override def valuesByIri(iris: List[String]): Stream[graph.GValue[Any]] =
     pagedValuesF(
       () =>
         Await
           .result(database.valuesByIri.findByIris(iris.flatMap(iri => graph.valueStore.byValue(iri).map(_.id).toList)),
                   5 seconds))
 
-  override def valueByValue[T](value: T, dt: DataType[T]): Stream[graph._Value[T]] =
+  override def valueByValue[T](value: T, dt: DataType[T]): Stream[graph.GValue[T]] =
     pagedValuesF(
       () =>
         Await
           .result(database.valuesByValue.findByValue(jsonld.anyToJson(value, List(dt))._1.toString()), 5 seconds))
-      .asInstanceOf[Stream[graph._Value[T]]]
+      .asInstanceOf[Stream[graph.GValue[T]]]
 
-  override def valuesByValue[T](values: List[(T, DataType[T])]): Stream[graph._Value[T]] =
+  override def valuesByValue[T](values: List[(T, DataType[T])]): Stream[graph.GValue[T]] =
     pagedValuesF(
       () =>
         Await
           .result(database.valuesByValue.findByValues(values.map {
             case (value, dt) => jsonld.anyToJson(value, List(dt))._1.toString()
           }), 5 seconds))
-      .asInstanceOf[Stream[graph._Value[T]]]
+      .asInstanceOf[Stream[graph.GValue[T]]]
 
-  private def structureNodeToNode(node: structure.Node) = Node(
+  private def structureNodeToNode(node: graph._Node) = Node(
     node.id,
     node.outE(Property.default.`@id`).headOption.map(_.to.id).getOrElse(0l),
     node.outE(Property.default.`@ids`).map(_.to.id).toSet,
@@ -278,7 +288,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
                        .getOrElse(graph.ns.storeOntology(o))
                        .id))
   )
-  override def storeNodes(nodes: List[structure.Node]): Task[_] = {
+  override def storeNodes(nodes: List[graph.GNode]): Task[_] = loadBalancer.synchronized {
     val cnodes = nodes.map(structureNodeToNode)
 
     Observable
@@ -297,7 +307,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
 
   }
 
-  private def structureEdgeToEdge(edge: structure.Edge[_, _]) = Edge(
+  private def structureEdgeToEdge(edge: graph.GEdge[_, _]) = Edge(
     edge.id,
     edge.outE(Property.default.`@id`).headOption.map(_.to.id).getOrElse(0l),
     edge.outE(Property.default.`@ids`).map(_.to.id).toSet,
@@ -321,7 +331,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       case v: structure.Value[_]   => 2
     }
   )
-  override def storeEdges(edges: List[structure.Edge[_, _]]): Task[_] = {
+  override def storeEdges(edges: List[graph.GEdge[_, _]]): Task[_] = loadBalancer.synchronized {
     val cedges = edges.map(structureEdgeToEdge)
     Observable
       .fromIterable(
@@ -354,7 +364,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
 //    )
   }
 
-  private def structureValueToValue(value: structure.Value[_]) = Value(
+  private def structureValueToValue(value: graph.GValue[_]) = Value(
     value.id,
     value.outE(Property.default.`@id`).headOption.map(_.to.id).getOrElse(0l),
     value.outE(Property.default.`@ids`).map(_.to.id).toSet,
@@ -368,7 +378,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
     jsonld.anyToJson(value.value, List(value.label))._1.toString()
   )
 
-  override def storeValues(values: List[structure.Value[_]]): Task[_] = {
+  override def storeValues(values: List[graph.GValue[_]]): Task[_] = loadBalancer.synchronized {
     val cvalues = values.map(structureValueToValue)
 
     Observable
@@ -381,7 +391,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .consumeWith(loadBalancer)
   }
 
-  def deleteNodes(nodes: List[structure.Node]): Task[_] = {
+  def deleteNodes(nodes: List[graph.GNode]): Task[_] = {
     val cnodes = nodes.map(structureNodeToNode) //ignores unretrievable nodes
     Observable
       .fromIterable(
@@ -396,7 +406,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       )
       .consumeWith(loadBalancer)
   }
-  def deleteEdges(edges: List[structure.Edge[_, _]]): Task[_] = {
+  def deleteEdges(edges: List[graph.GEdge[_, _]]): Task[_] = {
     val cedges = edges.map(structureEdgeToEdge) //ignores unretrievable edges
     Observable
       .fromIterable(
@@ -438,7 +448,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       )
       .consumeWith(loadBalancer)
   }
-  def deleteValues(values: List[structure.Value[_]]): Task[_] = {
+  def deleteValues(values: List[graph.GValue[_]]): Task[_] = {
     val cvalues = values.map(structureValueToValue) //ignores unretrievable edges
     Observable
       .fromIterable(
@@ -459,7 +469,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .consumeWith(loadBalancer)
   }
 
-  override def nodes: Stream[graph._Node] =
+  override def nodes: Stream[graph.GNode] =
     pagedNodesF(
       () =>
         Await
@@ -471,7 +481,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .get
   }
 
-  override def edges: Stream[graph._Edge[_, _]] =
+  override def edges: Stream[graph.GEdge[Any, Any]] =
     pagedEdgesF(
       () =>
         Await
@@ -483,7 +493,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .get
   }
 
-  override def values: Stream[graph._Value[_]] =
+  override def values: Stream[graph.GValue[Any]] =
     pagedValuesF(
       () =>
         Await

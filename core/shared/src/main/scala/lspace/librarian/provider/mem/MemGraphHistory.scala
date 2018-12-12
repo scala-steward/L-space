@@ -1,9 +1,8 @@
 package lspace.librarian.provider.mem
 
-import java.util.concurrent.atomic.AtomicLong
-
 import lspace.librarian.structure.util.IdProvider
 import lspace.librarian.structure.{DataGraph, History}
+import monix.execution.atomic.Atomic
 
 object MemGraphHistory {
   def apply(_iri: String): MemGraph = {
@@ -12,9 +11,8 @@ object MemGraphHistory {
       val iri: String = _iri
 
       lazy val idProvider: IdProvider = new IdProvider {
-        private val id = new AtomicLong()
-        id.set(1000)
-        def next: Long = id.incrementAndGet
+        private val id = Atomic(1000l)
+        def next: Long = id.incrementAndGet()
       }
 
       private val self = this

@@ -13,7 +13,7 @@ object Value {
   }
 }
 
-trait Value[T] extends Resource[T] {
+trait Value[+T] extends Resource[T] {
   //TOEXPLORE: Linking to properties e.g. noderesource-uri # property-name
 
   def value: T
@@ -32,7 +32,14 @@ trait Value[T] extends Resource[T] {
 
   //  override def start() = Traversal[T, T, step.V, HNil, HNil](step.V(List(this)))(graph, Structure(HNil), LabelsHList(HNil))
 
-  override def hashCode(): Int = value.hashCode()
+//  override def hashCode(): Int = value.hashCode()
 
   def remove(): Unit = graph.values.delete(this)
+
+  override def equals(o: scala.Any): Boolean = o match {
+    case resource: graph._Value[_] => sameResource(resource)
+    case _                         => false
+  }
+
+  def prettyPrint: String = s"v:${if (iri.nonEmpty) iri else id.toString}:$value"
 }

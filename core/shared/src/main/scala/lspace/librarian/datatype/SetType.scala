@@ -26,9 +26,9 @@ object SetType {
         .map(node.graph.ns.getClassType))
   }
 
-  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
-      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): SetType[TOut] =
-    new SetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[SetType[TOut]]
+//  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
+//      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): SetType[TOut] =
+//    new SetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[SetType[TOut]]
 
   implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](
       implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[SetType[T], List[TOut], SetType[TOut]] =
@@ -39,7 +39,7 @@ object SetType {
     }
 }
 
-class SetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
+case class SetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
 
   val iri = s"${NS.types.`@set`}/${valueRange.map(_.iri).sorted.mkString("+")}"
   //  override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(CollectionType[V](valueRange))

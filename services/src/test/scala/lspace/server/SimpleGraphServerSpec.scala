@@ -46,17 +46,12 @@ class SimpleGraphServerSpec extends WordSpec with Matchers with BeforeAndAfterAl
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       val json      = jsonld.nodeToJsonWithContext(traversal.self)._1
 
-      println(json)
-
       val input = Input
         .post("/traverse")
         .withBody[io.finch.Application.Json](json)
         .withHeaders("Content-type" -> "application/json")
       val res = server.graphService.traverse(input)
-      println(server.graphService.traverse.toString)
-      println(input.toString)
-      println(res.toString)
-      println(res.awaitOutputUnsafe(5 seconds).get.value)
+
       res.awaitOutputUnsafe(5 seconds).map(_.status) shouldBe Some(Status.Ok)
     }
   }

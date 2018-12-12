@@ -46,12 +46,12 @@ class JsonLDSpec extends WordSpec with Matchers {
       }
       nodeTry.isSuccess shouldBe true
       val node              = nodeTry.get
-      val parsedTraversal   = Traversal.wrap(node)(MemGraphDefault)(ClassType.default[Any])
+      val parsedTraversal   = Traversal.wrap(node)(MemGraphDefault)
       val (json2, builder2) = jsonld.nodeToJsonWithContext(parsedTraversal.self)
       val nodeTry2          = jsonld.resource(json2.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
       nodeTry2.isSuccess shouldBe true
       val node2             = nodeTry2.get
-      val parsedTraversal2  = Traversal.wrap(node2)(MemGraphDefault)(ClassType.default[Any])
+      val parsedTraversal2  = Traversal.wrap(node2)(MemGraphDefault)
       val (json3, builder3) = jsonld.nodeToJsonWithContext(parsedTraversal2.self)
       json shouldBe json2
       json shouldBe json2
@@ -212,10 +212,12 @@ class JsonLDSpec extends WordSpec with Matchers {
       val dt              = traversal.ct //(new DataType[Any] { val iri = "" })
       val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(dt)
       val (json, context) = jsonld.nodeToJsonWithContext(collection)
-      //      println(json)
+
+//      println(json)
 
       val collectionNode = jsonld.resource(json.obj.get) match {
-        case Success(r) => r.asInstanceOf[Node]
+        case Success(r) =>
+          r.asInstanceOf[Node]
         case Failure(e) =>
           println(e.getMessage)
           throw e
@@ -261,7 +263,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     "parse an any-result list" in {
       val traversal = graph.g.N().has(SampleGraph.properties.balance, P.gt(5.0)).out(SampleGraph.properties.balance)
       //      val dt: ClassType[Any] = traversal.ct //FIX: no type-resolve for dt: 'Cannot be cast to scala.runtime.Nothing'
-      val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(new ListType(List(traversal.ct)))
+      val collection      = Collection(Instant.now(), Instant.now(), traversal.toList)(traversal.ct)
       val (json, context) = jsonld.nodeToJsonWithContext(collection)
       //      println(json)
 

@@ -14,6 +14,7 @@ object Out extends StepDef("Out") with StepWrapper[Out] {
     case _ =>
       new Out(node
                 .out(MoveStep.keys.labelUrl)
+                .map(_.iri)
                 .map(Property.apply)
                 .toSet,
               node)

@@ -11,11 +11,14 @@ object Label extends StepDef("Label") with StepWrapper[Label] {
   def wrap(node: Node): Label = node match {
     case node: Label => node
     case _ =>
-      new Label(node
-                  .out(MoveStep.keys.labelUrl)
-                  .map(node.graph.ns.getClassType)
-                  .toSet,
-                node)
+      new Label(
+        node
+          .out(MoveStep.keys.labelUrl)
+          .map(_.iri)
+          .flatMap(node.graph.ns.getClassType(_)) //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
+          .toSet,
+        node
+      )
   }
 
   object keys extends MoveStep.Properties

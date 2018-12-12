@@ -157,19 +157,21 @@ object MoveStep extends OntologyDef {
     labelNode --- Property.default.`@label` --> "label" --- Property.default.`@language` --> "en"
     labelNode --- Property.default.`@comment` --> "A label" --- Property.default.`@language` --> "en"
     labelNode --- Property.default.`@container` --> types.`@set`
-    labelNode --- Property.default.`@range` --> DataType.default.nodeURLType
+//    labelNode --- Property.default.`@range` --> DataType.default.nodeURLType
+    labelNode --- Property.default.`@range` --> Ontology.ontology
     labelNode --- Property.default.`@range` --> Property.ontology
+    labelNode --- Property.default.`@range` --> DataType.ontology
 
-    lazy val label: Property               = Property(labelNode)
-    lazy val labelUrl: TypedProperty[Node] = label + DataType.default.nodeURLType
+    lazy val label: Property                      = Property(labelNode)
+    lazy val labelUrl: TypedProperty[IriResource] = label + DataType.default.`@url`
   }
 
   /**
     * mirror of properties in object keys
     */
   trait Properties extends Step.Properties {
-    lazy val `ns.l-space.eu/librarian/MoveStep/label`: Property            = keys.label
-    lazy val `ns.l-space.eu/librarian/MoveStep/label @Url`: TypedKey[Node] = keys.labelUrl
+    lazy val `ns.l-space.eu/librarian/MoveStep/label`: Property                   = keys.label
+    lazy val `ns.l-space.eu/librarian/MoveStep/label @Url`: TypedKey[IriResource] = keys.labelUrl
   }
 
 //  implicit def dt[T, CT[Z] <: NodeURLType[Z]](implicit ev: CT[T] <:< NodeURLType[T]) = DataType.urlType[CT[T]]

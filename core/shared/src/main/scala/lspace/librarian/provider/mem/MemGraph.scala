@@ -1,24 +1,16 @@
 package lspace.librarian.provider.mem
 
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
-import java.util.concurrent.atomic.AtomicLong
-
 import lspace.NS
 import monix.eval.Task
 import lspace.librarian.process.computer.DefaultStreamComputer
 import lspace.librarian.process.traversal._
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.index.MemIndex
-import lspace.librarian.provider.mem.store.{MemEdgeStore, MemNodeStore, MemStore, MemValueStore}
+import lspace.librarian.provider.mem.store.{MemEdgeStore, MemNodeStore, MemValueStore}
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.structure._
-import lspace.librarian.structure.index.Index
-import lspace.librarian.structure.store.{EdgeStore, NodeStore, Store, ValueStore}
+import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.librarian.structure.util.IdProvider
-import lspace.types.vector.Point
+import monix.execution.atomic.Atomic
 import shapeless.{::, HList}
-
-import scala.collection.mutable
 
 object MemGraph {
 
@@ -32,9 +24,8 @@ object MemGraph {
       val iri: String = _iri
 
       lazy val idProvider: IdProvider = new IdProvider {
-        private val id = new AtomicLong()
-        id.set(1000)
-        def next: Long = id.incrementAndGet
+        private val id = Atomic(1000l)
+        def next: Long = id.incrementAndGet()
       }
 
       private val self = this
@@ -71,60 +62,112 @@ object MemGraph {
 }
 
 trait MemGraph extends Graph {
+  type GResource[T] = _Resource[T] with MemResource[T]
+  type GNode        = _Node with MemNode //with GResource[Node]
+  type GEdge[S, E]  = _Edge[S, E] with MemEdge[S, E] //with GResource[Edge[S, E]]
+  type GValue[T]    = _Value[T] with MemValue[T] //with GResource[T]
 
   def transaction: Transaction = MemTransaction(thisgraph)
 
-  protected[mem] val nodeStore: NodeStore[this.type]   = MemNodeStore("@node", thisgraph)
-  protected[mem] val edgeStore: EdgeStore[this.type]   = MemEdgeStore("@edge", thisgraph)
-  protected[mem] val valueStore: ValueStore[this.type] = MemValueStore("@edge", thisgraph)
+  protected[mem] val nodeStore: MemNodeStore[this.type]   = MemNodeStore("@node", thisgraph)
+  protected[mem] val edgeStore: MemEdgeStore[this.type]   = MemEdgeStore("@edge", thisgraph)
+  protected[mem] val valueStore: MemValueStore[this.type] = MemValueStore("@edge", thisgraph)
 
   protected[mem] val `@idStore`: ValueStore[this.type] =
     MemValueStore(NS.types.`@id`, thisgraph)
 
-  override protected def _createNode(_id: Long)(ontology: Ontology*): _Node = {
-    val node = new _Node with MemNode {
-      implicit val graph: Graph = thisgraph
-      val id: Long              = _id
-    }
-    ontology.foreach(node.addLabel)
-    node
+  private[this] val newNodeLock = new Object
+  protected[mem] def newNode(id: Long): GNode = newNodeLock.synchronized {
+    nodeStore
+      .byId(id)
+      .getOrElse {
+        def _id = id
+        val node = new _Node with MemNode {
+          val id              = _id
+          val graph: MemGraph = thisgraph
+        }
+        nodeStore.store(node.asInstanceOf[GNode])
+        node
+      }
+      .asInstanceOf[GNode]
   }
 
-  override protected def _createEdge[S, E](
-      _id: Long)(_from: _Resource[S], _key: Property, _to: _Resource[E]): _Edge[S, E] = {
+  override protected[mem] def storeNode(node: GNode): Unit = super.storeNode(node)
 
-    new _Edge[S, E] with MemEdge[S, E] {
-      val key: Property         = _key
-      implicit val graph: Graph = thisgraph
+  private[this] val newEdgeLock = new Object
+  protected[mem] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
+    newEdgeLock
+      .synchronized {
+        edgeStore.byId(id).getOrElse {
+          def _id   = id
+          def _from = from
+          def _key  = key
+          def _to   = to
+          val edge = new _Edge[S, E] with MemEdge[S, E] {
+            val id: Long           = _id
+            val from: GResource[S] = _from
+            val key: Property      = _key
+            val to: GResource[E]   = _to
+            val graph: MemGraph    = thisgraph
+          }
+          edgeStore.store(edge.asInstanceOf[GEdge[_, _]])
+          edge
+        }
+      }
+      .asInstanceOf[GEdge[S, E]]
 
-      val outV: Resource[S] = _from
-      val inV: Resource[E]  = _to
+  protected[mem] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+    val _from = resources
+      .hasId(from)
+      .map(_.asInstanceOf[GResource[Any]])
+      .getOrElse {
+        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
+      }
+    val _to =
+      resources
+        .hasId(to)
+        .map(_.asInstanceOf[GResource[Any]])
+        .getOrElse {
+          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
+        }
 
-      val id: Long = _id
-    }
+    val edge = createEdge(id, _from, key, _to)
+    edge.asInstanceOf[GEdge[Any, Any]]
   }
 
-  protected def _createValue[T](_id: Long)(_value: T)(dt: DataType[T]): _Value[T] = synchronized {
+  override protected[mem] def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
+    super.createEdge(id, from, key, to).asInstanceOf[GEdge[Any, Any]]
 
-    new _Value[T] with MemValue[T] {
-      val value: T              = _value
-      val label: DataType[T]    = dt
-      implicit val graph: Graph = thisgraph
-
-      val id: Long = _id
-    }
-  }
+  private[this] val newValueLock = new Object
+  protected[mem] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
+    newValueLock
+      .synchronized {
+        valueStore.byId(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
+          def _id    = id
+          def _value = value
+          def _label = label
+          val gValue = new _Value[T] with MemValue[T] {
+            val id: Long           = _id
+            val value: T           = _value
+            val label: DataType[T] = _label
+            val graph: MemGraph    = thisgraph
+          }
+          valueStore.store(gValue.asInstanceOf[GValue[_]])
+          gValue
+        }
+      }
+      .asInstanceOf[GValue[T]]
 
   /**
     * delete in-/out-going edges from the resource
     * @param resource
     */
-  protected def _deleteResource(resource: _Resource[_]): Unit = {
-    resource.asInstanceOf[MemResource[Any]].outEMap().foreach {
+  protected def deleteResource[T <: _Resource[_]](resource: T): Unit = {
+    resource.outEMap().foreach {
       case (key, properties) =>
         properties.foreach(edge => edge.to.removeIn(edge))
     }
-    resource.asInstanceOf[MemResource[Any]].inEMap().foreach {
+    resource.inEMap().foreach {
       case (key, properties) =>
         properties.foreach(edge => edge.from.removeOut(edge))
     }

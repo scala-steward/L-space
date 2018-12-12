@@ -49,16 +49,16 @@ object MapType {
     )
   }
 
-  def apply[KT <: ClassType[_],
-            KTOut,
-            CKTOut <: ClassType[KTOut],
-            VT <: ClassType[_],
-            VTOut,
-            CVTOut <: ClassType[VTOut]](keyRange: List[KT], valueRange: List[VT])(
-      implicit kclsTpbl: ClassTypeable.Aux[KT, KTOut, CKTOut],
-      vclsTpbl: ClassTypeable.Aux[VT, VTOut, CVTOut]): MapType[KTOut, VTOut] =
-    new MapType(keyRange.asInstanceOf[List[ClassType[KTOut]]], valueRange.asInstanceOf[List[ClassType[VTOut]]])
-      .asInstanceOf[MapType[KTOut, VTOut]]
+//  def apply[KT <: ClassType[_],
+//            KTOut,
+//            CKTOut <: ClassType[KTOut],
+//            VT <: ClassType[_],
+//            VTOut,
+//            CVTOut <: ClassType[VTOut]](keyRange: List[KT], valueRange: List[VT])(
+//      implicit kclsTpbl: ClassTypeable.Aux[KT, KTOut, CKTOut],
+//      vclsTpbl: ClassTypeable.Aux[VT, VTOut, CVTOut]): MapType[KTOut, VTOut] =
+//    new MapType(keyRange.asInstanceOf[List[ClassType[KTOut]]], valueRange.asInstanceOf[List[ClassType[VTOut]]])
+//      .asInstanceOf[MapType[KTOut, VTOut]]
 
   implicit def defaultCls[
       K,
@@ -79,7 +79,7 @@ object MapType {
     }
 }
 
-class MapType[K, V](val keyRange: List[ClassType[K]], val valueRange: List[ClassType[V]])
+case class MapType[K, V](val keyRange: List[ClassType[K]], val valueRange: List[ClassType[V]])
     extends CollectionType[Map[K, V]] {
 
   val iri =

@@ -54,14 +54,14 @@ object DataType {
   }
 
   object default {
-    val uRLType = IriType
+    val `@url` = IriType
 
-    val nodeURLType     = NodeURLType.default
-    val edgeURLType     = EdgeURLType.default
-    val valueURLType    = ValueURLType.default
-    val ontologyURLType = Ontology.urlType
-    val propertyURLType = Property.urlType
-    val dataTypeURLType = DataType.urlType[DataType[_]]
+    val `@nodeURL`  = NodeURLType.default
+    val `@edgeURL`  = EdgeURLType.default
+    val `@valueURL` = ValueURLType.default
+    val `@class`    = Ontology.urlType
+    val `@property` = Property.urlType
+    val `@datatype` = DataType.urlType[DataType[_]]
 
     val `@string`        = TextType.textType
     val `@number`        = NumericType.numType[AnyVal]
@@ -76,11 +76,17 @@ object DataType {
     val `@duration`      = DurationType
     val `@quantity`      = QuantityType
     //  val epochType: EpochType = EpochType
-    val `@boolean`  = BoolType.boolType
-    val `@geo`      = GeometricType
-    val `@geopoint` = GeopointType.default
-    val `@color`    = ColorType
-    val `@graph`    = GraphType.default
+    val `@boolean`         = BoolType.boolType
+    val `@geo`             = GeometricType
+    val `@geopoint`        = GeopointType.default
+    val `@geomultipoint`   = GeoMultipointType.default
+    val `@geoline`         = GeoLineType.default
+    val `@geomultiline`    = GeoMultiLineType.default
+    val `@geopolygon`      = GeoPolygonType.default
+    val `@geomultipolygon` = GeoMultiPolygonType.default
+    val `@geomultigeo`     = GeoMultiGeometryType.default
+    val `@color`           = ColorType
+    val `@graph`           = GraphType.default
 
     def vectorType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
       new VectorType(List(ct.asInstanceOf[ClassType[V]]))
@@ -165,13 +171,6 @@ object DataType {
   lazy val allDataTypes = new {
     import default._
     val datatypes = List(
-      uRLType,
-      nodeURLType,
-      edgeURLType,
-      valueURLType,
-      ontologyURLType,
-      propertyURLType,
-      dataTypeURLType,
       `@string`,
       `@int`,
       `@double`,
@@ -184,8 +183,16 @@ object DataType {
       `@boolean`,
       `@geo`,
       `@geopoint`,
-      `@graph`
+      `@graph`,
+      `@url`,
+      `@nodeURL`,
+      `@edgeURL`,
+      `@valueURL`
+//      `@class`,
+//      `@property`,
+//      `@datatype`
     )
+    if (datatypes.size > 99) throw new Exception("extend default-datatype-id range!")
     val byId    = (0l to datatypes.size - 1 toList).zip(datatypes).toMap
     val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
     val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
@@ -370,7 +377,9 @@ object ColorType extends ColorType[Any] { //TODO RgbType, CMYK, PMS, NamedColor
 trait ColorType[+T] extends StructuredValue[T]
 
 object IriType extends IriType[IriResource] {
-  val iri: String = NS.types.schemaURL
+  val iri: String                = NS.types.`@url`
+  override val iris: Set[String] = Set(NS.types.schemaURL)
+
   type Out = IriResource
 
   def apply[T]: IriType[T] = new IriType[T] { val iri: String = "" }
