@@ -9,6 +9,8 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.26")
 
 //libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.0.0-M3"
 
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.10")
+
 // Microsite (Docs)
 addSbtPlugin("com.47deg" % "sbt-microsites" % "0.7.24")
 //addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "1.3.1")
