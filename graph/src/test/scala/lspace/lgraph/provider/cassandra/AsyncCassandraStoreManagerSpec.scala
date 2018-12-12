@@ -7,19 +7,10 @@ import lspace.lgraph.provider.elasticsearch.ESIndexProvider
 import lspace.librarian.structure.{AsyncGraphSpec, Graph}
 
 class AsyncCassandraStoreManagerSpec extends AsyncGraphSpec {
-  val keySpaceBuilder =
-    ContactPoint.local
-      .withClusterBuilder(
-        _.withSocketOptions(
-          new SocketOptions()
-            .setConnectTimeoutMillis(20000)
-            .setReadTimeoutMillis(20000)
-        ))
-      .noHeartbeat()
 
-  val store = LCassandraStoreProvider("AsyncCassandraStoreManagerSpec", keySpaceBuilder)
+  val store = LCassandraStoreProvider("AsyncCassandraStoreManagerSpec", "localhost", 9042)
   store.deleteAll()
-  val sampleStore = LCassandraStoreProvider("AsyncCassandraStoreManagerSpec-sample", keySpaceBuilder)
+  val sampleStore = LCassandraStoreProvider("AsyncCassandraStoreManagerSpec-sample", "localhost", 9042)
   sampleStore.deleteAll()
 
   val graph: LGraph =
@@ -27,7 +18,7 @@ class AsyncCassandraStoreManagerSpec extends AsyncGraphSpec {
   val sampleGraph: LGraph =
     LGraph(sampleStore, new ESIndexProvider)
   def createGraph(iri: String): Graph = {
-    val storage = LCassandraStoreProvider(iri, keySpaceBuilder)
+    val storage = LCassandraStoreProvider(iri, "localhost", 9042)
     storage.deleteAll()
     LGraph(storage, new ESIndexProvider)
   }

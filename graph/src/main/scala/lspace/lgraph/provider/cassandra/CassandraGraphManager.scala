@@ -29,19 +29,19 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
       idStates.headOption
         .map { idSpace =>
           if (idSpace.last >= idState.last) {
-            idState = State("all", idSpace.last + 1000)
-            Await.result(database.states.storeRecord(State("all", idState.last - 1)), 10 seconds)
+            idState = State("all", idSpace.last + 50000)
+            Await.result(database.states.storeRecord(State("all", idState.last)), 10 seconds)
             (idSpace.last to (idState.last - 1) toVector)
           } else {
-            idState = State("all", idState.last + 1000)
-            Await.result(database.states.storeRecord(State("all", idState.last - 1)), 10 seconds)
+            idState = State("all", idState.last + 50000)
+            Await.result(database.states.storeRecord(State("all", idState.last)), 10 seconds)
             (idSpace.last to (idState.last - 1) toVector)
           }
         }
         .getOrElse {
-          idState = State("all", idState.last + 1000)
-          Await.result(database.states.storeRecord(State("all", idState.last - 1)), 10 seconds)
-          (idState.last - 1000) to idState.last toVector
+          idState = State("all", idState.last + 50000)
+          Await.result(database.states.storeRecord(State("all", idState.last)), 10 seconds)
+          (idState.last - 50000) to (idState.last - 1) toVector
         }
     }
   }

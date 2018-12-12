@@ -12,19 +12,10 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
-  val keySpaceBuilder =
-    ContactPoint.local
-      .withClusterBuilder(
-        _.withSocketOptions(
-          new SocketOptions()
-            .setConnectTimeoutMillis(20000)
-            .setReadTimeoutMillis(20000)
-        ))
-      .noHeartbeat()
 
-  val store = LCassandraStoreProvider("CassandraStorageManagerSpec", keySpaceBuilder)
+  val store = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", 9042)
   store.deleteAll()
-  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", keySpaceBuilder)
+  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", 9042)
   sampleStore.deleteAll()
 
   val graph: LGraph =
@@ -32,7 +23,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComput
   val sampleGraph: LGraph =
     LGraph(sampleStore, new ESIndexProvider)
   def createGraph(iri: String): Graph = {
-    val storage = LCassandraStoreProvider(iri, keySpaceBuilder)
+    val storage = LCassandraStoreProvider(iri, "localhost", 9042)
     storage.deleteAll()
     LGraph(storage, new ESIndexProvider)
   }

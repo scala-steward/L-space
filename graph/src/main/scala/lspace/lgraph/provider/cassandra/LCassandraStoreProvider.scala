@@ -1,10 +1,15 @@
 package lspace.lgraph.provider.cassandra
 
+import java.util.concurrent.ConcurrentHashMap
+
+import com.datastax.driver.core.SocketOptions
 import com.outworkers.phantom.connectors.KeySpaceBuilder
 import com.outworkers.phantom.dsl._
 import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.lgraph.{GraphManager, LGraph}
 
+import scala.collection.concurrent
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 abstract class CassandraGraph(override val connector: CassandraConnection) extends Database[CassandraGraph](connector) {
@@ -29,11 +34,28 @@ abstract class CassandraGraphTables(override val connector: CassandraConnection)
   object valuesByIri            extends ValuesByIri with Connector
 }
 
+case class StoragePoint(host: String, port: Int)
+
 object LCassandraStoreProvider {
-  def apply(iri: String, keyspaceBuilder: KeySpaceBuilder): LCassandraStoreProvider =
-    new LCassandraStoreProvider(iri, keyspaceBuilder)
+  def apply(iri: String, host: String, port: Int): LCassandraStoreProvider =
+    new LCassandraStoreProvider(iri, host, port)
+
+  val keySpaceBuilders: concurrent.Map[StoragePoint, KeySpaceBuilder] =
+    new ConcurrentHashMap[StoragePoint, KeySpaceBuilder]().asScala
 }
-class LCassandraStoreProvider(val iri: String, keyspaceBuilder: KeySpaceBuilder) extends StoreProvider {
+class LCassandraStoreProvider(val iri: String, host: String, port: Int) extends StoreProvider {
+
+  private def createBuilder =
+    ContactPoint(host, port)
+      .withClusterBuilder(
+        _.withSocketOptions(
+          new SocketOptions()
+            .setConnectTimeoutMillis(20000)
+            .setReadTimeoutMillis(20000)
+        ))
+      .noHeartbeat()
+  val keyspaceBuilder =
+    LCassandraStoreProvider.keySpaceBuilders.getOrElseUpdate(StoragePoint(host, port), createBuilder)
 
   val space: LKeySpace = LKeySpace(iri)
 
