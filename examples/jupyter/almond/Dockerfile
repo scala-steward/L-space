@@ -13,6 +13,8 @@ RUN 	apt-get install gnupg2 curl openjdk-8-jdk -y && \
 
 RUN 	apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN     sh -c '(echo "#!/usr/bin/env sh" && curl -L https://github.com/lihaoyi/Ammonite/releases/download/1.5.0/2.12-1.5.0) > /usr/local/bin/amm && chmod +x /usr/local/bin/amm'
+
 USER 	$NB_UID
 
 RUN 	pip install --upgrade pip && \
@@ -21,7 +23,7 @@ RUN 	pip install --upgrade pip && \
         curl -L -o coursier https://git.io/coursier && \
         chmod +x coursier && \
         ./coursier --help && \
-        SCALA_VERSION=2.12.7 ALMOND_VERSION=0.1.10 && \
+        SCALA_VERSION=2.12.7 ALMOND_VERSION=0.1.12 && \
         ./coursier bootstrap \
         -i user -I user:sh.almond:scala-kernel-api_$SCALA_VERSION:$ALMOND_VERSION \
         sh.almond:scala-kernel_$SCALA_VERSION:$ALMOND_VERSION \
