@@ -116,9 +116,10 @@ trait LGraph extends Graph {
   }
 
   override protected def getOrCreateNode(id: Long): GNode = synchronized {
-    val node = super.getOrCreateNode(id)
-    node._lastoutsync = Some(Instant.now())
-    node._lastinsync = Some(Instant.now())
+    val node       = super.getOrCreateNode(id)
+    val lastaccess = LResource.getLastAccessStamp()
+    node._lastoutsync = Some(lastaccess)
+    node._lastinsync = Some(lastaccess)
     node
   }
 
@@ -174,9 +175,10 @@ trait LGraph extends Graph {
                                           from: GResource[S],
                                           key: Property,
                                           to: GResource[E]): GEdge[S, E] = {
-    val edge = super.createEdge(id, from, key, to)
-    edge._lastoutsync = Some(Instant.now())
-    edge._lastinsync = Some(Instant.now())
+    val edge       = super.createEdge(id, from, key, to)
+    val lastaccess = LResource.getLastAccessStamp()
+    edge._lastoutsync = Some(lastaccess)
+    edge._lastinsync = Some(lastaccess)
     edge
   }
 
@@ -201,9 +203,10 @@ trait LGraph extends Graph {
       .asInstanceOf[GValue[T]]
 
   override protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
-    val rv = super.createValue(id, value, dt)
-    rv._lastoutsync = Some(Instant.now())
-    rv._lastinsync = Some(Instant.now())
+    val rv         = super.createValue(id, value, dt)
+    val lastaccess = LResource.getLastAccessStamp()
+    rv._lastoutsync = Some(lastaccess)
+    rv._lastinsync = Some(lastaccess)
     rv
   }
 

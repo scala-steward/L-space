@@ -1,15 +1,10 @@
 package lspace.lgraph.provider.cassandra
 
-import com.datastax.driver.core.SocketOptions
-import com.outworkers.phantom.dsl._
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.elasticsearch.ESIndexProvider
 import lspace.librarian.process.computer.GraphComputerSpec
 import lspace.librarian.structure.{Graph, GraphSpec, NodeSpec}
 import lspace.librarian.structure.Property.default._
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
 
 class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
 

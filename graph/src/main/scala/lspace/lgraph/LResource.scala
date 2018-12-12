@@ -4,29 +4,38 @@ import java.time.Instant
 
 import lspace.lgraph.LResource.LinksSet
 import lspace.librarian.structure.{Edge, Property, Resource}
+import monix.execution.atomic.AtomicLong
 
 import scala.collection.mutable
 
 object LResource {
-  case class LinksSet[S, E](lastsync: Option[Instant] = None, links: List[Edge[S, E]] = List[Edge[S, E]]())
+  case class LinksSet[S, E](lastsync: Option[Long] = None, links: List[Edge[S, E]] = List[Edge[S, E]]())
+
+  private[this] val getLastAccessStampLock = new Object
+  private[this] val lastaccessStamp        = AtomicLong(Instant.now().getEpochSecond)
+
+  def getLastAccessStamp() = getLastAccessStampLock.synchronized {
+    val lastAccess = lastaccessStamp.get()
+    val now        = Instant.now().getEpochSecond
+    if (lastAccess != now) lastaccessStamp.addAndGet(now) else lastaccessStamp.get()
+  }
 }
 
 trait LResource[T] extends Resource[T] {
   val graph: LGraph
 
-  protected[lgraph] var _lastused: Instant            = Instant.now()
-  protected[lgraph] var _lastoutsync: Option[Instant] = None
+  protected[lgraph] var _lastused: Long            = LResource.getLastAccessStamp()
+  protected[lgraph] var _lastoutsync: Option[Long] = None
   private val linksOut: mutable.OpenHashMap[Property, LinksSet[T, _]] =
     mutable.OpenHashMap[Property, LinksSet[T, _]]()
   private val linksOutWriteLock = new Object
 
-  def _addOut(edge: Edge[T, _], `@lastaccess`: Instant = Instant.now()): Unit = linksOutWriteLock.synchronized {
-    val time = `@lastaccess`
-    _lastused = `@lastaccess`
+  def _addOut(edge: Edge[T, _]): Unit = linksOutWriteLock.synchronized {
+    val time = LResource.getLastAccessStamp()
+    _lastused = LResource.getLastAccessStamp()
     val linksset = linksOut
       .getOrElse(edge.key, LResource.LinksSet[T, Any]())
-    if (_lastoutsync
-          .exists(_.isAfter(time.minusSeconds(120)))) {
+    if (_lastoutsync.exists(_ + 120 > time)) {
       linksOut += edge.key -> LinksSet[T, Any](lastsync = Some(time),
                                                links = (linksset.links
                                                  .asInstanceOf[List[Edge[T, Any]]] :+ edge.asInstanceOf[Edge[T, Any]])
@@ -44,18 +53,17 @@ trait LResource[T] extends Resource[T] {
           .reverse)
   }
 
-  protected[lgraph] var _lastinsync: Option[Instant] = None
+  protected[lgraph] var _lastinsync: Option[Long] = None
   private val linksIn: mutable.OpenHashMap[Property, LinksSet[_, T]] =
     mutable.OpenHashMap[Property, LinksSet[_, T]]()
   private val linksInWriteLock = new Object
 
-  def _addIn(edge: Edge[_, T], `@lastaccess`: Instant = Instant.now()): Unit = linksInWriteLock.synchronized {
-    val time = `@lastaccess`
-    _lastused = `@lastaccess`
+  def _addIn(edge: Edge[_, T]): Unit = linksInWriteLock.synchronized {
+    val time = LResource.getLastAccessStamp()
+    _lastused = LResource.getLastAccessStamp()
     val linksset = linksIn
       .getOrElse(edge.key, LResource.LinksSet[Any, T]())
-    if (_lastinsync
-          .exists(_.isAfter(time.minusSeconds(120)))) {
+    if (_lastinsync.exists(_ + 120 > time)) {
       linksIn += edge.key -> LinksSet[Any, T](
         lastsync = Some(time),
         links = (edge.asInstanceOf[Edge[Any, T]] :: linksset.links
@@ -72,7 +80,7 @@ trait LResource[T] extends Resource[T] {
   }
 
   private def _outE(key: Property*): List[Edge[T, Any]] = {
-    _lastused = Instant.now()
+    _lastused = LResource.getLastAccessStamp()
     if (key.nonEmpty)
       key
         .flatMap { key =>
@@ -83,7 +91,7 @@ trait LResource[T] extends Resource[T] {
               .edgesByFromIdAndKey(id, key)
               .toList
               .asInstanceOf[List[Edge[T, Any]]]).distinct
-            linksOut += key -> LinksSet[T, Any](Some(Instant.now), edges)
+            linksOut += key -> LinksSet[T, Any](Some(_lastused), edges)
             edges
           }
         }
@@ -93,13 +101,13 @@ trait LResource[T] extends Resource[T] {
       if (_lastoutsync.isDefined)
         linksOut.flatMap(_._2.links.asInstanceOf[List[Edge[T, Any]]]).toList
       else {
-        _lastoutsync = Some(Instant.now())
+        _lastoutsync = Some(_lastused)
         val edges = (linksOut
           .flatMap(_._2.links.asInstanceOf[List[Edge[T, Any]]])
           .toList ++ graph.storeManager.edgesByFromId(id).toList.asInstanceOf[List[Edge[T, Any]]]).distinct
         edges.groupBy(_.key).foreach {
           case (key, edges) =>
-            linksOut += key -> LinksSet[T, Any](Some(Instant.now), edges)
+            linksOut += key -> LinksSet[T, Any](Some(_lastused), edges)
         }
         edges
       }
@@ -121,7 +129,7 @@ trait LResource[T] extends Resource[T] {
   }
 
   private def _inE(key: Property*): List[Edge[Any, T]] = {
-    _lastused = Instant.now()
+    _lastused = LResource.getLastAccessStamp()
     if (key.nonEmpty) key.flatMap { key =>
       val linksSet = linksIn.getOrElse(key, LinksSet())
       if (linksSet.lastsync.isDefined) linksSet.links.asInstanceOf[List[Edge[Any, T]]]
@@ -130,7 +138,7 @@ trait LResource[T] extends Resource[T] {
           .edgesByToIdAndKey(id, key)
           .toList
           .asInstanceOf[List[Edge[Any, T]]]).distinct
-        linksIn += key -> LinksSet[Any, T](Some(Instant.now), List(edges: _*))
+        linksIn += key -> LinksSet[Any, T](Some(_lastused), List(edges: _*))
         edges
       }
     }.toList
@@ -138,13 +146,13 @@ trait LResource[T] extends Resource[T] {
       if (_lastinsync.isDefined)
         linksIn.flatMap(_._2.links.asInstanceOf[List[Edge[Any, T]]]).toList
       else {
-        _lastinsync = Some(Instant.now())
+        _lastinsync = Some(_lastused)
         val edges = (linksIn
           .flatMap(_._2.links.asInstanceOf[List[Edge[Any, T]]])
           .toList ++ graph.storeManager.edgesByToId(id).toList.asInstanceOf[List[Edge[Any, T]]]).distinct
         edges.groupBy(_.key).foreach {
           case (key, edges) =>
-            linksIn += key -> LinksSet[Any, T](Some(Instant.now), edges)
+            linksIn += key -> LinksSet[Any, T](Some(_lastused), edges)
         }
         edges
       }

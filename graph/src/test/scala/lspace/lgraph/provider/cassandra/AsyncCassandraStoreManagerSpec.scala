@@ -1,7 +1,5 @@
 package lspace.lgraph.provider.cassandra
 
-import com.datastax.driver.core.SocketOptions
-import com.outworkers.phantom.dsl.ContactPoint
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.elasticsearch.ESIndexProvider
 import lspace.librarian.structure.{AsyncGraphSpec, Graph}
