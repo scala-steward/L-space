@@ -28,7 +28,7 @@ class CacheReaper(graph: LGraph) {
       def run(): Unit = {
         reapingLock.synchronized {
           if (runtime.freeMemory() / runtime.maxMemory().toDouble < 0.15) {
-            println(s"free memory ${runtime.freeMemory()} :: ${runtime.maxMemory()} :: ${runtime.totalMemory()}")
+//            println(s"free memory ${runtime.freeMemory()} :: ${runtime.maxMemory()} :: ${runtime.totalMemory()}")
 //            def edgesCacheSize  = graph.edgeStore.totalCached()
 //            def nodesCacheSize  = graph.edgeStore.totalCached()
 //            def valuesCacheSize = graph.edgeStore.totalCached()
