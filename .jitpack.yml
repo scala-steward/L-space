@@ -1,6 +1,6 @@
 jdk:
    - openjdk8
 env:
-   GROUP: "eu.l-space"
+   GROUP: "eu"
 install:
    - sbt +publishM2
