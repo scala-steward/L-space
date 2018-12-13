@@ -1,6 +1,4 @@
 jdk:
    - openjdk8
-env:
-   GROUP: "eu"
 install:
    - sbt +publishM2
