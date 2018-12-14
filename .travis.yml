@@ -1,9 +1,49 @@
 language: scala
-scala:
-  - 2.11.12
-  - 2.12.8
+env:
+  global:
+    - MAIN_SCALA_VERSION=2.12.8
 jdk:
   - oraclejdk8
+jobs:
+  include:
+    - stage: test
+      scala: 2.11.12
+    - stage: test
+      scala: 2.12.8
+    - stage: test coverage
+      scala: 2.12.8
+      script:
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage coreJVM/test parseJVM/test clientJVM/test graph/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
+      after_success:
+        - sbt ++$TRAVIS_SCALA_VERSION coverageAggregate coverageReport
+        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+    - stage: make microsite
+      scala: 2.12.8
+      before_install:
+        - export PATH=${PATH}:./vendor/bundle
+      install:
+        - rvm use 2.2.8 --install --fuzzy
+        - gem update --system
+        - gem install sass
+        - gem install jekyll -v 3.2.1
+      script: sbt ++$TRAVIS_SCALA_VERSION microsite/makeMicrosite
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        keep-history: false
+        fqdn: docs.l-space.eu
+        github-token: $GITHUB_TOKEN
+        on:
+          branch: master
+        local-dir: site/target/jekyll
+        target-branch: gh-pages
+branches:
+  only:
+    - master
+before_cache:
+  - find $HOME/.sbt -name "*.lock" -type f -delete
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
 cache:
   directories:
     - $HOME/.ivy2/cache
@@ -12,26 +52,5 @@ cache:
 services:
   - cassandra
   - elasticsearch
-before_install:
-  - export PATH=${PATH}:./vendor/bundle
 install:
   - npm install jsdom
-  - rvm use 2.2.8 --install --fuzzy
-  - gem update --system
-  - gem install sass
-  - gem install jekyll -v 3.2.1
-script:
-  - sbt ++$TRAVIS_SCALA_VERSION test site/makeMicrosite
-after_success:
-  - "bash <(curl -s https://codecov.io/bash) -r $TRAVIS_REPO_SLUG -t $CODECOV_TOKEN"
-deploy:
-  provider: pages
-  skip-cleanup: true
-  keep-history: false
-  fqdn: docs.l-space.eu
-  github-token: $GITHUB_TOKEN
-  on:
-    branch: master
-    scala: 2.12.8
-  local-dir: site/target/jekyll
-  target-branch: gh-pages
