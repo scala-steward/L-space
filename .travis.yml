@@ -8,10 +8,10 @@ jobs:
   include:
     - stage: test
       scala: 2.11.12
-      script: sbt ++$TRAVIS_SCALA_VERSION oreJVM/test parseJVM/test clientJVM/test services/test
+      script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
     - stage: test
       scala: 2.12.8
-      script: sbt ++$TRAVIS_SCALA_VERSION oreJVM/test parseJVM/test clientJVM/test services/test
+      script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
     - stage: test coverage
       scala: 2.12.8
       script:
