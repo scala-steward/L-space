@@ -5,6 +5,12 @@ title: "Home"
 ---
 **Welcome to L-space**
 
+[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/L-space/L-space)
+[![Waffle.io - Columns and their card count](https://badge.waffle.io/L-space/L-space.svg?columns=all)](https://waffle.io/L-space/L-space)
+
+[![Build Status](https://travis-ci.org/L-space/L-space.svg)](https://travis-ci.org/L-space/L-space)
+[![codecov](https://codecov.io/gh/L-space/L-space/branch/master/graph/badge.svg)](https://codecov.io/gh/L-space/L-space)
+
 L-space, a graph computing framework for Scala.
 
 L-space is a graph computing framework WIP with a heavy focus towards Linked (Open) Data. 
