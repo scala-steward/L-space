@@ -8,15 +8,16 @@ jobs:
   include:
     - stage: test
       scala: 2.11.12
+      script: sbt ++$TRAVIS_SCALA_VERSION oreJVM/test parseJVM/test clientJVM/test services/test
     - stage: test
       scala: 2.12.8
+      script: sbt ++$TRAVIS_SCALA_VERSION oreJVM/test parseJVM/test clientJVM/test services/test
     - stage: test coverage
       scala: 2.12.8
       script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage coreJVM/test parseJVM/test clientJVM/test graph/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage coreJVM/test parseJVM/test clientJVM/test services/test
         - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
       after_success:
-        - sbt ++$TRAVIS_SCALA_VERSION coverageAggregate coverageReport
         - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
     - stage: make microsite
       scala: 2.12.8
@@ -49,8 +50,5 @@ cache:
     - $HOME/.ivy2/cache
     - $HOME/.sbt
     - node_modules
-services:
-  - cassandra
-  - elasticsearch
 install:
   - npm install jsdom
