@@ -1,18 +1,23 @@
 language: scala
-env:
-  global:
-    - MAIN_SCALA_VERSION=2.12.8
 jdk:
   - oraclejdk8
+stages:
+  - name: test
+  - name: test coverage
+    if: (branch = master AND type = push) OR (tag IS present)
+  - name: build pages
+    if: (branch = master AND type = push) OR (tag IS present)
+  - name: release
+    if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
     - stage: test
       scala: 2.11.12
       script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
-    - stage: test
-      scala: 2.12.8
+    - scala: 2.12.8
       script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
     - stage: test coverage
+      name: "Publish to Codecov"
       scala: 2.12.8
       script:
         - sbt ++$TRAVIS_SCALA_VERSION clean coverage coreJVM/test parseJVM/test clientJVM/test services/test
@@ -20,6 +25,7 @@ jobs:
       after_success:
         - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
     - stage: build pages
+      name: "Publish to GitHub"
       scala: 2.12.8
       before_install:
         - export PATH=${PATH}:./vendor/bundle
@@ -32,13 +38,17 @@ jobs:
       deploy:
         provider: pages
         skip-cleanup: true
-        keep-history: false
+        keep-history: true
         fqdn: docs.l-space.eu
         github-token: $GITHUB_TOKEN
         on:
           branch: master
         local-dir: site/target/jekyll
         target-branch: gh-pages
+    - stage: release
+      name: "Deploy to Sonatype"
+      before_install: git fetch --tags
+      script: sbt ci-release
 branches:
   only:
     - master
@@ -49,6 +59,7 @@ cache:
   directories:
     - $HOME/.ivy2/cache
     - $HOME/.sbt
+    - $HOME/.coursier
     - node_modules
 install:
   - npm install jsdom
