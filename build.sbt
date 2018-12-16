@@ -50,6 +50,7 @@ lazy val commonSettings = projectSettings ++ Seq(
 
 lazy val lspace = project
   .in(file("."))
+  .settings(settings)
   .settings(skip in publish := true)
   .aggregate(core.jvm, core.js, parse.jvm, parse.js, client.jvm, client.js, graph, services)
 
@@ -116,12 +117,6 @@ lazy val services = (project in file("services"))
     libraryDependencies ++= servicesDeps,
   )
 
-val notPublish = Seq(
-  publishArtifact := false,
-  publish := {},
-  publishLocal := {}
-)
-
 val makeSettingsYml = Def.task {
   val file     = (resourceManaged in Compile).value / "site" / "data" / "settings.yml"
   val contents = s"version: ${version.value}"
@@ -133,7 +128,7 @@ lazy val site = (project in file("site"))
   .enablePlugins(MicrositesPlugin)
   .dependsOn(services % "compile->compile;compile->test")
   .settings(name := "lspace-site")
-  .settings(notPublish, test in Test := {})
+  .settings(skip in publish := true)
   .settings(projectSettings)
   .settings(
     resourceGenerators in Compile += makeSettingsYml.taskValue,
