@@ -44,17 +44,8 @@ lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
   scalaVersion := "2.12.8",
   crossScalaVersions := Seq("2.11.12", "2.12.8"),
-  resolvers ++= Seq(
-    Resolver.sonatypeRepo("releases"),
-    "jitpack" at "https://jitpack.io"
-  ),
-  //  parallelExecution in Test := true,
   publishArtifact in (Test, packageBin) := true,
-  //  publishConfiguration := publishConfiguration.value.withOverwrite(true),
-  //  publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   updateOptions := updateOptions.value.withCachedResolution(true)
-//    scalariformPreferences := scalariformPreferences.value
-//        .setPreference(RewriteArrowSymbols, true)
 )
 
 lazy val lspace = project
