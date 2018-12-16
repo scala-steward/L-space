@@ -3,8 +3,6 @@
 
 [![Build Status](https://travis-ci.org/L-space/L-space.svg)](https://travis-ci.org/L-space/L-space)
 [![codecov](https://codecov.io/gh/L-space/L-space/branch/master/graph/badge.svg)](https://codecov.io/gh/L-space/L-space)
-[![](https://jitpack.io/v/eu.l-space/l-space.svg)](https://jitpack.io/#eu.l-space/l-space)
-[![Release](https://jitpack.io/v/eu.l-space/l-space.svg)](https://jitpack.io/#eu.l-space/l-space)
 
 # L-space
 Unlimited Linked (Open) Data, traversing and reading the data multiverse: "Scientia potentia est"
@@ -19,10 +17,6 @@ Hence, steps are defined to instruct the Librarian how to travel.
 
 ## Getting started
 
-L-space modules are available via jitpack.io. Add it in your `build.sbt` at the end of resolvers:
-```
-resolvers += "jitpack" at "https://jitpack.io"
-```
 L-space is available for Scala 2.11.x and 2.12.x. 
 To include `lspace-core` (all core structures and basic implementations (in-memory) of the graph, 
 data-models and traversal-engines) add the following to your `build.sbt`:
