@@ -47,18 +47,9 @@ jobs:
 #        local-dir: site/target/jekyll
 #        target-branch: gh-pages
     - stage: release
-      name: "Deploy 2.11.12 to Sonatype"
-      scala: 2.11.12
-      before_install:
-        - git fetch --tags
-        - sudo apt install gpgv2
-      script: sbt ++$TRAVIS_SCALA_VERSION ci-release
-    - name: "Deploy 2.12.8 to Sonatype"
-      scala: 2.12.8
-      before_install:
-        - git fetch --tags
-        - sudo apt install gpgv2
-      script: sbt ++$TRAVIS_SCALA_VERSION ci-release
+      name: "Cross-publish to Sonatype"
+      before_install: git fetch --tags
+      script: sbt ci-release
 before_cache:
   - find $HOME/.sbt -name "*.lock" -type f -delete
   - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete

@@ -23,8 +23,7 @@ object CiReleasePlugin extends AutoPlugin {
     System.getenv("TRAVIS_SECURE_ENV_VARS") == "true"
 
   def setupGpg(): Unit = {
-    (s"echo ${sys.env("PGP_SECRET")}" #| "base64 --decode" #| s"gpg --import --batch --passphrase ${sys.env.get(
-      "PGP_PASSPHRASE")}").!
+    (s"echo ${sys.env("PGP_SECRET")}" #| "base64 --decode" #| "gpg --import").!
   }
 
   override def buildSettings: Seq[Def.Setting[_]] = List(
@@ -67,8 +66,8 @@ object CiReleasePlugin extends AutoPlugin {
 //              sys.env.getOrElse("CI_RELEASE", "publishSigned") :: s"++$sv" ::
 //                s"sonatypeRelease" :: state
 //          }
-          sys.env.getOrElse("CI_RELEASE", "publishSigned") ::
-            s"sonatypeRelease" ::
+          sys.env.getOrElse("CI_RELEASE", "+publishSigned") ::
+            s"sonatypeReleaseAll" ::
             currentState
         }
       }
@@ -85,9 +84,8 @@ object CiReleasePlugin extends AutoPlugin {
 
   def isSnapshotVersion(state: State): Boolean = {
     version.in(ThisBuild).get(Project.extract(state).structure.data) match {
-      case Some(v) =>
-        v.endsWith("-SNAPSHOT")
-      case None => throw new NoSuchFieldError("version")
+      case Some(v) => v.endsWith("-SNAPSHOT")
+      case None    => throw new NoSuchFieldError("version")
     }
   }
 
