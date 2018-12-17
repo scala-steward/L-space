@@ -85,8 +85,9 @@ object CiReleasePlugin extends AutoPlugin {
 
   def isSnapshotVersion(state: State): Boolean = {
     version.in(ThisBuild).get(Project.extract(state).structure.data) match {
-      case Some(v) => v.endsWith("-SNAPSHOT")
-      case None    => throw new NoSuchFieldError("version")
+      case Some(v) =>
+        v.endsWith("-SNAPSHOT")
+      case None => throw new NoSuchFieldError("version")
     }
   }
 
