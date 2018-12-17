@@ -42,13 +42,13 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
   }
 
   def wrapTR[T <: parent.GResource[_]](resource: T): TResource[_] = resource match {
-    case n: parent.GNode => super.nodes.hasId(n.id).map(_.asInstanceOf[TNode]).getOrElse(_TNode(n))
-    case e: parent.GEdge[Any, Any] =>
+    case n: parent._Node => super.nodes.hasId(n.id).map(_.asInstanceOf[TNode]).getOrElse(_TNode(n))
+    case e: parent._Edge[Any, Any] =>
       super.edges
         .hasId(e.id)
         .map(_.asInstanceOf[TEdge[Any, Any]])
         .getOrElse(_TEdge(e.asInstanceOf[parent.GEdge[Any, Any]]))
-    case v: parent.GValue[Any] =>
+    case v: parent._Value[Any] =>
       super.values.hasId(v.id).map(_.asInstanceOf[TValue[Any]]).getOrElse(_TValue(v.asInstanceOf[parent.GValue[Any]]))
   }
 
