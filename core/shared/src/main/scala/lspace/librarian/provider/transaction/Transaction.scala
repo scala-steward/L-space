@@ -67,9 +67,9 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
       val fromParent = parent.resources
         .hasIri(iris)
         .map {
-          case n: parent.GNode           => _TNode(n)
-          case e: parent.GEdge[Any, Any] => _TEdge(e)
-          case v: parent.GValue[Any]     => _TValue(v)
+          case n: parent._Node           => _TNode(n)
+          case e: parent._Edge[Any, Any] => _TEdge(e)
+          case v: parent._Value[Any]     => _TValue(v)
         }
         .filterNot(n => nodes.deleted.contains(n.id) || edges.deleted.contains(n.id) || values.deleted.contains(n.id))
       val ids = fromTransaction.map(_.id)
@@ -82,9 +82,9 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
         super
           .hasId(id)
           .orElse(parent.resources.hasId(id).map {
-            case n: parent.GNode           => _TNode(n)
-            case e: parent.GEdge[Any, Any] => _TEdge(e)
-            case v: parent.GValue[Any]     => _TValue(v)
+            case n: parent._Node           => _TNode(n)
+            case e: parent._Edge[Any, Any] => _TEdge(e)
+            case v: parent._Value[Any]     => _TValue(v)
           })
     }
   }

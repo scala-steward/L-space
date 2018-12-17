@@ -47,7 +47,12 @@ jobs:
 #        local-dir: site/target/jekyll
 #        target-branch: gh-pages
     - stage: release
-      name: "Deploy to Sonatype"
+      name: "Deploy 2.11.12 to Sonatype"
+      scala: 2.11.12
+      before_install: git fetch --tags
+      script: sbt ci-release
+    - name: "Deploy 2.12.8 to Sonatype"
+      scala: 2.12.8
       before_install: git fetch --tags
       script: sbt ci-release
 before_cache:
