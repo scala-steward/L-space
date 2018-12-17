@@ -23,7 +23,8 @@ object CiReleasePlugin extends AutoPlugin {
     System.getenv("TRAVIS_SECURE_ENV_VARS") == "true"
 
   def setupGpg(): Unit = {
-    (s"echo ${sys.env("PGP_SECRET")}" #| "base64 --decode" #| "gpg --import").!
+    (s"echo ${sys.env("PGP_SECRET")}" #| "base64 --decode" #| s"gpg --import --batch --passphrase ${sys.env.get(
+      "PGP_PASSPHRASE")}").!
   }
 
   override def buildSettings: Seq[Def.Setting[_]] = List(
