@@ -35,6 +35,8 @@ class CacheReaper(graph: LGraph) {
 //
 //            val totalCacheSizeBefore = edgesCacheSize + nodesCacheSize + valuesCacheSize
 
+            //create cache of expiring resources (for smaller iterations and larger ones less ofter)
+
             val reaptime = Instant.now().getEpochSecond
 
             val edgesToReap = graph.edgeStore
