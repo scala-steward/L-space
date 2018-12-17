@@ -23,10 +23,11 @@ RUN 	pip install --upgrade pip && \
         curl -L -o coursier https://git.io/coursier && \
         chmod +x coursier && \
         ./coursier --help && \
-        SCALA_VERSION=2.12.7 ALMOND_VERSION=0.1.12 && \
+        SCALA_VERSION=2.12.8 ALMOND_VERSION=0.2.1 && \
         ./coursier bootstrap \
         -i user -I user:sh.almond:scala-kernel-api_$SCALA_VERSION:$ALMOND_VERSION \
         sh.almond:scala-kernel_$SCALA_VERSION:$ALMOND_VERSION \
+        --sources --default=true \
         -o almond && \
         ./almond --install && \
         jupyter labextension install @jupyterlab/git && \

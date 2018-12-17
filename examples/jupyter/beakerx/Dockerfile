@@ -21,7 +21,7 @@ RUN 	pip install --upgrade pip && \
         conda update -n base conda && \
         conda create -y -n labx 'python>=3' && \
         /bin/bash -c "source activate labx" && \
-        conda config --env --add pinned_packages 'openjdk=8.0.121' && \
+        conda config --env --add pinned_packages 'openjdk=8.0.152' && \
         conda install -y -c conda-forge ipywidgets jupyterlab beakerx && \
         jupyter labextension install @jupyter-widgets/jupyterlab-manager --no-build && \
         jupyter labextension install beakerx-jupyterlab --no-build && \

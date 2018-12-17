@@ -67,7 +67,7 @@ object CiReleasePlugin extends AutoPlugin {
 //                s"sonatypeRelease" :: state
 //          }
           sys.env.getOrElse("CI_RELEASE", "+publishSigned") ::
-            s"sonatypeRelease" ::
+            s"sonatypeReleaseAll" ::
             currentState
         }
       }
