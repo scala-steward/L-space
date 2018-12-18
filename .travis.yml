@@ -7,7 +7,7 @@ stages:
   - name: test coverage
     if: (branch = master AND type = push) OR (tag IS present)
   - name: publish pages
-    if: (tag IS present)
+    if: (branch = master AND type = push) OR (tag IS present)
   - name: release
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
