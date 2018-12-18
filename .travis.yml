@@ -3,49 +3,49 @@ language: scala
 jdk:
   - openjdk8
 stages:
-#  - name: test
-#  - name: test coverage
-#    if: (branch = master AND type = push) OR (tag IS present)
-#  - name: build pages
-#    if: (branch = master AND type = push) OR (tag IS present)
+  - name: test
+  - name: test coverage
+    if: (branch = master AND type = push) OR (tag IS present)
+  - name: publish pages
+    if: (tag IS present)
   - name: release
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
-#    - stage: test
-#      scala: 2.11.12
-#      script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
-#    - scala: 2.12.8
-#      script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
-#    - stage: test coverage
-#      name: "Publish to Codecov"
-#      scala: 2.12.8
-#      script:
-#        - sbt ++$TRAVIS_SCALA_VERSION clean coverage coreJVM/test parseJVM/test clientJVM/test services/test
-#        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
-#      after_success:
-#        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
-#    - stage: build pages
-#      name: "Publish to GitHub"
-#      scala: 2.12.8
-#      before_install:
-#        - export PATH=${PATH}:./vendor/bundle
-#      install:
-#        - rvm use 2.2.8 --install --fuzzy
-#        - gem update --system
-#        - gem install sass
-#        - gem install jekyll -v 3.2.1
-#      script: sbt ++$TRAVIS_SCALA_VERSION site/makeMicrosite
-#      deploy:
-#        provider: pages
-#        skip-cleanup: true
-#        keep-history: true
-#        fqdn: docs.l-space.eu
-#        github-token: $GITHUB_TOKEN
-#        on:
-#          branch: master
-#        local-dir: site/target/jekyll
-#        target-branch: gh-pages
+    - stage: test
+      scala: 2.11.12
+      script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
+    - scala: 2.12.8
+      script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
+    - stage: test coverage
+      name: "Publish to Codecov"
+      scala: 2.12.8
+      script:
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage coreJVM/test parseJVM/test clientJVM/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+    - stage: publish pages
+      name: "Publish to GitHub"
+      scala: 2.12.8
+      before_install:
+        - export PATH=${PATH}:./vendor/bundle
+      install:
+        - rvm use 2.2.8 --install --fuzzy
+        - gem update --system
+        - gem install sass
+        - gem install jekyll -v 3.2.1
+      script: sbt ++$TRAVIS_SCALA_VERSION site/makeMicrosite
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        keep-history: true
+        fqdn: docs.l-space.eu
+        github-token: $GITHUB_TOKEN
+        on:
+          branch: master
+        local-dir: site/target/jekyll
+        target-branch: gh-pages
     - stage: release
       name: "Cross-publish to Sonatype"
       before_install: git fetch --tags

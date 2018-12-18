@@ -8,7 +8,7 @@ object Version {
   val circe     = "0.9.3"
   val argonaut  = "6.2.2"
   val monix     = "3.0.0-RC2"
-  val sttp      = "1.3.5"
+  val sttp      = "1.5.1"
   val elastic4s = "6.4.0"
   val phantom   = "2.29.0"
 }
@@ -54,11 +54,11 @@ object Dependencies {
   )
 
   val graphDeps = Seq(
-    "com.sksamuel.elastic4s" %% "elastic4s-core"   % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-http"   % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-monix"  % Version.elastic4s,
-    "com.github.cb372"       %% "scalacache-monix" % "0.26.0",
-    "com.outworkers"         %% "phantom-dsl"      % Version.phantom
+    "com.sksamuel.elastic4s" %% "elastic4s-core"  % Version.elastic4s,
+    "com.sksamuel.elastic4s" %% "elastic4s-http"  % Version.elastic4s,
+    "com.sksamuel.elastic4s" %% "elastic4s-monix" % Version.elastic4s exclude ("io.monix", "monix"),
+//    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
+    "com.outworkers" %% "phantom-dsl" % Version.phantom
   )
 
   val servicesDeps = Seq(

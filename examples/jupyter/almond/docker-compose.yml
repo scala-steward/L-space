@@ -4,9 +4,14 @@ services:
     container_name: lspace-jupyter-almond
     image: lspace/jupyter-almond
     ports:
-      - '8888:8888'
+      - '8889:8888'
     volumes:
       - ./examples:/home/jovyan/examples
       # - ~/work:/home/jovyan/work
       - ~/.m2:/home/jovyan/.m2
+    networks:
+      - l-space-network
 
+networks:
+  l-space-network:
+    external: true
