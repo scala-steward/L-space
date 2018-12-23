@@ -2,7 +2,7 @@ version: '3.7'
 services:
   jupyter:
     container_name: lspace-jupyter-almond
-    image: lspace/jupyter-almond
+    image: lspace/jupyter-almond:latest
     ports:
       - '8889:8888'
     volumes:
