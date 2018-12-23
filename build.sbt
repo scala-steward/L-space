@@ -48,6 +48,15 @@ lazy val commonSettings = projectSettings ++ Seq(
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
 
+val dirtyEnd = """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
+def stripTime(version: String) = dirtyEnd.findFirstIn(version) match {
+  case Some(end) => version.stripSuffix(end) + "-SNAPSHOT"
+  case None => version
+}
+
+ThisBuild / version ~= stripTime
+ThisBuild / dynver ~= stripTime
+
 lazy val lspace = project
   .in(file("."))
   .settings(settings)
