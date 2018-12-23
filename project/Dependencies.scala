@@ -2,15 +2,13 @@ import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
-  val scala     = "2.12.7"
-  val uTest     = "0.4.7"
-  val finch     = "0.26.0"
-  val circe     = "0.9.3"
+  val scala     = "2.12.8"
+  val finch     = "0.26.1"
   val argonaut  = "6.2.2"
   val monix     = "3.0.0-RC2"
   val sttp      = "1.5.1"
   val elastic4s = "6.4.0"
-  val phantom   = "2.29.0"
+  val phantom   = "2.30.0"
 }
 
 object Dependencies {
@@ -26,7 +24,7 @@ object Dependencies {
 
   val coreJsDeps = Def.setting(
     Seq(
-      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M13",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC1",
       "org.scala-js"      %%% "scalajs-dom"     % "0.9.6"
     ))
 
