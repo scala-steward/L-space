@@ -5,20 +5,15 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
 import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
+import lspace.librarian.structure.Ontology.OntologyDef
 
-object User {
-  protected val ontologyNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "User")
-  ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- `@label` --> "User" --- `@language` --> "en"
-  ontologyNode --- `@comment` --> "User of something" --- `@language` --> "en"
-  lazy val ontology: Ontology = Ontology(ontologyNode)
+object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", "User of something") {
 
   def apply(iri: String, role: Set[Role], manager: Set[User]): User = {
     val node = DetachedGraph.nodes.create(ontology)
     node.addOut(typed.iriUrlString, iri)
-    role.foreach(role => node.addOut(keys.roleRole, role))
-    manager.foreach(manager => node.addOut(keys.managerUser, manager))
+    role.foreach(role => node.addOut(keys.`lspace:User/role@Role`, role))
+    manager.foreach(manager => node.addOut(keys.`lspace:User/manager@User`, manager))
     new User(node)
   }
 
@@ -28,32 +23,37 @@ object User {
   }
 
   object keys {
-    private val roleNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/role")
-    roleNode.addLabel(Property.ontology)
-    roleNode --- `@label` --> "Role" --- `@language` --> "en"
-    roleNode --- `@comment` --> "A role assigned to this user" --- `@language` --> "en"
-    roleNode --- `@container` --> types.`@set`
-    roleNode --- `@range` --> Role.ontology
+    object `lspace:User/role`
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "role",
+          "role",
+          "A role assigned to this user",
+          container = types.`@set` :: Nil,
+          `@range` = () => Role.ontology :: Nil
+        ) {}
+    lazy val `lspace:User/role@Role`: TypedProperty[Node] = `lspace:User/role` + Role.ontology
 
-    lazy val role: Property           = Property(roleNode)
-    val roleRole: TypedProperty[Node] = role + Role.ontology
-
-    private val managerNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/manager")
-    managerNode.addLabel(Property.ontology)
-    managerNode --- `@label` --> "Manager" --- `@language` --> "en"
-    managerNode --- `@comment` --> "A user who can establish or revoke the sessions of this user." --- `@language` --> "en"
-    managerNode --- `@container` --> types.`@set`
-    managerNode --- `@range` --> User.ontology
-
-    lazy val manager: Property           = Property(managerNode)
-    val managerUser: TypedProperty[Node] = manager + User.ontology
+    object `lspace:User/manager`
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "manager",
+          "manager",
+          "A user who can establish or revoke the sessions of this user.",
+          container = types.`@set` :: Nil,
+          `@range` = () => User.ontology :: Nil
+        ) {}
+    lazy val `lspace:User/manager@User`: TypedProperty[Node] = `lspace:User/manager` + User.ontology
   }
-
-  ontologyNode --- `@properties` --> keys.role
-  ontologyNode --- `@properties` --> keys.manager
+  override lazy val properties
+    : List[Property] = keys.`lspace:User/role`.property :: keys.`lspace:User/manager`.property :: Nil
+  trait Properties {
+    val `lspace:User/role`: Property    = keys.`lspace:User/role`
+    val `lspace:User/role@Role`         = keys.`lspace:User/role@Role`
+    val `lspace:User/manager`: Property = keys.`lspace:User/manager`
+    val `lspace:User/manager@User`      = keys.`lspace:User/manager@User`
+  }
 }
 
 case class User private (node: Node) extends WrappedNode(node) {
-  def role: Set[Role]    = out(User.keys.roleRole).map(Role.wrap).toSet
-  def manager: Set[User] = out(User.keys.managerUser).map(User.wrap).toSet
+  def role: Set[Role]    = out(User.keys.`lspace:User/role@Role`).map(Role.wrap).toSet
+  def manager: Set[User] = out(User.keys.`lspace:User/manager@User`).map(User.wrap).toSet
 }

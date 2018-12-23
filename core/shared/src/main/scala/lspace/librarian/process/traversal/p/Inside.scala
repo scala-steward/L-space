@@ -4,13 +4,12 @@ import lspace.librarian.process.traversal.P._
 import lspace.librarian.process.traversal._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Inside extends PredicateCompanion("Inside") with PredicateWrapper[Inside[_]] {
-  ontologyNode --- Property.default.`@extends` --> RangeP.ontology
+object Inside
+    extends PredicateDef("Inside", `@extends` = () => List(RangeP.ontology))
+    with PredicateWrapper[Inside[_]] {
 
   def wrap(node: Node): Inside[_] = node match {
     case node: Inside[_] => node
@@ -19,6 +18,10 @@ object Inside extends PredicateCompanion("Inside") with PredicateWrapper[Inside[
       val (upper, helperUpper) = OrderHelper map node.out(RangeP.keys.upper).head
       new Inside(lower, upper, node)(helperLower)
   }
+
+  object keys extends RangeP.Properties
+  override lazy val properties: List[Property] = RangeP.properties
+  trait Properties extends RangeP.Properties
 
   def apply[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Inside[T] = {
@@ -30,7 +33,6 @@ object Inside extends PredicateCompanion("Inside") with PredicateWrapper[Inside[
     new Inside(lower, upper, node)
   }
 
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Inside[T] private (val lower: T, val upper: T, override val value: Node)(implicit helper: OrderHelper[T])

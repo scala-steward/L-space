@@ -5,22 +5,16 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
-import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
+import lspace.librarian.structure.Ontology.OntologyDef
 
-object Client {
-  protected val ontologyNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "Client")
-  ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- `@label` --> "Client" --- `@language` --> "en"
-  ontologyNode --- `@comment` --> "A client ..." --- `@language` --> "en"
-  lazy val ontology: Ontology = Ontology(ontologyNode)
+object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Client", "A client ..") {
 
   def apply(iri: String, role: Set[Role], manager: Set[User], session: Set[ClientSession]): Client = {
     val node = DetachedGraph.nodes.create(ontology)
     node.addOut(typed.iriUrlString, iri)
-    role.foreach(role => node.addOut(keys.roleRole, role))
-    manager.foreach(manager => node.addOut(keys.managerRole, manager))
-    session.foreach(session => node.addOut(keys.sessionClientSession, session))
+    role.foreach(role => node.addOut(keys.`lspace:Client/role@Role`, role))
+    manager.foreach(manager => node.addOut(keys.`lspace:Client/manager@User`, manager))
+    session.foreach(session => node.addOut(keys.`lspace:Client/session@ClientSession`, session))
     new Client(node)
   }
 
@@ -30,45 +24,49 @@ object Client {
   }
 
   object keys {
-    private val roleNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/role")
-    roleNode.addLabel(Property.ontology)
-    roleNode --- `@label` --> "Role" --- `@language` --> "en"
-    roleNode --- `@comment` --> "A role assigned to this user" --- `@language` --> "en"
-    roleNode --- `@container` --> types.`@set`
-    roleNode --- `@range` --> Role.ontology
+    object `lspace:Client/role`
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "Role",
+          "Role",
+          "A role assigned to this user",
+          `@range` = () => Role.ontology :: Nil
+        ) {}
+    lazy val `lspace:Client/role@Role`: TypedProperty[Node] = `lspace:Client/role` + Role.ontology
 
-    lazy val role: Property           = Property(roleNode)
-    val roleRole: TypedProperty[Node] = role + Role.ontology
+    object `lspace:Client/manager`
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "Manager",
+          "Manager",
+          "A user who can establish or revoke the sessions of this user.",
+          `@range` = () => User.ontology :: Nil
+        ) {}
+    lazy val `lspace:Client/manager@User`: TypedProperty[Node] = `lspace:Client/manager` + User.ontology
 
-    private val managerNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/manager")
-    managerNode.addLabel(Property.ontology)
-    managerNode --- `@label` --> "Manager" --- `@language` --> "en"
-    managerNode --- `@comment` --> "A user who can establish or revoke the sessions of this user." --- `@language` --> "en"
-    managerNode --- `@container` --> types.`@set`
-    managerNode --- `@range` --> User.ontology
-
-    lazy val manager: Property           = Property(managerNode)
-    val managerRole: TypedProperty[Node] = manager + User.ontology
-
-    private val sessionNode = MemGraphDefault.ns.nodes.upsert(s"${ontology.iri}/session")
-    sessionNode.addLabel(Property.ontology)
-    sessionNode --- `@label` --> "session" --- `@language` --> "en"
-    sessionNode --- `@comment` --> "A session ..." --- `@language` --> "en"
-    sessionNode --- `@container` --> types.`@set`
-    sessionNode --- `@range` --> ClientSession.ontology
-
-    lazy val session: Property                    = Property(sessionNode)
-    val sessionClientSession: TypedProperty[Node] = session + ClientSession.ontology
+    object `lspace:Client/session`
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "Client/session",
+          "session",
+          "A session ...",
+          `@range` = () => DataType.default.`@datetime` :: Nil
+        ) {}
+    lazy val `lspace:Client/session@ClientSession`
+      : TypedProperty[Node] = `lspace:Client/session` + ClientSession.ontology
   }
-
-  ontologyNode --- `@properties` --> keys.role
-  ontologyNode --- `@properties` --> keys.manager
-  ontologyNode --- `@properties` --> keys.session
+  override lazy val properties
+    : List[Property] = keys.`lspace:Client/role`.property :: keys.`lspace:Client/manager`.property :: keys.`lspace:Client/session`.property :: Nil
+  trait Properties {
+    val `lspace:Client/role`: Property        = keys.`lspace:Client/role`
+    val `lspace:Client/role@Role`             = keys.`lspace:Client/role@Role`
+    val `lspace:Client/manager`: Property     = keys.`lspace:Client/manager`
+    val `lspace:Client/manager@User`          = keys.`lspace:Client/manager@User`
+    val `lspace:Client/session`: Property     = keys.`lspace:Client/session`
+    val `lspace:Client/session@ClientSession` = keys.`lspace:Client/session@ClientSession`
+  }
 }
 
 case class Client private (node: Node) extends WrappedNode(node) {
-  def role: Set[Role]    = this.out(Client.keys.roleRole).map(Role.wrap).toSet
-  def manager: Set[User] = this.out(Client.keys.managerRole).map(User.wrap).toSet
+  def role: Set[Role]    = this.out(Client.keys.`lspace:Client/role@Role`).map(Role.wrap).toSet
+  def manager: Set[User] = this.out(Client.keys.`lspace:Client/manager@User`).map(User.wrap).toSet
   def session: Set[ClientSession] =
-    this.out(Client.keys.sessionClientSession).map(ClientSession.wrap).toSet
+    this.out(Client.keys.`lspace:Client/session@ClientSession`).map(ClientSession.wrap).toSet
 }

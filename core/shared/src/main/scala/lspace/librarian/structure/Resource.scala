@@ -27,57 +27,140 @@ trait Resource[+T] extends IriResource {
     */
   val graph: Graph
 
+  /**
+    * The unboxed value
+    * @return
+    */
   def value: T
   def self: Resource[T] = this
 
   /**
-    * @id/iri is a IRI/URI identifier
+    * @id is a IRI/URI identifier
     * @return a String which is empty if no @id is assigned, TODO: should this be an Option[String]?
     */
   def `@id`: String = iri
+
+  /**
+    * alias for `@id`
+    * @return
+    */
   def iri: String = {
     out(default.`@id`).collectFirst { case url: String => url }.getOrElse("")
   }
+
+  /**
+    * @ids are alternative (same-as) IRI/URI identifiers
+    * @return a Set[String] which has one or more values (it always includes `@id`)
+    */
   def `@ids`: Set[String] = iris
-  def iris: Set[String]   = out(default.`@id`, default.`@ids`).collect { case url: String => url }.toSet
+
+  /**
+    * alias for `@ids`
+    * @return
+    */
+  def iris: Set[String] = out(default.`@id`, default.`@ids`).collect { case url: String => url }.toSet
 
   @transient var status: CacheStatus.CacheStatus = CacheStatus.EMPTY
   @transient var memento: Long                   = 0L
 
-  //  def keys: Set[Property] = outE().map(_.key).toSet ++ inE().map(_.key).toSet
+  /**
+    * @return set of all available edge-labels (keys)
+    */
+  def keys: Set[Property]
+
+  /**
+    * @return list of labels assigned to the resource
+    */
   def `@type`: List[ClassType[_]] = labels
+
+  /**
+    * alias for `@type`
+    * @return
+    */
   def labels: List[ClassType[_]]
 
-  //  def start(): Traversal[Resource[T], Resource[T], R :: HNil, HNil] = Traversal[Resource[T], Resource[T], HNil]()(graph, LabelsHList(HNil)).R[T](this)
-
-  def sameResource(resource: Resource[_]): Boolean = resource.id == id //&& resource.graph == graph
+  def sameResource(resource: Resource[_]): Boolean = resource.id == id
 
   override def equals(o: scala.Any): Boolean = o match {
-    case resource: Resource[_] => sameResource(resource)
-    case _                     => false
+    case resource: graph._Resource[_] =>
+      sameResource(resource) //this does not really match for an inner trait (scala-bug) but this is mitigated by the matching in Node, Edge and Value
+    case _ => false
   }
+
+  /**
+    * The hashcode is composed by the id-hash and the graph-iri-hash
+    */
   override lazy val hashCode: Int = id.hashCode() + graph.hashCode
 
+  /** Compares resources by their data-value
+    *
+    * @param o
+    * @return
+    */
+  def equalValues(o: scala.Any): Boolean
+
+  def ===(o: scala.Any): Boolean = equalValues(o)
+
+  /**
+    * filters the resource if it is labeled (including inherited/parent labels) with one or more of the provided labels
+    * @param label
+    * @tparam L
+    * @return
+    */
   def hasLabel[L](label: ClassType[L]*): Option[Resource[L]] = {
-    if (labels.exists(tpe => label.contains(tpe)) || {
-          val extendedTypes = labels //.map(ClassType.wrap)
-          //      println(s"haslabel ${extendedTypes.map(_.iri)} ${extendedTypes.exists(_.`extends`(label.head))}")
-          label.exists(range => extendedTypes.exists(_.`extends`(range)))
+    val _labels = labels
+    if (_labels.exists(tpe => label.contains(tpe)) || {
+          label.exists(label => _labels.exists(_.`extends`(label)))
         }) Some(this.asInstanceOf[Resource[L]])
     else None
   }
-  //  implicit def iriToPropertyKey(iri: String) = Property(iri)
+
+  implicit private def iriToPropertyKey(iri: String): Property = graph.ns.getProperty(iri).getOrElse(Property(iri))
   def out(key: String, keys: String*): List[Any] =
-    out(Property(key) :: keys.toList.map(Property(_)): _*)
+    out((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def out(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Any] =
+    out((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters out-going resources by the provided [[Property*]]
+    *
+    * @param key the [[Edge]]'s labels
+    * @return List of unboxed values
+    */
   def out(key: Property*): List[Any]
   def outMap(key: String, keys: String*): Map[Property, List[Any]] =
-    outMap(Property(key) :: keys.toList.map(Property(_)): _*)
+    outMap((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def outMap(f: (Property.default.type => Property),
+             ff: (Property.default.type => Property)*): Map[Property, List[Any]] =
+    outMap((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters and groups out-going resources by the provided property-keys
+    *
+    * @param key the [[Edge]]'s labels to filter and group by
+    * @return Map[Property, List[Any]]
+    */
   def outMap(key: Property*): Map[Property, List[Any]]
   def outE(key: String, keys: String*): List[Edge[T, Any]] =
-    outE(Property(key) :: keys.toList.map(Property(_)): _*)
+    outE((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def outE(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Edge[T, Any]] =
+    outE((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters out-going resources by the provided [[Property*]]
+    *
+    * @param key the [[Edge]]'s labels
+    * @return List[Edge[T, Any]]
+    */
   def outE(key: Property*): List[Edge[T, Any]]
   def outEMap(key: String, keys: String*): Map[Property, List[Edge[T, Any]]] =
-    outEMap(Property(key) :: keys.toList.map(Property(_)): _*)
+    outEMap((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def outEMap(f: (Property.default.type => Property),
+              ff: (Property.default.type => Property)*): Map[Property, List[Edge[T, Any]]] =
+    outEMap((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters and groups out-going edges by the provided labels
+    *
+    * @param key the [[Edge]]'s labels
+    * @return Map[Property, List[Edge[T, Any]]]
+    */
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]]
   def out[V](key: TypedProperty[V], keys: TypedProperty[V]*): List[V] =
     outE(key.key).flatMap(_.inV.hasLabel(key.range).map(_.value)) ++ keys.flatMap(key =>
@@ -89,16 +172,51 @@ trait Resource[+T] extends IriResource {
         .toList
         .asInstanceOf[List[Edge[T, V]]]
   def in(key: String, keys: String*): List[Any] =
-    in(Property(key) :: keys.toList.map(Property(_)): _*)
+    in((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def in(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Any] =
+    in((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters in-coming resources by the provided [[Property*]]
+    *
+    * @param key the [[Edge]]'s labels
+    * @return List of unboxed values
+    */
   def in(key: Property*): List[Any]
+
   def inMap(key: String, keys: String*): Map[Property, List[Any]] =
-    inMap(Property(key) :: keys.toList.map(Property(_)): _*)
+    inMap((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def inMap(f: (Property.default.type => Property),
+            ff: (Property.default.type => Property)*): Map[Property, List[Any]] =
+    inMap((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters and groups in-coming resources by the provided property-keys
+    *
+    * @param key the [[Edge]]'s labels to filter and group by
+    * @return Map[Property, List[Any]]
+    */
   def inMap(key: Property*): Map[Property, List[Any]]
   def inE(key: String, keys: String*): List[Edge[Any, T]] =
-    inE(Property(key) :: keys.toList.map(Property(_)): _*)
+    inE((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def inE(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Edge[Any, T]] =
+    inE((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters in-coming resources by the provided [[Property*]]
+    *
+    * @param key the [[Edge]]'s labels
+    * @return List[Edge[Any, T]]
+    */
   def inE(key: Property*): List[Edge[Any, T]]
   def inEMap(key: String, keys: String*): Map[Property, List[Edge[Any, T]]] =
-    inEMap(Property(key) :: keys.toList.map(Property(_)): _*)
+    inEMap((key: Property) :: keys.toList.map(key => key: Property): _*)
+  def inEMap(f: (Property.default.type => Property),
+             ff: (Property.default.type => Property)*): Map[Property, List[Edge[Any, T]]] =
+    inEMap((f :: ff.toList).map(_.apply(Property.default)): _*)
+
+  /** Filters and groups in-coming edges by the provided labels
+    *
+    * @param key the [[Edge]]'s labels
+    * @return Map[Property, List[Edge[Any, T]]]
+    */
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]]
 
   def ---(key: String): PartialOutEdge[T] =
@@ -106,6 +224,12 @@ trait Resource[+T] extends IriResource {
       graph.ns
         .getProperty(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ))
+
+  /** Creates a partial edge
+    *
+    * @param key the [[Edge]]'s label
+    * @return an labeled-edge-builder [[PartialOutEdge]]
+    */
   def ---(key: Property): PartialOutEdge[T] = PartialOutEdge(this, key)
   def ---(f: Property.default.type => Property): PartialOutEdge[T] =
     PartialOutEdge(this, f(Property.default))
@@ -115,14 +239,8 @@ trait Resource[+T] extends IriResource {
     * @param key
     * @return
     */
-  def -|-(key: Property): PartialOutEdge[T] = ???
+  def -|-(key: Property): PartialOutEdge[T] = ??? //TODO: drop existing, add new
 
-  /**
-    * Edge with Cardinality list
-    * @param key
-    * @return
-    */
-  def -*-(key: Property): PartialOutEdge[T] = ???
   import shapeless.<:!<
   def addOut[V, V0, VT0 <: ClassType[_]](key: String, value: V)(implicit ev1: V <:!< ClassType[_],
                                                                 dt: ClassTypeable.Aux[V, V0, VT0]): Edge[T, V0] =

@@ -1,6 +1,6 @@
 package lspace.librarian.process.traversal.p
 
-import lspace.librarian.process.traversal.{EqP, ObjectP, PredicateCompanion, PredicateWrapper}
+import lspace.librarian.process.traversal.{EqP, ObjectP, PredicateDef, PredicateWrapper}
 import lspace.librarian.process.traversal.P._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.detached.DetachedGraph
@@ -8,8 +8,9 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.types.vector.Geometry
 
-object GeoContains extends PredicateCompanion("GeoContains") with PredicateWrapper[GeoContains[_]] {
-  ontologyNode --- Property.default.`@extends` --> ObjectP.ontology
+object GeoContains
+    extends PredicateDef("GeoContains", `@extends` = () => List(ObjectP.ontology))
+    with PredicateWrapper[GeoContains[_]] {
 
   def wrap(node: Node): GeoContains[_] = node match {
     case node: GeoContains[_] => node
@@ -20,6 +21,10 @@ object GeoContains extends PredicateCompanion("GeoContains") with PredicateWrapp
       }
       new GeoContains(pvalue, node)(helper)
   }
+
+  object keys extends ObjectP.Properties
+  override lazy val properties: List[Property] = ObjectP.properties
+  trait Properties extends ObjectP.Properties
 
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): GeoContains[T] = {

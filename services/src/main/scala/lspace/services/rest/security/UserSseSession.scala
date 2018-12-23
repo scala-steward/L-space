@@ -15,9 +15,9 @@ object UserSseSession {
       expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant): UserSseSession = {
     val node = DetachedGraph.nodes.create(UserSession.ontology)
     node.addOut(Property.default.typed.iriUrlString, iri)
-    node.addOut(OpenSession.keys.expirationDate, expiration)
-    node.addOut(ClientSession.keys.clientClient, client)
-    node.addOut(UserSession.keys.userUser, user)
+    node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+    node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, client)
+    node.addOut(UserSession.keys.`lspace:UserSession/user@User`, user)
 
     new UserSseSession(new UserSession(node) {})
   }

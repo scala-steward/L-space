@@ -14,8 +14,7 @@ import scala.collection.immutable.ListSet
 
 object DataType {
   lazy val ontology =
-    Ontology(NS.types.`@datatype`)(iris = Set(NS.types.schemaDataType),
-                                   _extendedClasses = () => List(Ontology.ontology))
+    Ontology(NS.types.`@datatype`, iris = Set(NS.types.schemaDataType), extendedClasses = List(Ontology.ontology))
 
   def urlType[T]: IriType[T] = new IriType[T] {
     type Out = T
@@ -240,7 +239,7 @@ trait LiteralType[+T] extends DataType[T]
 
 object StructuredValue {
   lazy val ontology =
-    Ontology(NS.types.`@structured`)(_extendedClasses = () => List(DataType.ontology))
+    Ontology(NS.types.`@structured`, extendedClasses = List(DataType.ontology))
 
   def structuredType[T]: StructuredValue[T] = new StructuredValue[T] {
     type Out = T
@@ -269,7 +268,7 @@ object CollectionType {
   }
 
   lazy val ontology =
-    Ontology(NS.types.`@collection`)(_extendedClasses = () => List(StructuredValue.ontology))
+    Ontology(NS.types.`@collection`, extendedClasses = List(StructuredValue.ontology))
 
   object keys {
     private val valueRangeNode = MemGraphDefault.ns.nodes.upsert("@valueRange")

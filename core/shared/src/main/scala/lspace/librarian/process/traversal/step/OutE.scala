@@ -2,25 +2,31 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object OutE extends StepDef("OutE") with StepWrapper[OutE] {
+object OutE
+    extends StepDef("OutE",
+                    "An outE-step takes one or more property-labels and traverses to the valid incoming paths if any",
+                    () => MoveStep.ontology :: Nil)
+    with StepWrapper[OutE] {
 
   def wrap(node: Node): OutE = node match {
     case node: OutE => node
     case _ =>
-      new OutE(node
-                 .out(MoveStep.keys.labelUrl)
-                 .map(_.iri)
-                 .map(Property.apply)
-                 .toSet,
-               node)
+      new OutE(
+        node
+          .out(MoveStep.keys.labelUrl)
+          .map(_.iri)
+          .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+          .toSet,
+        node
+      )
   }
 
   object keys extends MoveStep.Properties
+  override lazy val properties: List[Property] = MoveStep.properties
+  trait Properties extends MoveStep.Properties
 
   def apply(labels: Set[Property] = Set()): OutE = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -29,8 +35,6 @@ object OutE extends StepDef("OutE") with StepWrapper[OutE] {
     new OutE(labels, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.`ns.l-space.eu/librarian/MoveStep/label`
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class OutE private (label: Set[Property], override val value: Node) extends WrappedNode(value) with MoveStep {

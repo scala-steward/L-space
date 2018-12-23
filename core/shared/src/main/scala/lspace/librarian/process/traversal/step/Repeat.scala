@@ -36,40 +36,44 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   }
 
   object keys {
-    private val traversalNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Repeat/traversal",
+          "by",
+          "A traversal ..",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
 
-    private val untilNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/until")
-    untilNode.addLabel(Property.ontology)
-    untilNode --- Property.default.`@label` --> "until" --- Property.default.`@language` --> "en"
-    untilNode --- Property.default.`@comment` --> "If the result of this traversal is non-empty the repeat-loop will break" --- Property.default.`@language` --> "en"
-    untilNode --- Property.default.`@range` --> Traversal.ontology
-    lazy val until: Property                = Property(untilNode)
-    val untilTraversal: TypedProperty[Node] = until + Traversal.ontology
+    object until
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Repeat/until",
+          "until",
+          "If the result of this traversal is non-empty the repeat-loop will break",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val untilTraversal: TypedProperty[Node] = until.property + Traversal.ontology
 
-    private val maxNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/max")
-    maxNode.addLabel(Property.ontology)
-    maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
-    maxNode --- Property.default.`@comment` --> "The maximum number of repeats" --- Property.default.`@language` --> "en"
-    maxNode --- Property.default.`@range` --> DataType.default.`@int`
-    lazy val max: Property         = Property(maxNode)
-    val maxInt: TypedProperty[Int] = max + DataType.default.`@int`
+    object max
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Repeat/max",
+          "max",
+          "The maximum number of repeats",
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val maxInt: TypedProperty[Int] = max.property + DataType.default.`@int`
 
-    private val collectNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Repeat/collect")
-    collectNode.addLabel(Property.ontology)
-    collectNode --- Property.default.`@label` --> "collect" --- Property.default.`@language` --> "en"
-    collectNode --- Property.default.`@comment` --> "Set to true to return all intermediate results (of each repeat)" --- Property.default.`@language` --> "en"
-    collectNode --- Property.default.`@range` --> DataType.default.`@boolean`
-    lazy val collect: Property                 = Property(collectNode)
-    val collectBoolean: TypedProperty[Boolean] = collect + DataType.default.`@boolean`
+    object collect
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Repeat/collect",
+          "collect",
+          "Set to true to return all intermediate results (of each repeat)",
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val collectBoolean: TypedProperty[Boolean] = collect.property + DataType.default.`@boolean`
   }
+  override lazy val properties
+    : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
 
   def apply[E <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E, _ <: HList],
                                until: Option[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
@@ -84,11 +88,6 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     Repeat(traversal, until, max, collect, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  ontologyNode --- Property.default.`@properties` --> keys.until
-  ontologyNode --- Property.default.`@properties` --> keys.max
-  ontologyNode --- Property.default.`@properties` --> keys.collect
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Repeat[E <: ClassType[_]] private (

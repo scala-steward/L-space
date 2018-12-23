@@ -7,8 +7,9 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Disjoint extends PredicateCompanion("Disjoint") with PredicateWrapper[Disjoint[_]] {
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
+object Disjoint
+    extends PredicateDef("Disjoint", `@extends` = () => List(ObjectP.ontology))
+    with PredicateWrapper[Disjoint[_]] {
 
   def wrap(node: Node): Disjoint[_] = node match {
     case node: Disjoint[_] => node
@@ -17,6 +18,10 @@ object Disjoint extends PredicateCompanion("Disjoint") with PredicateWrapper[Dis
       new Disjoint(pvalue, node)(helper)
   }
 
+  object keys extends ObjectP.Properties
+  override lazy val properties: List[Property] = ObjectP.properties
+  trait Properties extends ObjectP.Properties
+
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Disjoint[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -24,8 +29,6 @@ object Disjoint extends PredicateCompanion("Disjoint") with PredicateWrapper[Dis
     node.addOut(EqP.keys.value, pvalue)
     new Disjoint(pvalue, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Disjoint[T] private (val pvalue: T, override val value: Node)(implicit helper: ObjectHelper[T])

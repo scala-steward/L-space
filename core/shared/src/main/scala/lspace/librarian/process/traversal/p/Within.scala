@@ -5,13 +5,18 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Within extends PredicateCompanion("Within") with PredicateWrapper[Within[_]] {
-  ontologyNode --- Property.default.`@extends` --> CollectionP.ontology
+object Within
+    extends PredicateDef("Within", `@extends` = () => List(CollectionP.ontology))
+    with PredicateWrapper[Within[_]] {
 
   def wrap(node: Node): Within[_] = node match {
     case node: Within[_] => node
     case _               => new Within(node.out(EqP.keys.value), node)
   }
+
+  object keys extends CollectionP.Properties
+  override lazy val properties: List[Property] = CollectionP.properties
+  trait Properties extends CollectionP.Properties
 
   def apply[T](pvalues: List[T]): Within[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -20,8 +25,6 @@ object Within extends PredicateCompanion("Within") with PredicateWrapper[Within[
 
     new Within(pvalues, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Within[T] private (val pvalues: List[T], override val value: Node)

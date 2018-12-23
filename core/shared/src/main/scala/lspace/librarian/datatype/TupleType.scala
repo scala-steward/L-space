@@ -6,7 +6,7 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
 object TupleType {
-  lazy val ontology = Ontology(types.`@tuple`)(_extendedClasses = () => List(StructuredValue.ontology))
+  lazy val ontology = Ontology(types.`@tuple`, extendedClasses = List(StructuredValue.ontology))
 
   object keys {
     private val _1stRangeNode = MemGraphDefault.ns.nodes.upsert("@1stRange")

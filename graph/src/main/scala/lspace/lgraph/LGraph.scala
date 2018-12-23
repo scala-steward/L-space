@@ -1,8 +1,6 @@
 package lspace.lgraph
 
-import java.time.Instant
-
-import lspace.lgraph.index.{IndexManager, IndexProvider, LIndex}
+import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store._
 import lspace.lgraph.util.CacheReaper
 import lspace.librarian.process.computer.DefaultStreamComputer
@@ -83,15 +81,13 @@ object LGraph {
     graph.init()
     graph
   }
-//  def apply(_iri: String, _idProvider: IdProvider, _ns: LNSGraph, _index: LIndexGraph)
 }
 
 trait LGraph extends Graph {
   type GNode       = _Node with LNode
   type GEdge[S, E] = _Edge[S, E] with LEdge[S, E]
   type GValue[T]   = _Value[T] with LValue[T]
-//  def createStoreManager[G <: LGraph]: G => StoreManager[G]
-//  def stateManager: GraphManager[this.type]
+
   protected[lgraph] def storeManager: StoreManager[this.type]
 
   override protected[lgraph] val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)

@@ -5,13 +5,18 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Without extends PredicateCompanion("Without") with PredicateWrapper[Without[_]] {
-  ontologyNode --- Property.default.`@extends` --> CollectionP.ontology
+object Without
+    extends PredicateDef("Without", `@extends` = () => List(CollectionP.ontology))
+    with PredicateWrapper[Without[_]] {
 
   def wrap(node: Node): Without[_] = node match {
     case node: Without[_] => node
     case _                => new Without(node.out(EqP.keys.value), node)
   }
+
+  object keys extends CollectionP.Properties
+  override lazy val properties: List[Property] = CollectionP.properties
+  trait Properties extends CollectionP.Properties
 
   def apply[T](pvalues: List[T]): Without[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -19,8 +24,6 @@ object Without extends PredicateCompanion("Without") with PredicateWrapper[Witho
     pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
     new Without(pvalues, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Without[T] private (val pvalues: List[T], override val value: Node)

@@ -9,7 +9,6 @@ object MemResource {}
 
 trait MemResource[T] extends Resource[T] {
   val graph: MemGraph
-//  @transient lazy val id: Long = graph.idGenerator.next
 
   override def iri: String =
     linksOut
@@ -43,7 +42,7 @@ trait MemResource[T] extends Resource[T] {
       .reverse).distinct.reverse
   }
 
-  //  override def keys: Set[Property] = linksOut.keySet ++ linksIn.keySet toSet
+  override def keys: Set[Property] = linksOut.keySet ++ linksIn.keySet toSet
 
   def out(key: Property*): List[Any] =
     if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatten).map(_.to.value)

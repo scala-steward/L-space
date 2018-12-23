@@ -71,7 +71,8 @@ class TraversalSpec extends WordSpec with Matchers {
       DetachedGraph.g.N().out().stepsList.size shouldBe 2
       DetachedGraph.g.N().out().hasIri("abc").stepsList.size shouldBe 3
       val pDouble =
-        Property("schema/x")(_range = () => List(DataType.default.`@double`), containers = List(NS.types.`@list`))
+        Property._Property("schema/x")(_range = () => List(DataType.default.`@double`),
+                                       containers = List(NS.types.`@list`))
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
       MemGraphDefault.ns.storeProperty(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
@@ -128,7 +129,7 @@ class TraversalSpec extends WordSpec with Matchers {
       MemGraphDefault.g.N().out(pDouble).toList.size shouldBe 5
       MemGraphDefault.g.N().has(pDouble, P.eqv(1.1)).toList.size shouldBe 1
 
-      val pString                             = Property("aa")(_range = () => List(DataType.default.`@string`))
+      val pString                             = Property._Property("aa")(_range = () => List(DataType.default.`@string`))
       val typedPString: TypedProperty[String] = pString + DataType.default.`@string`
       MemGraphDefault.ns.storeProperty(pString)
       DetachedGraph.g.N().has(pDouble, P.gte("a")).stepsList.size shouldBe 2
@@ -136,7 +137,7 @@ class TraversalSpec extends WordSpec with Matchers {
     "consist of multiple steps" in {
       val traversal = DetachedGraph.g.N().out().out().in()
       traversal.stepsList.size shouldBe 4
-      val pDouble                             = Property("schema/x")(_range = () => List(DataType.default.`@double`))
+      val pDouble                             = Property._Property("schema/x")(_range = () => List(DataType.default.`@double`))
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
       val test                                = DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
       test.sum

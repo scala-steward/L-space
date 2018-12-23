@@ -7,8 +7,9 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Intersect extends PredicateCompanion("Intersect") with PredicateWrapper[Intersect[_]] {
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
+object Intersect
+    extends PredicateDef("Intersect", `@extends` = () => List(ObjectP.ontology))
+    with PredicateWrapper[Intersect[_]] {
 
   def wrap(node: Node): Intersect[_] = node match {
     case node: Intersect[_] => node
@@ -17,6 +18,10 @@ object Intersect extends PredicateCompanion("Intersect") with PredicateWrapper[I
       new Intersect(pvalue, node)(helper)
   }
 
+  object keys extends ObjectP.Properties
+  override lazy val properties: List[Property] = ObjectP.properties
+  trait Properties extends ObjectP.Properties
+
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Intersect[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -24,8 +29,6 @@ object Intersect extends PredicateCompanion("Intersect") with PredicateWrapper[I
     node.addOut(EqP.keys.value, pvalue)
     new Intersect(pvalue, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Intersect[T] private (val pvalue: T, override val value: Node)(implicit helper: ObjectHelper[T])

@@ -8,7 +8,7 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Is extends StepDef("Is") with StepWrapper[Is] {
+object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Is] {
 
   def wrap(node: Node): Is = node match {
     case node: Is => node
@@ -16,15 +16,20 @@ object Is extends StepDef("Is") with StepWrapper[Is] {
   }
 
   object keys {
-    private val predicateNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Is/Predicate")
-    predicateNode.addLabel(Property.ontology)
-    predicateNode --- Property.default.`@label` --> "Predicate" --- Property.default.`@language` --> "en"
-    predicateNode --- Property.default.`@comment` --> "A Predicate" --- Property.default.`@language` --> "en"
-    predicateNode --- Property.default.`@container` --> types.`@list`
-    predicateNode --- Property.default.`@range` --> P.ontology
-
-    lazy val predicate: Property          = Property(predicateNode)
-    val predicateUrl: TypedProperty[Node] = predicate + P.ontology
+    object predicate
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Is/Predicate",
+          "Predicate",
+          "A Predicate",
+          container = types.`@list` :: Nil,
+          `@range` = () => P.ontology :: Nil
+        )
+    val predicateUrl: TypedProperty[Node] = predicate.property + P.ontology
+  }
+  override lazy val properties: List[Property] = keys.predicate :: FilterStep.properties
+  trait Properties extends FilterStep.Properties {
+    val predicate    = keys.predicate
+    val predicateUrl = keys.predicateUrl
   }
 
   def apply(predicates: List[P[_]]): Is = {
@@ -35,8 +40,6 @@ object Is extends StepDef("Is") with StepWrapper[Is] {
     Is(predicates, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.predicate
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Is private (predicate: List[P[_]], override val value: Node) extends WrappedNode(value) with FilterStep {

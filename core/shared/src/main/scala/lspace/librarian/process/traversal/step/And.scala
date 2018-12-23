@@ -9,7 +9,11 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.{HList, HNil}
 
-object And extends StepDef("And") with StepWrapper[And] {
+object And
+    extends StepDef("And",
+                    "An and-step traverser only survives if all n-traversals have a non-empty result.",
+                    () => FilterStep.ontology :: Nil)
+    with StepWrapper[And] {
 
   def wrap(node: Node): And = node match {
     case node: And => node
@@ -25,19 +29,20 @@ object And extends StepDef("And") with StepWrapper[And] {
       )
   }
 
-  object keys {
-    private val traversalNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/And/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal which must have a non-empty result" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@container` --> types.`@list`
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+  object keys extends FilterStep.Properties {
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/And/traversal",
+          "traversal",
+          "A traversal which must have a non-empty result",
+          container = lspace.NS.types.`@list` :: Nil,
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
   }
+  override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
 
-  trait Properties {
+  trait Properties extends FilterStep.Properties {
     lazy val `ns.l-space.eu/librarian/step/And/traversal`: Property                  = keys.traversal
     lazy val `ns.l-space.eu/librarian/step/And/traversal @Traversal`: TypedKey[Node] = keys.traversalTraversal
   }
@@ -48,9 +53,6 @@ object And extends StepDef("And") with StepWrapper[And] {
     traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
     And(traversals, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class And private (traversals: List[Traversal[_, _, _ <: HList]], override val value: Node)

@@ -9,7 +9,9 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.types._
 
-object HasId extends StepDef("HasId") with StepWrapper[HasId] {
+object HasId
+    extends StepDef("HasId", "A hasId-step filters resources by id.", () => HasStep.ontology :: Nil)
+    with StepWrapper[HasId] {
 
   def wrap(node: Node): HasId = node match {
     case node: HasId => node
@@ -17,16 +19,20 @@ object HasId extends StepDef("HasId") with StepWrapper[HasId] {
   }
 
   object keys {
-    private val idNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasId/Id")
-    idNode.addLabel(Property.ontology)
-    idNode --- Property.default.`@label` --> "Id" --- Property.default.`@language` --> "en"
-    idNode --- Property.default.`@comment` --> "An id" --- Property.default.`@language` --> "en"
-    idNode --- Property.default.`@container` --> types.`@set`
-    idNode --- Property.default.`@range` --> DataType.default.`@long`
-
-    lazy val id: Property           = Property(idNode)
-    val idLong: TypedProperty[Long] = id + DataType.default.`@long`
+    object id
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/HasId/Id",
+          "Id",
+          "An id",
+          container = types.`@set` :: Nil,
+          `@range` = () => DataType.default.`@long` :: Nil
+        )
+    val idLong: TypedProperty[Long] = id.property + DataType.default.`@long`
+  }
+  override lazy val properties: List[Property] = keys.id.property :: HasStep.properties
+  trait Properties extends HasStep.Properties {
+    val id     = keys.id
+    val idLong = keys.idLong
   }
 
   def apply(ids: Set[Long]): HasId = {
@@ -37,8 +43,6 @@ object HasId extends StepDef("HasId") with StepWrapper[HasId] {
     HasId(node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.id
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class HasId private (override val value: Node) extends WrappedNode(value) with HasStep {

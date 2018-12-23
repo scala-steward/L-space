@@ -8,24 +8,30 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object N extends StepDef("N") with StepWrapper[N] {
+object N
+    extends StepDef("N", "An n-step selects nodes to traverse from.", () => ResourceStep.ontology :: Nil)
+    with StepWrapper[N] {
 
   def wrap(node: Node): N = node match {
     case node: N => node
     case _       => new N(node.out(keys.nodeUrl), node)
   }
 
-  object keys {
-    private val nodeNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/N/node")
-    nodeNode.addLabel(Property.ontology)
-    nodeNode --- Property.default.`@label` --> "node" --- Property.default.`@language` --> "en"
-    nodeNode --- Property.default.`@comment` --> "A node" --- Property.default.`@language` --> "en"
-    nodeNode --- Property.default.`@container` --> types.`@list`
-    nodeNode --- Property.default.`@range` --> DataType.default.`@nodeURL`
-
-    lazy val node: Property          = Property(nodeNode)
-    val nodeUrl: TypedProperty[Node] = node + DataType.default.`@nodeURL`
+  object keys extends ResourceStep.Properties {
+    object node
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/N/node",
+          "node",
+          "A node",
+          container = types.`@list` :: Nil,
+          `@range` = () => DataType.default.`@nodeURL` :: Nil
+        )
+    val nodeUrl: TypedProperty[Node] = node.property + DataType.default.`@nodeURL`
+  }
+  override lazy val properties: List[Property] = keys.node :: ResourceStep.properties
+  trait Properties extends ResourceStep.Properties {
+    val node    = keys.node
+    val nodeUrl = keys.nodeUrl
   }
 
   def apply(nodes: List[Node] = List()): N = {
@@ -37,9 +43,6 @@ object N extends StepDef("N") with StepWrapper[N] {
     //    if (nodes.nonEmpty) property(V.keys.nodeUrl, nodes.head)
     N(nodes, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.node
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class N private (resources: List[Node], override val value: Node) extends WrappedNode(value) with ResourceStep {

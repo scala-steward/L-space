@@ -83,6 +83,8 @@ trait LResource[T] extends Resource[T] {
     _lastused = LResource.getLastAccessStamp()
     if (key.nonEmpty)
       key
+//        .flatMap(key => key :: graph.ns.getExtendedByProperties(key))
+//        .distinct
         .flatMap { key =>
           val linksSet = linksOut.getOrElse(key, LinksSet())
           if (linksSet.lastsync.isDefined) linksSet.links.asInstanceOf[List[Edge[T, Any]]]
@@ -114,6 +116,9 @@ trait LResource[T] extends Resource[T] {
     }
   }
 
+  override def keys: Set[Property] =
+    linksOut.keySet ++ linksIn.keySet toSet //TODO: this returns only from cached edges, query LStore
+
   def out(key: Property*): List[Any] =
     _outE(key: _*)
       .map(_.to.value)
@@ -130,18 +135,22 @@ trait LResource[T] extends Resource[T] {
 
   private def _inE(key: Property*): List[Edge[Any, T]] = {
     _lastused = LResource.getLastAccessStamp()
-    if (key.nonEmpty) key.flatMap { key =>
-      val linksSet = linksIn.getOrElse(key, LinksSet())
-      if (linksSet.lastsync.isDefined) linksSet.links.asInstanceOf[List[Edge[Any, T]]]
-      else {
-        val edges = (linksSet.links.asInstanceOf[List[Edge[Any, T]]] ++ graph.storeManager
-          .edgesByToIdAndKey(id, key)
-          .toList
-          .asInstanceOf[List[Edge[Any, T]]]).distinct
-        linksIn += key -> LinksSet[Any, T](Some(_lastused), List(edges: _*))
-        edges
-      }
-    }.toList
+    if (key.nonEmpty)
+      key
+      //        .flatMap(key => key :: graph.ns.getExtendedByProperties(key))
+      //        .distinct
+      .flatMap { key =>
+        val linksSet = linksIn.getOrElse(key, LinksSet())
+        if (linksSet.lastsync.isDefined) linksSet.links.asInstanceOf[List[Edge[Any, T]]]
+        else {
+          val edges = (linksSet.links.asInstanceOf[List[Edge[Any, T]]] ++ graph.storeManager
+            .edgesByToIdAndKey(id, key)
+            .toList
+            .asInstanceOf[List[Edge[Any, T]]]).distinct
+          linksIn += key -> LinksSet[Any, T](Some(_lastused), List(edges: _*))
+          edges
+        }
+      }.toList
     else {
       if (_lastinsync.isDefined)
         linksIn.flatMap(_._2.links.asInstanceOf[List[Edge[Any, T]]]).toList
@@ -200,6 +209,4 @@ trait LResource[T] extends Resource[T] {
     linksOut -= key
     toRemove.foreach(_.remove())
   }
-
-  protected def _remove(): Unit = {}
 }

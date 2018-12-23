@@ -137,6 +137,18 @@ trait NameSpaceGraph extends DataGraph {
           .getOrElse(propertyFromNode(nodeStore.byId(id).head)))
   }
 
+  /** Gets all properties which extend key */
+  def getExtendedByProperties(key: Property): List[Property] = {
+    g.N
+      .hasIri(key.iri)
+      .repeat(_.in(_.`@extends`), collect = true)
+      .hasLabel(Property.ontology)
+      .toList
+      .distinct
+      .map(_.iri)
+      .flatMap(getProperty)
+  }
+
   protected def propertyFromCache(id: Long): Option[Property] =
     Property.allProperties.byId
       .get(id)
@@ -192,7 +204,7 @@ trait NameSpaceGraph extends DataGraph {
     val base       = node.out(default.typed.baseString).headOption
 
     val property =
-      Property(node.iri)(node.iris, range, containers, label, comment, extendedClasses, properties, base)
+      Property._Property(node.iri)(node.iris, range, containers, label, comment, extendedClasses, properties, base)
 
     if (graph != MemGraphDefault && MemGraphDefault.ns.getProperty(node.iri).isEmpty) {
       MemGraphDefault.ns.storeProperty(property)

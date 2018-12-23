@@ -10,7 +10,9 @@ import lspace.librarian.structure._
 import shapeless.{HList, HNil}
 import lspace.types._
 
-object Order extends StepDef("Order") with StepWrapper[Order] {
+object Order
+    extends StepDef("Order", "An order-step ..", () => CollectingBarrierStep.ontology :: Nil)
+    with StepWrapper[Order] {
 
   object Orderable {
     implicit def IsNumeric[T[+Z] <: NumericType[Z]]: Orderable[T]   = new Orderable[T] {}
@@ -36,24 +38,31 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
       )
   }
 
-  object keys {
-    private val byNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Order/by")
-    byNode.addLabel(Property.ontology)
-    byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
-    byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    byNode --- Property.default.`@range` --> Traversal.ontology
-    lazy val by                          = Property(byNode)
-    val byTraversal: TypedProperty[Node] = by + Traversal.ontology
+  object keys extends CollectingBarrierStep.Properties {
+    object by
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Order/by",
+          "by",
+          "A traversal ..",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
 
-    private val increasingNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Order/increasing")
-    increasingNode.addLabel(Property.ontology)
-    increasingNode --- Property.default.`@label` --> "increasing" --- Property.default.`@language` --> "en"
-    increasingNode --- Property.default.`@comment` --> "Set to true to sort ascending" --- Property.default.`@language` --> "en"
-    increasingNode --- Property.default.`@range` --> DataType.default.`@boolean`
-    lazy val increasing: Property                 = Property(increasingNode)
-    val increasingBoolean: TypedProperty[Boolean] = increasing + DataType.default.`@boolean`
+    object increasing
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Order/increasing",
+          "increasing",
+          "Set to true to sort ascending",
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val increasingBoolean: TypedProperty[Boolean] = increasing.property + DataType.default.`@boolean`
+  }
+  override lazy val properties: List[Property] = keys.by :: keys.increasing.property :: CollectingBarrierStep.properties
+  trait Properties extends CollectingBarrierStep.Properties {
+    val by                = keys.by
+    val byTraversal       = keys.byTraversal
+    val increasing        = keys.increasing
+    val increasingBoolean = keys.increasingBoolean
   }
 
   def apply(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean = true): Order = {
@@ -64,9 +73,6 @@ object Order extends StepDef("Order") with StepWrapper[Order] {
     Order(by, increasing, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.by
-  ontologyNode --- Property.default.`@properties` --> keys.increasing
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 //case class Order(key: PropertyKey, increasing: Boolean = true) extends TraverseStep /*with ModulateStep[ZeroOrMoreBy]*/ {

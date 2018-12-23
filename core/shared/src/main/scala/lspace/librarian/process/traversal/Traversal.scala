@@ -2,7 +2,6 @@ package lspace.librarian.process.traversal
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
-import lspace.NS
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.{ClassTypeable, Selector}
 import lspace.librarian.process.traversal.step.Order.Orderable
@@ -10,6 +9,7 @@ import lspace.librarian.process.traversal.step.Select.Selection
 import lspace.librarian.process.traversal.step._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem._
+import lspace.librarian.structure.Ontology.OntologyDef
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
 import lspace.util.types.DefaultsToAny
@@ -18,7 +18,8 @@ import shapeless.ops.hlist.{Collect, Mapper, Reverse, ToList, ToTraversable, Uni
 
 import scala.collection.immutable.ListSet
 
-object Traversal {
+object Traversal
+    extends OntologyDef(lspace.NS.vocab.Lspace.+("librarian/Traversal"), Set(), "Traversal", "A traversal .. ") {
 
   def wrap(node: Node)(target: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
     implicit val graph: Graph = target
@@ -29,25 +30,24 @@ object Traversal {
     }
   }
 
-  val keys = new {
-    private val stepNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/Traversal/step")
-    stepNode.addLabel(Property.ontology)
-    stepNode --- `@label` --> "step" --- `@language` --> "en"
-    stepNode --- `@comment` --> "A step in a traversal" --- `@language` --> "en"
-    stepNode --- `@container` --> NS.types.`@list`
-    stepNode --- `@range` --> Step.ontology
-    lazy val step: Property = Property(stepNode)
-
-    val stepStep: TypedProperty[Node] = step + Step.ontology
+  object keys {
+    object step
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/Traversal/step",
+          "step",
+          "A step in a traversal",
+          container = List(lspace.NS.types.`@list`),
+          `@range` = () => Step.ontology :: Nil
+        ) {}
+    lazy val stepNode: TypedProperty[Node] = step.property + Step.ontology
   }
 
-  private val ontologyNode = MemGraphDefault.ns.nodes.create(Ontology.ontology)
-  ontologyNode --- `@id` --> lspace.NS.vocab.Lspace.+("librarian/Traversal").toString
-  ontologyNode --- `@label` --> "Traversal" --- `@language` --> "en"
-  ontologyNode --- `@properties` --> keys.step
+  override lazy val properties: List[Property] = keys.step :: Nil
 
-  lazy val ontology: Ontology = Ontology(ontologyNode)
+  trait Properties {
+    lazy val `ns.l-space.eu/librarian/Traversal/step`: Property            = keys.step
+    lazy val `ns.l-space.eu/librarian/Traversal/step@Node`: TypedKey[Node] = keys.stepNode
+  }
 
   trait StepsHelper[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList] {
     protected[this] def _traversal: Traversal[ST, ET, Steps]
@@ -252,6 +252,9 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def outMap(keys: List[Property]): Traversal[ST[Start], ClassType[Any], OutMap :: Steps] =
       outMap(keys: _*)
+    def outMap(f: (Property.default.type => Property),
+               ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Any], OutMap :: Steps] =
+      outMap((f :: ff.toList).map(_.apply(Property.default)): _*)
     def outMap(key: Property*): Traversal[ST[Start], ClassType[Any], OutMap :: Steps] =
       Traversal[ST[Start], ClassType[Any], OutMap :: Steps](OutMap(key.toSet) :: _traversal.steps)(
         target,
@@ -267,6 +270,10 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def outEMap(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[End, Any]], OutEMap :: Steps] =
       outEMap(keys: _*)
+    def outEMap(
+        f: (Property.default.type => Property),
+        ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Edge[End, Any]], OutEMap :: Steps] =
+      outEMap((f :: ff.toList).map(_.apply(Property.default)): _*)
     def outEMap(key: Property*): Traversal[ST[Start], ClassType[Edge[End, Any]], OutEMap :: Steps] =
       Traversal[ST[Start], ClassType[Edge[End, Any]], OutEMap :: Steps](OutEMap(key.toSet) :: _traversal.steps)(
         target,
@@ -282,6 +289,9 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def inMap(keys: List[Property]): Traversal[ST[Start], ClassType[Any], InMap :: Steps] =
       inMap(keys: _*)
+    def inMap(f: (Property.default.type => Property),
+              ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Any], InMap :: Steps] =
+      inMap((f :: ff.toList).map(_.apply(Property.default)): _*)
     def inMap(key: Property*): Traversal[ST[Start], ClassType[Any], InMap :: Steps] =
       Traversal[ST[Start], ClassType[Any], InMap :: Steps](InMap(key.toSet) :: _traversal.steps)(target,
                                                                                                  st,
@@ -296,6 +306,10 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def inEMap(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[Any, End]], InEMap :: Steps] =
       inEMap(keys: _*)
+    def inEMap(
+        f: (Property.default.type => Property),
+        ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Edge[Any, End]], InEMap :: Steps] =
+      inEMap((f :: ff.toList).map(_.apply(Property.default)): _*)
     def inEMap(key: Property*): Traversal[ST[Start], ClassType[Edge[Any, End]], InEMap :: Steps] =
       Traversal[ST[Start], ClassType[Edge[Any, End]], InEMap :: Steps](InEMap(key.toSet) :: _traversal.steps)(
         target,
@@ -315,6 +329,9 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def out(keys: List[Property] = List()): Traversal[ST[Start], ClassType[Any], Out :: Steps] =
       out(keys: _*)
+    def out(f: (Property.default.type => Property),
+            ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Any], Out :: Steps] =
+      out((f :: ff.toList).map(_.apply(Property.default)): _*)
     def out(key: Property*): Traversal[ST[Start], ClassType[Any], Out :: Steps] =
       Traversal[ST[Start], ClassType[Any], Out :: Steps](Out(key.toSet) :: _traversal.steps)(target,
                                                                                              st,
@@ -332,6 +349,9 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def outE(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[End, Any]], OutE :: Steps] =
       outE(keys: _*)
+    def outE(f: (Property.default.type => Property),
+             ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Edge[End, Any]], OutE :: Steps] =
+      outE((f :: ff.toList).map(_.apply(Property.default)): _*)
     def outE(key: Property*): Traversal[ST[Start], ClassType[Edge[End, Any]], OutE :: Steps] =
       Traversal[ST[Start], ClassType[Edge[End, Any]], OutE :: Steps](OutE(key.toSet) :: _traversal.steps)(
         target,
@@ -347,6 +367,9 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def in(keys: List[Property]): Traversal[ST[Start], ClassType[Any], In :: Steps] =
       in(keys: _*)
+    def in(f: (Property.default.type => Property),
+           ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Any], In :: Steps] =
+      in((f :: ff.toList).map(_.apply(Property.default)): _*)
     def in(key: Property*): Traversal[ST[Start], ClassType[Any], In :: Steps] =
       Traversal[ST[Start], ClassType[Any], In :: Steps](In(key.toSet) :: _traversal.steps)(target,
                                                                                            st,
@@ -361,6 +384,9 @@ object Traversal {
               .getOrElse(Property(key))): _*)
     def inE(keys: List[Property]): Traversal[ST[Start], ClassType[Edge[Any, End]], InE :: Steps] =
       inE(keys: _*)
+    def inE(f: (Property.default.type => Property),
+            ff: (Property.default.type => Property)*): Traversal[ST[Start], ClassType[Edge[Any, End]], InE :: Steps] =
+      inE((f :: ff.toList).map(_.apply(Property.default)): _*)
     def inE(key: Property*): Traversal[ST[Start], ClassType[Edge[Any, End]], InE :: Steps] =
       Traversal[ST[Start], ClassType[Edge[Any, End]], InE :: Steps](InE(key.toSet) :: _traversal.steps)(
         target,
@@ -1042,7 +1068,7 @@ object Traversal {
 
   def apply(value0: Node, target0: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
     val types = value0.labels
-    val steps0 = value0.out(Traversal.keys.stepStep).foldLeft[HList](HNil) {
+    val steps0 = value0.out(Traversal.keys.stepNode).foldLeft[HList](HNil) {
       case (hlist, node) => Step.toStep(node) :: hlist
     }
 

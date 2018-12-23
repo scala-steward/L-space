@@ -7,28 +7,19 @@ import lspace.librarian.process.traversal.p._
 import lspace.librarian.structure._
 import lspace.NS
 import lspace.librarian.datatype._
-import lspace.librarian.process.traversal.EqP.ontologyNode
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
 import lspace.librarian.provider.mem.MemGraphDefault
+import lspace.librarian.structure.Ontology.OntologyDef
 import lspace.librarian.util.AssertionNotSupported
-import lspace.types._
 import lspace.types.vector.Geometry
-import shapeless.ops.hlist.Prepend
 import shapeless.{::, HList, HNil, LUBConstraint}
-import squants.time.TimeUnit
 import squants.{Quantity, QuantityRange}
 
 import scala.collection.immutable.ListSet
-import scala.util.Try
 
-object P {
-  private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/P")
-  ontologyNode.addLabel(Ontology.ontology)
+object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P", comment = "Predicate ontology") {
 
-  lazy val ontology: Ontology = Ontology(ontologyNode)
-  //  lazy val classType: ClassType[P[_]] = ClassType[P[_]](ontology.iri /*, P.wrap*/ )
+  object keys
 
   implicit def nodeToP(node: Node): P[_] = P.wrap(node)
 
@@ -61,7 +52,7 @@ object P {
           throw new Exception(s"No valid P-ontology found for types ${types}")
       }
   }
-  lazy val predicates: List[PredicateCompanion] = List(
+  lazy val predicates: List[PredicateDef] = List(
     Eqv,
     Neqv,
     Gt,
@@ -703,126 +694,89 @@ trait EqP[T] extends P[T] {
   def pvalue: Any
   //  def datatype: DataType[T] = outE(EqP.keys.value).head.inV.types.head
 }
-object EqP {
-  private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/EqP")
-  ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.`@extends` --> P.ontology
-  ontologyNode --- Property.default.`@label` --> "EqP" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> "A simple predicate" --- Property.default.`@language` --> "en"
-  lazy val ontology: Ontology = Ontology(ontologyNode)
+object EqP extends PredicateDef(label = "EqP", comment = "Equality predicate") {
 
-  object keys {
-    private val valueNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/compare/value")
-    valueNode.addLabel(Property.ontology)
-    valueNode --- Property.default.`@label` --> "value" --- Property.default.`@language` --> "en"
-    valueNode --- Property.default.`@comment` --> "Any value" --- Property.default.`@language` --> "en"
-    valueNode --- Property.default.`@container` --> NS.types.`@list`
-    lazy val value: Property = Property(valueNode)
-    //    val typedValue = value.addRange(DataType.nodeType)
-    //    val valueString = value + DataType.default.textType
-    //    val valueInt = value + DataType.default.intType
-    //    val valueDouble = value + DataType.default.doubleType
-    //    val valueLong = value + DataType.default.longType
-    //    val valueDateTime = value + DataType.default.dateTimeType
-    //    val valueDate = value + DataType.default.dateType
-    //    //    val valueTime = value + DataTypes.TimeType)
-    //    val valueGeo = value + DataType.default.geoType
-    //    val valueBoolean = value + DataType.default.boolType
-    //    val valueUrl = value + DataType.default.uRLType
-    //    val valueEpoch = value + DataType.default.epochType)
+  object keys extends P.Properties {
+    object value
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/p/value",
+          "value",
+          "Any value",
+          container = List(lspace.NS.types.`@list`),
+          `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
+        ) {}
   }
-  ontologyNode --- Property.default.`@properties` --> keys.value
 
-  //  MemGraphDefault.ns.storeOntology(ontology)
+  override lazy val properties: List[Property] = keys.value.property :: Nil
+
+  trait Properties extends P.Properties {
+    lazy val value: Property = keys.value
+  }
 }
 trait OrderP[T] extends EqP[T]
-object OrderP {}
+object OrderP
+    extends PredicateDef(label = "OrderP", comment = "Order predicate", `@extends` = () => EqP.ontology :: Nil) {
+
+  object keys extends EqP.Properties
+  override lazy val properties: List[Property] = EqP.properties
+
+  trait Properties extends EqP.Properties
+}
 trait RangeP[T] extends P[T] {
   def lower: T
   def upper: T
 }
-object RangeP {
-  private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/RangeP")
-  ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.`@label` --> "RangeP" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> "A compound predicate" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@extends` --> P.ontology
-  lazy val ontology: Ontology = Ontology(ontologyNode)
+object RangeP extends PredicateDef(label = "RangeP", comment = "Range predicate") {
 
-  object keys {
-    private val lowerNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/range/lower")
-    lowerNode.addLabel(Property.ontology)
-    lowerNode --- Property.default.`@label` --> "lower" --- Property.default.`@language` --> "en"
-    lazy val lower = Property(lowerNode)
-
-    private val upperNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/range/upper")
-    upperNode.addLabel(Property.ontology)
-    upperNode --- Property.default.`@label` --> "upper" --- Property.default.`@language` --> "en"
-    lazy val upper = Property(upperNode)
-
-    //    val typedValue = value.addRange(DataType.nodeType)
-    //    val lowerInt = lower.addRange(lower.graph.intType)
-    //    val lowerDouble = lower.addRange(lower.graph.doubleType)
-    //    val lowerLong = lower.addRange(lower.graph.longType)
-    //    val lowerDateTime = lower.addRange(lower.graph.dateTimeType)
-    //    val lowerDate = lower.addRange(lower.graph.dateType)
-    //    val lowerTime = lower.addRange(lower.graph.timeType)
-    //
-    //    val upperInt = upper.addRange(upper.graph.intType)
-    //    val upperDouble = upper.addRange(upper.graph.doubleType)
-    //    val upperLong = upper.addRange(upper.graph.longType)
-    //    val upperDateTime = upper.addRange(upper.graph.dateTimeType)
-    //    val upperDate = upper.addRange(upper.graph.dateType)
-    //    val upperTime = upper.addRange(upper.graph.timeType)
+  object keys extends P.Properties {
+    object lower
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/p/range/lower",
+          "lower",
+          "Any value"
+        ) {}
+    object upper
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/p/range/upper",
+          "upper",
+          "Any value"
+        ) {}
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.lower
-  ontologyNode --- Property.default.`@properties` --> keys.upper
-  //  MemGraphDefault.ns.storeOntology(ontology)
+  override lazy val properties: List[Property] = keys.lower.property :: keys.upper.property :: Nil
+
+  trait Properties extends P.Properties {
+    lazy val lower: Property = keys.lower
+    lazy val upper: Property = keys.upper
+  }
 }
 
 trait CollectionP[T] extends P[T] {
   def pvalues: List[T]
 }
-object CollectionP {
-  private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/CollectionP")
-  ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.`@label` --> "CollectionP" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> "A complete predicate" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@extends` --> P.ontology
+object CollectionP extends PredicateDef(label = "CollectionP", comment = "Collection predicate") {
 
-  lazy val ontology: Ontology = Ontology(ontologyNode)
-
-  object keys {
-    private val valueNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/compare/values")
-    valueNode.addLabel(Property.ontology)
-    valueNode --- Property.default.`@extends` --> EqP.keys.value
-    valueNode --- Property.default.`@label` --> "values" --- Property.default.`@language` --> "en"
-    valueNode --- Property.default.`@comment` --> "Polyglot list of values" --- Property.default.`@language` --> "en"
-    valueNode --- Property.default.`@container` --> NS.types.`@set`
-
-    lazy val value  = Property(valueNode)
-    lazy val valueP = value + P.ontology //TODO: test nested predicate structures
+  object keys extends P.Properties {
+    object value
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/p/collection/value",
+          "values",
+          "Polyglot list of values",
+          container = List(lspace.NS.types.`@set`)
+        ) {}
   }
+  override lazy val properties: List[Property] = keys.value.property :: Nil
 
-  ontologyNode --- Property.default.`@properties` --> keys.value
-  //  MemGraphDefault.ns.storeOntology(ontology)
+  trait Properties extends P.Properties {
+    lazy val value: Property = keys.value
+  }
 }
-object ObjectP {
-  private val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/p/ObjectP")
-  ontologyNode.addLabel(Ontology.ontology)
-  ontologyNode --- Property.default.`@label` --> "ObjectP" --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@comment` --> ".." --- Property.default.`@language` --> "en"
-  ontologyNode --- Property.default.`@extends` --> P.ontology
+object ObjectP extends PredicateDef(label = "ObjectP", comment = "Object predicate") {
 
-  lazy val ontology: Ontology = Ontology(ontologyNode)
+  object keys extends EqP.Properties
+  override lazy val properties: List[Property] = EqP.properties
+
+  trait Properties extends EqP.Properties
 }
 trait ObjectP[T] extends P[T]
 
@@ -831,14 +785,7 @@ trait PredicateWrapper[+T] {
   def wrap(node: Node): T
 }
 
-abstract class PredicateCompanion(label: String, comment: String = "") {
-  protected[traversal] val ontologyNode =
-    MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + s"librarian/p/${label}")
-  ontologyNode.addLabel(Ontology.ontology)
-  if (label != "")
-    ontologyNode --- Property.default.`@label` --> label --- Property.default.`@language` --> "en"
-  if (comment != "")
-    ontologyNode --- Property.default.`@comment` --> comment --- Property.default.`@language` --> "en"
-  //  ontologyNode --- Property.default.comment --> "" --- Property.default.language --> "en"
-  lazy val ontology: Ontology = Ontology(ontologyNode)
-}
+abstract class PredicateDef(label: String,
+                            comment: String = "",
+                            `@extends`: () => List[Ontology] = () => List(P.ontology))
+    extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/p/${label}", Set(), label, comment, `@extends`)

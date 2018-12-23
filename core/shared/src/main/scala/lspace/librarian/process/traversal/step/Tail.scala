@@ -2,27 +2,32 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Tail extends StepDef("Tail") with StepWrapper[Tail] {
+object Tail
+    extends StepDef("Tail", "A tail-step limits the traversal to last n-results.", () => ClipStep.ontology :: Nil)
+    with StepWrapper[Tail] {
 
   def wrap(node: Node): Tail = node match {
     case node: Tail => node
     case _          => Tail(node.out(Tail.keys.maxInt).head, node)
   }
 
-  object keys {
-    private val maxNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Tail/max")
-    maxNode.addLabel(Property.ontology)
-    maxNode --- Property.default.`@label` --> "max" --- Property.default.`@language` --> "en"
-    maxNode --- Property.default.`@comment` --> "The maximum number of tail-results" --- Property.default.`@language` --> "en"
-    maxNode --- Property.default.`@range` --> DataType.default.`@int`
-
-    lazy val max: Property         = Property(maxNode)
-    val maxInt: TypedProperty[Int] = max + DataType.default.`@int`
+  object keys extends ClipStep.Properties {
+    object max
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Tail/max",
+          "max",
+          "The maximum number of tail-results",
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val maxInt: TypedProperty[Int] = max.property + DataType.default.`@int`
+  }
+  override lazy val properties: List[Property] = keys.max :: ClipStep.properties
+  trait Properties extends ClipStep.Properties {
+    val max    = keys.max
+    val maxInt = keys.maxInt
   }
 
   def apply(max: Int): Tail = {
@@ -31,9 +36,6 @@ object Tail extends StepDef("Tail") with StepWrapper[Tail] {
     node.addOut(keys.maxInt, max)
     Tail(max, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.max
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Tail private (max: Int, override val value: Node) extends WrappedNode(value) with ClipStep {

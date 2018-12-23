@@ -8,7 +8,11 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import shapeless.{HList, HNil}
 
-object Coalesce extends StepDef("Coalesce") with StepWrapper[Coalesce[ClassType[Any], ClassType[Any]]] {
+object Coalesce
+    extends StepDef("Coalesce",
+                    "A coalesce-steps continues on the first of n-traversals which has a non-empty result.",
+                    () => BranchStep.ontology :: Nil)
+    with StepWrapper[Coalesce[ClassType[Any], ClassType[Any]]] {
 
   def wrap(node: Node): Coalesce[ClassType[Any], ClassType[Any]] = node match {
     //    case node: Union[Any, Any, F] => node
@@ -24,22 +28,23 @@ object Coalesce extends StepDef("Coalesce") with StepWrapper[Coalesce[ClassType[
       )
   }
 
-  object keys {
-    private val traversalNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Coalesce/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@container` --> types.`@list`
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+  object keys extends BranchStep.Properties {
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Coalesce/traversal",
+          "traversal",
+          "A traversal ..",
+          container = types.`@list` :: Nil,
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
   }
+  override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
 
-  trait Properties extends BranchStep {
-    lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal`: Property                  = keys.traversal
-    lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal @Traversal`: TypedKey[Node] = keys.traversalTraversal
+  trait Properties extends BranchStep.Properties {
+    lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal`: Property = Coalesce.keys.traversal
+    lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal @Traversal`: TypedKey[Node] =
+      Coalesce.keys.traversalTraversal
   }
 
   def apply[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]]): Coalesce[S, E] = {
@@ -48,9 +53,6 @@ object Coalesce extends StepDef("Coalesce") with StepWrapper[Coalesce[ClassType[
     traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
     Coalesce[S, E](traversals, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Coalesce[S <: ClassType[_], E <: ClassType[_]] private (traversals: List[Traversal[S, E, _ <: HList]],

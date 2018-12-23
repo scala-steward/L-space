@@ -3,12 +3,11 @@ package lspace.librarian.process.traversal.step
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import shapeless.{HList, HNil}
 
-object Where extends StepDef("Where") with StepWrapper[Where] {
+object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Where] {
 
   def wrap(node: Node): Where = node match {
     case node: Where => node
@@ -26,16 +25,21 @@ object Where extends StepDef("Where") with StepWrapper[Where] {
       )
   }
 
-  object keys {
-    private val traversalNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Where/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal which must have a non-empty result" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+  object keys extends FilterStep.Properties {
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Where/traversal",
+          "traversal",
+          "A traversal which must have a non-empty result",
+          container = lspace.NS.types.`@list` :: Nil,
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+  }
+  override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
+  trait Properties extends FilterStep.Properties {
+    val traversal          = keys.traversal
+    val traversalTraversal = keys.traversalTraversal
   }
 
   def apply(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Where = {
@@ -44,9 +48,6 @@ object Where extends StepDef("Where") with StepWrapper[Where] {
     node.addOut(keys.traversalTraversal, traversal.self)
     Where(traversal, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Where private (traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],

@@ -8,7 +8,7 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import shapeless.{HList, HNil}
 
-object Local extends StepDef("Local") with StepWrapper[Local] {
+object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontology :: Nil) with StepWrapper[Local] {
 
   def wrap(node: Node): Local = node match {
     //    case node: Local[F] => node
@@ -26,16 +26,20 @@ object Local extends StepDef("Local") with StepWrapper[Local] {
       )
   }
 
-  object keys {
-    private val traversalNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Local/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+  object keys extends BranchStep.Properties {
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Local/traversal",
+          "traversal",
+          "A traversal ..",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+  }
+  override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
+  trait Properties extends BranchStep.Properties {
+    val traversal          = keys.traversal
+    val traversalTraversal = keys.traversalTraversal
   }
 
   def apply(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Local = {
@@ -45,8 +49,6 @@ object Local extends StepDef("Local") with StepWrapper[Local] {
     Local(traversal, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Local private (traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],

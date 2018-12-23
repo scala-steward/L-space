@@ -11,7 +11,7 @@ import scala.collection.immutable.ListSet
 
 object Property {
   lazy val ontology: Ontology =
-    Ontology(NS.types.`@property`)(iris = Set(NS.types.rdfProperty))
+    Ontology(NS.types.`@property`, iris = Set(NS.types.rdfProperty))
 
   implicit lazy val urlType: IriType[Property] = new IriType[Property] {
     val iri: String = NS.types.`@property`
@@ -26,7 +26,7 @@ object Property {
 
   def apply(node: Node): Property = {
     if (node.hasLabel(urlType).nonEmpty) {
-      Property(node.iri)(
+      _Property(node.iri)(
         iris = node.iris,
         _range = () => node.out(default.`@range`).collect { case node: Node => node.graph.ns.getClassType(node) },
         containers = node.out(default.typed.containerString),
@@ -53,54 +53,95 @@ object Property {
     }
   }
 
+  implicit def pDefToProperty(df: PropertyDef): Property = df.property
+
+  /**
+    *
+    * @param iri
+    * @param label
+    * @param comment
+    * @param iris
+    * @param container
+    * @param `@range`
+    * @param `@extends`
+    */
+  abstract class PropertyDef(iri: String,
+                             label: String,
+                             comment: String = "",
+                             iris: Set[String] = Set(),
+                             container: List[String] = List(),
+                             `@range`: () => List[ClassType[_]] = () => List(),
+                             `@extends`: () => List[Property] = () => List()) {
+
+    lazy val property: Property =
+      new Property(
+        iri,
+        iris,
+        _range = `@range`,
+        containers = container,
+        _properties = () => properties,
+        label = Map("en"   -> label),
+        comment = Map("en" -> comment),
+        _extendedClasses = `@extends`
+      )
+
+    object keys
+    protected def properties: List[Property] = List()
+
+    trait Properties {}
+
+    def as[T](range: ClassType[T]): TypedProperty[T] = property.as(range)
+    def +[T](range: ClassType[T]): TypedProperty[T]  = property.as(range)
+  }
+
   object default {
     import DataType.default._
 
-    val `@id`: Property = Property(NS.types.`@id`)(_range = () => `@string` :: Nil)
+    val `@id`: Property = _Property(NS.types.`@id`)(_range = () => `@string` :: Nil)
     val `@ids`: Property =
-      Property(NS.types.`@ids`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+      _Property(NS.types.`@ids`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
     val `@container`: Property =
-      Property(NS.types.`@container`)(_range = () => `@string` :: Nil, containers = NS.types.`@list` :: Nil)
-    val `@range`: Property = Property(NS.types.`@range`)(
+      _Property(NS.types.`@container`)(_range = () => `@string` :: Nil, containers = NS.types.`@list` :: Nil)
+    val `@range`: Property = _Property(NS.types.`@range`)(
       iris = Set(NS.types.schemaRange),
       _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
-    val `@type`: Property = Property(NS.types.`@type`)(
+    val `@type`: Property = _Property(NS.types.`@type`)(
       _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
-    val `@extends`: Property = Property(NS.types.`@extends`)(
+    val `@extends`: Property = _Property(NS.types.`@extends`)(
       iris = Set(NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf),
       _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
-    val `@properties`: Property = Property(NS.types.`@properties`)(_range = () => DataType.default.`@property` :: Nil,
-                                                                   containers = NS.types.`@set` :: Nil)
+    val `@properties`: Property = _Property(NS.types.`@properties`)(_range = () => DataType.default.`@property` :: Nil,
+                                                                    containers = NS.types.`@set` :: Nil)
     val `@language`: Property =
-      Property(NS.types.`@language`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+      _Property(NS.types.`@language`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
     val `@index`: Property =
-      Property(NS.types.`@index`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+      _Property(NS.types.`@index`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
     val `@label`: Property =
-      Property(NS.types.`@label`)(iris = Set(NS.types.rdfsLabel),
-                                  _range = () => `@string` :: Nil,
-                                  containers = NS.types.`@language` :: Nil)
+      _Property(NS.types.`@label`)(iris = Set(NS.types.rdfsLabel),
+                                   _range = () => `@string` :: Nil,
+                                   containers = NS.types.`@language` :: Nil)
     val `@comment`: Property =
-      Property(NS.types.`@comment`)(iris = Set(NS.types.rdfsComment),
-                                    _range = () => `@string` :: Nil,
-                                    containers = NS.types.`@language` :: Nil)
-    val `@base`: Property      = Property(NS.types.`@base`)(_range = () => `@string` :: Nil)
-    val `@value`: Property     = Property(NS.types.`@value`)
-    val `@pvalue`: Property    = Property(NS.types.`@pvalue`)
-    val `@graph`: Property     = Property(NS.types.`@graph`)(containers = NS.types.`@set` :: Nil)
-    val `@start`: Property     = Property(NS.types.`@start`)(_range = () => `@datetime` :: Nil)
-    val `@end`: Property       = Property(NS.types.`@end`)(_range = () => `@datetime` :: Nil)
-    val `@createdon`: Property = Property(NS.types.`@createdon`)(_range = () => `@datetime` :: Nil)
+      _Property(NS.types.`@comment`)(iris = Set(NS.types.rdfsComment),
+                                     _range = () => `@string` :: Nil,
+                                     containers = NS.types.`@language` :: Nil)
+    val `@base`: Property      = _Property(NS.types.`@base`)(_range = () => `@string` :: Nil)
+    val `@value`: Property     = _Property(NS.types.`@value`)
+    val `@pvalue`: Property    = _Property(NS.types.`@pvalue`)
+    val `@graph`: Property     = _Property(NS.types.`@graph`)(containers = NS.types.`@set` :: Nil)
+    val `@start`: Property     = _Property(NS.types.`@start`)(_range = () => `@datetime` :: Nil)
+    val `@end`: Property       = _Property(NS.types.`@end`)(_range = () => `@datetime` :: Nil)
+    val `@createdon`: Property = _Property(NS.types.`@createdon`)(_range = () => `@datetime` :: Nil)
     val `@modifiedon`: Property =
-      Property(NS.types.`@modifiedon`)(_range = () => `@datetime` :: Nil)
-    val `@deletedon`: Property = Property(NS.types.`@deletedon`)(_range = () => `@datetime` :: Nil)
+      _Property(NS.types.`@modifiedon`)(_range = () => `@datetime` :: Nil)
+    val `@deletedon`: Property = _Property(NS.types.`@deletedon`)(_range = () => `@datetime` :: Nil)
     val `@transcendedon`: Property =
-      Property(NS.types.`@transcendedon`)(_range = () => `@datetime` :: Nil)
+      _Property(NS.types.`@transcendedon`)(_range = () => `@datetime` :: Nil)
 
     object typed {
       lazy val iriUrlString: TypedProperty[String]    = `@id` as `@string`
@@ -196,16 +237,26 @@ object Property {
     transcendedOnDateTime.iri -> transcendedOnDateTime
   )
 
-  def apply(iri: String)(implicit
-                         iris: Set[String] = Set(),
-                         _range: () => List[ClassType[_]] = () => List(),
-                         containers: List[String] = List(),
-                         label: Map[String, String] = Map(),
-                         comment: Map[String, String] = Map(),
-                         _extendedClasses: () => List[Property] = () => List(),
-                         _properties: () => List[Property] = () => List(),
-                         base: Option[String] = None) =
+  def _Property(iri: String)(implicit
+                             iris: Set[String] = Set(),
+                             _range: () => List[ClassType[_]] = () => List(),
+                             containers: List[String] = List(),
+                             label: Map[String, String] = Map(),
+                             comment: Map[String, String] = Map(),
+                             _extendedClasses: () => List[Property] = () => List(),
+                             _properties: () => List[Property] = () => List(),
+                             base: Option[String] = None): Property =
     new Property(iri, iris, _range, containers, label, comment, _extendedClasses, _properties, base) {}
+
+  def apply(iri: String,
+            iris: Set[String] = Set(),
+            range: List[ClassType[_]] = List(),
+            containers: List[String] = List(),
+            label: Map[String, String] = Map(),
+            comment: Map[String, String] = Map(),
+            extendedClasses: List[Property] = List(),
+            properties: List[Property] = List()): Property =
+    new Property(iri, iris, () => range, containers, label, comment, () => extendedClasses, () => properties) {}
 }
 
 /**
@@ -235,7 +286,6 @@ class Property(val iri: String,
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
   def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
-  def ::[T](range: ClassType[T]): TypedProperty[T] = as(range)
 
   lazy val range: ListSet[ClassType[_]] = _range().to[ListSet] ++ extendedClasses.flatMap(_.range)
 

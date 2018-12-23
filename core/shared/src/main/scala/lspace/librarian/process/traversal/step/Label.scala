@@ -6,7 +6,7 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Label extends StepDef("Label") with StepWrapper[Label] {
+object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[Label] {
 
   def wrap(node: Node): Label = node match {
     case node: Label => node
@@ -22,6 +22,8 @@ object Label extends StepDef("Label") with StepWrapper[Label] {
   }
 
   object keys extends MoveStep.Properties
+  override lazy val properties: List[Property] = MoveStep.properties
+  trait Properties extends MoveStep.Properties
 
   def apply[CT <: ClassType[_]](labels: Set[CT] = Set()): Label = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -36,9 +38,6 @@ object Label extends StepDef("Label") with StepWrapper[Label] {
     }
     new Label(labels.asInstanceOf[Set[ClassType[_]]], node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.`ns.l-space.eu/librarian/MoveStep/label`
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Label private (label: Set[ClassType[_]], override val value: Node) extends WrappedNode(value) with MoveStep {

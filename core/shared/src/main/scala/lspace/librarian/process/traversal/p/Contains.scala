@@ -1,20 +1,18 @@
 package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P._
-import lspace.librarian.process.traversal.p.Intersect.ontology
 import lspace.librarian.process.traversal._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Contains extends PredicateCompanion("Contains") with PredicateWrapper[Contains[_]] {
+object Contains
+    extends PredicateDef("Contains", `@extends` = () => List(EqP.ontology))
+    with PredicateWrapper[Contains[_]] {
   trait Helper[T] {
     def contains(avalue: Any, pvalue: T): Boolean
   }
-
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
 
   def wrap(node: Node): Contains[_] = node match {
     case node: Contains[_] => node
@@ -26,6 +24,10 @@ object Contains extends PredicateCompanion("Contains") with PredicateWrapper[Con
       new Contains(pvalue, node)(helper)
   }
 
+  object keys extends EqP.Properties
+  override lazy val properties: List[Property] = EqP.properties
+  trait Properties extends EqP.Properties
+
   def apply[T: EqHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Contains[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -33,8 +35,6 @@ object Contains extends PredicateCompanion("Contains") with PredicateWrapper[Con
     node.addOut(EqP.keys.value, pvalue)
     new Contains(pvalue, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Contains[T] private (val pvalue: T, override val value: Node)(implicit helper: EqHelper[T])

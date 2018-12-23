@@ -2,12 +2,11 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import shapeless.HList
 
-object Path extends StepDef("Path") with StepWrapper[Path] {
+object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: Nil) with StepWrapper[Path] {
 
   def wrap(node: Node): Path = node match {
     case node: Path => node
@@ -26,22 +25,20 @@ object Path extends StepDef("Path") with StepWrapper[Path] {
   }
 
   object keys {
-    private val byNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Path/by")
-    byNode.addLabel(Property.ontology)
-    byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
-    byNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    byNode --- Property.default.`@range` --> Traversal.ontology
-    lazy val by                          = Property(byNode)
-    val byTraversal: TypedProperty[Node] = by + Traversal.ontology
+    object by
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Path/by",
+          "by",
+          "A traversal ..",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
   }
-
-  //  def apply(property: Property): Local = {
-  //    val node = DetachedGraph.newNode(ontology)
-  //
-  //    node.property(keys.by, property)
-  //    Path(property, node)
-  //  }
+  override lazy val properties: List[Property] = keys.by :: MapStep.properties
+  trait Properties extends MapStep.Properties {
+    val by          = keys.by
+    val byTraversal = keys.byTraversal
+  }
 
   def apply(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Path = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -50,8 +47,6 @@ object Path extends StepDef("Path") with StepWrapper[Path] {
     Path(by, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.by
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Path private (by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList], override val value: Node)

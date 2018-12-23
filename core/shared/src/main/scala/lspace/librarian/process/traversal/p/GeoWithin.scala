@@ -8,8 +8,9 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.types.vector.Geometry
 
-object GeoWithin extends PredicateCompanion("GeoWithin") with PredicateWrapper[GeoWithin[_]] {
-  ontologyNode --- Property.default.`@extends` --> ObjectP.ontology
+object GeoWithin
+    extends PredicateDef("GeoWithin", `@extends` = () => List(ObjectP.ontology))
+    with PredicateWrapper[GeoWithin[_]] {
 
   def wrap(node: Node): GeoWithin[_] = node match {
     case node: GeoWithin[_] => node
@@ -20,6 +21,10 @@ object GeoWithin extends PredicateCompanion("GeoWithin") with PredicateWrapper[G
       }
       new GeoWithin(pvalue, node)(helper)
   }
+
+  object keys extends ObjectP.Properties
+  override lazy val properties: List[Property] = ObjectP.properties
+  trait Properties extends ObjectP.Properties
 
   def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): GeoWithin[T] = {

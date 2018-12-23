@@ -2,13 +2,12 @@ package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{EqP, PredicateCompanion, PredicateWrapper}
+import lspace.librarian.process.traversal.{EqP, PredicateDef, PredicateWrapper}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Prefix extends PredicateCompanion("Prefix") with PredicateWrapper[Prefix[_]] {
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
+object Prefix extends PredicateDef("Prefix", `@extends` = () => List(EqP.ontology)) with PredicateWrapper[Prefix[_]] {
 
   def wrap(node: Node): Prefix[_] = node match {
     case node: Prefix[_] => node
@@ -17,6 +16,10 @@ object Prefix extends PredicateCompanion("Prefix") with PredicateWrapper[Prefix[
       new Prefix(pvalue, node)(helper)
   }
 
+  object keys extends EqP.Properties
+  override lazy val properties: List[Property] = EqP.properties
+  trait Properties extends EqP.Properties
+
   def apply[T: StringHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Prefix[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -24,8 +27,6 @@ object Prefix extends PredicateCompanion("Prefix") with PredicateWrapper[Prefix[
     node.addOut(EqP.keys.value, pvalue)
     new Prefix(pvalue, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Prefix[T] private (val pvalue: T, override val value: Node)(implicit helper: StringHelper[T])

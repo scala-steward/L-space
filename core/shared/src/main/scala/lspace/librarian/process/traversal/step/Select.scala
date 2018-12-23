@@ -42,16 +42,17 @@ object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
   }
 
   object keys {
-    private val nameNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Select/name")
-    nameNode.addLabel(Property.ontology)
-    nameNode --- Property.default.`@label` --> "name" --- Property.default.`@language` --> "en"
-    nameNode --- Property.default.`@comment` --> "The name of the result to retrieve" --- Property.default.`@language` --> "en"
-    nameNode --- Property.default.`@container` --> types.`@listset`
-    nameNode --- Property.default.`@range` --> DataType.default.`@string`
-
-    lazy val name: Property               = Property(nameNode)
-    val nameString: TypedProperty[String] = name + DataType.default.`@string`
+    object name
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Select/name",
+          "name",
+          "The name of the result to retrieve",
+          container = types.`@listset` :: Nil,
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val nameString: TypedProperty[String] = name.property + DataType.default.`@string`
   }
+  override lazy val properties: List[Property] = keys.name :: Nil
 
   def apply[E](names: List[String]): Select[E] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -60,8 +61,6 @@ object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
     Select[E](names, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.name
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Select[E] private (names: List[String], override val value: Node)

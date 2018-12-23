@@ -40,9 +40,9 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       val node = graph.nodes.create()
       node.labels.size shouldBe 0
       lazy val veryunknownontology =
-        Ontology("veryunknownontology")(_extendedClasses = () => List(veryunknownextendedontology))
-      lazy val veryunknownextendedontology = Ontology("veryunknownextendedontology")(_extendedClasses = () =>
-        List(Ontology("veryveryunknownextendedontology")))
+        Ontology("veryunknownontology", extendedClasses = List(veryunknownextendedontology))
+      lazy val veryunknownextendedontology =
+        Ontology("veryunknownextendedontology", extendedClasses = List(Ontology("veryveryunknownextendedontology")))
       node.addLabel(veryunknownontology)
       veryunknownontology.extendedClasses.size shouldBe 1
       node.labels.size shouldBe 1
@@ -94,7 +94,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.labels.size shouldBe 1
       node.labels.head shouldBe DataType.ontology
       val someDataTypeOntology =
-        Ontology("schema.example.com/weirddata")(_extendedClasses = () => List(DataType.ontology))
+        Ontology("schema.example.com/weirddata", extendedClasses = List(DataType.ontology))
       someDataTypeOntology.extendedClasses.size shouldBe 1
 
       node.addLabel(someDataTypeOntology)
@@ -105,7 +105,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
   "Properties" can {
     "only be single for cardinality single" ignore {
-      val singleProperty = Property("singleproperty")(_range = () => List(DataType.default.`@string`))
+      val singleProperty = Property("singleproperty", range = List(DataType.default.`@string`))
 
       val node = graph.nodes.create()
       node.addOut(singleProperty, "123456")
@@ -117,7 +117,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "be many and contain duplicates for cardinality list" in {
       val listProperty =
-        Property("listproperty")(_range = () => List(DataType.default.`@string`), containers = List(types.`@list`))
+        Property("listproperty", range = List(DataType.default.`@string`), containers = List(types.`@list`))
 
       val node = graph.nodes.create()
       node.addOut(listProperty, "123456")
@@ -132,7 +132,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "only be unique and contain no duplicates for cardinality set" ignore {
       val listProperty =
-        Property("setproperty")(_range = () => List(DataType.default.`@string`), containers = List(types.`@set`))
+        Property("setproperty", range = List(DataType.default.`@string`), containers = List(types.`@set`))
 
       val node = graph.nodes.create()
       node.addOut(listProperty, "123456")
@@ -146,14 +146,14 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       node.out(listProperty) should contain("1234567")
     }
     "have a collection as a value" in {
-      val vectorProperty = Property("some.vector")(_range = () => List(VectorType(List(DataType.default.`@int`))))
+      val vectorProperty = Property("some.vector", range = List(VectorType(List(DataType.default.`@int`))))
       val intVector      = vectorProperty + VectorType(List(DataType.default.`@int`))
       val node           = graph.nodes.create()
       node.addOut(intVector, Vector(1, 2, 3, 4))
       node.out("some.vector") shouldBe List(Vector(1, 2, 3, 4))
     }
     "be of type double" in {
-      val number       = Property("number")(_range = () => List(DataType.default.`@double`), containers = List(types.`@set`))
+      val number       = Property("number", range = List(DataType.default.`@double`), containers = List(types.`@set`))
       val numberDouble = number + DataType.default.`@double`
       val node         = graph.nodes.create()
       node.addOut(numberDouble, 0.0)

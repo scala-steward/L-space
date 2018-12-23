@@ -19,7 +19,7 @@ object SampleGraph {
     val birthPlace = Property("https://schema.org/birthPlace")
     val balance    = Property("balance")
     val rate       = Property("rate")
-    val knows      = Property("https://schema.org/knows")(containers = List(types.`@listset`))
+    val knows      = Property("https://schema.org/knows", containers = List(types.`@listset`))
   }
   object namespaces {
     case class NS(iri: String) {

@@ -12,7 +12,7 @@ object OpenSseSession {
       expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant): OpenSseSession = {
     val node = DetachedGraph.nodes.create(OpenSession.ontology)
     node.addOut(Property.default.typed.iriUrlString, iri)
-    node.addOut(OpenSession.keys.expirationDate, expiration)
+    node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
 
     new OpenSseSession(new OpenSession(node) {}) with WithSse
   }

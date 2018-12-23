@@ -2,13 +2,14 @@ package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{EqP, P, PredicateCompanion, PredicateWrapper}
+import lspace.librarian.process.traversal.{EqP, P, PredicateDef, PredicateWrapper}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object ContainsPrefix extends PredicateCompanion("ContainsPrefix") with PredicateWrapper[ContainsPrefix[_]] {
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
+object ContainsPrefix
+    extends PredicateDef("ContainsPrefix", `@extends` = () => List(EqP.ontology))
+    with PredicateWrapper[ContainsPrefix[_]] {
 
   def wrap(node: Node): ContainsPrefix[_] = node match {
     case node: ContainsPrefix[_] => node
@@ -16,6 +17,10 @@ object ContainsPrefix extends PredicateCompanion("ContainsPrefix") with Predicat
       val (pvalue, helper) = StringHelper map node.out(EqP.keys.value).head
       new ContainsPrefix(pvalue, node)(helper)
   }
+
+  object keys extends EqP.Properties
+  override lazy val properties: List[Property] = EqP.properties
+  trait Properties extends EqP.Properties
 
   def apply[T: StringHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): ContainsPrefix[T] = {

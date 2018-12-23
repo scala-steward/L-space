@@ -9,7 +9,11 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.{HList, HNil}
 
-object Or extends StepDef("Or") with StepWrapper[Or] {
+object Or
+    extends StepDef("Or",
+                    "An or-step traverser only survives if at least one of the n-traversals has a non-empty result.",
+                    () => FilterStep.ontology :: Nil)
+    with StepWrapper[Or] {
 
   def wrap(node: Node): Or = node match {
     case node: Or => node
@@ -25,16 +29,21 @@ object Or extends StepDef("Or") with StepWrapper[Or] {
       )
   }
 
-  object keys {
-    private val traversalNode = MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Or/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@container` --> types.`@list`
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+  object keys extends FilterStep.Properties {
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Or/traversal",
+          "traversal",
+          "A traversal ..",
+          container = lspace.NS.types.`@list` :: Nil,
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+  }
+  override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
+  trait Properties extends FilterStep.Properties {
+    val traversal          = keys.traversal
+    val traversalTraversal = keys.traversalTraversal
   }
 
   def apply(traversals: List[Traversal[_, _, _ <: HList]]): Or = {
@@ -45,8 +54,6 @@ object Or extends StepDef("Or") with StepWrapper[Or] {
     Or(traversals, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Or private (traversals: List[Traversal[_, _, _ <: HList]], override val value: Node)

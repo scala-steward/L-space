@@ -9,7 +9,9 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.{HList, HNil}
 
-object Union extends StepDef("Union") with StepWrapper[Union[ClassType[Any], ClassType[Any]]] {
+object Union
+    extends StepDef("Union", "A union-step ..", () => BranchStep.ontology :: Nil)
+    with StepWrapper[Union[ClassType[Any], ClassType[Any]]] {
 
   def wrap(node: Node): Union[ClassType[Any], ClassType[Any]] = node match {
     //    case node: Union[Any, Any, F] => node
@@ -25,17 +27,21 @@ object Union extends StepDef("Union") with StepWrapper[Union[ClassType[Any], Cla
       )
   }
 
-  object keys {
-    private val traversalNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Union/traversal")
-    traversalNode.addLabel(Property.ontology)
-    traversalNode --- Property.default.`@label` --> "traversal" --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@comment` --> "A traversal .." --- Property.default.`@language` --> "en"
-    traversalNode --- Property.default.`@container` --> types.`@list`
-    traversalNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val traversal: Property                = Property(traversalNode)
-    val traversalTraversal: TypedProperty[Node] = traversal + Traversal.ontology
+  object keys extends BranchStep.Properties {
+    object traversal
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Union/traversal",
+          "traversal",
+          "A traversal ..",
+          container = lspace.NS.types.`@list` :: Nil,
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+  }
+  override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
+  trait Properties extends BranchStep.Properties {
+    val traversal          = keys.traversal
+    val traversalTraversal = keys.traversalTraversal
   }
 
   def apply[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]]): Union[S, E] = {
@@ -44,9 +50,6 @@ object Union extends StepDef("Union") with StepWrapper[Union[ClassType[Any], Cla
     traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
     Union[S, E](traversals, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.traversal
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Union[S <: ClassType[_], E <: ClassType[_]] private (traversals: List[Traversal[S, E, _ <: HList]],

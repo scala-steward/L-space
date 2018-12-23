@@ -5,28 +5,31 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.types._
 
-object E extends StepDef("E") with StepWrapper[E] {
+object E
+    extends StepDef("E", "An e-step selects edges to traverse from.", () => ResourceStep.ontology :: Nil)
+    with StepWrapper[E] {
 
   def wrap(node: Node): E = node match {
     case node: E => node
     case _       => E(node.out(keys.edgeUrl), node)
   }
 
-  object keys {
-    private val edgeNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/E/edge")
-    edgeNode.addLabel(Property.ontology)
-    edgeNode --- Property.default.`@label` --> "edge" --- Property.default.`@language` --> "en"
-    edgeNode --- Property.default.`@comment` --> "An edge" --- Property.default.`@language` --> "en"
-    edgeNode --- Property.default.`@container` --> types.`@list`
-    edgeNode --- Property.default.`@range` --> DataType.default.`@edgeURL`
-
-    lazy val edge: Property                    = Property(edgeNode)
-    val edgeUrl: TypedProperty[Edge[Any, Any]] = edge + DataType.default.`@edgeURL`
+  object keys extends ResourceStep.Properties {
+    object edge
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/E/edge",
+          "edge",
+          "An edge",
+          container = types.`@list` :: Nil,
+          `@range` = () => DataType.default.`@edgeURL` :: Nil
+        )
+    val edgeUrl: TypedProperty[Edge[Any, Any]] = edge.property + DataType.default.`@edgeURL`
+  }
+  override lazy val properties: List[Property] = keys.edge :: ResourceStep.properties
+  trait Properties extends ResourceStep.Properties {
+    val edge    = keys.edge
+    val edgeUrl = keys.edgeUrl
   }
 
   def apply(links: List[Edge[Any, Any]]): E = {
@@ -36,8 +39,6 @@ object E extends StepDef("E") with StepWrapper[E] {
     E(links, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.edge
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class E private (resources: List[Edge[Any, Any]], override val value: Node)

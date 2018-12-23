@@ -6,31 +6,43 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Coin extends StepDef("Coin") with StepWrapper[Coin] {
+object Coin
+    extends StepDef("Coin",
+                    "A coin-step flips a coin for each traverser to decide whether it is to live or die.",
+                    () => FilterStep.ontology :: Nil)
+    with StepWrapper[Coin] {
 
   def wrap(node: Node): Coin = node match {
     case node: Coin => node
     case _          => Coin(node)
   }
 
-  object keys {
-    private val pNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Coin/p")
-    pNode.addLabel(Property.ontology)
-    pNode --- Property.default.`@label` --> "p" --- Property.default.`@language` --> "en"
-    pNode --- Property.default.`@comment` --> "The p-value thresshold to determine if the traverser keeps on existing" --- Property.default.`@language` --> "en"
+  object keys extends FilterStep.Properties {
+    object p
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Coin/p",
+          "p",
+          "The p-value thresshold to determine if the traverser keeps on existing",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val pDouble: TypedProperty[Double] = p.property + DataType.default.`@double`
 
-    lazy val p                         = Property(pNode)
-    val pDouble: TypedProperty[Double] = p + DataType.default.`@double`
+    object seed
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Coin/seed",
+          "seed",
+          "The seed for the random-number generator",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val seedInt: TypedProperty[Int] = seed.property + DataType.default.`@int`
+  }
+  override lazy val properties: List[Property] = keys.p.property :: keys.seed.property :: FilterStep.properties
 
-    private val seedNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Coin/seed")
-    seedNode.addLabel(Property.ontology)
-    seedNode --- Property.default.`@label` --> "seed" --- Property.default.`@language` --> "en"
-    seedNode --- Property.default.`@comment` --> "The seed for the random-number generator" --- Property.default.`@language` --> "en"
-
-    lazy val seed                   = Property(lspace.NS.vocab.Lspace + "librarian/step/Coin/seed")
-    val seedInt: TypedProperty[Int] = seed + DataType.default.`@int`
+  trait Properties extends FilterStep.Properties {
+    val p                              = keys.p
+    val pDouble: TypedProperty[Double] = keys.pDouble
+    val seed                           = keys.seed
+    val seedInt: TypedProperty[Int]    = keys.seedInt
   }
 
   def apply(p: Double, seed: Int = 0): Coin = {
@@ -41,9 +53,6 @@ object Coin extends StepDef("Coin") with StepWrapper[Coin] {
     Coin(node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.p
-  ontologyNode --- Property.default.`@properties` --> keys.seed
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Coin private (override val value: Node) extends WrappedNode(value) with FilterStep {

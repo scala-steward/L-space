@@ -2,15 +2,12 @@ package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{EqP, P, PredicateCompanion, PredicateWrapper}
+import lspace.librarian.process.traversal.{EqP, PredicateDef, PredicateWrapper}
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Fuzzy extends PredicateCompanion("Fuzzy") with PredicateWrapper[Fuzzy[_]] {
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
+object Fuzzy extends PredicateDef("Fuzzy", `@extends` = () => List(EqP.ontology)) with PredicateWrapper[Fuzzy[_]] {
 
   def wrap(node: Node): Fuzzy[_] = node match {
     case node: Fuzzy[_] => node
@@ -19,6 +16,10 @@ object Fuzzy extends PredicateCompanion("Fuzzy") with PredicateWrapper[Fuzzy[_]]
       new Fuzzy(pvalue, node)(helper)
   }
 
+  object keys extends EqP.Properties
+  override lazy val properties: List[Property] = EqP.properties
+  trait Properties extends EqP.Properties
+
   def apply[T: StringHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Fuzzy[T] = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -26,8 +27,6 @@ object Fuzzy extends PredicateCompanion("Fuzzy") with PredicateWrapper[Fuzzy[_]]
     node.addOut(EqP.keys.value, pvalue)
     new Fuzzy(pvalue, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Fuzzy[T] private (val pvalue: T, override val value: Node)(implicit helper: StringHelper[T])

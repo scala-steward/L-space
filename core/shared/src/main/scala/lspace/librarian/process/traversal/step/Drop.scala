@@ -7,12 +7,18 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Drop extends StepDef("Drop") with StepWrapper[Drop] {
+object Drop
+    extends StepDef("Drop", "A drop-step removes all resources, held by the traverers, from the graph.")
+    with StepWrapper[Drop] {
 
   def wrap(node: Node): Drop = node match {
     case node: Drop => node
     case _          => Drop(node)
   }
+
+  object keys extends Step.Properties
+  override lazy val properties: List[Property] = Step.properties
+  trait Properties extends Step.Properties
 
   def apply(): Drop = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -20,7 +26,6 @@ object Drop extends StepDef("Drop") with StepWrapper[Drop] {
     Drop(node)
   }
 
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Drop private (override val value: Node) extends WrappedNode(value) with Step {

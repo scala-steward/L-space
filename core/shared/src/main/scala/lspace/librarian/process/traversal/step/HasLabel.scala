@@ -8,7 +8,9 @@ import lspace.NS.types
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 
-object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
+object HasLabel
+    extends StepDef("HasLabel", "A hasLabel-step filters resources by label.", () => HasStep.ontology :: Nil)
+    with StepWrapper[HasLabel] {
 
   def wrap(node: Node): HasLabel = node match {
     case node: HasLabel => node
@@ -16,20 +18,24 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
   }
 
   object keys {
-    private val labelNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasLabel/Label")
-    labelNode.addLabel(Property.ontology)
-    labelNode --- Property.default.`@label` --> "Label" --- Property.default.`@language` --> "en"
-    labelNode --- Property.default.`@comment` --> "A label" --- Property.default.`@language` --> "en"
-    labelNode --- Property.default.`@container` --> types.`@set`
-    labelNode --- Property.default.`@range` --> Ontology.ontology
-    labelNode --- Property.default.`@range` --> Property.ontology
-    labelNode --- Property.default.`@range` --> DataType.ontology
-
-    lazy val label: Property                   = Property(labelNode)
-    val labelOntologyNode: TypedProperty[Node] = label + Ontology.ontology
-    val labelPropertyNode: TypedProperty[Node] = label + Property.ontology
-    val labelDataTypeNode: TypedProperty[Node] = label + DataType.ontology
+    object label
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/HasLabel/Label",
+          "Label",
+          "A label",
+          container = types.`@set` :: Nil,
+          `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
+        )
+    val labelOntologyNode: TypedProperty[Node] = label.property + Ontology.ontology
+    val labelPropertyNode: TypedProperty[Node] = label.property + Property.ontology
+    val labelDataTypeNode: TypedProperty[Node] = label.property + DataType.ontology
+  }
+  override lazy val properties: List[Property] = keys.label :: HasStep.properties
+  trait Properties extends HasStep.Properties {
+    val label             = keys.label
+    val labelOntologyNode = keys.labelOntologyNode
+    val labelPropertyNode = keys.labelPropertyNode
+    val labelDataTypeNode = keys.labelDataTypeNode
   }
 
   def apply[CT <: ClassType[_]](labels: List[CT]): HasLabel = {
@@ -42,9 +48,6 @@ object HasLabel extends StepDef("HasLabel") with StepWrapper[HasLabel] {
     }
     HasLabel(node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.label
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class HasLabel private (override val value: Node) extends WrappedNode(value) with HasStep {

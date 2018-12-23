@@ -4,8 +4,6 @@ import java.time.Instant
 
 import argonaut._
 import lspace.NS.types
-import lspace.librarian.datatype.ListType
-import lspace.librarian.process.traversal.step.HasLabel
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
@@ -63,14 +61,13 @@ class JsonLDSpec extends WordSpec with Matchers {
     }
 
     "parse an ontology to json" in {
-      val name      = Property("thing/name")(_range = () => DataType.default.`@string` :: Nil)
+      val name      = Property("thing/name", range = DataType.default.`@string` :: Nil)
       val typedName = name + DataType.default.`@string`
       val surname =
-        Property("thing/surname")(_range = () => DataType.default.`@string` :: Nil, containers = List(types.`@set`))
+        Property("thing/surname", range = DataType.default.`@string` :: Nil, containers = List(types.`@set`))
       val typedSurname = surname + DataType.default.`@string`
       val testOntology: Ontology =
-        Ontology("thing")(_properties = () => name :: surname :: Nil,
-                          _extendedClasses = () => new Ontology("basething") {} :: Nil)
+        Ontology("thing", properties = name :: surname :: Nil, extendedClasses = new Ontology("basething") {} :: Nil)
 
       val json = jsonld.ontologyToJson(testOntology)._1
       json ?? types.`@id` shouldBe true
@@ -86,13 +83,13 @@ class JsonLDSpec extends WordSpec with Matchers {
 
     MemGraphDefault.ns.storeOntology(baseOntology)
     //    baseOntology.status := CacheStatus.CACHED
-    val name      = Property("thing/name")(_range = () => DataType.default.`@string` :: Nil)
+    val name      = Property("thing/name", range = DataType.default.`@string` :: Nil)
     val typedName = name + DataType.default.`@string`
     val surname =
-      Property("thing/surname")(_range = () => DataType.default.`@string` :: Nil, containers = List(types.`@set`))
+      Property("thing/surname", range = DataType.default.`@string` :: Nil, containers = List(types.`@set`))
     val typedSurname = surname + DataType.default.`@string`
     val testOntology: Ontology =
-      Ontology("thing")(_properties = () => name :: surname :: Nil, _extendedClasses = () => baseOntology :: Nil)
+      Ontology("thing", properties = name :: surname :: Nil, extendedClasses = baseOntology :: Nil)
 
     val propertyJsonName = jsonld.propertyToJson(name)
     MemGraphDefault.ns.storeProperty(name)

@@ -1213,7 +1213,7 @@ class JsonLD(graph: Graph) {
         .getOrElse(key.range.headOption.getOrElse(DataType.default.`@string`))
     }
 
-    key.container match {
+    builder.context.property.get(key).flatMap(_.container).orElse(key.container) match {
       case Some(types.`@list`) =>
         jValue.array
           .map { values =>

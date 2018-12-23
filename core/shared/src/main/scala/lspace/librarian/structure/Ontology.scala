@@ -8,7 +8,7 @@ import lspace.librarian.structure.Property.default
 
 object Ontology {
   lazy val ontology: Ontology =
-    Ontology(NS.types.`@class`)(iris = Set(NS.types.rdfsClass))
+    Ontology(NS.types.`@class`, iris = Set(NS.types.rdfsClass))
 
   //  lazy val classType: ClassType[Ontology] = ClassType[Ontology](ldcontext.types.CLASS)
   implicit lazy val urlType: IriType[Ontology] = new IriType[Ontology] {
@@ -28,7 +28,7 @@ object Ontology {
 
   def apply(node: Node): Ontology = {
     if (node.hasLabel(ontology).nonEmpty) {
-      Ontology(node.iri)(
+      _Ontology(node.iri)(
         iris = node.iris,
         _properties = () => node.out(default.typed.propertyProperty).map(Property.apply),
         label = node
@@ -66,14 +66,56 @@ object Ontology {
     val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
   }
 
-  def apply(iri: String)(implicit
-                         iris: Set[String] = Set(),
-                         _properties: () => List[Property] = () => List(),
-                         label: Map[String, String] = Map(),
-                         comment: Map[String, String] = Map(),
-                         _extendedClasses: () => List[Ontology] = () => List(),
-                         base: Option[String] = None): Ontology =
+  implicit def oDefToOntology(df: OntologyDef): Ontology = df.ontology
+
+  /**
+    *
+    * @param iri
+    * @param iris
+    * @param label a name for the Ontology in english
+    * @param comment a description for the ontology in english
+    * @param `@extends` a parent ontology
+    * @param base
+    */
+  abstract class OntologyDef(iri: String,
+                             iris: Set[String] = Set(),
+                             label: String,
+                             comment: String = "",
+                             `@extends`: () => List[Ontology] = () => List(),
+                             base: Option[String] = None) {
+
+    lazy val ontology: Ontology =
+      new Ontology(iri,
+                   iris,
+                   _properties = () => properties,
+                   label = Map("en"   -> label),
+                   comment = Map("en" -> comment),
+                   _extendedClasses = `@extends`,
+                   base = base)
+
+    def keys: Object
+    def properties: List[Property] = List()
+
+    trait Properties {}
+  }
+
+  def _Ontology(iri: String)(implicit
+                             iris: Set[String] = Set(),
+                             _properties: () => List[Property] = () => List(),
+                             label: Map[String, String] = Map(),
+                             comment: Map[String, String] = Map(),
+                             _extendedClasses: () => List[Ontology] = () => List(),
+                             base: Option[String] = None): Ontology =
     new Ontology(iri, iris, _properties, label, comment, _extendedClasses, base) {}
+
+  def apply(iri: String,
+            iris: Set[String] = Set(),
+            properties: List[Property] = List(),
+            label: Map[String, String] = Map(),
+            comment: Map[String, String] = Map(),
+            extendedClasses: List[Ontology] = List(),
+            base: Option[String] = None): Ontology =
+    new Ontology(iri, iris, () => properties, label, comment, () => extendedClasses, base) {}
 }
 
 /**

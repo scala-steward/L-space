@@ -9,24 +9,30 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.types._
 
-object V extends StepDef("V") with StepWrapper[V] {
+object V
+    extends StepDef("V", "An v-step selects values to traverse from.", () => ResourceStep.ontology :: Nil)
+    with StepWrapper[V] {
 
   def wrap(node: Node): V = node match {
     case node: V => node
     case _       => new V(node.out(keys.valueUrl), node)
   }
 
-  object keys {
-    private val valueNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/V/value")
-    valueNode.addLabel(Property.ontology)
-    valueNode --- Property.default.`@label` --> "value" --- Property.default.`@language` --> "en"
-    valueNode --- Property.default.`@comment` --> "A value" --- Property.default.`@language` --> "en"
-    valueNode --- Property.default.`@container` --> types.`@list`
-    valueNode --- Property.default.`@range` --> DataType.default.`@valueURL`
-
-    lazy val value: Property                = Property(valueNode)
-    val valueUrl: TypedProperty[Value[Any]] = value + DataType.default.`@valueURL`
+  object keys extends ResourceStep.Properties {
+    object value
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/V/value",
+          "value",
+          "A value",
+          container = types.`@list` :: Nil,
+          `@range` = () => DataType.default.`@nodeURL` :: Nil
+        )
+    val valueUrl: TypedProperty[Value[Any]] = value.property + DataType.default.`@valueURL`
+  }
+  override lazy val properties: List[Property] = keys.value :: ResourceStep.properties
+  trait Properties extends ResourceStep.Properties {
+    val value    = keys.value
+    val valueUrl = keys.valueUrl
   }
 
   def apply(values: List[Any] = List()): V = {
@@ -43,9 +49,6 @@ object V extends StepDef("V") with StepWrapper[V] {
 //    V(values.map(v => DetachedGraph.values.create(v)), node)
     V(_values, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> keys.value
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class V private (resources: List[Value[_]], override val value: Node)

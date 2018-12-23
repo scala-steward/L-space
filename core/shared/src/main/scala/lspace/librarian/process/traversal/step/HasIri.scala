@@ -9,7 +9,9 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.types._
 
-object HasIri extends StepDef("HasIri") with StepWrapper[HasIri] {
+object HasIri
+    extends StepDef("HasIri", "A hasIri-step filters resources by iri.", () => HasStep.ontology :: Nil)
+    with StepWrapper[HasIri] {
 
   def wrap(node: Node): HasIri = node match {
     case node: HasIri => node
@@ -17,16 +19,20 @@ object HasIri extends StepDef("HasIri") with StepWrapper[HasIri] {
   }
 
   object keys {
-    private val iriNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasIri/iri")
-    iriNode.addLabel(Property.ontology)
-    iriNode --- Property.default.`@label` --> "Iri" --- Property.default.`@language` --> "en"
-    iriNode --- Property.default.`@comment` --> "An iri" --- Property.default.`@language` --> "en"
-    iriNode --- Property.default.`@container` --> types.`@set`
-    iriNode --- Property.default.`@range` --> DataType.default.`@string`
-
-    lazy val iri: Property               = Property(iriNode)
-    val iriString: TypedProperty[String] = iri + DataType.default.`@string`
+    object iri
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/HasIri/iri",
+          "Iri",
+          "An iri",
+          container = types.`@set` :: Nil,
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val iriString: TypedProperty[String] = iri.property + DataType.default.`@string`
+  }
+  override lazy val properties: List[Property] = keys.iri.property :: HasStep.properties
+  trait Properties extends HasStep.Properties {
+    val iri       = keys.iri
+    val iriString = keys.iriString
   }
 
   def apply(ids: Set[String]): HasIri = {
@@ -37,8 +43,6 @@ object HasIri extends StepDef("HasIri") with StepWrapper[HasIri] {
     HasIri(node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.iri
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class HasIri private (override val value: Node) extends WrappedNode(value) with HasStep {

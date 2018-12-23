@@ -9,7 +9,9 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.HList
 
-object Project extends StepDef("Project") with StepWrapper[Project] {
+object Project
+    extends StepDef("Project", "A project-step ..", () => Terminate.ontology :: Nil)
+    with StepWrapper[Project] {
 
   def wrap(node: Node): Project = node match {
     case node: Project => node
@@ -20,18 +22,19 @@ object Project extends StepDef("Project") with StepWrapper[Project] {
                   node)
   }
 
-  object keys {
-    private val byNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/Project/by")
-    byNode.addLabel(Property.ontology)
-    byNode --- Property.default.`@label` --> "by" --- Property.default.`@language` --> "en"
-    byNode --- Property.default.`@comment` --> "A traversal ..." --- Property.default.`@language` --> "en"
-    byNode --- Property.default.`@container` --> types.`@list`
-    byNode --- Property.default.`@range` --> Traversal.ontology
-
-    lazy val by: Property                = Property(byNode)
-    val byTraversal: TypedProperty[Node] = by + Traversal.ontology
+  object keys extends Terminate.Properties {
+    object by
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Project/by",
+          "by",
+          "A traversal ..",
+          container = lspace.NS.types.`@list` :: Nil,
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
   }
+  override lazy val properties: List[Property] = keys.by :: Terminate.properties
+  trait Properties extends Terminate.Properties
 
   def apply(traversals: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]): Project = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -40,8 +43,6 @@ object Project extends StepDef("Project") with StepWrapper[Project] {
     Project(traversals, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.by
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class Project private (by: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],

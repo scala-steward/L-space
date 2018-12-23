@@ -17,6 +17,8 @@ trait WrappedResource[T] extends Resource[T] {
 
   override lazy val hashCode: Int = self.value.hashCode()
 
+  override def keys: Set[Property] = self.keys
+
   def out(key: Property*): List[Any]                             = self.out(key: _*)
   def outMap(key: Property*): Map[Property, List[Any]]           = self.outMap(key: _*)
   def outE(key: Property*): List[Edge[T, Any]]                   = self.outE(key: _*)
@@ -25,11 +27,6 @@ trait WrappedResource[T] extends Resource[T] {
   def inMap(key: Property*): Map[Property, List[Any]]            = self.inMap(key: _*)
   def inE(key: Property*): List[Edge[Any, T]]                    = self.inE(key: _*)
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]]  = self.inEMap(key: _*)
-
-//  def addOuts[V, R <: ClassType[_]](key: Property, values: List[(R, V)]): List[Edge[T, V]] =
-//    self.addOuts(key, values)
-//  def addIns[V](key: Property, values: List[(ClassType[V], V)]): List[Edge[V, T]] =
-//    self.addIns(key, values)
 
   def removeIn[V >: T](edge: Edge[_, V]): Unit  = self.removeIn(edge)
   def removeOut[V >: T](edge: Edge[V, _]): Unit = self.removeOut(edge)

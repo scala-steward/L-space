@@ -56,7 +56,7 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
   "A namespace-graph" can {
     "store and retrieve an ontology" in {
-      val unknownOntology = Ontology("unknownOntology")(_extendedClasses = () => List(DataType.ontology))
+      val unknownOntology = Ontology("unknownOntology", extendedClasses = List(DataType.ontology))
       graph.ns.getOntology(unknownOntology).isEmpty shouldBe true
 
       val ontology = graph.ns.storeOntology(unknownOntology)

@@ -7,8 +7,7 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Lt extends PredicateCompanion("Lt") with PredicateWrapper[Lt[_]] {
-  ontologyNode --- Property.default.`@extends` --> EqP.ontology
+object Lt extends PredicateDef("Lt", `@extends` = () => List(OrderP.ontology)) with PredicateWrapper[Lt[_]] {
 
   def wrap(node: Node): Lt[_] = node match {
     case node: Lt[_] => node
@@ -17,14 +16,16 @@ object Lt extends PredicateCompanion("Lt") with PredicateWrapper[Lt[_]] {
       new Lt(pvalue, node)(helper)
   }
 
+  object keys extends OrderP.Properties
+  override lazy val properties: List[Property] = OrderP.properties
+  trait Properties extends OrderP.Properties
+
   def apply[T: OrderHelper, T0, TT0 <: ClassType[_]](pvalue: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Lt[T] = {
     val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(EqP.keys.value, pvalue)
     new Lt(pvalue, node)
   }
-
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 class Lt[T] private (val pvalue: T, override val value: Node)(implicit helper: OrderHelper[T])

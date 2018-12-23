@@ -7,7 +7,14 @@ import lspace.librarian.structure.{Node, Property, TypedProperty}
 import lspace.NS.types
 import lspace.librarian.provider.mem.MemGraphDefault
 
-object HasNot extends StepDef("HasNot") with StepWrapper[HasNot] {
+object HasNot
+    extends StepDef(
+      "HasNot",
+      "A hasNot-step grants the traverser passage if the traverser holds a " +
+        "resource which does not satisfy certains properties (and values)",
+      () => HasStep.ontology :: Nil
+    )
+    with StepWrapper[HasNot] {
 
   def wrap(node: Node): HasNot = node match {
     case node: HasNot => node
@@ -24,26 +31,31 @@ object HasNot extends StepDef("HasNot") with StepWrapper[HasNot] {
   }
 
   object keys {
-    private val keyNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasNot/Key")
-    keyNode.addLabel(Property.ontology)
-    keyNode --- Property.default.`@label` --> "Key" --- Property.default.`@language` --> "en"
-    keyNode --- Property.default.`@comment` --> "A key" --- Property.default.`@language` --> "en"
-    keyNode --- Property.default.`@range` --> Property.ontology
+    object key
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/HasNot/Key",
+          "Key",
+          "A key",
+          `@range` = () => Property.ontology :: Nil
+        )
+    val keyUrl: TypedProperty[Node] = key.property + Property.ontology
 
-    lazy val key: Property          = Property(keyNode)
-    val keyUrl: TypedProperty[Node] = key + Property.ontology
-
-    private val predicateNode =
-      MemGraphDefault.ns.nodes.upsert(lspace.NS.vocab.Lspace + "librarian/step/HasNot/Predicate")
-    predicateNode.addLabel(Property.ontology)
-    predicateNode --- Property.default.`@label` --> "Predicate" --- Property.default.`@language` --> "en"
-    predicateNode --- Property.default.`@comment` --> "A Predicate" --- Property.default.`@language` --> "en"
-    predicateNode --- Property.default.`@container` --> types.`@list`
-    predicateNode --- Property.default.`@range` --> P.ontology
-
-    lazy val predicate: Property          = Property(predicateNode)
-    val predicateUrl: TypedProperty[Node] = predicate + P.ontology
+    object predicate
+        extends Property.PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/HasNot/Predicate",
+          "Predicate",
+          "A Predicate",
+          container = types.`@list` :: Nil,
+          `@range` = () => P.ontology :: Nil
+        )
+    val predicateUrl: TypedProperty[Node] = key.property + P.ontology
+  }
+  override lazy val properties: List[Property] = keys.key.property :: keys.predicate.property :: HasStep.properties
+  trait Properties extends HasStep.Properties {
+    val key          = keys.key
+    val keyUrl       = keys.keyUrl
+    val predicate    = keys.predicate
+    val predicateUrl = keys.predicateUrl
   }
 
   def apply(key: Property, predicates: List[P[_]] = List()): HasNot = {
@@ -56,9 +68,6 @@ object HasNot extends StepDef("HasNot") with StepWrapper[HasNot] {
     HasNot(key, predicates, node)
   }
 
-  ontologyNode --- Property.default.`@properties` --> keys.key
-  ontologyNode --- Property.default.`@properties` --> keys.predicate
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class HasNot private (key: Property, predicate: List[P[_]], override val value: Node)

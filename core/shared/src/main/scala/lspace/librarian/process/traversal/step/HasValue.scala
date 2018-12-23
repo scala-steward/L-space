@@ -7,11 +7,23 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object HasValue extends StepDef("HasValue") with StepWrapper[HasValue] {
+object HasValue
+    extends StepDef("HasValue",
+                    "A hasValue-step is successful if the resources satisfies certain predicates.",
+                    () => HasStep.ontology :: Nil)
+    with StepWrapper[HasValue] {
 
   def wrap(node: Node): HasValue = node match {
     case node: HasValue => node
     case _              => HasValue(node.out(Has.keys.predicateUrl).map(P.wrap), node)
+  }
+
+  object keys {
+    val predicate = Has.keys.predicate
+  }
+  override lazy val properties: List[Property] = keys.predicate :: HasStep.properties
+  trait Properties extends HasStep.Properties {
+    val predicate = keys.predicate
   }
 
   def apply(predicates: List[P[_]]): HasValue = {
@@ -21,9 +33,6 @@ object HasValue extends StepDef("HasValue") with StepWrapper[HasValue] {
 
     HasValue(predicates, node)
   }
-
-  ontologyNode --- Property.default.`@properties` --> Has.keys.predicate
-  //  MemGraphDefault.ns.storeOntology(ontology)
 }
 
 case class HasValue private (predicate: List[P[_]], override val value: Node) extends WrappedNode(value) with HasStep {}
