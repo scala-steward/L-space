@@ -64,10 +64,10 @@ graph: lspace.librarian.structure.Graph = graph:graph-doc
 scala&gt;  SampleGraph.loadSocial(graph)
 
 scala&gt;  val labels = SampleGraph.ontologies
-labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@ed64e08
+labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@41e87328
 
 scala&gt;  val keys = SampleGraph.properties
-keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@367bf29e
+keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@42e077d8
 </code></pre>
 
 <h2 id="resource-apis">Resource API’s</h2>
@@ -79,23 +79,21 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <h3 id="resources-api">Resources API</h3>
 
 <p>hasIri</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">)</span>
 <span class="c1">// res1: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96829)
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">,</span> <span class="s">"person-yoshio"</span><span class="o">)</span>
 <span class="c1">// res2: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96829, lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822)
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 <p>hasId</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
 <span class="c1">// id: Long = 1008
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="n">id</span><span class="o">)</span>
 <span class="c1">// res3: Option[lspace.librarian.structure.Resource[_]] = Some(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96829)
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 <p>upsert</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span>
 <span class="c1">// res4: Long = 1107
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//should be equal because values are deduplicated
@@ -103,13 +101,11 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal2"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//new value, hence new id
 // res6: Long = 1108
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 <p>count:</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// res7: Long = 108
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 
 <h4 id="resource">Resource</h4>
 <p>A resource ..</p>
@@ -118,28 +114,25 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>Nodes can be:</p>
 
 <p>Retrieved by Iri(s)/Uri(s):</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">)</span>
 <span class="c1">// res8: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96829)
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">,</span> <span class="s">"person-yoshio"</span><span class="o">)</span>
 <span class="c1">// res9: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96829, lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822)
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 
 <p>Retrieved by Id(s):</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
 <span class="c1">// id: Long = 1008
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="n">id</span><span class="o">)</span>
 <span class="c1">// res10: Option[lspace.librarian.structure.Resource[_]] = Some(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96829)
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 
 <p>Counted:</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// res11: Long = 10
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 
 <h4 id="node">Node</h4>
 <p>A node ..</p>
@@ -148,10 +141,9 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>Edges can be:</p>
 
 <p>Counted:</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// res12: Long = 58
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 
 <h4 id="edge">Edge</h4>
 <p>An edge ..</p>
@@ -159,10 +151,9 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <h3 id="values-api">Values API</h3>
 
 <p>Counted:</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// res13: Long = 40
-</span></code></pre>
-</div>
+</span></code></pre></div></div>
 
 <h4 id="value">Value</h4>
 <p>A value ..</p>
