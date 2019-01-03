@@ -6,29 +6,22 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Id
+case object Id
     extends StepDef("Id",
                     "An id-step returns the id from the resource held by the traverser.",
                     () => MoveStep.ontology :: Nil)
-    with StepWrapper[Id] {
+    with StepWrapper[Id]
+    with Id {
 
-  def wrap(node: Node): Id = node match {
-    case node: Id => node
-    case _        => new Id(node)
-  }
+  def toStep(node: Node): Id = this
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply(): Id = {
-    val node = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Node = DetachedGraph.nodes.create(ontology)
 
-    new Id(node)
-  }
-
-}
-
-case class Id private (override val value: Node) extends WrappedNode(value) with MoveStep {
   override def prettyPrint: String = "id"
 }
+
+trait Id extends MoveStep

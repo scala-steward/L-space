@@ -15,19 +15,15 @@ object Has
     )
     with StepWrapper[Has] {
 
-  def wrap(node: Node): Has = node match {
-    case node: Has => node
-    case _ =>
-      Has(node
-            .outE(keys.key)
-            .take(1)
-            .map(i => node.graph.ns.getProperty(i.inV.iri).get)
-            .head,
-          node
-            .out(keys.predicateUrl)
-            .map(P.wrap),
-          node)
-  }
+  def toStep(node: Node): Has =
+    Has(node
+          .outE(keys.key)
+          .take(1)
+          .map(i => node.graph.ns.getProperty(i.inV.iri).get)
+          .head,
+        node
+          .out(keys.predicateUrl)
+          .map(P.toNode))
 
   object keys {
     object key
@@ -57,19 +53,18 @@ object Has
     val predicateUrl = keys.predicateUrl
   }
 
-  def apply(key: Property, predicates: List[P[_]] = List()): Has = {
+  implicit def toNode(has: Has): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.key, key)
-    predicates.foreach(predicate => node.addOut(keys.predicateUrl, predicate))
-    Has(key, predicates, node)
+    node.addOut(keys.key, has.key)
+    has.predicate.map(_.toNode).foreach(node.addOut(keys.predicateUrl, _))
+    node
   }
 
 }
 
-case class Has private (key: Property, predicate: List[P[_]], override val value: Node)
-    extends WrappedNode(value)
-    with HasStep {
+case class Has(key: Property, predicate: List[P[_]] = List()) extends HasStep {
+
+  lazy val toNode: Node = this
   override def prettyPrint: String =
     if (predicate.nonEmpty) s"has(${key.iri}, P.${predicate.head.prettyPrint})"
     else "has(" + key.iri + ")"

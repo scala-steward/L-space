@@ -7,25 +7,19 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object OutV extends StepDef("OutV", "An outV-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[OutV] {
+case object OutV
+    extends StepDef("OutV", "An outV-step ..", () => MoveStep.ontology :: Nil)
+    with StepWrapper[OutV]
+    with OutV {
 
-  def wrap(node: Node): OutV = node match {
-    case node: OutV => node
-    case _          => OutV(node)
-  }
+  def toStep(node: Node): OutV = this
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply(): OutV = {
-    val node = DetachedGraph.nodes.create(ontology)
-
-    OutV(node)
-  }
-
-}
-
-case class OutV private (override val value: Node) extends WrappedNode(value) with MoveStep {
+  lazy val toNode: Node            = DetachedGraph.nodes.create(ontology)
   override def prettyPrint: String = "outV"
 }
+
+trait OutV extends MoveStep

@@ -10,10 +10,7 @@ import lspace.librarian.structure._
 
 object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Is] {
 
-  def wrap(node: Node): Is = node match {
-    case node: Is => node
-    case _        => Is(node.out(Is.keys.predicateUrl).map(P.wrap), node)
-  }
+  def toStep(node: Node): Is = Is(node.out(Is.keys.predicateUrl).map(P.toNode))
 
   object keys {
     object predicate
@@ -32,16 +29,16 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
     val predicateUrl = keys.predicateUrl
   }
 
-  def apply(predicates: List[P[_]]): Is = {
+  implicit def toNode(is: Is): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    predicates.foreach(node.addOut(keys.predicate, _))
-
-    Is(predicates, node)
+    is.predicate.map(_.toNode).foreach(node.addOut(keys.predicate, _))
+    node
   }
 
 }
 
-case class Is private (predicate: List[P[_]], override val value: Node) extends WrappedNode(value) with FilterStep {
+case class Is(predicate: List[P[_]]) extends FilterStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "is(P." + predicate.head.prettyPrint + ")"
 }

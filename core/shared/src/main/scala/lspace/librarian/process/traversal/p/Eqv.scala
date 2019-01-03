@@ -9,42 +9,25 @@ import lspace.librarian.structure._
 
 object Eqv extends PredicateDef("Eqv", `@extends` = () => List(EqP.ontology)) with PredicateWrapper[Eqv[_]] {
 
-  def wrap(node: Node): Eqv[_] = node match {
-    case node: Eqv[_] => node
-    case _ =>
-      val (pvalue, helper) = EqHelper map node.out(EqP.keys.value).head
-      new Eqv(pvalue, node)(helper)
+  def toP(node: Node): Eqv[_] = {
+    val (pvalue, helper) = EqHelper map node.out(EqP.keys.value).head
+    Eqv(pvalue)(helper)
   }
 
   object keys extends EqP.Properties
   override lazy val properties: List[Property] = EqP.properties
   trait Properties extends EqP.Properties
 
-  def apply[T: EqHelper, T0, TT0 <: ClassType[_]](pvalue: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Eqv[T] = {
+  implicit def toNode[T](eqv: Eqv[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(EqP.keys.value, pvalue)
-    new Eqv(pvalue, node)
+    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(eqv.pvalue), eqv.pvalue)
+    node
   }
 }
 
-class Eqv[T] private (val pvalue: T, override val value: Node)(implicit helper: EqHelper[T])
-    extends WrappedNode(value)
-    with EqP[T] {
+case class Eqv[T](pvalue: T)(implicit helper: EqHelper[T]) extends EqP[T] {
   def assert(avalue: Any): Boolean = helper.eqv(avalue, pvalue)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"eqv($pvalue)"
-  //  {
-  //    pvalue match {
-  //      case pvalue: Resource[_] => avalue match {
-  //        case avalue: Resource[_] =>
-  //          println(s"comparing two resources by iri ${pvalue.iri} =?= ${avalue.iri}")
-  //          pvalue.iri == avalue.iri
-  //        case _ =>
-  //          println(s"one one resource has an iri ${pvalue.iri} =?= ${avalue}")
-  //          false
-  //      }
-  //      case _ => pvalue == avalue
-  //    }
-  //  }
 }

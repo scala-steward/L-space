@@ -6,8 +6,10 @@ import lspace.librarian.datatype._
 import lspace.librarian.structure._
 import lspace.types.vector.{Geometry, Point}
 
+import scala.annotation.implicitNotFound
 import scala.collection.immutable.ListSet
 
+@implicitNotFound("Cannot find a ClassType for this type")
 trait ClassTypeable[T] extends Serializable {
 
   type C

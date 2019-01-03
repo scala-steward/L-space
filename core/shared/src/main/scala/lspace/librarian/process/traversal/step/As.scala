@@ -10,7 +10,7 @@ object As
       "As",
       "An as-step marks the preliminary result so it can be referred to (gathered) further down the traversal.",
       () => TraverseStep.ontology :: Nil)
-    with StepWrapper[As[Any, String]] {
+    with StepWrapper[As[_ <: Any, _ <: String]] {
 
   /*  import shapeless._
   import shapeless.ops.hlist._
@@ -23,10 +23,8 @@ object As
 //    def apply(name: String)               = new NamedLabel(name.narrow)
   }*/
 
-  def wrap(node: Node): As[Any, String] = node match {
-    case node: As[Any, String] => node
-    case _                     => As[Any, String](node.out(As.keys.nameString).head, node)
-  }
+  def toStep(node: Node): As[_ <: Any, _ <: String] =
+    As[Any, String](node.out(As.keys.nameString).head)
 
   object keys extends TraverseStep.Properties {
     object name
@@ -44,18 +42,16 @@ object As
     val nameString = keys.nameString
   }
 
-  def apply[T, Tname <: String](label: Tname): As[T, Tname] = {
+  implicit def toNode(as: As[_ <: Any, _ <: String]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.nameString, label.toString)
-    As[T, Tname](label, node)
+    node.addOut(keys.nameString, as.label.toString)
+    node
   }
 }
 
-case class As[T, name <: String] private (label: name, override val value: Node)
-    extends WrappedNode(value)
-    with TraverseStep {
+case class As[T, name <: String](label: name) extends TraverseStep {
   def _maphelper = List[T]().head
 
+  def toNode: Node                 = this
   override def prettyPrint: String = "as(" + label + ")"
 }

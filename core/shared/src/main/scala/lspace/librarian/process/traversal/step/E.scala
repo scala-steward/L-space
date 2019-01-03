@@ -10,9 +10,9 @@ object E
     extends StepDef("E", "An e-step selects edges to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[E] {
 
-  def wrap(node: Node): E = node match {
+  def toStep(node: Node): E = node match {
     case node: E => node
-    case _       => E(node.out(keys.edgeUrl), node)
+    case _       => E(node.out(keys.edgeUrl))
   }
 
   object keys extends ResourceStep.Properties {
@@ -32,18 +32,16 @@ object E
     val edgeUrl = keys.edgeUrl
   }
 
-  def apply(links: List[Edge[Any, Any]]): E = {
+  implicit def toNode(e: E): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    links.foreach(node.addOut(keys.edge, _))
-    E(links, node)
+    e.links.foreach(node.addOut(keys.edge, _))
+    node
   }
 
 }
 
-case class E private (resources: List[Edge[Any, Any]], override val value: Node)
-    extends WrappedNode(value)
-    with ResourceStep {
-  //  def links: List[Property[_, _]] = property(E.keys.linkUrl)
-  override def prettyPrint: String = "E(" + resources.map(_.id).mkString(", ") + ")"
+case class E(links: List[Edge[Any, Any]] = List()) extends ResourceStep {
+
+  def toNode: Node                 = this
+  override def prettyPrint: String = "E(" + links.map(_.id).mkString(", ") + ")"
 }

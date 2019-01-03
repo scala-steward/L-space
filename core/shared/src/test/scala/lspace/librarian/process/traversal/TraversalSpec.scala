@@ -16,7 +16,8 @@ class TraversalSpec extends WordSpec with Matchers {
     "starts empty" in {
       val graphName = "data.example.com/test"
       g.stepsList.size shouldBe 0
-      g.self.graph shouldBe DetachedGraph
+      g.toNode.graph shouldBe DetachedGraph
+      g.target shouldBe DetachedGraph
     }
     "start with a ResourceStep" in {
       g.N.hasLabel(Ontology.ontology).stepsList.size shouldBe 2

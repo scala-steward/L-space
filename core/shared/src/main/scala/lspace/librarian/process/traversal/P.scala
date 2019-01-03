@@ -21,33 +21,33 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
   object keys
 
-  implicit def nodeToP(node: Node): P[_] = P.wrap(node)
+  implicit def nodeToP(node: Node): P[_] = P.toNode(node)
 
-  def wrap(node: Node): P[_] = node match {
+  def toNode(node: Node): P[_] = node match {
     case p: P[_] => p
     case _ =>
       node.labels match {
-        case types if types.contains(p.Eqv.ontology)            => p.Eqv.wrap(node)
-        case types if types.contains(p.Neqv.ontology)           => p.Neqv.wrap(node)
-        case types if types.contains(p.Gt.ontology)             => p.Gt.wrap(node)
-        case types if types.contains(p.Gte.ontology)            => p.Gte.wrap(node)
-        case types if types.contains(p.Lt.ontology)             => p.Lt.wrap(node)
-        case types if types.contains(p.Lte.ontology)            => p.Lte.wrap(node)
-        case types if types.contains(p.Between.ontology)        => p.Between.wrap(node)
-        case types if types.contains(p.Outside.ontology)        => p.Outside.wrap(node)
-        case types if types.contains(p.Inside.ontology)         => p.Inside.wrap(node)
-        case types if types.contains(p.Intersect.ontology)      => p.Intersect.wrap(node)
-        case types if types.contains(p.Within.ontology)         => p.Within.wrap(node)
-        case types if types.contains(p.Without.ontology)        => p.Without.wrap(node)
-        case types if types.contains(p.Disjoint.ontology)       => p.Disjoint.wrap(node)
-        case types if types.contains(p.Contains.ontology)       => p.Contains.wrap(node)
-        case types if types.contains(p.Prefix.ontology)         => p.Prefix.wrap(node)
-        case types if types.contains(p.Suffix.ontology)         => p.Suffix.wrap(node)
-        case types if types.contains(p.Regex.ontology)          => p.Regex.wrap(node)
-        case types if types.contains(p.Fuzzy.ontology)          => p.Fuzzy.wrap(node)
-        case types if types.contains(p.ContainsPrefix.ontology) => p.ContainsPrefix.wrap(node)
-        case types if types.contains(p.ContainsRegex.ontology)  => p.ContainsRegex.wrap(node)
-        case types if types.contains(p.ContainsFuzzy.ontology)  => p.ContainsFuzzy.wrap(node)
+        case types if types.contains(p.Eqv.ontology)            => p.Eqv.toP(node)
+        case types if types.contains(p.Neqv.ontology)           => p.Neqv.toP(node)
+        case types if types.contains(p.Gt.ontology)             => p.Gt.toP(node)
+        case types if types.contains(p.Gte.ontology)            => p.Gte.toP(node)
+        case types if types.contains(p.Lt.ontology)             => p.Lt.toP(node)
+        case types if types.contains(p.Lte.ontology)            => p.Lte.toP(node)
+        case types if types.contains(p.Between.ontology)        => p.Between.toP(node)
+        case types if types.contains(p.Outside.ontology)        => p.Outside.toP(node)
+        case types if types.contains(p.Inside.ontology)         => p.Inside.toP(node)
+        case types if types.contains(p.Intersect.ontology)      => p.Intersect.toP(node)
+        case types if types.contains(p.Within.ontology)         => p.Within.toP(node)
+        case types if types.contains(p.Without.ontology)        => p.Without.toP(node)
+        case types if types.contains(p.Disjoint.ontology)       => p.Disjoint.toP(node)
+        case types if types.contains(p.Contains.ontology)       => p.Contains.toP(node)
+        case types if types.contains(p.Prefix.ontology)         => p.Prefix.toP(node)
+        case types if types.contains(p.Suffix.ontology)         => p.Suffix.toP(node)
+        case types if types.contains(p.Regex.ontology)          => p.Regex.toP(node)
+        case types if types.contains(p.Fuzzy.ontology)          => p.Fuzzy.toP(node)
+        case types if types.contains(p.ContainsPrefix.ontology) => p.ContainsPrefix.toP(node)
+        case types if types.contains(p.ContainsRegex.ontology)  => p.ContainsRegex.toP(node)
+        case types if types.contains(p.ContainsFuzzy.ontology)  => p.ContainsFuzzy.toP(node)
         case types =>
           throw new Exception(s"No valid P-ontology found for types ${types}")
       }
@@ -686,8 +686,11 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
   //  implicit def toHList[T <: P[_]](p: T) = p :: HNil
 }
 
-trait P[+T] extends Node {
+trait P[+T] extends Product with Serializable {
   def assert(avalue: Any): Boolean
+
+  def toNode: Node
+  def prettyPrint: String
 }
 
 trait EqP[T] extends P[T] {
@@ -782,7 +785,7 @@ trait ObjectP[T] extends P[T]
 
 trait PredicateWrapper[+T] {
   //  def ontology: Ontology
-  def wrap(node: Node): T
+  def toP(node: Node): T
 }
 
 abstract class PredicateDef(label: String,

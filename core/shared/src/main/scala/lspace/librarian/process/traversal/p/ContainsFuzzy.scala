@@ -11,30 +11,25 @@ object ContainsFuzzy
     extends PredicateDef("ContainsFuzzy", `@extends` = () => List(EqP.ontology))
     with PredicateWrapper[ContainsFuzzy[_]] {
 
-  def wrap(node: Node): ContainsFuzzy[_] = node match {
-    case node: ContainsFuzzy[_] => node
-    case _ =>
-      val (pvalue, helper) = StringHelper map node.out(EqP.keys.value).head
-      new ContainsFuzzy(pvalue, node)(helper)
+  def toP(node: Node): ContainsFuzzy[_] = {
+    val (pvalue, helper) = StringHelper map node.out(EqP.keys.value).head
+    ContainsFuzzy(pvalue)(helper)
   }
 
   object keys extends EqP.Properties
   override lazy val properties: List[Property] = EqP.properties
   trait Properties extends EqP.Properties
 
-  def apply[T: StringHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): ContainsFuzzy[T] = {
+  implicit def toNode[T](containsFuzzy: ContainsFuzzy[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(EqP.keys.value, pvalue)
-    new ContainsFuzzy(pvalue, node)
+    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(containsFuzzy.pvalue), containsFuzzy.pvalue)
+    node
   }
 }
 
-class ContainsFuzzy[T] private (val pvalue: T, override val value: Node)(implicit helper: StringHelper[T])
-    extends WrappedNode(value)
-    with EqP[T] {
+case class ContainsFuzzy[T](pvalue: T)(implicit helper: StringHelper[T]) extends EqP[T] {
   def assert(avalue: Any): Boolean = helper.containsFuzzy(avalue, pvalue)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"containsFuzzy($pvalue)"
 }

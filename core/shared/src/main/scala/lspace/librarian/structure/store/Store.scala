@@ -1,10 +1,6 @@
 package lspace.librarian.structure.store
 
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
-
-import lspace.librarian.datatype._
 import lspace.librarian.structure._
-import lspace.types.vector.Point
 
 object Store {}
 trait Store[G <: Graph] {
@@ -30,18 +26,4 @@ trait Store[G <: Graph] {
 
   def all(): Stream[T2]
   def count(): Long
-}
-trait NodeStore[G <: Graph] extends Store[G] {
-  type T  = graph.GNode
-  type T2 = graph.GNode
-}
-trait EdgeStore[G <: Graph] extends Store[G] {
-  type T  = graph.GEdge[_, _]
-  type T2 = graph.GEdge[Any, Any]
-}
-trait ValueStore[G <: Graph] extends Store[G] {
-  type T  = graph.GValue[_]
-  type T2 = graph.GValue[Any]
-
-  def byValue[V](value: V, dt: DataType[V]): Stream[graph.GValue[V]]
 }

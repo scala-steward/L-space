@@ -3,6 +3,7 @@ package lspace.librarian.process.traversal
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.librarian.datatype._
+import lspace.librarian.process.traversal.Traversal.{keys, ontology}
 import lspace.librarian.process.traversal.helper.{ClassTypeable, Selector}
 import lspace.librarian.process.traversal.step.Order.Orderable
 import lspace.librarian.process.traversal.step.Select.Selection
@@ -21,13 +22,12 @@ import scala.collection.immutable.ListSet
 object Traversal
     extends OntologyDef(lspace.NS.vocab.Lspace.+("librarian/Traversal"), Set(), "Traversal", "A traversal .. ") {
 
-  def wrap(node: Node)(target: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
+  def toTraversal(node: Node)(target: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
     implicit val graph: Graph = target
 
-    node match {
-      case node: Traversal[ClassType[Any], ClassType[Any], HList] => node
-      case _                                                      => Traversal(node, graph)
-    }
+    Traversal(node.out(Traversal.keys.stepNode).foldLeft[HList](HNil) {
+      case (hlist, node) => Step.toStep(node) :: hlist
+    })(graph, ClassType.default[Any], ClassType.default[Any])
   }
 
   object keys {
@@ -398,11 +398,11 @@ object Traversal
   trait CommonStepsHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList]
       extends StepsHelper[ST[Start], ET[End], Steps] {
     def drop() = {
-      Traversal[ST[Start], ET[End], Drop :: Steps](Drop() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Drop :: Steps](Drop :: _traversal.steps)(target, st, et)
     }
 
     def dedup() = {
-      Traversal[ST[Start], ET[End], Dedup :: Steps](Dedup() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Dedup :: Steps](Dedup :: _traversal.steps)(target, st, et)
     }
 
     def as[S <: String](name: () => S): Traversal[ST[Start], ET[End], As[End, S] :: Steps] =
@@ -736,7 +736,7 @@ object Traversal
     implicit def target = _traversal.target
 
     def id =
-      Traversal[ST[Start], LongType[Long], Id :: Steps](Id() :: _traversal.steps)(target, st, DataType.default.`@long`)
+      Traversal[ST[Start], LongType[Long], Id :: Steps](Id :: _traversal.steps)(target, st, DataType.default.`@long`)
 
     def iri = _traversal.out(typed.iriUrlString)
   }
@@ -764,11 +764,11 @@ object Traversal
 
     def outR[InC, InCT <: ClassType[InC]](
         implicit ct: ClassTypeable.Aux[In, InC, InCT]): Traversal[ST[Start], InCT, OutV :: Steps] = {
-      Traversal[ST[Start], InCT, OutV :: Steps](OutV() :: _traversal.steps)(target, st, ct.ct)
+      Traversal[ST[Start], InCT, OutV :: Steps](OutV :: _traversal.steps)(target, st, ct.ct)
     }
     def inR[OutC, OutCT <: ClassType[OutC]](
         implicit ct: ClassTypeable.Aux[Out, OutC, OutCT]): Traversal[ST[Start], OutCT, InV :: Steps] = {
-      Traversal[ST[Start], OutCT, InV :: Steps](InV() :: _traversal.steps)(target, st, ct.ct)
+      Traversal[ST[Start], OutCT, InV :: Steps](InV :: _traversal.steps)(target, st, ct.ct)
     }
 
     def label(key: String, keys: String*): Traversal[ST[Start], IriType[Property], Label :: Steps] =
@@ -840,15 +840,15 @@ object Traversal
     implicit val target = _traversal.target
 
     def sum() =
-      Traversal[ST[Start], ET[End], Sum :: Steps](Sum() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Sum :: Steps](Sum :: _traversal.steps)(target, st, et)
     def max() =
-      Traversal[ST[Start], ET[End], Max :: Steps](Max() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Max :: Steps](Max :: _traversal.steps)(target, st, et)
     def min() =
-      Traversal[ST[Start], ET[End], Min :: Steps](Min() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Min :: Steps](Min :: _traversal.steps)(target, st, et)
     def mean() =
-      Traversal[ST[Start], DoubleType[Double], Mean :: Steps](Mean() :: _traversal.steps)(target,
-                                                                                          st,
-                                                                                          DataType.default.`@double`)
+      Traversal[ST[Start], DoubleType[Double], Mean :: Steps](Mean :: _traversal.steps)(target,
+                                                                                        st,
+                                                                                        DataType.default.`@double`)
   }
 
   implicit class QuantitySteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: QuantityType[Z], Steps <: HList](
@@ -857,13 +857,13 @@ object Traversal
     implicit val target = _traversal.target
 
     def sum() =
-      Traversal[ST[Start], ET[End], Sum :: Steps](Sum() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Sum :: Steps](Sum :: _traversal.steps)(target, st, et)
     def max() =
-      Traversal[ST[Start], ET[End], Max :: Steps](Max() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Max :: Steps](Max :: _traversal.steps)(target, st, et)
     def min() =
-      Traversal[ST[Start], ET[End], Min :: Steps](Min() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Min :: Steps](Min :: _traversal.steps)(target, st, et)
     def mean() =
-      Traversal[ST[Start], ET[End], Mean :: Steps](Mean() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Mean :: Steps](Mean :: _traversal.steps)(target, st, et)
   }
 
   abstract class TemporalSteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: CalendarType[Z], Steps <: HList](
@@ -873,10 +873,10 @@ object Traversal
 
     //    def sum(): CalendarResultStep = CalendarResultStep()
     def max() =
-      Traversal[ST[Start], ET[End], Max :: Steps](Max() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Max :: Steps](Max :: _traversal.steps)(target, st, et)
 
     def min() =
-      Traversal[ST[Start], ET[End], Min :: Steps](Min() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Min :: Steps](Min :: _traversal.steps)(target, st, et)
   }
 
   implicit class InstantSteps[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: CalendarType[Z], Steps <: HList](
@@ -898,7 +898,7 @@ object Traversal
     implicit val target = _traversal.target
 
     def mean() =
-      Traversal[ST[Start], ET[End], Mean :: Steps](Mean() :: _traversal.steps)(target, st, et)
+      Traversal[ST[Start], ET[End], Mean :: Steps](Mean :: _traversal.steps)(target, st, et)
   }
 
   implicit class ClipSteps[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList](
@@ -928,7 +928,7 @@ object Traversal
                                                                                                           et)
 
     def count() =
-      Traversal(Count() :: _traversal.steps)(target, st, DataType.default.`@long`)
+      Traversal(Count :: _traversal.steps)(target, st, DataType.default.`@long`)
   }
 
   /**
@@ -1051,20 +1051,11 @@ object Traversal
   def apply[ST0 <: ClassType[_], ET0 <: ClassType[_]]()(target: Graph, st: ST0, et: ET0): Traversal[ST0, ET0, HNil] =
     apply[ST0, ET0, HNil](HNil)(target, st, et)
 
-  def apply[ST0 <: ClassType[_], ET0 <: ClassType[_], Steps <: HList](
-      steps0: Steps)(target0: Graph, st0: ST0, et0: ET0): Traversal[ST0, ET0, Steps] = {
-    val node0 = DetachedGraph.nodes.create(ontology)
-
-    steps0.runtimeList.reverse.asInstanceOf[List[Node]].foreach(node0.addOut(keys.step, _))
-
-    new Traversal[ST0, ET0, Steps] {
-      val steps         = steps0
-      val self: Node    = node0
-      val target: Graph = target0
-      val st: ST0       = st0
-      val et: ET0       = et0
-    }
-  }
+//  def apply[ST0 <: ClassType[_], ET0 <: ClassType[_], Steps <: HList](
+//      steps0: Steps)(target0: Graph, st0: ST0, et0: ET0): Traversal[ST0, ET0, Steps] = {
+//
+//    Traversal[ST0, ET0, Steps](steps0)(target0, st0, et0)
+//  }
 
   def apply(value0: Node, target0: Graph): Traversal[ClassType[Any], ClassType[Any], HList] = {
     val types = value0.labels
@@ -1137,31 +1128,10 @@ object Traversal
       }
     }
 
-    new Traversal[ClassType[Any], ClassType[Any], HList] {
-      val steps         = steps0
-      val self: Node    = value0
-      val target: Graph = target0
-      val st: ClassType[Any] = new DataType[Any] {
-        override def iri: String = ""
-      }
-      val et: ClassType[Any] = stepsToContainerStructure(steps.runtimeList)
-    }
+    Traversal[ClassType[Any], ClassType[Any], HList](steps0)(target0, new DataType[Any] {
+      override def iri: String = ""
+    }, stepsToContainerStructure(steps0.runtimeList))
   }
-//  def apply[ST0 <: ClassType[_], ET0 <: ClassType[_]](
-//      value0: Node)(target0: Graph, st0: ST0, et0: ET0): Traversal[ST0, ET0, HList] = {
-//    val types = value0.labels
-//    val steps0 = value0.out(Traversal.keys.stepStep).foldLeft[HList](HNil) {
-//      case (hlist, node) => Step.toStep(node) :: hlist
-//    }
-//
-//    new Traversal[ST0, ET0, HList] {
-//      val steps         = steps0
-//      val self: Node    = value0
-//      val target: Graph = target0
-//      val st: ST0       = st0
-//      val et: ET0       = et0
-//    }
-//  }
 
   def getCT[ST <: ClassType[_],
             ET <: ClassType[_],
@@ -1179,39 +1149,6 @@ object Traversal
     if (ct.iri.nonEmpty) MemGraphDefault.ns.storeClassType(ct)
     ct
   }
-
-//  implicit class WithTraversalStream[Start,
-//                                     ST[+Z] <: ClassType[Z],
-//                                     End,
-//                                     ET[+Z] <: ClassType[Z],
-//                                     Steps <: HList,
-//                                     RSteps <: HList,
-//                                     Containers <: HList,
-//                                     Out,
-//                                     CT <: ClassType[Out]](val traversal: Traversal[ST[Start], ET[End], Steps])(
-//      implicit
-//      val reverse: Reverse.Aux[Steps, RSteps],
-//      val f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-//      val lf: StructureCalculator.Aux[Containers, End, ET[End], Out, CT]) {
-//
-//    lazy val ct = getCT[Start, ST, End, ET, Steps, RSteps, Containers, Out, CT](traversal)(reverse, f, lf)
-//
-//    private[this] lazy val stream =
-//      traversal.target.buildTraversersStream[ST[Start], ET[End], Steps, Out](traversal)(ct)
-//    private[this] lazy val astream =
-//      traversal.target.buildAsyncTraversersStream[ST[Start], ET[End], Steps, Out](traversal)(ct)
-//
-//    def iterate()    = stream.foreach(t => Unit)
-//    def head         = stream.head
-//    def headOption   = stream.headOption
-//    def toList       = stream.toList
-//    def toListSet    = stream.to[ListSet]
-//    def toSet        = stream.toSet
-//    def toStream     = stream
-//    def toVector     = stream.toVector
-//    def next(n: Int) = stream.take(n)
-//    def toTask       = astream
-//  }
 
   implicit class WithTraversalStream[ST <: ClassType[_],
                                      ET <: ClassType[_],
@@ -1254,12 +1191,9 @@ object Traversal
   * @tparam End
   * @tparam Steps
   */
-trait Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Steps <: HList] {
-  def steps: Steps
-  def self: Node
-  def target: Graph
-  def st: ST
-  def et: ET
+case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Steps <: HList](steps: Steps)(val target: Graph,
+                                                                                             val st: ST,
+                                                                                             val et: ET) {
 
   lazy val stepsList: List[Step] = steps.runtimeList.asInstanceOf[List[Step]].reverse
 
@@ -1272,6 +1206,16 @@ trait Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Steps <: HList] {
   def withGraph(graph: Graph): Traversal[ST, ET, Steps] = {
     //    implicit val _target = target
     Traversal[ST, ET, Steps](steps)(target, st, et)
+  }
+
+  override def equals(o: Any): Boolean = o match {
+    case traversal: Traversal[ClassType[_], ClassType[_], HList] => stepsList == traversal.stepsList
+  }
+
+  lazy val toNode: Node = {
+    val node0 = DetachedGraph.nodes.create(ontology)
+    stepsList.map(_.toNode).foreach(node0.addOut(keys.stepNode, _))
+    node0
   }
 
   def prettyPrint: String = {

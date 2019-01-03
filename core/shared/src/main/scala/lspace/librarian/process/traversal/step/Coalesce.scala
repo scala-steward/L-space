@@ -12,9 +12,9 @@ object Coalesce
     extends StepDef("Coalesce",
                     "A coalesce-steps continues on the first of n-traversals which has a non-empty result.",
                     () => BranchStep.ontology :: Nil)
-    with StepWrapper[Coalesce[ClassType[Any], ClassType[Any]]] {
+    with StepWrapper[Coalesce[_, _]] {
 
-  def wrap(node: Node): Coalesce[ClassType[Any], ClassType[Any]] = node match {
+  def toStep(node: Node): Coalesce[ClassType[Any], ClassType[Any]] = node match {
     //    case node: Union[Any, Any, F] => node
     case _ =>
       Coalesce[ClassType[Any], ClassType[Any]](
@@ -22,10 +22,8 @@ object Coalesce
           .out(keys.traversalTraversal)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
-        node
-      )
+              .toTraversal(_)(DetachedGraph)
+              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
   }
 
   object keys extends BranchStep.Properties {
@@ -47,18 +45,17 @@ object Coalesce
       Coalesce.keys.traversalTraversal
   }
 
-  def apply[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]]): Coalesce[S, E] = {
+  implicit def toNode(step: Coalesce[_ <: ClassType[_], _ <: ClassType[_]]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
-    Coalesce[S, E](traversals, node)
+    step.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
+    node
   }
 }
 
-case class Coalesce[S <: ClassType[_], E <: ClassType[_]] private (traversals: List[Traversal[S, E, _ <: HList]],
-                                                                   override val value: Node)
-    extends WrappedNode(value)
-    with BranchStep {
+case class Coalesce[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])
+    extends BranchStep {
+
+  def toNode: Node = this
   override def prettyPrint: String =
     "coalesce(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

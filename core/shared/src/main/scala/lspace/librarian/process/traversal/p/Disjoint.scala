@@ -11,30 +11,25 @@ object Disjoint
     extends PredicateDef("Disjoint", `@extends` = () => List(ObjectP.ontology))
     with PredicateWrapper[Disjoint[_]] {
 
-  def wrap(node: Node): Disjoint[_] = node match {
-    case node: Disjoint[_] => node
-    case _ =>
-      val (pvalue, helper) = ObjectHelper map node.out(EqP.keys.value).head
-      new Disjoint(pvalue, node)(helper)
+  def toP(node: Node): Disjoint[_] = {
+    val (pvalue, helper) = ObjectHelper map node.out(ObjectP.keys.value).head
+    Disjoint(pvalue)(helper)
   }
 
   object keys extends ObjectP.Properties
   override lazy val properties: List[Property] = ObjectP.properties
   trait Properties extends ObjectP.Properties
 
-  def apply[T: ObjectHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Disjoint[T] = {
+  implicit def toNode[T](disjoint: Disjoint[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(EqP.keys.value, pvalue)
-    new Disjoint(pvalue, node)
+    node.addOut(ObjectP.keys.value, ClassType.valueToOntologyResource(disjoint.pvalue), disjoint.pvalue)
+    node
   }
 }
 
-class Disjoint[T] private (val pvalue: T, override val value: Node)(implicit helper: ObjectHelper[T])
-    extends WrappedNode(value)
-    with ObjectP[T] {
+case class Disjoint[T](pvalue: T)(implicit helper: ObjectHelper[T]) extends ObjectP[T] {
   def assert(avalue: Any): Boolean = helper.disjoint(avalue, pvalue)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"disjoint($pvalue)"
 }

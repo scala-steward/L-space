@@ -12,10 +12,7 @@ object Coin
                     () => FilterStep.ontology :: Nil)
     with StepWrapper[Coin] {
 
-  def wrap(node: Node): Coin = node match {
-    case node: Coin => node
-    case _          => Coin(node)
-  }
+  def toStep(node: Node): Coin = new Coin(node.out(Coin.keys.pDouble).head, node.out(Coin.keys.seedInt).head)
 
   object keys extends FilterStep.Properties {
     object p
@@ -45,19 +42,17 @@ object Coin
     val seedInt: TypedProperty[Int]    = keys.seedInt
   }
 
-  def apply(p: Double, seed: Int = 0): Coin = {
+  implicit def toNode(coin: Coin): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.pDouble, p)
-    node.addOut(keys.seedInt, seed)
-    Coin(node)
+    node.addOut(keys.pDouble, coin.p)
+    node.addOut(keys.seedInt, coin.seed)
+    node
   }
 
 }
 
-case class Coin private (override val value: Node) extends WrappedNode(value) with FilterStep {
-  def p: Double =
-    out(Coin.keys.pDouble).head //Option.getOrElse(throw new Exception(s"no p-value found??? ${outE(Coin.keys.p).head.to.labels.head.iri} ${out(Coin.keys.p).head.getClass}"))
-  def seed: Int                    = out(Coin.keys.seedInt).head //Option.getOrElse(0)
+case class Coin(p: Double, seed: Int = 0) extends FilterStep {
+
+  def toNode: Node                 = this
   override def prettyPrint: String = "coin(" + p + ")"
 }

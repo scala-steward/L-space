@@ -10,10 +10,7 @@ object R
     extends StepDef("R", "An r-step selects resources to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[R] {
 
-  def wrap(node: Node): R = node match {
-    case node: R => node
-    case _       => R(node.out(R.keys.resourceUrl), node)
-  }
+  def toStep(node: Node): R = R(node.outE(R.keys.resource).map(_.to))
 
   object keys extends ResourceStep.Properties {
     object resource
@@ -24,18 +21,17 @@ object R
           container = types.`@list` :: Nil,
           `@range` = () => DataType.default.`@url` :: Nil
         )
-    val resourceUrl: TypedProperty[Any] = resource + DataType.default.`@url`
+//    val resourceUrl: TypedProperty[Resource[_]] = resource + DataType.default.`@url`
   }
   override lazy val properties: List[Property] = keys.resource.property :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {
-    val resource    = keys.resource
-    val resourceUrl = keys.resourceUrl
+    val resource = keys.resource
+//    val resourceUrl = keys.resourceUrl
   }
 
-  def apply(values: List[Resource[_]]): R = {
+  implicit def toNode(r: R): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    values.foreach(
+    r.resources.foreach(
       v =>
         node.addOut(
           keys.resource,
@@ -46,13 +42,12 @@ object R
           },
           v
       ))
-    //    if (nodes.lengthCompare(1) > 0) node.property(V.keys.nodeUrl, nodes.head, nodes.tail: _*)
-    //    if (nodes.nonEmpty) property(V.keys.nodeUrl, nodes.head)
-    R(values, node)
+    node
   }
-
 }
 
-case class R private (resources: List[Any], override val value: Node) extends WrappedNode(value) with ResourceStep {
-  //  def valueResource: List[ValueResource[Any]] = property(VR.keys.valueUrl)
+case class R(resources: List[Resource[_]]) extends ResourceStep {
+
+  def toNode: Node                 = this
+  override def prettyPrint: String = "R(" + resources.map(_.iri).mkString(", ") + ")"
 }

@@ -13,10 +13,7 @@ object HasId
     extends StepDef("HasId", "A hasId-step filters resources by id.", () => HasStep.ontology :: Nil)
     with StepWrapper[HasId] {
 
-  def wrap(node: Node): HasId = node match {
-    case node: HasId => node
-    case _           => HasId(node)
-  }
+  def toStep(node: Node): HasId = HasId(node.out(HasId.keys.idLong).toSet)
 
   object keys {
     object id
@@ -35,16 +32,17 @@ object HasId
     val idLong = keys.idLong
   }
 
-  def apply(ids: Set[Long]): HasId = {
+  implicit def toNode(hasId: HasId): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    //    node.addOuts(keys.idString, ids.toList)
-    ids.foreach(node.addOut(keys.id, _))
-    HasId(node)
+    hasId.ids.foreach(node.addOut(keys.id, _))
+    node
   }
 
 }
 
-case class HasId private (override val value: Node) extends WrappedNode(value) with HasStep {
-  def ids: Set[Long] = out(HasId.keys.idLong).toSet
+case class HasId(ids: Set[Long]) extends HasStep {
+
+  lazy val toNode: Node = this
+  override def prettyPrint: String =
+    s"hasId(${ids.mkString(", ")})"
 }

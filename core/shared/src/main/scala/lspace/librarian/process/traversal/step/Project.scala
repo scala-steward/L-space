@@ -13,14 +13,11 @@ object Project
     extends StepDef("Project", "A project-step ..", () => Terminate.ontology :: Nil)
     with StepWrapper[Project] {
 
-  def wrap(node: Node): Project = node match {
-    case node: Project => node
-    case _ =>
-      new Project(node
-                    .out(Project.keys.byTraversal)
-                    .map(Traversal.wrap(_)(DetachedGraph)),
-                  node)
-  }
+  def toStep(node: Node): Project =
+    Project(
+      node
+        .out(Project.keys.byTraversal)
+        .map(Traversal.toTraversal(_)(DetachedGraph)))
 
   object keys extends Terminate.Properties {
     object by
@@ -36,18 +33,16 @@ object Project
   override lazy val properties: List[Property] = keys.by :: Terminate.properties
   trait Properties extends Terminate.Properties
 
-  def apply(traversals: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]): Project = {
+  implicit def toNode(project: Project): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    traversals.map(_.self).foreach(node.addOut(keys.by, _))
-    Project(traversals, node)
+    project.by.map(_.toNode).foreach(node.addOut(keys.by, _))
+    node
   }
 
 }
 
-case class Project private (by: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
-                            override val value: Node)
-    extends WrappedNode(value)
-    with Terminate {
+case class Project(by: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]) extends Terminate {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "project(" + by.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

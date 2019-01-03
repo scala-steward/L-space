@@ -9,32 +9,28 @@ object OutEMap
     extends StepDef("OutEMap", "An outEMap-step ..", () => MoveStep.ontology :: Nil)
     with StepWrapper[OutEMap] {
 
-  def wrap(node: Node): OutEMap = node match {
-    case node: OutEMap => node
-    case _ =>
-      new OutEMap(
-        node
-          .out(MoveStep.keys.labelUrl)
-          .map(_.iri)
-          .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
-          .toSet,
-        node
-      )
-  }
+  def toStep(node: Node): OutEMap = OutEMap(
+    node
+      .out(MoveStep.keys.labelUrl)
+      .map(_.iri)
+      .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .toSet
+  )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply(labels: Set[Property] = Set()): OutEMap = {
+  implicit def toNode(outEMap: OutEMap): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    labels.foreach(label => node.addOut(MoveStep.keys.label, label))
-    new OutEMap(labels, node)
+    outEMap.label.foreach(label => node.addOut(MoveStep.keys.label, label))
+    node
   }
 
 }
 
-case class OutEMap private (label: Set[Property], override val value: Node) extends WrappedNode(value) with MapStep {
+case class OutEMap(label: Set[Property]) extends MapStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "outEMap(" + label.map(_.iri).mkString(", ") + ")"
 }

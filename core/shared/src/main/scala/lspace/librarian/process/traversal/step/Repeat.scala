@@ -9,31 +9,26 @@ import shapeless.HList
 
 object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]] {
 
-  def wrap(node: Node): Repeat[ClassType[Any]] = node match {
-    //    case node: Local[F] => node
-    case _ =>
-      Repeat(
-        node
-          .out(keys.traversalTraversal)
-          .take(1)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-          .head,
-        node
-          .out(keys.untilTraversal)
-          .take(1)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-          .headOption,
-        node.out(keys.maxInt).headOption,
-        node.out(keys.collectBoolean).headOption,
-        node
-      )
-  }
+  def toStep(node: Node): Repeat[ClassType[Any]] = Repeat(
+    node
+      .out(keys.traversalTraversal)
+      .take(1)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+      .head,
+    node
+      .out(keys.untilTraversal)
+      .take(1)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+      .headOption,
+    node.out(keys.maxInt).headOption,
+    node.out(keys.collectBoolean).headOption
+  )
 
   object keys {
     object traversal
@@ -75,29 +70,24 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   override lazy val properties
     : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
 
-  def apply[E <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E, _ <: HList],
-                               until: Option[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
-                               max: Option[Int] = None,
-                               collect: Option[Boolean] = None): Repeat[E] = {
+  implicit def toNode(repeat: Repeat[_]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
 
-    node.addOut(keys.traversalTraversal, traversal.self)
-    until.foreach(until => node.addOut(keys.untilTraversal, until.self))
-    max.foreach(max => node.addOut(keys.maxInt, max))
-    collect.foreach(collect => node.addOut(keys.collectBoolean, collect))
-    Repeat(traversal, until, max, collect, node)
+    node.addOut(keys.traversalTraversal, repeat.traversal.toNode)
+    repeat.until.foreach(until => node.addOut(keys.untilTraversal, until.toNode))
+    repeat.max.foreach(max => node.addOut(keys.maxInt, max))
+    repeat.collect.foreach(collect => node.addOut(keys.collectBoolean, collect))
+    node
   }
-
 }
 
-case class Repeat[E <: ClassType[_]] private (
-    traversal: Traversal[_ <: ClassType[_], E, _ <: HList],
-    until: Option[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
-    max: Option[Int],
-    collect: Option[Boolean],
-    override val value: Node)
-    extends WrappedNode(value)
-    with BranchStep {
+case class Repeat[E <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E, _ <: HList],
+                                     until: Option[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
+                                     max: Option[Int],
+                                     collect: Option[Boolean])
+    extends BranchStep {
+
+  lazy val toNode: Node = this
   override def prettyPrint: String =
     s"repeat(_.${traversal.toString}" + (until match {
       case Some(until) =>

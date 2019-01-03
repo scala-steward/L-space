@@ -63,6 +63,7 @@ object Dependencies {
     "com.github.finagle" %% "finchx-core"     % Version.finch,
     "com.github.finagle" %% "finchx-argonaut" % Version.finch,
     "com.github.finagle" %% "finchx-sse"      % Version.finch,
+    "com.twitter"        %% "twitter-server"  % "18.12.0",
     "com.vmunier"        %% "scalajs-scripts" % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi"   %% "scalatags" % "0.6.7",

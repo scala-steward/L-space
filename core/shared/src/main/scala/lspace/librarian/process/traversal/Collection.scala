@@ -74,6 +74,6 @@ object Collection
   }
 }
 
-case class Collection[T] private (startDateTime: List[Instant], endDateTime: List[Instant], item: List[T])(
+case class Collection[+T] private (startDateTime: List[Instant], endDateTime: List[Instant], item: List[T])(
     override val value: Node)
     extends WrappedNode(value) {}

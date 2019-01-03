@@ -35,7 +35,7 @@ class JsonLDSpec extends WordSpec with Matchers {
     }
     "parse a traversal to json" in {
       val traversal       = MemGraphDefault.g.N.has(SampleGraph.properties.name) //, Some(Traversal.ontology))
-      val (json, builder) = jsonld.nodeToJsonWithContext(traversal.self)
+      val (json, builder) = jsonld.nodeToJsonWithContext(traversal.toNode)
       json.obj.get ?? types.`@context` shouldBe true
       val nodeTry = jsonld.resource(json.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
       nodeTry match {
@@ -44,13 +44,13 @@ class JsonLDSpec extends WordSpec with Matchers {
       }
       nodeTry.isSuccess shouldBe true
       val node              = nodeTry.get
-      val parsedTraversal   = Traversal.wrap(node)(MemGraphDefault)
-      val (json2, builder2) = jsonld.nodeToJsonWithContext(parsedTraversal.self)
+      val parsedTraversal   = Traversal.toTraversal(node)(MemGraphDefault)
+      val (json2, builder2) = jsonld.nodeToJsonWithContext(parsedTraversal.toNode)
       val nodeTry2          = jsonld.resource(json2.obj.get).filter(_.isInstanceOf[Node]).map(_.asInstanceOf[Node])
       nodeTry2.isSuccess shouldBe true
       val node2             = nodeTry2.get
-      val parsedTraversal2  = Traversal.wrap(node2)(MemGraphDefault)
-      val (json3, builder3) = jsonld.nodeToJsonWithContext(parsedTraversal2.self)
+      val parsedTraversal2  = Traversal.toTraversal(node2)(MemGraphDefault)
+      val (json3, builder3) = jsonld.nodeToJsonWithContext(parsedTraversal2.toNode)
       json shouldBe json2
       json shouldBe json2
       json shouldBe json3

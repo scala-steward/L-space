@@ -9,10 +9,7 @@ object Limit
     extends StepDef("Limit", "A limit-step limits the traversal to first n-results.", () => ClipStep.ontology :: Nil)
     with StepWrapper[Limit] {
 
-  def wrap(node: Node): Limit = node match {
-    case node: Limit => node
-    case _           => Limit(node.out(Limit.keys.maxInt).head, node)
-  }
+  def toStep(node: Node): Limit = Limit(node.out(Limit.keys.maxInt).head)
 
   object keys extends ClipStep.Properties {
     object max
@@ -30,15 +27,16 @@ object Limit
     val maxInt = keys.maxInt
   }
 
-  def apply(max: Int): Limit = {
+  implicit def toNode(limit: Limit): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.maxInt, max)
-    Limit(max, node)
+    node.addOut(keys.maxInt, limit.max)
+    node
   }
 
 }
 
-case class Limit private (max: Int, override val value: Node) extends WrappedNode(value) with ClipStep {
+case class Limit(max: Int) extends ClipStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "limit(" + max + ")"
 }

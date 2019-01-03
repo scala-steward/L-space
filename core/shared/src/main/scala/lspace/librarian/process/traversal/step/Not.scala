@@ -8,21 +8,16 @@ import shapeless.{HList, HNil}
 
 object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Not] {
 
-  def wrap(node: Node): Not = node match {
-    case node: Not => node
-    case _ =>
-      Not(
-        node
-          .out(keys.traversalTraversal)
-          .take(1)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-          .head,
-        node
-      )
-  }
+  def toStep(node: Node): Not = Not(
+    node
+      .out(keys.traversalTraversal)
+      .take(1)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+      .head
+  )
 
   object keys extends FilterStep.Properties {
     object traversal
@@ -40,18 +35,16 @@ object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: 
     val traversalTraversal = keys.traversalTraversal
   }
 
-  def apply(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Not = {
+  implicit def toNode(not: Not): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.traversal, traversal.self)
-    Not(traversal, node)
+    node.addOut(keys.traversalTraversal, not.traversal.toNode)
+    node
   }
 
 }
 
-case class Not private (traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],
-                        override val value: Node)
-    extends WrappedNode(value)
-    with FilterStep {
+case class Not(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends FilterStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "not(_." + traversal.toString + ")"
 }

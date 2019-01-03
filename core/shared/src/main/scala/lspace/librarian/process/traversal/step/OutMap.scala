@@ -9,33 +9,28 @@ import lspace.librarian.structure._
 
 object OutMap extends StepDef("OutMap", "An outMap-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[OutMap] {
 
-  def wrap(node: Node): OutMap = node match {
-    case node: OutMap => node
-    case _ =>
-      new OutMap(
-        node
-          .outE(MoveStep.keys.label)
+  def toStep(node: Node): OutMap = OutMap(
+    node
+      .outE(MoveStep.keys.label)
 //                   .flatMap(_.inV.hasLabel(Property.ontology).map(_.value))
-          .map(_.iri)
-          .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
-          .toSet,
-        node
-      )
-  }
+      .map(_.iri)
+      .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .toSet
+  )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply(labels: Set[Property] = Set()): OutMap = {
+  implicit def toNode(outMap: OutMap): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    labels.foreach(label => node.addOut(MoveStep.keys.label, label))
-    new OutMap(labels, node)
+    outMap.label.foreach(label => node.addOut(MoveStep.keys.label, label))
+    node
   }
-
 }
 
-case class OutMap private (label: Set[Property], override val value: Node) extends WrappedNode(value) with MapStep {
+case class OutMap(label: Set[Property]) extends MapStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "outMap(" + label.map(_.iri).mkString(", ") + ")"
 }

@@ -26,7 +26,7 @@ trait LinkedDataService {
                                     ct: ClassType[Out]): Task[Collection[Out]] = {
     sttp
       .post(uri"${traversal.target.iri}/traverse")
-      .body(jsonld.nodeToJsonWithContext(traversal.self)._1.toString())
+      .body(jsonld.nodeToJsonWithContext(traversal.toNode)._1.toString())
       .headers(Map("Content-Type" -> "application/ld+json", "Accept" -> "application/ld+json"))
       .send()
       .map { response =>

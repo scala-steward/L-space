@@ -9,10 +9,7 @@ object Tail
     extends StepDef("Tail", "A tail-step limits the traversal to last n-results.", () => ClipStep.ontology :: Nil)
     with StepWrapper[Tail] {
 
-  def wrap(node: Node): Tail = node match {
-    case node: Tail => node
-    case _          => Tail(node.out(Tail.keys.maxInt).head, node)
-  }
+  def toStep(node: Node): Tail = Tail(node.out(Tail.keys.maxInt).head)
 
   object keys extends ClipStep.Properties {
     object max
@@ -30,14 +27,15 @@ object Tail
     val maxInt = keys.maxInt
   }
 
-  def apply(max: Int): Tail = {
+  implicit def toNode(tail: Tail): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.maxInt, max)
-    Tail(max, node)
+    node.addOut(keys.maxInt, tail.max)
+    node
   }
 }
 
-case class Tail private (max: Int, override val value: Node) extends WrappedNode(value) with ClipStep {
+case class Tail(max: Int) extends ClipStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"tail($max)"
 }

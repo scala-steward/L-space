@@ -13,19 +13,14 @@ object Union
     extends StepDef("Union", "A union-step ..", () => BranchStep.ontology :: Nil)
     with StepWrapper[Union[ClassType[Any], ClassType[Any]]] {
 
-  def wrap(node: Node): Union[ClassType[Any], ClassType[Any]] = node match {
-    //    case node: Union[Any, Any, F] => node
-    case _ =>
-      Union(
-        node
-          .out(keys.traversalTraversal)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
-        node
-      )
-  }
+  def toStep(node: Node): Union[ClassType[Any], ClassType[Any]] = Union(
+    node
+      .out(keys.traversalTraversal)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+  )
 
   object keys extends BranchStep.Properties {
     object traversal
@@ -44,18 +39,17 @@ object Union
     val traversalTraversal = keys.traversalTraversal
   }
 
-  def apply[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]]): Union[S, E] = {
+  implicit def toNode(union: Union[_ <: ClassType[_], _ <: ClassType[_]]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
-    Union[S, E](traversals, node)
+    union.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
+    node
   }
 }
 
-case class Union[S <: ClassType[_], E <: ClassType[_]] private (traversals: List[Traversal[S, E, _ <: HList]],
-                                                                override val value: Node)
-    extends WrappedNode(value)
-    with BranchStep {
+case class Union[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])
+    extends BranchStep {
+
+  lazy val toNode: Node = this
   override def prettyPrint: String =
     "union(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

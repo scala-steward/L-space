@@ -2,7 +2,6 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object TimeLimit
@@ -11,10 +10,7 @@ object TimeLimit
                     () => EnvironmentStep.ontology :: Nil)
     with StepWrapper[TimeLimit] {
 
-  def wrap(node: Node): TimeLimit = node match {
-    case node: TimeLimit => node
-    case _               => TimeLimit(node.out(TimeLimit.keys.durationTime).take(1).headOption, node)
-  }
+  def toStep(node: Node): TimeLimit = TimeLimit(node.out(TimeLimit.keys.durationTime).take(1).headOption)
 
   object keys extends EnvironmentStep.Properties {
     object duration
@@ -32,18 +28,16 @@ object TimeLimit
     val durationTime = keys.durationTime
   }
 
-  def apply(time: Option[squants.time.Time] = None): TimeLimit = {
+  implicit def toNode(timeLimit: TimeLimit): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    time.foreach(time => node.addOut(keys.durationTime, time))
-    TimeLimit(time, node)
+    timeLimit.time.foreach(time => node.addOut(keys.durationTime, time))
+    node
   }
-
 }
 
-case class TimeLimit private (time: Option[squants.time.Time], override val value: Node)
-    extends WrappedNode(value)
-    with EnvironmentStep {
+case class TimeLimit(time: Option[squants.time.Time] = None) extends EnvironmentStep {
+
+  lazy val toNode: Node = this
   override def prettyPrint: String =
     time.map(s"timeLimit(" + _.toString() + ")").getOrElse("timeLimit()")
 }

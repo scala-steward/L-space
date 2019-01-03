@@ -2,10 +2,8 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.{HList, Poly1}
 
 object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
@@ -36,10 +34,7 @@ object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
 //    implicit def as[T] = at[As[T, Label]](s => s)
 //  }
 
-  def wrap(node: Node): Select[Any] = node match {
-    case node: Select[Any] => node
-    case _                 => Select[Any](node.out(Select.keys.nameString), node)
-  }
+  def toStep(node: Node): Select[Any] = Select[Any](node.out(Select.keys.nameString))
 
   object keys {
     object name
@@ -54,18 +49,16 @@ object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
   }
   override lazy val properties: List[Property] = keys.name :: Nil
 
-  def apply[E](names: List[String]): Select[E] = {
+  implicit def toNode(select: Select[_]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
 
-    names.foreach(node.addOut(keys.name, _))
-    Select[E](names, node)
+    select.names.foreach(node.addOut(keys.name, _))
+    node
   }
-
 }
 
-case class Select[E] private (names: List[String], override val value: Node)
-    extends WrappedNode(value)
-    with TraverseStep
-    with ModulateStep {
+case class Select[E](names: List[String]) extends TraverseStep with ModulateStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"select(${names.mkString("a")}"
 }

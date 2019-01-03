@@ -9,26 +9,20 @@ object Without
     extends PredicateDef("Without", `@extends` = () => List(CollectionP.ontology))
     with PredicateWrapper[Without[_]] {
 
-  def wrap(node: Node): Without[_] = node match {
-    case node: Without[_] => node
-    case _                => new Without(node.out(EqP.keys.value), node)
-  }
+  def toP(node: Node): Without[_] = Without(node.out(EqP.keys.value))
 
   object keys extends CollectionP.Properties
   override lazy val properties: List[Property] = CollectionP.properties
   trait Properties extends CollectionP.Properties
 
-  def apply[T](pvalues: List[T]): Without[T] = {
+  implicit def toNode[T](without: Without[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
-    new Without(pvalues, node)
+    without.pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
+    node
   }
 }
 
-class Without[T] private (val pvalues: List[T], override val value: Node)
-    extends WrappedNode(value)
-    with CollectionP[T] {
+case class Without[T](pvalues: List[T]) extends CollectionP[T] {
   def assert(avalue: Any): Boolean = ! {
     avalue match {
       case avalue: Resource[_] =>
@@ -40,5 +34,6 @@ class Without[T] private (val pvalues: List[T], override val value: Node)
     }
   }
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"without(${pvalues.mkString(", ")})"
 }

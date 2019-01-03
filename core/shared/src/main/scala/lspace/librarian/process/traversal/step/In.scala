@@ -2,9 +2,6 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object In
@@ -13,31 +10,27 @@ object In
                     () => MoveStep.ontology :: Nil)
     with StepWrapper[In] {
 
-  def wrap(node: Node): In = node match {
-    case node: In => node
-    case _ =>
-      new In(
-        node
-          .out(MoveStep.keys.labelUrl)
-          .map(_.iri)
-          .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
-          .toSet,
-        node
-      )
-  }
+  def toStep(node: Node): In = In(
+    node
+      .out(MoveStep.keys.labelUrl)
+      .map(_.iri)
+      .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .toSet
+  )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply(labels: Set[Property] = Set()): In = {
+  implicit def toNode(in: In): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    labels.foreach(label => node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, label))
-    new In(labels, node)
+    in.label.foreach(label => node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, label))
+    node
   }
 }
 
-case class In private (label: Set[Property], override val value: Node) extends WrappedNode(value) with MoveStep {
+case class In(label: Set[Property]) extends MoveStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "in(" + label.map(_.iri).mkString(", ") + ")"
 }

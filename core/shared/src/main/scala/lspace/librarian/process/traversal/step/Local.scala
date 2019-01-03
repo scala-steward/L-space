@@ -10,21 +10,16 @@ import shapeless.{HList, HNil}
 
 object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontology :: Nil) with StepWrapper[Local] {
 
-  def wrap(node: Node): Local = node match {
-    //    case node: Local[F] => node
-    case _ =>
-      Local(
-        node
-          .out(keys.traversalTraversal)
-          .take(1)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-          .head,
-        node
-      )
-  }
+  def toStep(node: Node): Local = Local(
+    node
+      .out(keys.traversalTraversal)
+      .take(1)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+      .head
+  )
 
   object keys extends BranchStep.Properties {
     object traversal
@@ -42,18 +37,16 @@ object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontolo
     val traversalTraversal = keys.traversalTraversal
   }
 
-  def apply(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Local = {
+  implicit def toNode(local: Local): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.traversalTraversal, traversal.self)
-    Local(traversal, node)
+    node.addOut(keys.traversalTraversal, local.traversal.toNode)
+    node
   }
 
 }
 
-case class Local private (traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],
-                          override val value: Node)
-    extends WrappedNode(value)
-    with BranchStep {
+case class Local(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends BranchStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "local(_." + traversal.toString + ")"
 }

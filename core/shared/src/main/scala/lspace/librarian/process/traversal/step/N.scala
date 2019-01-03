@@ -12,10 +12,7 @@ object N
     extends StepDef("N", "An n-step selects nodes to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[N] {
 
-  def wrap(node: Node): N = node match {
-    case node: N => node
-    case _       => new N(node.out(keys.nodeUrl), node)
-  }
+  def toStep(node: Node): N = N(node.out(keys.nodeUrl))
 
   object keys extends ResourceStep.Properties {
     object node
@@ -34,18 +31,15 @@ object N
     val nodeUrl = keys.nodeUrl
   }
 
-  def apply(nodes: List[Node] = List()): N = {
+  implicit def toNode(n: N): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    //    println(nodes.map(_.iri).mkString(" >> "))
-    nodes.foreach(node.addOut(keys.node, _))
-    //    if (nodes.lengthCompare(1) > 0) node.property(V.keys.nodeUrl, nodes.head, nodes.tail: _*)
-    //    if (nodes.nonEmpty) property(V.keys.nodeUrl, nodes.head)
-    N(nodes, node)
+    n.nodes.foreach(node.addOut(keys.node, _))
+    node
   }
 }
 
-case class N private (resources: List[Node], override val value: Node) extends WrappedNode(value) with ResourceStep {
-  //  def nodes: List[Node] = property(V.keys.nodeUrl)
-  override def prettyPrint: String = "N(" + resources.map(_.iri).mkString(", ") + ")"
+case class N(nodes: List[Node] = List()) extends ResourceStep {
+
+  def toNode: Node                 = this
+  override def prettyPrint: String = "N(" + nodes.map(_.iri).mkString(", ") + ")"
 }

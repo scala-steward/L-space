@@ -13,32 +13,27 @@ object Out
                     () => MoveStep.ontology :: Nil)
     with StepWrapper[Out] {
 
-  def wrap(node: Node): Out = node match {
-    case node: Out => node
-    case _ =>
-      new Out(
-        node
-          .out(MoveStep.keys.labelUrl)
-          .map(_.iri)
-          .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
-          .toSet,
-        node
-      )
-  }
+  def toStep(node: Node): Out = Out(
+    node
+      .out(MoveStep.keys.labelUrl)
+      .map(_.iri)
+      .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .toSet
+  )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply(labels: Set[Property] = Set()): Out = {
+  implicit def toNode(out: Out): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    labels.foreach(label => node.addOut(MoveStep.keys.label, label))
-    new Out(labels, node)
+    out.label.foreach(label => node.addOut(MoveStep.keys.label, label))
+    node
   }
-
 }
 
-case class Out private (label: Set[Property], override val value: Node) extends WrappedNode(value) with MoveStep {
+case class Out(label: Set[Property]) extends MoveStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "out(" + label.map(_.iri).mkString(", ") + ")"
 }

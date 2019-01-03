@@ -13,10 +13,7 @@ object HasValue
                     () => HasStep.ontology :: Nil)
     with StepWrapper[HasValue] {
 
-  def wrap(node: Node): HasValue = node match {
-    case node: HasValue => node
-    case _              => HasValue(node.out(Has.keys.predicateUrl).map(P.wrap), node)
-  }
+  def toStep(node: Node): HasValue = HasValue(node.out(Has.keys.predicateUrl).map(P.toNode))
 
   object keys {
     val predicate = Has.keys.predicate
@@ -26,13 +23,17 @@ object HasValue
     val predicate = keys.predicate
   }
 
-  def apply(predicates: List[P[_]]): HasValue = {
+  implicit def toNode(hasValue: HasValue): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    predicates.foreach(node.addOut(Has.keys.predicate, _))
-
-    HasValue(predicates, node)
+    hasValue.predicate.map(_.toNode).foreach(node.addOut(Has.keys.predicate, _))
+    node
   }
 }
 
-case class HasValue private (predicate: List[P[_]], override val value: Node) extends WrappedNode(value) with HasStep {}
+case class HasValue(predicate: List[P[_]]) extends HasStep {
+
+  lazy val toNode: Node = this
+  override def prettyPrint: String =
+    if (predicate.nonEmpty) s"hasValue(P.${predicate.head.prettyPrint})"
+    else "hasValue(" + predicate.map(_.prettyPrint).mkString(", ") + ")"
+}

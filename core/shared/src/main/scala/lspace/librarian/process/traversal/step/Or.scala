@@ -15,19 +15,14 @@ object Or
                     () => FilterStep.ontology :: Nil)
     with StepWrapper[Or] {
 
-  def wrap(node: Node): Or = node match {
-    case node: Or => node
-    case _ =>
-      Or(
-        node
-          .out(keys.traversalTraversal)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
-        node
-      )
-  }
+  def toStep(node: Node): Or = Or(
+    node
+      .out(keys.traversalTraversal)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+  )
 
   object keys extends FilterStep.Properties {
     object traversal
@@ -46,19 +41,17 @@ object Or
     val traversalTraversal = keys.traversalTraversal
   }
 
-  def apply(traversals: List[Traversal[_, _, _ <: HList]]): Or = {
+  implicit def toNode(or: Or): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
-
-    Or(traversals, node)
+    or.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
+    node
   }
 
 }
 
-case class Or private (traversals: List[Traversal[_, _, _ <: HList]], override val value: Node)
-    extends WrappedNode(value)
-    with FilterStep {
+case class Or(traversals: List[Traversal[_, _, _ <: HList]]) extends FilterStep {
+
+  lazy val toNode: Node = this
   override def prettyPrint: String =
     "or(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

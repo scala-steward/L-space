@@ -9,21 +9,16 @@ import shapeless.{HList, HNil}
 
 object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Where] {
 
-  def wrap(node: Node): Where = node match {
-    case node: Where => node
-    case _ =>
-      Where(
-        node
-          .out(keys.traversalTraversal)
-          .take(1)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
-          .head,
-        node
-      )
-  }
+  def toStep(node: Node): Where = Where(
+    node
+      .out(keys.traversalTraversal)
+      .take(1)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
+      .head
+  )
 
   object keys extends FilterStep.Properties {
     object traversal
@@ -42,17 +37,15 @@ object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontolo
     val traversalTraversal = keys.traversalTraversal
   }
 
-  def apply(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Where = {
+  implicit def toNode(where: Where): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.traversalTraversal, traversal.self)
-    Where(traversal, node)
+    node.addOut(keys.traversalTraversal, where.traversal.toNode)
+    node
   }
 }
 
-case class Where private (traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],
-                          override val value: Node)
-    extends WrappedNode(value)
-    with FilterStep {
+case class Where(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends FilterStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "where(_." + traversal.toString + ")"
 }

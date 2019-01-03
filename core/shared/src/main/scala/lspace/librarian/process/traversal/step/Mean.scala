@@ -2,32 +2,23 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Mean
+case object Mean
     extends StepDef("Mean",
                     "A mean-step calculates the mean value over all traversers in-scope.",
                     () => ReducingBarrierStep.ontology :: Nil)
-    with StepWrapper[Mean] {
+    with StepWrapper[Mean]
+    with Mean {
 
-  def wrap(node: Node): Mean = node match {
-    case node: Mean => node
-    case _          => Mean(node)
-  }
+  def toStep(node: Node): Mean = this
 
   object keys extends ReducingBarrierStep.Properties
   override lazy val properties: List[Property] = ReducingBarrierStep.properties
   trait Properties extends ReducingBarrierStep.Properties
 
-  def apply(): Mean = {
-    val node = DetachedGraph.nodes.create(ontology)
-
-    Mean(node)
-  }
-
-}
-
-case class Mean private (override val value: Node) extends WrappedNode(value) with ReducingBarrierStep {
+  lazy val toNode: Node            = DetachedGraph.nodes.create(ontology)
   override def prettyPrint: String = "mean"
 }
+
+trait Mean extends ReducingBarrierStep

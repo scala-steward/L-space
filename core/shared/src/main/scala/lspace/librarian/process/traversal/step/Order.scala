@@ -23,20 +23,15 @@ object Order
   }
   sealed trait Orderable[T[+Z]]
 
-  def wrap(node: Node): Order = node match {
-    case node: Order => node
-    case _ =>
-      Order(
-        node
-          .out(Order.keys.byTraversal)
-          .map(Traversal.wrap(_)(DetachedGraph))
-          .filter(_.et.isInstanceOf[DataType[_]])
-          .map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])
-          .head,
-        node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true),
-        node
-      )
-  }
+  def toStep(node: Node): Order = Order(
+    node
+      .out(Order.keys.byTraversal)
+      .map(Traversal.toTraversal(_)(DetachedGraph))
+      .filter(_.et.isInstanceOf[DataType[_]])
+      .map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])
+      .head,
+    node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true)
+  )
 
   object keys extends CollectingBarrierStep.Properties {
     object by
@@ -65,21 +60,19 @@ object Order
     val increasingBoolean = keys.increasingBoolean
   }
 
-  def apply(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean = true): Order = {
+  implicit def toNode(order: Order): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.byTraversal, by.self)
-    if (!increasing) node.addOut(keys.increasingBoolean, increasing)
-    Order(by, increasing, node)
+    node.addOut(keys.byTraversal, order.by.toNode)
+    if (!order.increasing) node.addOut(keys.increasingBoolean, order.increasing)
+    node
   }
 
 }
 
 //case class Order(key: PropertyKey, increasing: Boolean = true) extends TraverseStep /*with ModulateStep[ZeroOrMoreBy]*/ {
-case class Order private (by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList],
-                          increasing: Boolean,
-                          override val value: Node)
-    extends WrappedNode(value)
-    with CollectingBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
+case class Order(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean)
+    extends CollectingBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "order(" + by.toString + ")"
 }

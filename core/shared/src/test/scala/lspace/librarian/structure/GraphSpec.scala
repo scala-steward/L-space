@@ -209,7 +209,7 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     "support traversals" which {
       "are detached nodes with traversal-instructions (data)" in {
         val traversal = graph.g
-        traversal.self.graph shouldBe DetachedGraph
+        traversal.target shouldBe graph
       }
       "" ignore {
         val node = graph.nodes.upsert("abc")
@@ -252,7 +252,7 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
     "support inserting structures from other graphs (object + edges)" ignore {
       val traversal    = graph.ns.g.N().out(Property.default.`@id`).out(Property.default.`@language`)
-      val node         = traversal.self
+      val node         = traversal.toNode
       val upsertedNode = graph.nodes.post(node)
       //      graph.ldParser.toJSON.nodeToJsonWithContext(node)._1.toString shouldBe graph.ldParser.toJSON.nodeToJsonWithContext(upsertedNode.asInstanceOf[Node])._1.toString
       //      node.property(graph.idUrlString, "abc")

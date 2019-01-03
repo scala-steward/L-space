@@ -9,27 +9,20 @@ object Within
     extends PredicateDef("Within", `@extends` = () => List(CollectionP.ontology))
     with PredicateWrapper[Within[_]] {
 
-  def wrap(node: Node): Within[_] = node match {
-    case node: Within[_] => node
-    case _               => new Within(node.out(EqP.keys.value), node)
-  }
+  def toP(node: Node): Within[_] = Within(node.out(EqP.keys.value))
 
   object keys extends CollectionP.Properties
   override lazy val properties: List[Property] = CollectionP.properties
   trait Properties extends CollectionP.Properties
 
-  def apply[T](pvalues: List[T]): Within[T] = {
+  implicit def toNode[T](within: Within[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
-
-    new Within(pvalues, node)
+    within.pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
+    node
   }
 }
 
-class Within[T] private (val pvalues: List[T], override val value: Node)
-    extends WrappedNode(value)
-    with CollectionP[T] {
+case class Within[T](pvalues: List[T]) extends CollectionP[T] {
   def assert(avalue: Any): Boolean = {
     avalue match {
       case avalue: Resource[_] =>
@@ -41,5 +34,6 @@ class Within[T] private (val pvalues: List[T], override val value: Node)
     }
   }
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"within(${pvalues.mkString(", ")})"
 }

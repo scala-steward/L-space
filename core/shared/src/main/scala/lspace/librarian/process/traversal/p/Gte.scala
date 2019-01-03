@@ -9,29 +9,25 @@ import lspace.librarian.structure._
 
 object Gte extends PredicateDef("Gte", `@extends` = () => List(OrderP.ontology)) with PredicateWrapper[Gte[_]] {
 
-  def wrap(node: Node): Gte[_] = node match {
-    case node: Gte[_] => node
-    case _ =>
-      val (pvalue, helper) = OrderHelper map node.out(EqP.keys.value).head
-      new Gte(pvalue, node)(helper)
+  def toP(node: Node): Gte[_] = {
+    val (pvalue, helper) = OrderHelper map node.out(EqP.keys.value).head
+    Gte(pvalue)(helper)
   }
 
   object keys extends OrderP.Properties
   override lazy val properties: List[Property] = OrderP.properties
   trait Properties extends OrderP.Properties
 
-  def apply[T: OrderHelper, T0, TT0 <: ClassType[_]](pvalue: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Gte[T] = {
+  implicit def toNode[T](gte: Gte[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(EqP.keys.value, pvalue)
-    new Gte(pvalue, node)
+    node.addOut(OrderP.keys.value, ClassType.valueToOntologyResource(gte.pvalue), gte.pvalue)
+    node
   }
 }
 
-class Gte[T] private (val pvalue: T, override val value: Node)(implicit helper: OrderHelper[T])
-    extends WrappedNode(value)
-    with OrderP[T] {
+case class Gte[T](pvalue: T)(implicit helper: OrderHelper[T]) extends OrderP[T] {
   def assert(avalue: Any): Boolean = helper.gte(avalue, pvalue)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"gte($pvalue)"
 }

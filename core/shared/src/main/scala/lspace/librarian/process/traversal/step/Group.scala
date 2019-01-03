@@ -2,38 +2,20 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import shapeless.{HList, HNil}
-
-//trait GroupType[A, C[+Z]] {
-//  type Out[+T]
-//}
-//object GroupType {
-//  type Aux[A, C[+Z]] = GroupType[A, C] {
-//    type Out[+T] = C[Map[A, List[T]]]
-//  }
-//  implicit def wrapgroup[A, C[+Z]]: GroupType[A, C] = new GroupType[A, C] {
-//    type Out[+T] = C[Map[A, List[T]]]
-//  }
-//}
 
 object Group
     extends StepDef("Group", "A group-step groups traversers.", () => CollectingBarrierStep.ontology :: Nil)
     with StepWrapper[Group[ClassType[Any]]] {
 
-  def wrap(node: Node): Group[ClassType[Any]] = node match {
-    case node: Group[ClassType[Any]] => node
-    case _ =>
-      Group(node
-              .out(keys.byTraversal)
-              .take(1)
-              .map(Traversal.wrap(_)(DetachedGraph))
-              .head,
-            node)
-  }
+  def toStep(node: Node): Group[ClassType[Any]] =
+    Group(
+      node
+        .out(keys.byTraversal)
+        .take(1)
+        .map(Traversal.toTraversal(_)(DetachedGraph))
+        .head)
 
   object keys extends CollectingBarrierStep.Properties {
     object by
@@ -52,17 +34,16 @@ object Group
     lazy val `ns.l-space.eu/librarian/step/Group/by @Traversal`: TypedKey[Node] = keys.byTraversal
   }
 
-  def apply[A <: ClassType[_]](by: Traversal[_ <: ClassType[_], A, _ <: HList]): Group[A] = {
+  implicit def toNode[A <: ClassType[_]](group: Group[A]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.by, by.self)
-    Group[A](by, node)
+    node.addOut(keys.by, group.by.toNode)
+    node
   }
 
 }
 
-case class Group[A <: ClassType[_]] private (by: Traversal[_ <: ClassType[_], A, _ <: HList], override val value: Node)
-    extends WrappedNode(value)
-    with CollectingBarrierStep {
+case class Group[A <: ClassType[_]](by: Traversal[_ <: ClassType[_], A, _ <: HList]) extends CollectingBarrierStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "group(_." + by.toString + ")"
 }

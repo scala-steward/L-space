@@ -12,10 +12,7 @@ object G
     extends StepDef("G", "A g-step selects graphs to traverse on.", () => TraverseStep.ontology :: Nil)
     with StepWrapper[G] {
 
-  def wrap(node: Node): G = node match {
-    case node: G => node
-    case _       => G(node)(node.out(G.keys.graphUrl))
-  }
+  def toStep(node: Node): G = G(node.out(G.keys.graphUrl))
 
   object keys extends TraverseStep.Properties {
     object graph
@@ -34,17 +31,15 @@ object G
     val graphUrl = keys.graphUrl
   }
 
-  def apply(graphSources: List[Graph]): G = {
+  implicit def toNode(g: G): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    graphSources.foreach(graph => node.addOut(keys.graphUrl, graph))
-
-    G(node)(graphSources)
+    g.graphSource.foreach(graph => node.addOut(keys.graphUrl, graph))
+    node
   }
 }
 
-case class G(override val value: Node)(val graphSource: List[IriResource])
-    extends WrappedNode(value)
-    with TraverseStep {
+case class G(graphSource: List[IriResource]) extends TraverseStep {
+
+  def toNode: Node                 = this
   override def prettyPrint: String = "g(" + graphSource.map(_.iri).mkString(", ") + ")"
 }

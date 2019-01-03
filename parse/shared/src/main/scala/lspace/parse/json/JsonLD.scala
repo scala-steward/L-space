@@ -20,6 +20,9 @@ import scala.util.{Failure, Success, Try}
 
 object JsonLD {
   def apply(graph: Graph): JsonLD = new JsonLD(graph)
+
+  /** uses MemGraphDefault and should contain all classtypes present in local graphs */
+  val default = apply(MemGraphDefault)
 }
 class JsonLD(graph: Graph) {
 

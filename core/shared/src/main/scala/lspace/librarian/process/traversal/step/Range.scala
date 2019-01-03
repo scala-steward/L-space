@@ -7,11 +7,8 @@ import lspace.librarian.structure._
 
 object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: Nil) with StepWrapper[Range] {
 
-  def wrap(node: Node): Range = node match {
-    case node: Range => node
-    case _ =>
-      Range(node.out(Range.keys.lowInt).take(1).head, node.out(Range.keys.highInt).take(1).head, node)
-  }
+  def toStep(node: Node): Range =
+    Range(node.out(Range.keys.lowInt).take(1).head, node.out(Range.keys.highInt).take(1).head)
 
   object keys extends FilterStep.Properties {
     object low
@@ -40,16 +37,18 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
     val highInt = keys.highInt
   }
 
-  def apply(low: Int, high: Int): Range = {
+  implicit def toNode(range: Range): Node = {
     val node = DetachedGraph.nodes.create(ontology)
 
-    node.addOut(keys.lowInt, low)
-    node.addOut(keys.highInt, high)
-    Range(low, high, node)
+    node.addOut(keys.lowInt, range.low)
+    node.addOut(keys.highInt, range.high)
+    node
   }
 
 }
 
-case class Range private (low: Int, high: Int, override val value: Node) extends WrappedNode(value) with ClipStep {
+case class Range(low: Int, high: Int) extends ClipStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"range($low, $high)"
 }

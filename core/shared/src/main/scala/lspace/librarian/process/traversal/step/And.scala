@@ -15,7 +15,7 @@ object And
                     () => FilterStep.ontology :: Nil)
     with StepWrapper[And] {
 
-  def wrap(node: Node): And = node match {
+  def toStep(node: Node): And = node match {
     case node: And => node
     case _ =>
       And(
@@ -23,9 +23,8 @@ object And
           .out(keys.traversalTraversal)
           .map(
             Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]),
-        node
+              .toTraversal(_)(DetachedGraph)
+              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
       )
   }
 
@@ -47,17 +46,16 @@ object And
     lazy val `ns.l-space.eu/librarian/step/And/traversal @Traversal`: TypedKey[Node] = keys.traversalTraversal
   }
 
-  def apply(traversals: List[Traversal[_, _, _ <: HList]]): And = {
+  implicit def toNode(and: And): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    traversals.map(_.self).foreach(node.addOut(keys.traversal, _))
-    And(traversals, node)
+    and.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
+    node
   }
 }
 
-case class And private (traversals: List[Traversal[_, _, _ <: HList]], override val value: Node)
-    extends WrappedNode(value)
-    with FilterStep {
+case class And(traversals: List[Traversal[_, _, _ <: HList]]) extends FilterStep {
+
+  lazy val toNode: Node = this
   override def prettyPrint: String =
     "and(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

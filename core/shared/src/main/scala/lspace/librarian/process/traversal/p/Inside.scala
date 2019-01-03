@@ -11,34 +11,29 @@ object Inside
     extends PredicateDef("Inside", `@extends` = () => List(RangeP.ontology))
     with PredicateWrapper[Inside[_]] {
 
-  def wrap(node: Node): Inside[_] = node match {
+  def toP(node: Node): Inside[_] = node match {
     case node: Inside[_] => node
     case _ =>
       val (lower, helperLower) = OrderHelper map node.out(RangeP.keys.lower).head
       val (upper, helperUpper) = OrderHelper map node.out(RangeP.keys.upper).head
-      new Inside(lower, upper, node)(helperLower)
+      Inside(lower, upper)(helperLower)
   }
 
   object keys extends RangeP.Properties
   override lazy val properties: List[Property] = RangeP.properties
   trait Properties extends RangeP.Properties
 
-  def apply[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Inside[T] = {
+  implicit def toNode[T](inside: Inside[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(RangeP.keys.lower, lower)
-    node.addOut(RangeP.keys.upper, upper)
-    //    node.property(P.keys.dataTypeNode, dataType)
-    new Inside(lower, upper, node)
+    node.addOut(RangeP.keys.lower, ClassType.valueToOntologyResource(inside.lower), inside.lower)
+    node.addOut(RangeP.keys.upper, ClassType.valueToOntologyResource(inside.upper), inside.upper)
+    node
   }
-
 }
 
-class Inside[T] private (val lower: T, val upper: T, override val value: Node)(implicit helper: OrderHelper[T])
-    extends WrappedNode(value)
-    with RangeP[T] {
+case class Inside[T](lower: T, upper: T)(implicit helper: OrderHelper[T]) extends RangeP[T] {
   def assert(avalue: Any): Boolean = helper.gt(avalue, lower) && helper.lt(avalue, upper)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"inside($lower, $upper)"
 }

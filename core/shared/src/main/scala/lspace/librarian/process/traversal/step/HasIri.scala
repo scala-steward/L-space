@@ -13,10 +13,7 @@ object HasIri
     extends StepDef("HasIri", "A hasIri-step filters resources by iri.", () => HasStep.ontology :: Nil)
     with StepWrapper[HasIri] {
 
-  def wrap(node: Node): HasIri = node match {
-    case node: HasIri => node
-    case _            => HasIri(node)
-  }
+  def toStep(node: Node): HasIri = HasIri(node.out(HasIri.keys.iriString).toSet)
 
   object keys {
     object iri
@@ -35,16 +32,17 @@ object HasIri
     val iriString = keys.iriString
   }
 
-  def apply(ids: Set[String]): HasIri = {
+  implicit def toNode(hasIri: HasIri): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    //    node.addOuts(keys.idString, ids.toList)
-    ids.foreach(node.addOut(keys.iri, _))
-    HasIri(node)
+    hasIri.iris.foreach(node.addOut(keys.iri, _))
+    node
   }
 
 }
 
-case class HasIri private (override val value: Node) extends WrappedNode(value) with HasStep {
-  def ids: Set[String] = out(HasIri.keys.iriString).toSet
+case class HasIri(iris: Set[String]) extends HasStep {
+
+  lazy val toNode: Node = this
+  override def prettyPrint: String =
+    s"hasIri(${iris.mkString(", ")})"
 }

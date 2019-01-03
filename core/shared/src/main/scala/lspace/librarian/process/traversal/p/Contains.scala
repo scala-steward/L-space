@@ -14,33 +14,28 @@ object Contains
     def contains(avalue: Any, pvalue: T): Boolean
   }
 
-  def wrap(node: Node): Contains[_] = node match {
-    case node: Contains[_] => node
-    case _ =>
-      val (pvalue, helper) = node.out(EqP.keys.value).head match {
-        case v: String => v -> Helper.TextHelper
-        case _         => throw new Exception("No StringHelper found")
-      }
-      new Contains(pvalue, node)(helper)
+  def toP(node: Node): Contains[_] = {
+    val (pvalue, helper) = node.out(EqP.keys.value).head match {
+      case v: String => v -> Helper.TextHelper
+      case _         => throw new Exception("No StringHelper found")
+    }
+    Contains(pvalue)(helper)
   }
 
   object keys extends EqP.Properties
   override lazy val properties: List[Property] = EqP.properties
   trait Properties extends EqP.Properties
 
-  def apply[T: EqHelper, T0, TT0 <: ClassType[_]](pvalue: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Contains[T] = {
+  implicit def toNode[T](contains: Contains[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(EqP.keys.value, pvalue)
-    new Contains(pvalue, node)
+    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(contains.pvalue), contains.pvalue)
+    node
   }
 }
 
-class Contains[T] private (val pvalue: T, override val value: Node)(implicit helper: EqHelper[T])
-    extends WrappedNode(value)
-    with EqP[T] {
+case class Contains[T](pvalue: T)(implicit helper: EqHelper[T]) extends EqP[T] {
   def assert(avalue: Any): Boolean = helper.contains(avalue, pvalue)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"contains($pvalue)"
 }

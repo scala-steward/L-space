@@ -220,20 +220,11 @@ object LiteralType extends LiteralType[Any] {
   val iri: String = NS.types.`@literal`
   type Out = Any
 
-//  implicit val classTypeable: ClassTypeable.Aux[LiteralType[Any], LiteralType[Any]] =
-//    new ClassTypeable[LiteralType[Any]] {
-//      type CT = LiteralType[Any]
-//      def ct: CT = LiteralType
-//    }
   implicit def clsLiteral[T]: ClassTypeable.Aux[LiteralType[T], T, LiteralType[T]] = new ClassTypeable[LiteralType[T]] {
     type C  = T
     type CT = LiteralType[T]
     def ct: CT = new LiteralType[T] { val iri: String = NS.types.`@literal` }
   }
-//  implicit def default[T, CT[+Z] <: LiteralType[Z]](implicit ev: CT[T] =:= LiteralType[Any]): LiteralType[T] =
-//    LiteralType.asInstanceOf[LiteralType[T]]
-//
-//  implicit def dt[T, CT[Z] <: LiteralType[Z]](implicit ev: CT[T] <:< LiteralType[T]) = DataType.urlType[CT[T]]
 }
 trait LiteralType[+T] extends DataType[T]
 
@@ -254,9 +245,8 @@ object StructuredValue {
       type CT = StructuredValue[T]
       def ct: CT = StructuredValue.structuredType[T]
     }
-  implicit def default[T, CT[+Z] <: ClassType[Z]](implicit ev: CT[T] =:= StructuredValue[Any]): StructuredValue[T] =
-    structuredType[T]
-//  implicit def dt[T, CT[Z] <: StructuredValue[Z]](implicit ev: CT[T] <:< StructuredValue[T]) = DataType.urlType[CT[T]]
+//  implicit def default[T, CT[+Z] <: ClassType[Z]](implicit ev: CT[T] =:= StructuredValue[Any]): StructuredValue[T] =
+//    structuredType[T]
 }
 trait StructuredValue[+T] extends DataType[T]
 
@@ -291,7 +281,7 @@ object CollectionType {
       def ct: CT = default[Any]
     }
 }
-trait CollectionType[+T /*<: Iterable[_]*/ ] extends StructuredValue[T] {
+trait CollectionType[+T] extends StructuredValue[T] {
   override val _properties: () => List[Property] = () => List(CollectionType.keys.valueRange)
 }
 
@@ -308,8 +298,6 @@ object NumericType {
       type CT = NumericType[T]
       def ct: CT = NumericType.numType[T]
     }
-
-//  implicit def dt[T, CT[Z] <: NumericType[Z]](implicit ev: CT[T] <:< NumericType[T]) = DataType.urlType[CT[T]]
 }
 trait NumericType[+T] extends LiteralType[T]
 object CalendarType extends CalendarType[Any] {
@@ -322,10 +310,6 @@ object CalendarType extends CalendarType[Any] {
       type CT = CalendarType[Any]
       def ct: CT = CalendarType
     }
-
-//  implicit def default[T, CT[+Z] <: ClassType[Z]](implicit ev: CT[T] =:= CalendarType[Any]): CalendarType[T] =
-//    CalendarType.asInstanceOf[CalendarType[T]]
-//  implicit def dt[T, CT[Z] <: CalendarType[Z]](implicit ev: CT[T] <:< CalendarType[T]) = DataType.urlType[CT[T]]
 }
 trait CalendarType[+T] extends LiteralType[T]
 
@@ -339,9 +323,6 @@ object QuantityType extends QuantityType[Any] {
       type CT = QuantityType[Any]
       def ct: CT = QuantityType
     }
-//  implicit def default[T, CT[+Z] <: ClassType[Z]](implicit ev: CT[T] =:= QuantityType[Any]): QuantityType[T] =
-//    QuantityType.asInstanceOf[QuantityType[T]]
-//  implicit def dt[T, CT[Z] <: QuantityType[Z]](implicit ev: CT[T] <:< QuantityType[T]) = DataType.urlType[CT[T]]
 }
 trait QuantityType[+T] extends StructuredValue[T]
 
@@ -355,9 +336,6 @@ object GeometricType extends GeometricType[Geometry] {
       type CT = GeometricType[Geometry]
       def ct: CT = GeometricType
     }
-//  implicit def default[T, CT[+Z] <: ClassType[Z]](implicit ev: CT[T] =:= GeometricType[Any]): GeometricType[T] =
-//    GeometricType.asInstanceOf[GeometricType[T]]
-//  implicit def dt[T, CT[Z] <: GeometricType[Z]](implicit ev: CT[T] <:< GeometricType[T]) = DataType.urlType[CT[T]]
 }
 trait GeometricType[+T] extends StructuredValue[T]
 object ColorType extends ColorType[Any] { //TODO RgbType, CMYK, PMS, NamedColor
@@ -369,9 +347,6 @@ object ColorType extends ColorType[Any] { //TODO RgbType, CMYK, PMS, NamedColor
     type CT = ColorType[Any]
     def ct: CT = ColorType
   }
-//  implicit def default[T, CT[+Z] <: ClassType[Z]](implicit ev: CT[T] =:= ColorType[Any]): ColorType[T] =
-//    ColorType.asInstanceOf[ColorType[T]]
-//  implicit def dt[T, CT[Z] <: ColorType[Z]](implicit ev: CT[T] <:< ColorType[T]) = DataType.urlType[CT[T]]
 }
 trait ColorType[+T] extends StructuredValue[T]
 
@@ -382,13 +357,6 @@ object IriType extends IriType[IriResource] {
   type Out = IriResource
 
   def apply[T]: IriType[T] = new IriType[T] { val iri: String = "" }
-
-//  implicit val classTypeable: ClassTypeable[IriType[Any]] = new ClassTypeable[IriType[Any]] {
-//    type CT = IriType[Any]
-//    def ct: CT = IriType
-//  }
-//  implicit def default[S, E](implicit ev: S =:= Any, ev2: E =:= Any): IriType[Edge[S, E]] =
-//    EdgeURLType.edgeUrlType[Edge[S, E]]
 
   implicit def clsIri[T]: ClassTypeable.Aux[IriType[T], T, IriType[T]] = new ClassTypeable[IriType[T]] {
     type C  = T

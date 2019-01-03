@@ -1,8 +1,5 @@
 package lspace.librarian.structure.util
 
-import java.time.Instant
-
-import lspace.librarian.structure.Property.default
 import lspace.librarian.structure.{Graph, Node, Ontology, Value}
 
 import scala.collection.mutable

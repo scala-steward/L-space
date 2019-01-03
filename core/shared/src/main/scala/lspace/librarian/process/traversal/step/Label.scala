@@ -2,33 +2,25 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[Label] {
 
-  def wrap(node: Node): Label = node match {
-    case node: Label => node
-    case _ =>
-      new Label(
-        node
-          .out(MoveStep.keys.labelUrl)
-          .map(_.iri)
-          .flatMap(node.graph.ns.getClassType(_)) //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
-          .toSet,
-        node
-      )
-  }
+  def toStep(node: Node): Label = Label(
+    node
+      .out(MoveStep.keys.labelUrl)
+      .map(_.iri)
+      .flatMap(node.graph.ns.getClassType(_)) //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
+      .toSet
+  )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  def apply[CT <: ClassType[_]](labels: Set[CT] = Set()): Label = {
+  implicit def toNode(label: Label): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    labels.foreach {
+    label.label.foreach {
       case ontology: Ontology =>
         node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, ontology.asInstanceOf[Ontology])
       case property: Property =>
@@ -36,10 +28,12 @@ object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology
       case classtype =>
         node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, classtype)
     }
-    new Label(labels.asInstanceOf[Set[ClassType[_]]], node)
+    node
   }
 }
 
-case class Label private (label: Set[ClassType[_]], override val value: Node) extends WrappedNode(value) with MoveStep {
+case class Label(label: Set[ClassType[_]]) extends MoveStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = "label(" + label.map(_.iri).mkString(", ") + ")"
 }

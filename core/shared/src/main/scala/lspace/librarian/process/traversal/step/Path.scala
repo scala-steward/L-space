@@ -8,21 +8,16 @@ import shapeless.HList
 
 object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: Nil) with StepWrapper[Path] {
 
-  def wrap(node: Node): Path = node match {
-    case node: Path => node
-    case _ =>
-      Path(
-        node
-          .out(keys.byTraversal)
-          .take(1)
-          .map(
-            Traversal
-              .wrap(_)(DetachedGraph)
-              .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
-          .head,
-        node
-      )
-  }
+  def toStep(node: Node): Path = Path(
+    node
+      .out(keys.byTraversal)
+      .take(1)
+      .map(
+        Traversal
+          .toTraversal(_)(DetachedGraph)
+          .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
+      .head
+  )
 
   object keys {
     object by
@@ -40,17 +35,16 @@ object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: 
     val byTraversal = keys.byTraversal
   }
 
-  def apply(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]): Path = {
+  implicit def toNode(path: Path): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.by, by.self)
-    Path(by, node)
+    node.addOut(keys.by, path.by.toNode)
+    node
   }
 
 }
 
-case class Path private (by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList], override val value: Node)
-    extends WrappedNode(value)
-    with MapStep {
+case class Path(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends MapStep {
+
+  lazy val toNode: Node            = this
   override def prettyPrint: String = if (by.stepsList.nonEmpty) "path(" + by.toString + ")" else "path"
 }

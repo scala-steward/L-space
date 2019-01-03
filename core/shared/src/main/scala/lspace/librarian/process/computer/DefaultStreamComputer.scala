@@ -59,10 +59,10 @@ class DefaultStreamComputer() extends GraphComputer {
     step match {
       //      case step: ResourceStep =>
       //        val streamIn = step.resources
-      case step: N if step.resources.forall {
+      case step: N if step.nodes.forall {
             case node: Node => node.graph == this
           } =>
-        step.resources match {
+        step.nodes match {
           case List() =>
             nodes()
               .map(node => traverser.fold[Traverser[Any]](createTraverser(node))(_.copy(get = node)))
@@ -74,34 +74,41 @@ class DefaultStreamComputer() extends GraphComputer {
         }
       case step: N =>
         nodes()
-          .filter(step.resources.contains)
+          .filter(step.nodes.contains)
           .map(node => traverser.fold[Traverser[Any]](createTraverser(node))(_.copy(get = node)))
           .asInstanceOf[Stream[Traverser[Resource[Any]]]]
-      case step: V if step.resources.forall {
+      case step: V if step.values.forall {
             case value: Value[Any] => value.graph == this
+            case v                 => false
           } =>
-        step.resources match {
+        step.values match {
           case List() =>
             values()
               .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
               .asInstanceOf[Stream[Traverser[Resource[Any]]]]
           case list: List[Value[Any]] =>
             implgraph.values
-              .byValue(list.map(v => v.value -> v.label))
+              .byValue(list.map {
+                case v: Value[Any] => v.value -> v.label
+                case v             => v       -> ClassType.valueToOntologyResource(v)
+              })
               .toStream
               .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
               .asInstanceOf[Stream[Traverser[Resource[Any]]]]
         }
       case step: V =>
         implgraph.values
-          .byValue(step.resources.map(v => v.value -> v.label))
+          .byValue(step.values.map {
+            case v: Value[Any] => v.value -> v.label
+            case v             => v       -> ClassType.valueToOntologyResource(v)
+          })
           .toStream
           .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
           .asInstanceOf[Stream[Traverser[Resource[Any]]]]
-      case step: E if step.resources.forall {
+      case step: E if step.links.forall {
             case property: Edge[_, _] => property.graph == this
           } =>
-        step.resources match {
+        step.links match {
           case List() =>
             edges()
               .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
@@ -113,7 +120,7 @@ class DefaultStreamComputer() extends GraphComputer {
         }
       case step: E =>
         edges()
-          .filter(step.resources.contains)
+          .filter(step.links.contains)
           .map(v => traverser.fold[Traverser[Any]](createTraverser(v))(_.copy(get = v)))
           .asInstanceOf[Stream[Traverser[Resource[Any]]]]
       case step: R if step.resources.forall {
@@ -641,7 +648,7 @@ class DefaultStreamComputer() extends GraphComputer {
               val longIds = step.ids.flatMap(id => Try { id.toLong }.toOption)
               traversers.filter(traverser => longIds.contains(traverser.get.id))
             case step: HasIri =>
-              traversers.filter(traverser => traverser.get.iris.intersect(step.ids).nonEmpty)
+              traversers.filter(traverser => traverser.get.iris.intersect(step.iris).nonEmpty)
             case step: HasLabel =>
               val labelIris       = step.label.map(_.iri)
               val labelClassTypes = labelIris.flatMap(graph.ns.getClassType(_))

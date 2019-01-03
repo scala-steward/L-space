@@ -12,28 +12,22 @@ object ContainsRegex
     extends PredicateDef("ContainsRegex", `@extends` = () => List(EqP.ontology))
     with PredicateWrapper[ContainsRegex] {
 
-  def wrap(node: Node): ContainsRegex = node match {
-    case node: ContainsRegex => node
-    case _                   => new ContainsRegex(node.out(EqP.keys.value + DataType.default.`@string`).head.r, node)
-  }
+  def toP(node: Node): ContainsRegex = ContainsRegex(node.out(EqP.keys.value + DataType.default.`@string`).head.r)
 
   object keys extends EqP.Properties
   override lazy val properties: List[Property] = EqP.properties
   trait Properties extends EqP.Properties
 
-  def apply(pvalue: scala.util.matching.Regex): ContainsRegex = {
+  implicit def toNode[T](containsRegex: ContainsRegex): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(EqP.keys.value, pvalue.regex)
-    new ContainsRegex(pvalue, node)
+    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(containsRegex.pvalue), containsRegex.pvalue)
+    node
   }
 }
 
-class ContainsRegex private (val pvalue: scala.util.matching.Regex, override val value: Node)(
-    implicit helper: StringHelper[String])
-    extends WrappedNode(value)
-    with EqP[String] {
+case class ContainsRegex(pvalue: scala.util.matching.Regex)(implicit helper: StringHelper[String]) extends EqP[String] {
   def assert(avalue: Any): Boolean = helper.containsRegex(avalue, pvalue)
 
+  lazy val toNode: Node            = this
   override def prettyPrint: String = s"containsRegex($pvalue)"
 }
