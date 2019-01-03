@@ -24,6 +24,8 @@ jobs:
           - $HOME/.coursier
           - node_modules
     - scala: 2.12.8
+      install:
+        - npm install jsdom
       script: sbt ++$TRAVIS_SCALA_VERSION coreJVM/test parseJVM/test clientJVM/test services/test
       cache:
         directories:
