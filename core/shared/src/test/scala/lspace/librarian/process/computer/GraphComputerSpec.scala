@@ -1,17 +1,15 @@
 package lspace.librarian.process.computer
 
-import java.time.{Instant, LocalDate}
+import java.time.LocalDate
 
-import lspace.librarian.datatype.{DoubleType, IntType, ListType}
-import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{P, step, _}
+import lspace.librarian.datatype._
+import DataType.default._
+import lspace.librarian.process.traversal._
 import lspace.librarian.util.SampleGraph
 import org.scalatest.BeforeAndAfterAll
 import lspace.librarian.structure._
-import lspace.librarian.structure.DataType.default.{listType, _}
 import lspace.types.vector.Point
 import org.scalatest.{Matchers, WordSpec}
-import shapeless.HNil
 
 import scala.language._
 
@@ -59,7 +57,15 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.has("name", P.eqv("Garrison")).out("name").head shouldBe "Garrison"
     }
     "a OutMap-step" in {
-      Traversal.WithTraversalStream(g.N.outMap().hasLabel(`@int`)).toStream.head
+      Traversal.WithTraversalStreamTyped(g.N.outMap()).toStream.head
+      import shapeless.::
+      val b: IntType[Int] =
+        g.N.outMap().hasLabel(`@int`).et
+      val c: DataType[Graph] =
+        g.N.outMap().hasLabel(`@int`).st
+
+      Traversal.WithTraversalStreamTyped(g.N.outMap().hasLabel(`@int`)).toStream.head
+      g.N.outMap().hasLabel(`@int`).toStream.head
       g.N.outMap().toStream.nonEmpty shouldBe true
       g.N.has("name", P.eqv("Garrison")).outMap().head.size shouldBe 5
     }
@@ -144,11 +150,14 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.coin(1.0).toStream.nonEmpty shouldBe true
     }
     "a Path-step" in {
-      new Traversal.WithTraversalStream(
-        g.N
-          .out("https://schema.org/knows")
-          .out("https://schema.org/knows")
-          .path(_.out("name"))).toStream.head
+      Traversal
+        .WithTraversalStreamTyped(
+          g.N
+            .out("https://schema.org/knows")
+            .out("https://schema.org/knows")
+            .path(_.out("name")))
+        .toStream
+        .head
       g.N
         .out("https://schema.org/knows")
         .out("https://schema.org/knows")
@@ -200,6 +209,8 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "a Group-step" in {
       val groupedNodes: Stream[Map[List[Ontology], List[Node]]] = g.N.group(_.label()).toStream
+      g.N.group(_.label()).toStream
+      g.N.label()
       groupedNodes.nonEmpty shouldBe true
       val test = g.N.group(_.label())
       test.out("abc").out("def")
@@ -345,40 +356,46 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
     "An As-step" in {
       import shapeless._
-      import shapeless.ops.hlist._
       import syntax.singleton._
-      implicit def stringToF(label: String) = () => label.narrow
+      implicit def stringToF[S <: String](label: S) = () => Witness(label).value
       g.N.hasLabel(ontologies.person).as("a").out(properties.knows).as("b").toList
     }
 
     "A Select-step" in {
       import shapeless._
-      import shapeless.ops.hlist._
       import syntax.singleton._
-      implicit def stringToF(label: String) = () => label.narrow
-      val x                                 = g.V.hasLabel(`@int`).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b")
+      implicit def stringToF(label: String) = () => Witness(label).value
+      val x = g.V
+        .hasLabel(`@int`)
+        .as("aname")
+        .min
+        .in(properties.rate)
+        .hasLabel(ontologies.person)
+        .as("b")
 
-      val (i1: Int, n1: Node)   = x.select.head
-      val (i3: Int, n3: Node)   = x.select(_.a.b).head
-      val i5: Int               = g.V.hasLabel[Int].toList.head
-      val i4: Int               = x.select(_.a).head
-      val n4: Node              = x.select(_.b).head
+      val tp2s: Tuple2Type[Int, Node] = x.select(_.a.b).et.asInstanceOf[Tuple2Type[Int, Node]]
+//
+      val (i1: Int, n1: Node) = x.select.head
+////      val (i3: Int, n3: Node)   = x.select(_.a.b).head
+      val i5: Int = g.V.hasLabel[Int].toList.head
+////      val i4: Int               = x.select(_.a).head
+////      val n4: Node              = x.select(_.b).head
       val rint: Int             = x.select("aname").head
       val rnode: Node           = x.select("b").head
       val (i33: Int, n33: Node) = x.select("aname", "b").head
       val (n44: Node, i44: Int) = x.select("b", "aname").head
-//
+////
       x.select.head._1 shouldBe 1
-      x.select(_.a.b).head._1 shouldBe 1
-      x.select(_.b.a).head._2 shouldBe 1
-      x.select(_.a.b).head._2.iri shouldBe "person-gray"
-      x.select(_.b.a).head._1.iri shouldBe "person-gray"
-
+////      x.select(_.a.b).head._1 shouldBe 1
+////      x.select(_.b.a).head._2 shouldBe 1
+////      x.select(_.a.b).head._2.iri shouldBe "person-gray"
+////      x.select(_.b.a).head._1.iri shouldBe "person-gray"
+//
       x.select("aname", "b").head._2.iri shouldBe "person-gray"
       x.select("aname").head shouldBe 1
       x.select("b").head.iri shouldBe "person-gray"
       x.select("b", "aname").head._1.iri shouldBe "person-gray"
-
+//
       g.V
         .hasLabel(`@int`)
         .as("aname")

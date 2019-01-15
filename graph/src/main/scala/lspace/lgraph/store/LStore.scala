@@ -101,8 +101,8 @@ trait LStore[G <: LGraph] extends Store[G] {
     })
   }
 
-  def byId(id: Long): Option[T2]     = cachedById(id)
-  def byIri(iri: String): Stream[T2] = cachedByIri(iri)
+  def hasId(id: Long): Option[T2]     = cachedById(id)
+  def hasIri(iri: String): Stream[T2] = cachedByIri(iri)
 
   def delete(resource: T): Unit = {
     uncache(resource)

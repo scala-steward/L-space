@@ -8,7 +8,7 @@ case object Min
     extends StepDef(
       "Min",
       "A min-step finds the traverser with the resource with the smallest value within all traversers in-scope.",
-      () => ReducingBarrierStep.ontology :: Nil
+      () => FilterBarrierStep.ontology :: Nil
     )
     with StepWrapper[Min]
     with Min {
@@ -23,4 +23,4 @@ case object Min
   override def prettyPrint: String = "min"
 }
 
-trait Min extends ReducingBarrierStep
+trait Min extends FilterBarrierStep

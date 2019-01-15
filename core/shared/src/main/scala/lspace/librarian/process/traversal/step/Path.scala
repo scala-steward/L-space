@@ -46,5 +46,5 @@ object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: 
 case class Path(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends MapStep {
 
   lazy val toNode: Node            = this
-  override def prettyPrint: String = if (by.stepsList.nonEmpty) "path(" + by.toString + ")" else "path"
+  override def prettyPrint: String = if (by.segmentList.nonEmpty) "path(" + by.toString + ")" else "path"
 }

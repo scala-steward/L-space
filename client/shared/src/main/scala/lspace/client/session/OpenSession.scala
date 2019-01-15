@@ -2,6 +2,7 @@ package lspace.client.session
 
 import java.time.Instant
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal.TypedKey
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode

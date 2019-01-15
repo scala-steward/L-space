@@ -5,9 +5,10 @@ import com.datastax.driver.core.PagingState
 import com.outworkers.phantom.builder.batch.BatchQuery
 import com.outworkers.phantom.dsl._
 import lspace.lgraph._
-import lspace.lgraph.store.StoreManager
+import lspace.lgraph.store.{LEdgeStore, LNodeStore, LValueStore, StoreManager}
+import lspace.librarian.datatype.DataType
 import lspace.librarian.structure
-import lspace.librarian.structure.{DataType, Ontology, Property}
+import lspace.librarian.structure.{Ontology, Property}
 import lspace.parse.json.JsonLD
 import monix.eval.Task
 import monix.reactive._
@@ -26,12 +27,17 @@ object CassandraStoreManager {
     Consumer
       .loadBalance(parallelism = 50, cassandraQueryConsumer)
   }
+  monix.eval.TaskLift
 }
 
 class CassandraStoreManager[G <: LGraph](override val graph: G, override val database: CassandraGraphTables)
     extends StoreManager(graph)
     with DatabaseProvider[CassandraGraphTables] {
   import CassandraStoreManager._
+
+  override def nodeStore: LNodeStore[G]   = graph.nodeStore.asInstanceOf[LNodeStore[G]]
+  override def edgeStore: LEdgeStore[G]   = graph.edgeStore.asInstanceOf[LEdgeStore[G]]
+  override def valueStore: LValueStore[G] = graph.valueStore.asInstanceOf[LValueStore[G]]
 
   val jsonld = JsonLD(graph)
 
@@ -61,12 +67,12 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
     result.records.toStream
       .filterNot(n => graph.nodeStore.isDeleted(n.id))
       .map(node =>
-        nodeStore.cachedById(node.id).getOrElse {
+        nodeStore.cachedById(node.id).asInstanceOf[Option[graph.GNode]].getOrElse {
           val _node = graph.newNode(node.id)
 
           node.labels
-            .map { id =>
-              Ontology.allOntologies.byId.getOrElse(id, graph.ns.getOntologies(id).head)
+            .flatMap { id =>
+              Ontology.allOntologies.byId.get(id).orElse(graph.ns.ontologies.get(id))
             }
             .foreach(o => _node.addLabel(o))
           _node
@@ -83,23 +89,23 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
             .isDeleted(e.toId) || graph.nodeStore.isDeleted(e.fromId) || graph.valueStore
             .isDeleted(e.fromId) || graph.nodeStore.isDeleted(e.toId) || graph.valueStore.isDeleted(e.toId))
       .map(edge =>
-        edgeStore.cachedById(edge.id).getOrElse {
+        edgeStore.cachedById(edge.id).asInstanceOf[Option[graph.GEdge[Any, Any]]].getOrElse {
           val from = edge.fromType match {
-            case 0 => nodeStore.cachedById(edge.fromId).getOrElse(nodeStore.byId(edge.fromId).get)
+            case 0 => nodeStore.cachedById(edge.fromId).getOrElse(nodeStore.hasId(edge.fromId).get)
 //              .getOrElse(LNode(edge.from, graph).asInstanceOf[graph._Node])
-            case 1 => edgeStore.cachedById(edge.fromId).getOrElse(edgeStore.byId(edge.fromId).get)
-            case 2 => valueStore.cachedById(edge.fromId).getOrElse(valueStore.byId(edge.fromId).get)
+            case 1 => edgeStore.cachedById(edge.fromId).getOrElse(edgeStore.hasId(edge.fromId).get)
+            case 2 => valueStore.cachedById(edge.fromId).getOrElse(valueStore.hasId(edge.fromId).get)
           }
           val to = edge.toType match {
-            case 0 => nodeStore.cachedById(edge.toId).getOrElse(nodeStore.byId(edge.toId).get)
-            case 1 => edgeStore.cachedById(edge.toId).getOrElse(edgeStore.byId(edge.toId).get)
-            case 2 => valueStore.cachedById(edge.toId).getOrElse(valueStore.byId(edge.toId).get)
+            case 0 => nodeStore.cachedById(edge.toId).getOrElse(nodeStore.hasId(edge.toId).get)
+            case 1 => edgeStore.cachedById(edge.toId).getOrElse(edgeStore.hasId(edge.toId).get)
+            case 2 => valueStore.cachedById(edge.toId).getOrElse(valueStore.hasId(edge.toId).get)
           }
 //        println("pagedEdgesF " + edge.key)
           graph.newEdge(
             edge.id,
             from.asInstanceOf[graph.GResource[Any]],
-            Property.allProperties.byId.getOrElse(edge.key, graph.ns.getProperties(edge.key).head),
+            Property.allProperties.byId.get(edge.key).orElse(graph.ns.properties.get(edge.key)).get,
             to.asInstanceOf[graph.GResource[Any]]
           )
       }) #::: (if (!result.result.isExhausted()) pagedEdgesF(f, Some(result.pagingState)) else Stream())
@@ -110,8 +116,8 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
     result.records.toStream
       .filterNot(v => graph.valueStore.isDeleted(v.id))
       .map(value =>
-        valueStore.cachedById(value.id).getOrElse {
-          val datatype    = DataType.allDataTypes.byId.getOrElse(value.label, graph.ns.getDataTypes(value.label).head)
+        valueStore.cachedById(value.id).asInstanceOf[Option[graph.GValue[Any]]].getOrElse {
+          val datatype    = DataType.allDataTypes.byId.get(value.label).orElse(graph.ns.datatypes.get(value.label)).get
           val parsedValue = jsonld.jsonToValue(datatype, Parse.parseOption(value.value).get).get._2
           graph.newValue(value.id, parsedValue, datatype)
       }) #::: (if (!result.result.isExhausted()) pagedValuesF(f, Some(result.pagingState)) else Stream())
@@ -285,7 +291,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
                      graph.ns.nodes
                        .hasIri(o.iri)
                        .headOption
-                       .getOrElse(graph.ns.storeOntology(o))
+                       .getOrElse(graph.ns.ontologies.store(o))
                        .id))
   )
   override def storeNodes(nodes: List[graph.GNode]): Task[_] = loadBalancer.synchronized {
@@ -322,7 +328,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
                  graph.ns.nodes
                    .hasIri(edge.key.iri)
                    .headOption
-                   .getOrElse(graph.ns.storeProperty(edge.key))
+                   .getOrElse(graph.ns.properties.store(edge.key))
                    .id),
     edge.to.id,
     edge.to match {
@@ -373,7 +379,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
                  graph.ns.nodes
                    .hasIri(value.label.iri)
                    .headOption
-                   .getOrElse(graph.ns.storeDataType(value.label))
+                   .getOrElse(graph.ns.datatypes.store(value.label))
                    .id),
     jsonld.anyToJson(value.value, List(value.label))._1.toString()
   )

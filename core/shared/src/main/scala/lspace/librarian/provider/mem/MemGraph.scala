@@ -1,6 +1,7 @@
 package lspace.librarian.provider.mem
 
 import lspace.NS
+import lspace.librarian.datatype.DataType
 import monix.eval.Task
 import lspace.librarian.process.computer.DefaultStreamComputer
 import lspace.librarian.process.traversal._
@@ -79,7 +80,7 @@ trait MemGraph extends Graph {
   private[this] val newNodeLock = new Object
   protected[mem] def newNode(id: Long): GNode = newNodeLock.synchronized {
     nodeStore
-      .byId(id)
+      .hasId(id)
       .getOrElse {
         def _id = id
         val node = new _Node with MemNode {
@@ -98,7 +99,7 @@ trait MemGraph extends Graph {
   protected[mem] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
     newEdgeLock
       .synchronized {
-        edgeStore.byId(id).getOrElse {
+        edgeStore.hasId(id).getOrElse {
           def _id   = id
           def _from = from
           def _key  = key
@@ -142,7 +143,7 @@ trait MemGraph extends Graph {
   protected[mem] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
     newValueLock
       .synchronized {
-        valueStore.byId(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
+        valueStore.hasId(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
           def _id    = id
           def _value = value
           def _label = label
@@ -175,11 +176,11 @@ trait MemGraph extends Graph {
 
   val computer = DefaultStreamComputer()
   def buildTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[Start, End, Steps])(ct: ClassType[_]): Stream[Out] =
+      traversal: Traversal[Start, End, Steps]): Stream[Out] =
     computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph)
 
   def buildAsyncTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[Start, End, Steps])(ct: ClassType[_]): Task[Stream[Out]] =
+      traversal: Traversal[Start, End, Steps]): Task[Stream[Out]] =
     Task(computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph))
 
   def toFile(path: String = "defaultname.json", process: (Stream[Resource[_]], String => Unit) => String): Task[Unit] =

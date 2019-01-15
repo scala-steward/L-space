@@ -3,16 +3,14 @@ package lspace.librarian.process.traversal.step
 import lspace.NS.types
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
+import lspace.librarian.datatype.{DataType, ListType}
 import lspace.librarian.structure._
 
 object N
     extends StepDef("N", "An n-step selects nodes to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[N] {
 
-  def toStep(node: Node): N = N(node.out(keys.nodeUrl))
+  def toStep(node: Node): N = N(node.out(keys.nodeUrl).take(1).flatten)
 
   object keys extends ResourceStep.Properties {
     object node
@@ -20,10 +18,9 @@ object N
           lspace.NS.vocab.Lspace + "librarian/step/N/node",
           "node",
           "A node",
-          container = types.`@list` :: Nil,
-          `@range` = () => DataType.default.`@nodeURL` :: Nil
+          `@range` = () => ListType(DataType.default.`@nodeURL` :: Nil) :: Nil
         )
-    val nodeUrl: TypedProperty[Node] = node.property + DataType.default.`@nodeURL`
+    val nodeUrl: TypedProperty[List[Node]] = node.property + ListType(DataType.default.`@nodeURL` :: Nil)
   }
   override lazy val properties: List[Property] = keys.node :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {
@@ -33,7 +30,7 @@ object N
 
   implicit def toNode(n: N): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    n.nodes.foreach(node.addOut(keys.node, _))
+    if (n.nodes.nonEmpty) node.addOut(keys.nodeUrl, n.nodes)
     node
   }
 }

@@ -14,7 +14,7 @@ object In
     node
       .out(MoveStep.keys.labelUrl)
       .map(_.iri)
-      .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .map(iri => node.graph.ns.properties.get(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
       .toSet
   )
 

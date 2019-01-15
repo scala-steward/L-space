@@ -1,27 +1,24 @@
 package lspace.librarian.process.traversal.step
 
-import lspace.librarian.datatype.TextType
+import lspace.librarian.datatype._
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
+import lspace.librarian.datatype.DataType
 import lspace.librarian.structure._
 import shapeless.{HList, HNil}
-import lspace.types._
 
 object Order
     extends StepDef("Order", "An order-step ..", () => CollectingBarrierStep.ontology :: Nil)
     with StepWrapper[Order] {
 
+  sealed trait Orderable[T]
   object Orderable {
-    implicit def IsNumeric[T[+Z] <: NumericType[Z]]: Orderable[T]   = new Orderable[T] {}
-    implicit def IsString[T[+Z] <: TextType[Z]]: Orderable[T]       = new Orderable[T] {}
-    implicit def IsTemporal[T[+Z] <: CalendarType[Z]]: Orderable[T] = new Orderable[T] {}
-    implicit def IsQuantity[T[+Z] <: QuantityType[Z]]: Orderable[T] = new Orderable[T] {}
-    implicit def IsColor[T[+Z] <: ColorType[Z]]: Orderable[T]       = new Orderable[T] {}
+    implicit def IsNumeric[T <: NumericType[_]]: Orderable[T]   = new Orderable[T] {}
+    implicit def IsString[T <: TextType[_]]: Orderable[T]       = new Orderable[T] {}
+    implicit def IsTemporal[T <: CalendarType[_]]: Orderable[T] = new Orderable[T] {}
+    implicit def IsQuantity[T <: QuantityType[_]]: Orderable[T] = new Orderable[T] {}
+    implicit def IsColor[T <: ColorType[_]]: Orderable[T]       = new Orderable[T] {}
   }
-  sealed trait Orderable[T[+Z]]
 
   def toStep(node: Node): Order = Order(
     node
@@ -71,7 +68,7 @@ object Order
 
 //case class Order(key: PropertyKey, increasing: Boolean = true) extends TraverseStep /*with ModulateStep[ZeroOrMoreBy]*/ {
 case class Order(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean)
-    extends CollectingBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
+    extends RearrangeBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = "order(" + by.toString + ")"

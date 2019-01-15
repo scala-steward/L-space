@@ -5,7 +5,7 @@ import monix.eval.Task
 import lspace.librarian.process.traversal._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.structure.Property.default
-import lspace.librarian.datatype.GraphType
+import lspace.librarian.datatype.{DataType, GraphType}
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.provider.wrapped.WrappedResource
 import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
@@ -114,9 +114,9 @@ trait Graph extends IriResource {
           .flatMap(
             iri =>
               nodeStore
-                .byIri(iri)
+                .hasIri(iri)
                 .toList
-                .asInstanceOf[List[Resource[_]]] ++ edgeStore.byIri(iri).toList.asInstanceOf[List[Resource[_]]])
+                .asInstanceOf[List[Resource[_]]] ++ edgeStore.hasIri(iri).toList.asInstanceOf[List[Resource[_]]])
           .asInstanceOf[List[Resource[_]]]
       } else List[Resource[_]]()
     }
@@ -155,13 +155,14 @@ trait Graph extends IriResource {
     def hasId(id: Long): Option[Resource[_]] = nodes.hasId(id).orElse(edges.hasId(id)).orElse(values.hasId(id))
   }
 
-  def resources: Resources = new Resources {}
+  private lazy val _resources: Resources = new Resources {}
+  def resources: Resources               = _resources
 
   trait Edges extends RApi[Edge[_, _]] {
     def apply(): Stream[Edge[_, _]] = edgeStore.all()
     def count(): Long               = edgeStore.count()
 
-    def hasId(id: Long): Option[Edge[_, _]] = edgeStore.byId(id)
+    def hasId(id: Long): Option[Edge[_, _]] = edgeStore.hasId(id)
     override def hasIri(iris: List[String]): List[Edge[_, _]] = {
       val validIris = iris.filter(_.nonEmpty)
       if (validIris.nonEmpty)
@@ -169,7 +170,7 @@ trait Graph extends IriResource {
           .flatMap(
             iri =>
               edgeStore
-                .byIri(iri)
+                .hasIri(iri)
                 .toList
                 .asInstanceOf[List[Edge[_, _]]]) distinct
       else List[Edge[_, _]]()
@@ -268,13 +269,15 @@ trait Graph extends IriResource {
     * @return
     */
 //  def edges: Stream[Edge[_, _]] = edgeStore.toStream()
-  def edges: Edges = new Edges {}
+  private lazy val _edges: Edges = new Edges {}
+  def edges: Edges               = _edges
 
   trait Nodes extends RApi[Node] {
     def apply(): Stream[Node] = nodeStore.all()
     def count(): Long         = nodeStore.count()
 
-    def hasId(id: Long): Option[Node] = nodeStore.byId(id)
+    def hasId(id: Long): Option[Node]       = nodeStore.hasId(id)
+    def hasId(id: List[Long]): Stream[Node] = nodeStore.hasId(id)
     override def hasIri(iris: List[String]): List[Node] = {
       //    println(s"get nodes $iris")
       val validIris = iris.distinct.filter(_.nonEmpty)
@@ -282,7 +285,7 @@ trait Graph extends IriResource {
         validIris.flatMap { iri =>
           //        println(s"get $iri")
           nodeStore
-            .byIri(iri)
+            .hasIri(iri)
             .toList
             .asInstanceOf[List[Node]] //        println(r.map(_.iri))
         } distinct
@@ -290,7 +293,7 @@ trait Graph extends IriResource {
 
     }
 
-    final def create(ontology: Ontology*): Node = {
+    def create(ontology: Ontology*): Node = {
       val node = getOrCreateNode(idProvider.next)
       ontology.foreach(node.addLabel)
       node
@@ -330,7 +333,8 @@ trait Graph extends IriResource {
     }
 
     def upsert(node: Node): Node = {
-      if (node.graph != this) {
+      if (node.graph != this) { //
+        val edges = node.outE()
         if (node.iri.nonEmpty) upsert(node.iri)
         else {
           val newNode = create()
@@ -391,13 +395,14 @@ trait Graph extends IriResource {
     * @return
     */
 //  def nodes: Stream[Node] = nodeStore.toStream()
-  def nodes: Nodes = new Nodes {}
+  private lazy val _nodes: Nodes = new Nodes {}
+  def nodes: Nodes               = _nodes
 
   trait Values extends RApi[Value[_]] {
     def apply(): Stream[Value[_]] = valueStore.all()
     def count(): Long             = valueStore.count()
 
-    def hasId(id: Long): Option[Value[_]] = valueStore.byId(id)
+    def hasId(id: Long): Option[Value[_]] = valueStore.hasId(id)
     def hasIri(iris: List[String]): List[Value[_]] = {
       //    println(s"get nodes $iris")
       val validIris = iris.distinct.filter(_.nonEmpty)
@@ -405,7 +410,7 @@ trait Graph extends IriResource {
         validIris.flatMap { iri =>
           //        println(s"get $iri")
           valueStore
-            .byIri(iri)
+            .hasIri(iri)
             .toList
             .asInstanceOf[List[Value[_]]] //        println(r.map(_.iri))
         } distinct
@@ -515,11 +520,12 @@ trait Graph extends IriResource {
     final def ++[V](value: Value[V]): Value[V] = post(value)
   }
 
-  def values: Values = new Values {}
+  private lazy val _values: Values = new Values {}
+  def values: Values               = _values
 
   protected def newNode(id: Long): GNode
   protected def getOrCreateNode(id: Long): GNode = {
-    nodeStore.byId(id).getOrElse {
+    nodeStore.hasId(id).getOrElse {
       val node = newNode(id)
       storeNode(node)
       node
@@ -531,7 +537,7 @@ trait Graph extends IriResource {
   protected def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E]
   protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any]
   protected def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
-    if (ns.getProperty(key.iri).isEmpty) ns.storeProperty(key)
+    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
 
     val _from = resources
       .hasId(from)
@@ -560,7 +566,7 @@ trait Graph extends IriResource {
 
   protected def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T]
   protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
-    if (ns.getDataType(dt.iri).isEmpty) ns.storeDataType(dt)
+    if (ns.datatypes.get(dt.iri).isEmpty) ns.datatypes.store(dt)
     val _value = newValue(id, value, dt)
     storeValue(_value.asInstanceOf[GValue[_]])
     _value
@@ -622,15 +628,18 @@ trait Graph extends IriResource {
   }
 
   def g: Traversal[DataType[Graph], DataType[Graph], HNil] = g()
+  def __[Start, End](implicit cltblStart: ClassTypeable[Start],
+                     cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HNil] =
+    Traversal[cltblStart.CT, cltblEnd.CT]()(this, cltblStart.ct, cltblEnd.ct)
   def g(graph: Graph*): Traversal[DataType[Graph], DataType[Graph], HNil] =
-    Traversal[DataType[Graph], DataType[Graph]]()(this, GraphType.default, GraphType.default)
+    Traversal[DataType[Graph], DataType[Graph]]()(this, GraphType.datatype, GraphType.datatype)
 
   lazy val traversal: Traversal[DataType[Graph], DataType[Graph], HNil] = g
 
-  def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[ST, ET, Steps])(ct: ClassType[_]): Stream[Out]
-  def buildAsyncTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[ST, ET, Steps])(ct: ClassType[_]): Task[Stream[Out]]
+  def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
+      traversal: Traversal[ST, ET, Segments]): Stream[Out]
+  def buildAsyncTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
+      traversal: Traversal[ST, ET, Segments]): Task[Stream[Out]]
 
   def close(): Unit = {}
 

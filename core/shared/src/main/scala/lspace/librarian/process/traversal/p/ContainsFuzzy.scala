@@ -1,33 +1,31 @@
 package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P._
-import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{EqP, PredicateDef, PredicateWrapper}
+import lspace.librarian.process.traversal.{PredicateDef, PredicateWrapper, SeqP}
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object ContainsFuzzy
-    extends PredicateDef("ContainsFuzzy", `@extends` = () => List(EqP.ontology))
+    extends PredicateDef("ContainsFuzzy", `@extends` = () => List(SeqP.ontology))
     with PredicateWrapper[ContainsFuzzy[_]] {
 
   def toP(node: Node): ContainsFuzzy[_] = {
-    val (pvalue, helper) = StringHelper map node.out(EqP.keys.value).head
+    val (pvalue, helper) = StringHelper map node.out(SeqP.keys.value).head
     ContainsFuzzy(pvalue)(helper)
   }
 
-  object keys extends EqP.Properties
-  override lazy val properties: List[Property] = EqP.properties
-  trait Properties extends EqP.Properties
+  object keys extends SeqP.Properties
+  override lazy val properties: List[Property] = SeqP.properties
+  trait Properties extends SeqP.Properties
 
   implicit def toNode[T](containsFuzzy: ContainsFuzzy[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(containsFuzzy.pvalue), containsFuzzy.pvalue)
+    node.addOut(SeqP.keys.value, ClassType.valueToOntologyResource(containsFuzzy.pvalue), containsFuzzy.pvalue)
     node
   }
 }
 
-case class ContainsFuzzy[T](pvalue: T)(implicit helper: StringHelper[T]) extends EqP[T] {
+case class ContainsFuzzy[+T](pvalue: T)(implicit helper: StringHelper[T]) extends SeqP[T] {
   def assert(avalue: Any): Boolean = helper.containsFuzzy(avalue, pvalue)
 
   lazy val toNode: Node            = this

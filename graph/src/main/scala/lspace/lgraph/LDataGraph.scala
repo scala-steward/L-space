@@ -5,6 +5,7 @@ import lspace.librarian.structure._
 import lspace.librarian.structure.index.Index
 
 trait LDataGraph extends LGraph with DataGraph {
-  protected def `@idIndex`: Index   = LIndex(Vector(Set(Property.default.`@id`)), thisgraph)
-  protected def `@typeIndex`: Index = LIndex(Vector(Set(Property.default.`@type`)), thisgraph)
+  protected def `@idIndex`: Index =
+    LIndex(__[Any, Any].has(Property.default.`@id`).has(Property.default.`@ids`).untyped)
+  protected def `@typeIndex`: Index = LIndex(__[Any, Any].has(Property.default.`@type`).untyped)
 }

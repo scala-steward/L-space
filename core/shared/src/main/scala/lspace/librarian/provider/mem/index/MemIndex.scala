@@ -1,103 +1,68 @@
 package lspace.librarian.provider.mem.index
 
-import lspace.librarian.process.traversal.P
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.structure.{ClassType, DataType, Resource}
+import lspace.librarian.process.traversal.step.{Has, HasLabel, Out}
+import lspace.librarian.process.traversal.{P, Step, UntypedTraversal}
+import lspace.librarian.structure.Property
 import lspace.librarian.structure.index.Index
+import lspace.librarian.structure.index.shape.Shape
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 object MemIndex {
-  def apply(pattern: DataType[_], graph: MemGraph): MemIndex                    = new MemIndex(Vector(Set(pattern)), graph)
-  def apply(pattern: Vector[Set[_ <: ClassType[_]]], graph: MemGraph): MemIndex = new MemIndex(pattern, graph)
+//  def apply(shapes: Vector[Shape])(graph: MemGraph): MemIndex = new MemIndex(shapes, graph)
+  def apply(shape: UntypedTraversal): MemIndex =
+    new MemIndex(shape)
 }
 
-class MemValueIndex(val pattern: Vector[Set[_ <: ClassType[_]]], graph: MemGraph) extends Index {
-  private val data: mutable.HashMap[Vector[Resource[_]], Vector[Vector[Vector[Resource[_]]]]] =
-    mutable.HashMap[Vector[Resource[_]], Vector[Vector[Vector[Resource[_]]]]]()
+class MemIndex(val traversal: UntypedTraversal) extends Index {
+  private val data: mutable.LinkedHashSet[Shape] =
+    mutable.LinkedHashSet[Shape]()
 
-  def store(path: Vector[(Map[_ <: ClassType[_], List[Resource[_]]], Resource[_])]): Unit = synchronized {
-    val pathPattern = path.map(_._1.toList.sortBy(_._1.iri).map(_._1).toSet)
-    if (pathPattern == pattern) {
-      val pathValues = path.map(_._1.toVector.sortBy(_._1.iri).map(_._2).toVector)
+  val path: List[Out] = traversal.steps.collect { case step: Out => step }
 
-      val pathResources = path.map(_._2)
-      val newVector = data.getOrElse(pathResources, Vector()) zip pathValues map {
-        case (a, b) => a zip b map { case (a, b) => a ++ b } //filter (_.nonEmpty)
-      }
-      data += pathResources -> newVector
+  @tailrec
+  private def splitByOut(patterns: List[Set[Property]], steps: List[Step]): List[Set[Property]] =
+    steps match {
+      case head :: tail =>
+        tail.span(!_.isInstanceOf[Out]) match {
+          case (l1, Nil) =>
+            patterns :+ l1.collect {
+              case step: Has      => step.key
+              case step: HasLabel => Property.default.`@type`
+            }.toSet
+          case (l1, l2) =>
+            splitByOut(patterns :+ l1.collect {
+              case step: Has      => step.key
+              case step: HasLabel => Property.default.`@type`
+            }.toSet, l2)
+        }
+      case Nil => patterns
     }
+
+  val patterns: List[Set[Property]] =
+    splitByOut(if (traversal.steps.head.isInstanceOf[Out]) List(Set()) else List(), traversal.steps)
+
+  def store(shape: Shape): Unit = synchronized {
+//    if (shape.edges.zipAll(path, null, null).forall {
+//          case (null, p) => false
+//          case (e, null) => false
+//          case (e, p)    => p.label.contains(e.key)
+//        }) {
+    data += shape
+//    }
   }
 
-  def find(values: Vector[Map[_ <: ClassType[_], List[P[_]]]]): List[Vector[Resource[_]]] = {
-    val pathValues  = values.map(_.toList.sortBy(_._1.iri).map(_._2.toList))
-    val pathPattern = values.map(_.toVector.sortBy(_._1.iri).map(_._1))
-    if (pathPattern == pattern) {
-      data.collect {
-        case (path, data) if pathValues zip data forall {
-              case (p, d) => p zip d forall { case (p, d) => p.forall(p => d.map(_.value).exists(p.assert)) }
-            } =>
-          path
-      }.toList
-    } else List()
-  }
-
-  def delete(path: Vector[(Map[_ <: ClassType[_], List[Resource[_]]], Resource[_])]): Unit = {
-    val pathPattern = path.map(_._1.toList.sortBy(_._1.iri).map(_._1).toSet)
-    if (pathPattern == pattern) {
-      val pathValues = path.map(_._1.toVector.sortBy(_._1.iri).map(_._2).toVector)
-
-      val pathResources = path.map(_._2)
-      val newVector = data.getOrElse(pathResources, Vector()) zip pathValues map {
-        case (a, b) => a zip b map { case (a, b) => a.filterNot(b.contains) } //filter (_.nonEmpty)
+  def find(values: Vector[Map[Property, List[P[_]]]]): List[Shape] = {
+    data.toStream.filter { shape =>
+      (shape.origin :: shape.edges.map(_.to).toList).zipAll(values, null, null).forall {
+        case (null, mpp) => false
+        case (e, null)   => false
+        case (e, List()) => true
+        case (e, mpp)    => mpp.forall(mpp => e.out(mpp._1).exists(v => mpp._2.forall(p => p.assert(v))))
       }
-      if (newVector.exists(_.exists(_.isEmpty))) data -= pathResources
-      else data += pathResources -> newVector
-    }
-  }
-}
-
-class MemIndex(val pattern: Vector[Set[_ <: ClassType[_]]], graph: MemGraph) extends Index {
-  private val data: mutable.HashMap[Vector[Resource[_]], Vector[Vector[Vector[Resource[_]]]]] =
-    mutable.HashMap[Vector[Resource[_]], Vector[Vector[Vector[Resource[_]]]]]()
-
-  def store(path: Vector[(Map[_ <: ClassType[_], List[Resource[_]]], Resource[_])]): Unit = synchronized {
-    val pathPattern = path.map(_._1.toList.sortBy(_._1.iri).map(_._1).toSet)
-    if (pathPattern == pattern) {
-      val pathValues = path.map(_._1.toVector.sortBy(_._1.iri).map(_._2).toVector)
-
-      val pathResources = path.map(_._2)
-      val newVector = data.getOrElse(pathResources, Vector()) zip pathValues map {
-        case (a, b) => a zip b map { case (a, b) => a ++ b } //filter (_.nonEmpty)
-      }
-      data += pathResources -> newVector
-    }
+    }.toList
   }
 
-  def find(values: Vector[Map[_ <: ClassType[_], List[P[_]]]]): List[Vector[Resource[_]]] = {
-    val pathValues  = values.map(_.toList.sortBy(_._1.iri).map(_._2.toList))
-    val pathPattern = values.map(_.toVector.sortBy(_._1.iri).map(_._1))
-    if (pathPattern == pattern) {
-      data.collect {
-        case (path, data) if pathValues zip data forall {
-              case (p, d) => p zip d forall { case (p, d) => p.forall(p => d.map(_.value).exists(p.assert)) }
-            } =>
-          path
-      }.toList
-    } else List()
-  }
-
-  def delete(path: Vector[(Map[_ <: ClassType[_], List[Resource[_]]], Resource[_])]): Unit = {
-    val pathPattern = path.map(_._1.toList.sortBy(_._1.iri).map(_._1).toSet)
-    if (pathPattern == pattern) {
-      val pathValues = path.map(_._1.toVector.sortBy(_._1.iri).map(_._2).toVector)
-
-      val pathResources = path.map(_._2)
-      val newVector = data.getOrElse(pathResources, Vector()) zip pathValues map {
-        case (a, b) => a zip b map { case (a, b) => a.filterNot(b.contains) } //filter (_.nonEmpty)
-      }
-      if (newVector.exists(_.exists(_.isEmpty))) data -= pathResources
-      else data += pathResources -> newVector
-    }
-  }
+  def delete(shape: Shape): Unit = data -= shape
 }

@@ -2,7 +2,7 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
+import lspace.librarian.datatype.{DataType, ListType}
 import lspace.librarian.structure._
 import lspace.NS.types
 
@@ -18,10 +18,9 @@ object R
           lspace.NS.vocab.Lspace + "librarian/step/R/resource",
           "resource",
           "A resource",
-          container = types.`@list` :: Nil,
-          `@range` = () => DataType.default.`@url` :: Nil
+          `@range` = () => ListType(DataType.default.`@url` :: Nil) :: Nil
         )
-//    val resourceUrl: TypedProperty[Resource[_]] = resource + DataType.default.`@url`
+    val resourceUrl: TypedProperty[List[Any]] = resource + ListType(Nil)
   }
   override lazy val properties: List[Property] = keys.resource.property :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {
@@ -31,17 +30,18 @@ object R
 
   implicit def toNode(r: R): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    r.resources.foreach(
-      v =>
-        node.addOut(
-          keys.resource,
-          v match {
-            case node: Node       => DataType.default.`@nodeURL`.asInstanceOf[ClassType[Any]]
-            case edge: Edge[_, _] => DataType.default.`@edgeURL`.asInstanceOf[ClassType[Any]]
-            case value: Value[_]  => value.label.asInstanceOf[ClassType[Any]]
-          },
-          v
-      ))
+    if (r.resources.nonEmpty) node.addOut(keys.resourceUrl, r.resources)
+//    r.resources.foreach(
+//      v =>
+//        node.addOut(
+//          keys.resource,
+//          v match {
+//            case node: Node       => DataType.default.`@nodeURL`.asInstanceOf[ClassType[Any]]
+//            case edge: Edge[_, _] => DataType.default.`@edgeURL`.asInstanceOf[ClassType[Any]]
+//            case value: Value[_]  => value.label.asInstanceOf[ClassType[Any]]
+//          },
+//          v
+//      ))
     node
   }
 }

@@ -1,21 +1,19 @@
 package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P.{OrderHelper, RangeHelper}
-import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{P, PredicateDef, PredicateWrapper, RangeP}
+import lspace.librarian.process.traversal.{PredicateDef, PredicateWrapper, RangeP}
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Outside
-    extends PredicateDef("Outside", `@extends` = () => List(RangeP.ontology))
+    extends PredicateDef("Outside", `@extends` = () => RangeP.ontology :: Nil)
     with PredicateWrapper[Outside[_]] {
 
   def toP(node: Node): Outside[_] = node match {
     case node: Outside[_] => node
     case _ =>
-      val (lower, helperLower) = OrderHelper map node.out(RangeP.keys.lower).head
-      val (upper, helperUpper) = OrderHelper map node.out(RangeP.keys.upper).head
+      val (lower, helperLower) = RangeHelper map node.out(RangeP.keys.lower).head
+      val (upper, helperUpper) = RangeHelper map node.out(RangeP.keys.upper).head
       Outside(lower, upper)(helperLower)
   }
 
@@ -31,7 +29,7 @@ object Outside
   }
 }
 
-case class Outside[T](lower: T, upper: T)(implicit helper: OrderHelper[T]) extends RangeP[T] {
+case class Outside[+T](lower: T, upper: T)(implicit helper: OrderHelper[T]) extends RangeP[T] {
   def assert(avalue: Any): Boolean = helper.lt(avalue, lower) || helper.gt(avalue, upper)
 
   lazy val toNode: Node            = this

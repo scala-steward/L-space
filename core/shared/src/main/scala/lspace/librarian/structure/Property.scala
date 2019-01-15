@@ -3,7 +3,7 @@ package lspace.librarian.structure
 import java.time.Instant
 
 import lspace.NS
-import lspace.librarian.datatype.EdgeURLType
+import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
 
@@ -21,14 +21,17 @@ object Property {
     new ClassTypeable[Property] {
       type C  = Edge[Any, Any]
       type CT = EdgeURLType[Edge[Any, Any]]
-      def ct: CT = EdgeURLType.edgeUrlType[Edge[Any, Any]]
+      def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
     }
 
   def apply(node: Node): Property = {
     if (node.hasLabel(urlType).nonEmpty) {
       _Property(node.iri)(
         iris = node.iris,
-        _range = () => node.out(default.`@range`).collect { case node: Node => node.graph.ns.getClassType(node) },
+        _range = () =>
+          node.out(default.`@range`).collect {
+            case node: Node => node.graph.ns.classtypes.get(node)
+        },
         containers = node.out(default.typed.containerString),
         label = node
           .outE(default.typed.labelString)
@@ -44,9 +47,22 @@ object Property {
           .toMap,
         _extendedClasses = () =>
           node.out(default.`@extends`).collect {
-            case node: Node => MemGraphDefault.ns.getProperty(node.iri).getOrElse(Property(node))
+            case node: Node =>
+              node.graph.ns.properties
+                .cached(node.iri)
+                .getOrElse {
+                  MemGraphDefault.ns.properties.cached(node.iri).getOrElse(Property(node))
+                }
         },
-        _properties = () => node.out(default.typed.propertyProperty).map(Property.apply)
+        _properties = () =>
+          node.out(default.typed.propertyProperty).map { node =>
+            node.graph.ns.properties
+              .cached(node.iri)
+              .getOrElse {
+                MemGraphDefault.ns.properties.cached(node.iri).getOrElse(Property(node))
+              }
+        },
+        node.out(default.typed.baseString).headOption
       )
     } else {
       throw new Exception(s"${node.iri} is not a property")
@@ -178,7 +194,7 @@ object Property {
   }
 
   import default._
-  lazy val allProperties = new {
+  object allProperties {
     val properties = List(
       `@id`,
       `@ids`,
@@ -297,6 +313,7 @@ class Property(val iri: String,
 
   override def equals(o: Any): Boolean = o match {
     case p: Property => iri == p.iri || iris.contains(p.iri)
+    case n: Node     => iri == n.iri || iris.contains(n.iri)
     case _           => false
   }
 

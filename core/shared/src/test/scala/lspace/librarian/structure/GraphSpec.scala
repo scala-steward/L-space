@@ -2,6 +2,7 @@ package lspace.librarian.structure
 
 import java.time.Instant
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.util.SampleGraph
@@ -43,28 +44,28 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       graph.ns.values.count() shouldBe 0
     }
     "be provided with default ontologies, properties and datatypes" in {
-      graph.ns.getOntology(Ontology.ontology.iri).isDefined shouldBe true
-      graph.ns.getOntology(Property.ontology.iri).isDefined shouldBe true
-      graph.ns.getOntology(DataType.ontology.iri).isDefined shouldBe true
+      graph.ns.ontologies.get(Ontology.ontology.iri).isDefined shouldBe true
+      graph.ns.ontologies.get(Property.ontology.iri).isDefined shouldBe true
+      graph.ns.ontologies.get(DataType.ontology.iri).isDefined shouldBe true
 
-      graph.ns.getProperty(Property.default.`@id`.iri).isDefined shouldBe true
-      graph.ns.getProperty(Property.default.`@label`.iri).isDefined shouldBe true
+      graph.ns.properties.get(Property.default.`@id`.iri).isDefined shouldBe true
+      graph.ns.properties.get(Property.default.`@label`.iri).isDefined shouldBe true
 
-      graph.ns.getDataType(DataType.default.`@string`.iri).isDefined shouldBe true
-      graph.ns.getDataType(DataType.default.`@geopoint`.iri).isDefined shouldBe true
+      graph.ns.datatypes.get(DataType.default.`@string`.iri).isDefined shouldBe true
+      graph.ns.datatypes.get(DataType.default.`@geopoint`.iri).isDefined shouldBe true
     }
   }
   "A namespace-graph" can {
     "store and retrieve an ontology" in {
       val unknownOntology = Ontology("unknownOntology", extendedClasses = List(DataType.ontology))
-      graph.ns.getOntology(unknownOntology).isEmpty shouldBe true
+      graph.ns.ontologies.get(unknownOntology).isEmpty shouldBe true
 
-      val ontology = graph.ns.storeOntology(unknownOntology)
+      val ontology = graph.ns.ontologies.store(unknownOntology)
       ontology.out(Property.default.`@extends`).size shouldBe 1
       ontology.labels.size shouldBe 1
       ontology.iri shouldBe unknownOntology.iri
 
-      graph.ns.getOntology(unknownOntology.iri).isDefined shouldBe true
+      graph.ns.ontologies.get(unknownOntology.iri).isDefined shouldBe true
     }
 
     "store and retrieve a property" in {}
@@ -140,7 +141,7 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "ns: NameSpaceGraph" should {
     "contain https://schema.org/Person" in {
-      graph.ns.getOntology("https://schema.org/Person").isDefined shouldBe true
+      graph.ns.ontologies.get("https://schema.org/Person").isDefined shouldBe true
     }
   }
 
@@ -233,8 +234,8 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         graph.g.N
           .has(
             Property.default.`@modifiedon`,
-            P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000)),
-            P.lt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000))
+            P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000)) &&
+              P.lt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000))
           )
           .count
           .head shouldBe 1
@@ -245,7 +246,7 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
           .count
           .head shouldBe 1
         val traversal  = graph.g.N().hasIri("abc").where(_.hasIri("abc")).limit(10).outMap()
-        val collection = Collection(Instant.now(), Instant.now(), traversal.toList)(traversal.ct)
+        val collection = Collection(Instant.now(), Instant.now(), traversal.toList, traversal.ct)
         collection.item.head.nonEmpty shouldBe true
       }
     }

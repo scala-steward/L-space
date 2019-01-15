@@ -1,6 +1,6 @@
 package lspace.librarian.provider.mem
 
-import lspace.librarian.structure.{DataType, Value}
+import lspace.librarian.structure.Value
 
 object MemValue {}
 

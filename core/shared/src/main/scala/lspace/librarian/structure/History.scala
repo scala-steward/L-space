@@ -2,7 +2,7 @@ package lspace.librarian.structure
 
 import java.time.Instant
 
-import lspace.librarian.datatype.DateTimeType
+import lspace.librarian.datatype.{DataType, DateTimeType}
 
 object History {
   val historyKeys = Set(Property.default.`@createdon`,
@@ -22,7 +22,7 @@ trait History extends Graph {
     //TODO: make time configurable
     edges.create(createdNode,
                  Property.default.`@createdon`,
-                 createValue(idProvider.next, Instant.now(), DateTimeType.datetimeType))
+                 createValue(idProvider.next, Instant.now(), DateTimeType.datatype))
 
     createdNode
   }
@@ -37,7 +37,7 @@ trait History extends Graph {
       idProvider.next,
       createdEdge.asInstanceOf[GResource[Edge[S, E]]],
       Property.default.`@createdon`,
-      createValue(idProvider.next, Instant.now(), DateTimeType.datetimeType).asInstanceOf[GResource[Instant]]
+      createValue(idProvider.next, Instant.now(), DateTimeType.datatype).asInstanceOf[GResource[Instant]]
     )
 
     createdEdge
@@ -48,20 +48,20 @@ trait History extends Graph {
 
     edges.create(createdValue,
                  Property.default.`@createdon`,
-                 createValue(idProvider.next, Instant.now(), DateTimeType.datetimeType))
+                 createValue(idProvider.next, Instant.now(), DateTimeType.datatype))
 
     createdValue
   }
 
   override protected def deleteNode(node: GNode): Unit = {
-    edges.create(node, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
+    edges.create(node, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datatype))
   }
 
   override protected def deleteEdge(edge: GEdge[_, _]): Unit = {
-    edges.create(edge, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
+    edges.create(edge, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datatype))
   }
 
   override protected def deleteValue(value: GValue[_]): Unit = {
-    edges.create(value, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datetimeType))
+    edges.create(value, Property.default.`@deletedon`, values.create(Instant.now(), DateTimeType.datatype))
   }
 }

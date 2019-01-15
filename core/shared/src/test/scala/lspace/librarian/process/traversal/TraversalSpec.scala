@@ -2,6 +2,8 @@ package lspace.librarian.process.traversal
 
 import lspace.NS
 import java.time._
+
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal.step.N
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.MemGraphDefault
@@ -15,19 +17,19 @@ class TraversalSpec extends WordSpec with Matchers {
   "A traversal" which {
     "starts empty" in {
       val graphName = "data.example.com/test"
-      g.stepsList.size shouldBe 0
+      g.segmentList.flatMap(_.stepsList).size shouldBe 0
       g.toNode.graph shouldBe DetachedGraph
       g.target shouldBe DetachedGraph
     }
     "start with a ResourceStep" in {
-      g.N.hasLabel(Ontology.ontology).stepsList.size shouldBe 2
-      g.E.hasLabel(Property.default.`@label`).stepsList.size shouldBe 2
-      g.V.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 2
+      g.N.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 2
+      g.E.hasLabel(Property.default.`@label`).segmentList.flatMap(_.stepsList).size shouldBe 2
+      g.V.hasLabel(DataType.default.`@string`).segmentList.flatMap(_.stepsList).size shouldBe 2
     }
     "start without a ResourceStep" in {
-      g.hasLabel(Ontology.ontology).stepsList.size shouldBe 1
-      g.hasLabel(Property.default.`@label`).stepsList.size shouldBe 1
-      g.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 1
+      g.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 1
+      g.hasLabel(Property.default.`@label`).segmentList.flatMap(_.stepsList).size shouldBe 1
+      g.hasLabel(DataType.default.`@string`).segmentList.flatMap(_.stepsList).size shouldBe 1
     }
     "end-type is numeric" can {
       "be summed up" in {
@@ -68,19 +70,19 @@ class TraversalSpec extends WordSpec with Matchers {
       }
     }
     "start with any step extending TraversalStep" in {
-      DetachedGraph.g.N().in().stepsList.size shouldBe 2
-      DetachedGraph.g.N().out().stepsList.size shouldBe 2
-      DetachedGraph.g.N().out().hasIri("abc").stepsList.size shouldBe 3
+      DetachedGraph.g.N().in().segmentList.flatMap(_.stepsList).size shouldBe 2
+      DetachedGraph.g.N().out().segmentList.flatMap(_.stepsList).size shouldBe 2
+      DetachedGraph.g.N().out().hasIri("abc").segmentList.flatMap(_.stepsList).size shouldBe 3
       val pDouble =
         Property._Property("schema/x")(_range = () => List(DataType.default.`@double`),
                                        containers = List(NS.types.`@list`))
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
-      MemGraphDefault.ns.storeProperty(pDouble)
+      MemGraphDefault.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
 
       //      println(Traversal.g("biggraph").V().has(pDouble, 0.5).toString)
       //      println(Traversal.g("biggraph").V().has(pDouble, P.eq(0.5).gt(0.4)).toString)
-      DetachedGraph.g.N().has(pDouble).stepsList.size shouldBe 2
+      DetachedGraph.g.N().has(pDouble).segmentList.flatMap(_.stepsList).size shouldBe 2
       val testNode = MemGraphDefault.nodes.create()
       List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
       testNode.addOut(pDouble, 0.5)
@@ -88,63 +90,67 @@ class TraversalSpec extends WordSpec with Matchers {
       //      testNode.property(pDouble, 1, 1.1, 0.5, 3l)
       //      Traversal[VStep, VStep]().has(NumericPropertyKey("", "")(TraversalSpec.DoubleType), 0L).steps.size shouldBe 1
       import P._
-      DetachedGraph.g.N().has(pDouble, P.eqv(1.0)).stepsList.size shouldBe 2
-      DetachedGraph.g.N().has(pDouble, P.gte(1.0), P.lt(1.0)).stepsList.size shouldBe 2
+      DetachedGraph.g.N().has(pDouble, P.eqv(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
+      DetachedGraph.g.N().has(pDouble, P.gte(1.0) && P.lt(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
       //      DetachedGraph.g.N().has(pDouble, P.gte(1.0) lt (1.0)).steps.size shouldBe 3
-      DetachedGraph.g.N().has(pDouble, P.gte(1.0), P.lt(1.0)).stepsList.last.isInstanceOf[step.Has] shouldBe true
       DetachedGraph.g
         .N()
-        .has(pDouble, P.gte(1.0), P.lt(1.0))
-        .stepsList
+        .has(pDouble, P.gte(1.0) && P.lt(1.0))
+        .segmentList
+        .flatMap(_.stepsList)
+        .last
+        .isInstanceOf[step.Has] shouldBe true
+      DetachedGraph.g
+        .N()
+        .has(pDouble, P.gte(1.0) && P.lt(1.0))
+        .segmentList
+        .flatMap(_.stepsList)
         .last
         .asInstanceOf[step.Has]
         .predicate
-        .size shouldBe 2
+        .exists {
+          case p: p.And => p.predicate.size == 2
+        } shouldBe true
       DetachedGraph.g
         .N()
-        .has(pDouble, P.gte(1.2), P.lt(1.0))
-        .stepsList
+        .has(pDouble, P.gte(1.2) && P.lt(1.0))
+        .segmentList
+        .flatMap(_.stepsList)
         .last
         .asInstanceOf[step.Has]
         .predicate
-        .last
-        .assert(1.9) shouldBe false
+        .exists {
+          case p: p.And => p.predicate.head.assert(1.9)
+        } shouldBe true
       DetachedGraph.g
         .N()
-        .has(pDouble, P.gte(1.2), P.lt(1.0))
-        .stepsList
+        .has(pDouble, P.gte(1.2) && P.lt(1.0))
+        .segmentList
+        .flatMap(_.stepsList)
         .last
         .asInstanceOf[step.Has]
         .predicate
-        .last
-        .assert(0.9) shouldBe true
-      DetachedGraph.g
-        .N()
-        .has(pDouble, P.lt(1.2), P.gt(1.0))
-        .stepsList
-        .last
-        .asInstanceOf[step.Has]
-        .predicate
-        .last
-        .assert(1.1) shouldBe true
+        .exists {
+          case p: p.And => p.predicate.last.assert(0.9)
+        } shouldBe true
       MemGraphDefault.g.N().out(pDouble).toList.size shouldBe 5
       MemGraphDefault.g.N().has(pDouble, P.eqv(1.1)).toList.size shouldBe 1
 
       val pString                             = Property._Property("aa")(_range = () => List(DataType.default.`@string`))
       val typedPString: TypedProperty[String] = pString + DataType.default.`@string`
-      MemGraphDefault.ns.storeProperty(pString)
-      DetachedGraph.g.N().has(pDouble, P.gte("a")).stepsList.size shouldBe 2
+      MemGraphDefault.ns.properties.store(pString)
+      DetachedGraph.g.N().has(pDouble, P.startsWith("a")).segmentList.flatMap(_.stepsList).size shouldBe 2
     }
     "consist of multiple steps" in {
       val traversal = DetachedGraph.g.N().out().out().in()
-      traversal.stepsList.size shouldBe 4
+      traversal.segmentList.flatMap(_.stepsList).size shouldBe 4
       val pDouble                             = Property._Property("schema/x")(_range = () => List(DataType.default.`@double`))
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
       val test                                = DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
       test.sum
       DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
-    "which contains labels (as-steps)" can {
+    "contains labels (as-steps)" can {
       "be selected by valid name" ignore {
         """g.V.as("aname").select("aname")""" should compile
         """g.V.as("aname").select("wrongname")""" shouldNot compile
@@ -152,4 +158,18 @@ class TraversalSpec extends WordSpec with Matchers {
     }
   }
 
+  "Traversals" can {
+    "be compared" in {
+      g.N().count shouldBe g.N().count
+      g.N().hasId(1) shouldBe g.N().hasId(1)
+      g.N().hasId(1) should not be g.N().hasId(2)
+      g.N.has("abc") shouldBe g.N.has("abc")
+      g.N.has("abc", P.gt(1)) should not be g.N.has("abc")
+      g.N.has("abc") should not be g.N.has("abcd")
+      g.N.has("abc") should not be g.N.has("abc").count
+
+      g.N.has("abc").and(_.out(), _.in()) shouldBe g.N.has("abc").and(_.out(), _.in())
+      g.N.has("abc").and(_.out(), _.in()) should not be g.N.has("abc").and(_.out(), _.in().out())
+    }
+  }
 }

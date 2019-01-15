@@ -5,123 +5,152 @@ import lspace.librarian.structure._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.types.vector._
 
-object GeopointType {
-  val default: GeopointType[Point] = new GeopointType[Point] { type Out = Point }
+object GeopointType extends DataTypeDef[GeopointType[Point]] {
+
+  lazy val datatype: GeopointType[Point] = new GeopointType[Point] {
+    val iri: String                                             = NS.types.`@geopoint`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geopoint`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType: ClassTypeable.Aux[GeopointType[Point], Point, GeopointType[Point]] =
     new ClassTypeable[GeopointType[Point]] {
       type C  = Point
       type CT = GeopointType[Point]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeopointType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geopoint`
+trait GeopointType[+T] extends GeometricType[T]
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+object GeoMultipointType extends DataTypeDef[GeoMultipointType[MultiPoint]] {
 
-object GeoMultipointType extends GeoMultipointType[MultiPoint] {
-  type Out = MultiPoint
-  implicit def default = GeoMultipointType
+  lazy val datatype: GeoMultipointType[MultiPoint] = new GeoMultipointType[MultiPoint] {
+    val iri: String                                             = NS.types.`@geomultipoint`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultipoint`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType
     : ClassTypeable.Aux[GeoMultipointType[MultiPoint], MultiPoint, GeoMultipointType[MultiPoint]] =
     new ClassTypeable[GeoMultipointType[MultiPoint]] {
       type C  = MultiPoint
       type CT = GeoMultipointType[MultiPoint]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeoMultipointType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geomultipoint`
+trait GeoMultipointType[+T] extends GeometricType[T]
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+object GeoLineType extends DataTypeDef[GeoLineType[Line]] {
 
-object GeoLineType extends GeoLineType[Line] {
-  type Out = Line
-  implicit def default = GeoLineType
+  lazy val datatype: GeoLineType[Line] = new GeoLineType[Line] {
+    val iri: String                                             = NS.types.`@geoline`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geoline`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType: ClassTypeable.Aux[GeoLineType[Line], Line, GeoLineType[Line]] =
     new ClassTypeable[GeoLineType[Line]] {
       type C  = Line
       type CT = GeoLineType[Line]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeoLineType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geoline`
+trait GeoLineType[+T] extends GeometricType[T]
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+object GeoMultiLineType extends DataTypeDef[GeoMultiLineType[MultiLine]] {
 
-object GeoMultiLineType extends GeoMultiLineType[MultiLine] {
-  type Out = MultiLine
-  implicit def default = GeoMultiLineType
+  lazy val datatype: GeoMultiLineType[MultiLine] = new GeoMultiLineType[MultiLine] {
+    val iri: String                                             = NS.types.`@geomultiline`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultiline`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType: ClassTypeable.Aux[GeoMultiLineType[MultiLine], MultiLine, GeoMultiLineType[MultiLine]] =
     new ClassTypeable[GeoMultiLineType[MultiLine]] {
       type C  = MultiLine
       type CT = GeoMultiLineType[MultiLine]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeoMultiLineType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geomultiline`
+trait GeoMultiLineType[+T] extends GeometricType[T]
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+object GeoPolygonType extends DataTypeDef[GeoPolygonType[Polygon]] {
 
-object GeoPolygonType extends GeoPolygonType[Polygon] {
-  type Out = Polygon
-  implicit def default = GeoPolygonType
+  lazy val datatype: GeoPolygonType[Polygon] = new GeoPolygonType[Polygon] {
+    val iri: String                                             = NS.types.`@geopolygon`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geopolygon`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType: ClassTypeable.Aux[GeoPolygonType[Polygon], Polygon, GeoPolygonType[Polygon]] =
     new ClassTypeable[GeoPolygonType[Polygon]] {
       type C  = Polygon
       type CT = GeoPolygonType[Polygon]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeoPolygonType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geopolygon`
+trait GeoPolygonType[+T] extends GeometricType[T]
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+object GeoMultiPolygonType extends DataTypeDef[GeoMultiPolygonType[MultiPolygon]] {
 
-object GeoMultiPolygonType extends GeoMultiPolygonType[MultiPolygon] {
-  type Out = MultiPolygon
-  implicit def default = GeoMultiPolygonType
+  lazy val datatype: GeoMultiPolygonType[MultiPolygon] = new GeoMultiPolygonType[MultiPolygon] {
+    val iri: String                                             = NS.types.`@geomultipolygon`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultipolygon`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType
     : ClassTypeable.Aux[GeoMultiPolygonType[MultiPolygon], MultiPolygon, GeoMultiPolygonType[MultiPolygon]] =
     new ClassTypeable[GeoMultiPolygonType[MultiPolygon]] {
       type C  = MultiPolygon
       type CT = GeoMultiPolygonType[MultiPolygon]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeoMultiPolygonType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geomultipolygon`
+trait GeoMultiPolygonType[+T] extends GeometricType[T]
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+object GeoMultiGeometryType extends DataTypeDef[GeoMultiGeometryType[MultiGeometry]] {
 
-object GeoMultiGeometryType extends GeoMultiGeometryType[MultiGeometry] {
-  type Out = MultiGeometry
-  implicit def default = GeoMultiGeometryType
+  lazy val datatype: GeoMultiGeometryType[MultiGeometry] = new GeoMultiGeometryType[MultiGeometry] {
+    val iri: String                                             = NS.types.`@geomultigeometry`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultigeometry`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
+  }
+
+  object keys extends GeometricType.Properties
+  override lazy val properties: List[Property] = GeometricType.properties
+  trait Properties extends GeometricType.Properties
 
   implicit val defaultClsType
     : ClassTypeable.Aux[GeoMultiGeometryType[MultiGeometry], MultiGeometry, GeoMultiGeometryType[MultiGeometry]] =
     new ClassTypeable[GeoMultiGeometryType[MultiGeometry]] {
       type C  = MultiGeometry
       type CT = GeoMultiGeometryType[MultiGeometry]
-      def ct: CT = default
+      def ct: CT = datatype
     }
 }
-trait GeoMultiGeometryType[+T] extends GeometricType[T] {
-  val iri: String = NS.types.`@geomultigeometry`
-
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType)
-}
+trait GeoMultiGeometryType[+T] extends GeometricType[T]

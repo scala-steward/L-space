@@ -19,11 +19,12 @@ object Has
     Has(node
           .outE(keys.key)
           .take(1)
-          .map(i => node.graph.ns.getProperty(i.inV.iri).get)
+          .map(i => node.graph.ns.properties.get(i.inV.iri).get)
           .head,
         node
           .out(keys.predicateUrl)
-          .map(P.toNode))
+          .headOption
+          .map(P.toP))
 
   object keys {
     object key
@@ -40,7 +41,6 @@ object Has
           lspace.NS.vocab.Lspace + "librarian/step/Has/Predicate",
           "Predicate",
           "A Predicate",
-          container = types.`@list` :: Nil,
           `@range` = () => P.ontology :: Nil
         )
     val predicateUrl: TypedProperty[Node] = predicate.property + P.ontology
@@ -62,7 +62,7 @@ object Has
 
 }
 
-case class Has(key: Property, predicate: List[P[_]] = List()) extends HasStep {
+case class Has(key: Property, predicate: Option[P[_]] = None) extends HasStep {
 
   lazy val toNode: Node = this
   override def prettyPrint: String =

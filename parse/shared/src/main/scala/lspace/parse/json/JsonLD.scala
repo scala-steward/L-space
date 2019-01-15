@@ -135,7 +135,7 @@ class JsonLD(graph: Graph) {
             case (compactIri, builder) =>
               (properties.asInstanceOf[List[Edge[_, _]]] match {
                 case null | List() => Json.jNull -> builder
-                case List(property) if key.container.isEmpty =>
+                case List(property) /*if key.container.isEmpty*/ =>
                   edgeInVToJson(property, builder) match {
                     case (result, builder) => result -> builder
                   }
@@ -225,10 +225,10 @@ class JsonLD(graph: Graph) {
                 JsonObject.fromTraversableOnce(
                   Map(types.`@id` -> Json.jString(v.iri), types.`@type` -> v.label.iri.asJson))) -> builder
             } else {
-              eCT.size match {
-                case 0 if v.label.iri == types.`@string` =>
+              eCT match {
+                case List() if v.label.iri == types.`@string` =>
                   valueToJson(v.value)(v.label) -> builder
-                case 1 if v.label == eCT.head =>
+                case List(eCT) if v.label == eCT =>
                   anyToJson(v.value, List(v.label), builder)
                 case _ =>
                   val (dataTypeIri, newBuilder) = builder.compactIri(v.label)
@@ -556,7 +556,7 @@ class JsonLD(graph: Graph) {
                             .orElse {
                               json.obj.map {
                                 value =>
-                                  val property = graph.ns.getProperty(expKey).getOrElse {
+                                  val property = graph.ns.properties.get(expKey).getOrElse {
                                     httpClient
                                       .getResource(expKey)({ string =>
                                         val json = Parse
@@ -604,7 +604,7 @@ class JsonLD(graph: Graph) {
         value.string
           .map(builder.expandIri(_))
           .map { expKey =>
-            val ct = graph.ns.getClassType(expKey).getOrElse {
+            val ct = graph.ns.classtypes.get(expKey).getOrElse {
               httpClient
                 .getResource(expKey)({ string =>
                   val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -693,8 +693,8 @@ class JsonLD(graph: Graph) {
             .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
             .getOrElse(List())
             .map { iri =>
-              graph.ns
-                .getOntology(iri)
+              graph.ns.ontologies
+                .get(iri)
                 .orElse(httpClient
                   .getResource(iri)({ string =>
                     val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -752,7 +752,7 @@ class JsonLD(graph: Graph) {
       .filter(_.nonEmpty)
       .getOrElse(throw FromJsonException("Ontology without iri is not allowed"))
 
-    graph.ns.getOntology(iri).getOrElse {
+    graph.ns.ontologies.get(iri).getOrElse {
       val labels = getTypes(expObj, builder)
       if (labels.size != 1 || labels.head != Ontology.ontology)
         throw FromJsonException(s"Parsing ontology without @type: @class or ${types.rdfsClass}")
@@ -782,8 +782,8 @@ class JsonLD(graph: Graph) {
               .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
               .getOrElse(List())
               .map { iri =>
-                graph.ns
-                  .getOntology(iri)
+                graph.ns.ontologies
+                  .get(iri)
                   .orElse(httpClient
                     .getResource(iri)({ string =>
                       val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -822,8 +822,8 @@ class JsonLD(graph: Graph) {
   }
 
   private def getClassType(iri: String): Option[ClassType[_]] = {
-    graph.ns
-      .getClassType(iri)
+    graph.ns.classtypes
+      .get(iri)
       .orElse(
         httpClient
           .getResource(iri)({ string =>
@@ -848,7 +848,7 @@ class JsonLD(graph: Graph) {
         .filter(_.nonEmpty)
         .getOrElse(throw FromJsonException("Property without iri is not allowed"))
 
-      graph.ns.getProperty(iri).getOrElse {
+      graph.ns.properties.get(iri).getOrElse {
         val labels = getTypes(expObj, builder)
         if (labels.size != 1 || labels.head != Property.ontology)
           throw FromJsonException(s"Parsing property without @type: @property or ${types.rdfProperty}")
@@ -878,8 +878,8 @@ class JsonLD(graph: Graph) {
                 .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
                 .getOrElse(List())
                 .map { iri =>
-                  graph.ns
-                    .getProperty(iri)
+                  graph.ns.properties
+                    .get(iri)
                     .orElse(httpClient
                       .getResource(iri)({ string =>
                         val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -959,7 +959,7 @@ class JsonLD(graph: Graph) {
       .filter(_.nonEmpty)
       .getOrElse(throw FromJsonException("DataType without iri is not allowed"))
 
-    graph.ns.getDataType(iri).getOrElse {
+    graph.ns.datatypes.get(iri).getOrElse {
 
       val labels = getTypes(expObj, builder)
       if (labels.size != 1 || labels.head != DataType.ontology)
@@ -981,8 +981,8 @@ class JsonLD(graph: Graph) {
               .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
               .getOrElse(List())
               .map { iri =>
-                graph.ns
-                  .getDataType(iri)
+                graph.ns.datatypes
+                  .get(iri)
                   .orElse(httpClient
                     .getResource(iri)({ string =>
                       val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -1016,23 +1016,13 @@ class JsonLD(graph: Graph) {
 
       def jsonToClassTypes(json: Json) = {
         json.string
-          .map(
-            iri =>
-              graph.ns
-                .getClassType(iri)
-                .get)
+          .map(iri => graph.ns.classtypes.get(iri).get)
           .orElse(json.obj.map(jsonToDataType(_, builder).get))
           .map(List(_))
-          .orElse(
-            json.array.map(
-              _.flatMap(
-                json =>
-                  json.string
-                    .map(iri =>
-                      graph.ns
-                        .getClassType(iri)
-                        .get)
-                    .orElse(json.obj.map(jsonToDataType(_, builder).get)))))
+          .orElse(json.array.map(_.flatMap(json =>
+            json.string
+              .map(iri => graph.ns.classtypes.get(iri).get)
+              .orElse(json.obj.map(jsonToDataType(_, builder).get)))))
       }
       def keyRangeToNode(node: Node)(ct: ClassType[_]) = ct match {
         case ct: DataType[_] => node --- MapType.keys.keyRange --> ct
@@ -1089,7 +1079,7 @@ class JsonLD(graph: Graph) {
           datatypeNode --- Property.default.`@id` --> MapType(kclsTypes, clsTypes).iri
           MapType.wrap(datatypeNode)
       }
-      MemGraphDefault.ns.storeClassType(dt.asInstanceOf[ClassType[Any]])
+      MemGraphDefault.ns.classtypes.store(dt.asInstanceOf[ClassType[Any]])
       dt
     }
   }
@@ -1098,7 +1088,7 @@ class JsonLD(graph: Graph) {
     Try {
       val iri    = getIri(obj.toMap, builder)
       val labels = getTypes(obj.toMap, builder)
-      Try { iri.flatMap(graph.ns.getClassType).get } orElse {
+      Try { iri.flatMap(graph.ns.classtypes.get).get } orElse {
         if (labels.contains(DataType.ontology)) {
           jsonToDataType(obj, builder)
         } else if (labels.contains(Property.ontology)) {
@@ -1122,8 +1112,8 @@ class JsonLD(graph: Graph) {
             .orElse(json.string.map(builder.expandIri(_)).map(List(_)))
             .getOrElse(List())
             .map { iri =>
-              graph.ns
-                .getProperty(iri)
+              graph.ns.properties
+                .get(iri)
                 .orElse(httpClient
                   .getResource(iri)({ string =>
                     val json = Parse.parse(string).right.getOrElse(throw FromJsonException(""))
@@ -1166,8 +1156,8 @@ class JsonLD(graph: Graph) {
             if (iri == types.`@id`) DataType.default.`@url`
             else //key.range.collectFirst { case key if key.iri == iri => key }
               //          .orElse {
-              graph.ns
-                .getClassType(iri)
+              graph.ns.classtypes
+                .get(iri)
                 .getOrElse {
                   throw FromJsonException(s"no classtype found for iri ${iri}")
                 }
@@ -1187,7 +1177,7 @@ class JsonLD(graph: Graph) {
     val iri = builder.expandIri(jKey)
     val (key, classType) = {
       val key = //builder.properties.get(iri).orElse(
-        graph.ns.getProperty(iri).getOrElse {
+        graph.ns.properties.get(iri).getOrElse {
           httpClient.getResource(iri) { json =>
             this
               .parseContext(Parse.parseOption(json).flatMap(_.obj).getOrElse(throw FromJsonException("")))
@@ -1195,18 +1185,19 @@ class JsonLD(graph: Graph) {
                 case (builder, obj) => this.jsonToProperty(obj, builder)
               } match {
               case Success(key) => key
-              case Failure(e) =>
-                println(e.getMessage)
-                e.printStackTrace()
+              case Failure(e)   =>
+//                println("error: " + e.getMessage)
+//                e.printStackTrace()
                 throw FromJsonException(s"Error while processing term $jKey expanded iri $iri")
             }
           } match {
             case Success(key) => key
-            case Failure(e) =>
-              println(e.getMessage)
+            case Failure(e)   =>
+//              println("error: " + e.getMessage)
+//              e.printStackTrace()
               //              throw FromJsonException(s"Unknown term $jKey expanded iri $iri")
               val key = Property(iri)
-              MemGraphDefault.ns.storeProperty(key)
+              MemGraphDefault.ns.properties.store(key)
               key
           }
         }
@@ -1264,11 +1255,13 @@ class JsonLD(graph: Graph) {
       case _ =>
         jsonToValue(classType, jValue, builder) match {
           case Success((classType, value)) =>
+//            println(s"adding ${resource} --- ${classType.iri} --> ${value}")
             List(resource.addOut(key + classType, value)) //.asInstanceOf[Property[S, T]]
           case Failure(error) =>
             throw FromJsonException(
               s"Could not parse value $jValue for ${key.iri} with dataType ${classType.iri} and error ${error.getMessage}")
         }
+
     }
   }
 
@@ -1307,7 +1300,7 @@ class JsonLD(graph: Graph) {
       case (builder, obj) =>
         val to = obj(types.`@to`) match {
           case Some(to) =>
-            val classType = property.range.headOption.getOrElse(TextType.textType)
+            val classType = property.range.headOption.getOrElse(TextType.datatype)
             getClassType(obj, classType, builder) match {
               case Success((classTypes, obj)) =>
                 jsonToValue(classTypes.head, to, builder) match {
@@ -1324,7 +1317,7 @@ class JsonLD(graph: Graph) {
         }
         val from = obj(types.`@from`) match {
           case Some(from) =>
-            val classType = property.range.headOption.getOrElse(TextType.textType)
+            val classType = property.range.headOption.getOrElse(TextType.datatype)
             getClassType(obj, classType, builder) match {
               case Success((classTypes, obj)) =>
                 jsonToValue(classTypes.head, from, builder) match {
@@ -1419,7 +1412,7 @@ class JsonLD(graph: Graph) {
                       case Success(r)     => r
                       case Failure(error) => throw error
                     }
-                  } else if (r._1.headOption.contains(IriType)) {
+                  } else if (r._1.headOption.contains(IriType.datatype)) {
                     jsToToEdge(r._2, Property.default.`@id`, builder) match {
                       case Success(r)     => r
                       case Failure(error) => throw error
@@ -1434,22 +1427,22 @@ class JsonLD(graph: Graph) {
         (classType match {
           case tpe: LiteralType[_] =>
             val value = tpe match {
-              case TextType.textType =>
+              case TextType.datatype =>
                 json.string.map(tpe -> _)
               case tpe: NumericType[_] =>
                 (tpe match {
-                  case DoubleType.doubleType => json.number.flatMap(_.toDouble)
-                  case LongType.longType     => json.string.map(_.toLong)
-                  case IntType.intType       => json.number.flatMap(_.toInt)
+                  case DoubleType.datatype => json.number.flatMap(_.toDouble)
+                  case LongType.datatype   => json.string.map(_.toLong)
+                  case IntType.datatype    => json.number.flatMap(_.toInt)
                 }).map(tpe -> _)
               case tpe: CalendarType[_] =>
                 (tpe match {
-                  case DateTimeType.datetimeType => json.string.map(Instant.parse(_))
-                  case LocalDateType.default     => json.string.map(LocalDate.parse(_))
-                  case LocalTimeType.default     => json.string.map(LocalTime.parse(_))
+                  case DateTimeType.datatype  => json.string.map(Instant.parse(_))
+                  case LocalDateType.datatype => json.string.map(LocalDate.parse(_))
+                  case LocalTimeType.datatype => json.string.map(LocalTime.parse(_))
                 }).map(tpe -> _)
               //        case tpe: ColorType[_] =>
-              case BoolType.boolType => json.bool.map(tpe -> _)
+              case BoolType.datatype => json.bool.map(tpe -> _)
             }
             value.orElse(jsonToValue(DataType.default.`@url`, json, builder).toOption) //.getOrElse(throw FromJsonException(s"@type ${classType.iri} not corresponding with data-structure")))
           case tpe: StructuredValue[_] =>
@@ -1469,7 +1462,12 @@ class JsonLD(graph: Graph) {
                                           json,
                                           builder) match {
                                 case Success(value) => value._2
-                                case Failure(error) => throw error
+                                case Failure(error) =>
+//                                  println(tpe.valueRange)
+//                                  println(json)
+//                                  println(builder.context.property)
+//                                  error.printStackTrace()
+                                  throw error
                             }))
                   case tpe: MapType[_, _] =>
                     json.array.map { array =>
@@ -1501,7 +1499,8 @@ class JsonLD(graph: Graph) {
                                           builder) match {
                                 case Success(value) => value._2
                                 case Failure(error) => throw error
-                            }))
+                            })
+                            .to[ListSet])
                   case tpe: SetType[_] =>
                     json.array
                       .map(
@@ -1513,7 +1512,8 @@ class JsonLD(graph: Graph) {
                                           builder) match {
                                 case Success(value) => value._2
                                 case Failure(error) => throw error
-                            }))
+                            })
+                            .toSet)
                   case tpe: VectorType[_] =>
                     json.array
                       .map(
@@ -1525,7 +1525,8 @@ class JsonLD(graph: Graph) {
                                           builder) match {
                                 case Success(value) => value._2
                                 case Failure(error) => throw error
-                            }))
+                            })
+                            .toVector)
                 }).map(tpe -> _)
             }
           //      case tpe: IriType[_] =>

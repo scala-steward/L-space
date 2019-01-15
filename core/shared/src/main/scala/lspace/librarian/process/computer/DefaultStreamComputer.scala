@@ -20,13 +20,15 @@ class DefaultStreamComputer() extends GraphComputer {
     case value                   => value
   }
 
+  implicit def segmentsToFlattenedSteps(segments: List[Segment[HList]]): List[Step] =
+    segments.flatMap(_.stepsList)
   def traverse[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList, Out, GT <: Graph](
       traversal: Traversal[ST, ET, Steps])(implicit
                                            graph: GT): Stream[Out] = {
 
     //TODO: scan/optimize traversal and pick an appropiate traverser, look for indexed patterns to start from
 
-    traversal.stepsList.dropWhile(_.isInstanceOf[G]) match {
+    traversal.segmentList.dropWhile(_.isInstanceOf[G]) match {
       case Nil => Stream.empty
       case List(gStep: G) =>
         throw new Exception("GraphStep without follow up is an incomplete traversal")
@@ -35,7 +37,7 @@ class DefaultStreamComputer() extends GraphComputer {
       //      case List(gStep: G, _*) =>
       case steps =>
         Resourced
-          .addSteps(traversal.stepsList)
+          .addSteps(traversal.segmentList)
           .map(_.get) //.asInstanceOf[Stream[End]]
           .map(toValue)
           .asInstanceOf[Stream[Out]]
@@ -186,11 +188,11 @@ class DefaultStreamComputer() extends GraphComputer {
                 case List(by1, by2) =>
                   untilFilterStream.map { traverser =>
                     traverser.copy(
-                      (addSteps(by1.stepsList, Stream(traverser))
+                      (addSteps(by1.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList,
-                       addSteps(by2.stepsList, Stream(traverser))
+                       addSteps(by2.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList))
@@ -198,15 +200,15 @@ class DefaultStreamComputer() extends GraphComputer {
                 case List(by1, by2, by3) =>
                   untilFilterStream.map { traverser =>
                     traverser.copy(
-                      (addSteps(by1.stepsList, Stream(traverser))
+                      (addSteps(by1.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList,
-                       addSteps(by2.stepsList, Stream(traverser))
+                       addSteps(by2.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList,
-                       addSteps(by3.stepsList, Stream(traverser))
+                       addSteps(by3.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList))
@@ -214,19 +216,19 @@ class DefaultStreamComputer() extends GraphComputer {
                 case List(by1, by2, by3, by4) =>
                   untilFilterStream.map { traverser =>
                     traverser.copy(
-                      (addSteps(by1.stepsList, Stream(traverser))
+                      (addSteps(by1.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList,
-                       addSteps(by2.stepsList, Stream(traverser))
+                       addSteps(by2.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList,
-                       addSteps(by3.stepsList, Stream(traverser))
+                       addSteps(by3.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList,
-                       addSteps(by4.stepsList, Stream(traverser))
+                       addSteps(by4.segmentList, Stream(traverser))
                          .map(_.get)
                          .map(toValue)
                          .toList))
@@ -329,11 +331,11 @@ class DefaultStreamComputer() extends GraphComputer {
                   case List(by1, by2) =>
                     untilFilterStream.map { traverser =>
                       traverser.copy(
-                        (addSteps(by1.stepsList, Some(Stream(traverser)))
+                        (addSteps(by1.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList,
-                         addSteps(by2.stepsList, Some(Stream(traverser)))
+                         addSteps(by2.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList))
@@ -341,15 +343,15 @@ class DefaultStreamComputer() extends GraphComputer {
                   case List(by1, by2, by3) =>
                     untilFilterStream.map { traverser =>
                       traverser.copy(
-                        (addSteps(by1.stepsList, Some(Stream(traverser)))
+                        (addSteps(by1.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList,
-                         addSteps(by2.stepsList, Some(Stream(traverser)))
+                         addSteps(by2.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList,
-                         addSteps(by3.stepsList, Some(Stream(traverser)))
+                         addSteps(by3.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList))
@@ -357,19 +359,19 @@ class DefaultStreamComputer() extends GraphComputer {
                   case List(by1, by2, by3, by4) =>
                     untilFilterStream.map { traverser =>
                       traverser.copy(
-                        (addSteps(by1.stepsList, Some(Stream(traverser)))
+                        (addSteps(by1.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList,
-                         addSteps(by2.stepsList, Some(Stream(traverser)))
+                         addSteps(by2.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList,
-                         addSteps(by3.stepsList, Some(Stream(traverser)))
+                         addSteps(by3.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList,
-                         addSteps(by4.stepsList, Some(Stream(traverser)))
+                         addSteps(by4.segmentList, Some(Stream(traverser)))
                            .map(_.get)
                            .map(toValue)
                            .toList))
@@ -388,6 +390,21 @@ class DefaultStreamComputer() extends GraphComputer {
                 }
               case step: BarrierStep =>
                 step match {
+                  case step: FilterBarrierStep =>
+                    val reducedTraverser = step match {
+                      case step: Max => task.Max(untilFilterStream)
+                      case step: Min => task.Min(untilFilterStream)
+                    }
+                    fromFilter.tail match {
+                      case Nil => reducedTraverser
+                      case step :: tail =>
+                        step match {
+                          case step: Is =>
+                            is(step, reducedTraverser)
+                          case step =>
+                            addSteps(fromFilter.tail, Some(reducedTraverser))
+                        }
+                    }
                   case step: ReducingBarrierStep =>
                     step match {
                       case step: Count =>
@@ -424,30 +441,14 @@ class DefaultStreamComputer() extends GraphComputer {
                             }
                         }
                       //        case step: Fold => Traverser(stream.map(_.get).toList, dataType = ???)
-                      case step => //TODO keep complete traverser not only it's value
-                        val reducedTraverser = step match {
-                          case step: Max => task.Max(untilFilterStream)
-                          case step: Min => task.Min(untilFilterStream)
-                        }
-                        fromFilter.tail match {
-                          case Nil => reducedTraverser
-                          case step :: tail =>
-                            step match {
-                              case step: Is =>
-                                is(step, reducedTraverser)
-                              case step =>
-                                addSteps(fromFilter.tail, Some(reducedTraverser))
-                            }
-                        }
                     }
-
-                  case step: CollectingBarrierStep =>
+                  case step: RearrangeBarrierStep =>
                     step match {
                       case step: Order =>
                         val helper: P.OrderHelper[Any] = P.OrderHelper.get(step.by.et)
                         val orderedStream = untilFilterStream
                           .flatMap(traverser =>
-                            addSteps(step.by.stepsList, Some(Stream(traverser))).headOption
+                            addSteps(step.by.segmentList, Some(Stream(traverser))).headOption
                               .map(v => v -> traverser))
                           .map { t =>
                             t._1.get match {
@@ -457,18 +458,18 @@ class DefaultStreamComputer() extends GraphComputer {
                           }
                           .sortWith {
                             case ((v1: Any, t1), (v2: Any, t2)) => helper.gte(v2, v1)
-//                            case ((v1: Int, t1), (v2: Any, t2))    => P.Helper.IntHelper.gte(v2, v1)
-//                            case ((v1: Double, t1), (v2: Any, t2)) => P.Helper.DoubleHelper.gte(v2, v1)
-//                            case ((v1: Long, t1), (v2: Any, t2))   => P.Helper.LongHelper.gte(v2, v1)
-//                            case ((v1: String, t1), (v2: Any, t2)) => P.Helper.TextHelper.gte(v2, v1)
-//                            case ((v1: Instant, t1), (v2: Any, t2)) =>
-//                              P.Helper.InstantHelper.gte(v2, v1)
-//                            case ((v1: LocalDateTime, t1), (v2: Any, t2)) =>
-//                              P.Helper.LocalDateTimeHelper.gte(v2, v1)
-//                            case ((v1: LocalDate, t1), (v2: Any, t2)) =>
-//                              P.Helper.LocalDateHelper.gte(v2, v1)
-//                            case ((v1: LocalTime, t1), (v2: Any, t2)) =>
-//                              P.Helper.LocalTimeHelper.gte(v2, v1)
+                            //                            case ((v1: Int, t1), (v2: Any, t2))    => P.Helper.IntHelper.gte(v2, v1)
+                            //                            case ((v1: Double, t1), (v2: Any, t2)) => P.Helper.DoubleHelper.gte(v2, v1)
+                            //                            case ((v1: Long, t1), (v2: Any, t2))   => P.Helper.LongHelper.gte(v2, v1)
+                            //                            case ((v1: String, t1), (v2: Any, t2)) => P.Helper.TextHelper.gte(v2, v1)
+                            //                            case ((v1: Instant, t1), (v2: Any, t2)) =>
+                            //                              P.Helper.InstantHelper.gte(v2, v1)
+                            //                            case ((v1: LocalDateTime, t1), (v2: Any, t2)) =>
+                            //                              P.Helper.LocalDateTimeHelper.gte(v2, v1)
+                            //                            case ((v1: LocalDate, t1), (v2: Any, t2)) =>
+                            //                              P.Helper.LocalDateHelper.gte(v2, v1)
+                            //                            case ((v1: LocalTime, t1), (v2: Any, t2)) =>
+                            //                              P.Helper.LocalTimeHelper.gte(v2, v1)
                           }
                           .map(_._2)
                         //                    val orderedStream = untilFilterStream.head.get.value match {
@@ -477,10 +478,13 @@ class DefaultStreamComputer() extends GraphComputer {
                         //                      case _: Long => untilFilterStream.sortBy(_.get.value.asInstanceOf[Long])
                         //                    }
                         addSteps(fromFilter.tail, Some(if (step.increasing) orderedStream else orderedStream.reverse))
+                    }
+                  case step: CollectingBarrierStep =>
+                    step match {
                       case step: Group[_] =>
                         val groupedStreams = untilFilterStream
                           .map { t =>
-                            addSteps(step.by.stepsList, Some(Stream(t)))
+                            addSteps(step.by.segmentList, Some(Stream(t)))
                               .map(_.get match {
                                 case resource: Resource[Any] => resource.value
                                 case v: Any                  => v
@@ -560,7 +564,7 @@ class DefaultStreamComputer() extends GraphComputer {
                       traverser.copy(
                         traverser.path.resources.map(
                           r =>
-                            addSteps(step.by.stepsList, Some(Stream(createTraverser(r))))
+                            addSteps(step.by.segmentList, Some(Stream(createTraverser(r))))
                               .map(_.get)
                               .map(toValue)
                               .toList))
@@ -630,7 +634,6 @@ class DefaultStreamComputer() extends GraphComputer {
                 if (toAssert.isEmpty) false
                 else
                   step.predicate
-                    .asInstanceOf[List[P[Any]]]
                     .forall(p => toAssert.exists(v => p.assert(v)))
               }
             case step: HasNot =>
@@ -639,11 +642,10 @@ class DefaultStreamComputer() extends GraphComputer {
                 if (toAssert.isEmpty) false
                 else
                   step.predicate
-                    .asInstanceOf[List[P[Any]]]
                     .exists(p => toAssert.exists(v => p.assert(v)))
               }
             case step: Not =>
-              traversers.filter(traverser => addSteps(step.traversal.stepsList, Some(Stream(traverser))).isEmpty)
+              traversers.filter(traverser => addSteps(step.traversal.segmentList, Some(Stream(traverser))).isEmpty)
             case step: HasId =>
               val longIds = step.ids.flatMap(id => Try { id.toLong }.toOption)
               traversers.filter(traverser => longIds.contains(traverser.get.id))
@@ -651,7 +653,7 @@ class DefaultStreamComputer() extends GraphComputer {
               traversers.filter(traverser => traverser.get.iris.intersect(step.iris).nonEmpty)
             case step: HasLabel =>
               val labelIris       = step.label.map(_.iri)
-              val labelClassTypes = labelIris.flatMap(graph.ns.getClassType(_))
+              val labelClassTypes = labelIris.flatMap(graph.ns.classtypes.get(_))
               traversers.filter { traverser =>
 //                traversers.map(_.get.value)
                 traverser.get match {
@@ -695,6 +697,15 @@ class DefaultStreamComputer() extends GraphComputer {
               //                  .forall(_.assert(r.iri))
               //            }
               }
+            case step: Dedup =>
+              val results = mutable.HashSet[Any]()
+              traversers.filter { t =>
+                if (results.contains(t.get.value)) false
+                else {
+                  results += t.get.value
+                  true
+                }
+              }
             case step: Coin => //TODO: deterministic flow of the traversal, different executions cannot produce different result sets for identical seeds, even for distributed execution
               traversers.filter { traverser =>
                 Math.random() < step.p //get next seeded random value
@@ -702,33 +713,33 @@ class DefaultStreamComputer() extends GraphComputer {
             case step: Is =>
               is(step, traversers).asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Where =>
-              traversers.filter(traverser => addSteps(step.traversal.stepsList, Some(Stream(traverser))).nonEmpty)
+              traversers.filter(traverser => addSteps(step.traversal.segmentList, Some(Stream(traverser))).nonEmpty)
             case step: And =>
               traversers.filter(traverser =>
-                step.traversals.forall(traversal => addSteps(traversal.stepsList, Some(Stream(traverser))).nonEmpty))
+                step.traversals.forall(traversal => addSteps(traversal.segmentList, Some(Stream(traverser))).nonEmpty))
             case step: Or =>
               traversers.filter(traverser =>
-                step.traversals.exists(traversal => addSteps(traversal.stepsList, Some(Stream(traverser))).nonEmpty))
+                step.traversals.exists(traversal => addSteps(traversal.segmentList, Some(Stream(traverser))).nonEmpty))
           }
         case step: BranchStep =>
           step match {
             case step: Union[_, _] =>
               traversers
                 .flatMap(traverser =>
-                  step.traversals.flatMap(traversal => addSteps(traversal.stepsList, Some(Stream(traverser)))))
+                  step.traversals.flatMap(traversal => addSteps(traversal.segmentList, Some(Stream(traverser)))))
                 .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Coalesce[_, _] =>
               traversers
                 .flatMap(
                   traverser =>
                     step.traversals.toStream
-                      .map(traversal => addSteps(traversal.stepsList, Some(Stream(traverser))))
+                      .map(traversal => addSteps(traversal.segmentList, Some(Stream(traverser))))
                       .collectFirst { case result if result.nonEmpty => result }
                       .getOrElse(Stream()))
                 .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Local =>
               traversers
-                .flatMap(traverser => addSteps(step.traversal.stepsList, Some(Stream(traverser))))
+                .flatMap(traverser => addSteps(step.traversal.segmentList, Some(Stream(traverser))))
                 .asInstanceOf[Stream[Traverser[Resource[Any]]]]
             case step: Repeat[_] =>
               traversers.flatMap(traverser => repeat(step, traverser))
@@ -738,15 +749,7 @@ class DefaultStreamComputer() extends GraphComputer {
         case step: Drop =>
           //        traversers.foreach(_.get.remove()) //TODO create computer options to enable editing the graph
           Stream()
-        case step: Dedup =>
-          val results = mutable.HashSet[Any]()
-          traversers.filter { t =>
-            if (results.contains(t.get.value)) false
-            else {
-              results += t.get.value
-              true
-            }
-          }
+
         //          case step: Is[_] => if(step.predicate.assert(List(traverser.get.value))) Stream(traverser.asInstanceOf[Traverser[MemResource[End]]]) else Stream()
       }
     }
@@ -756,12 +759,12 @@ class DefaultStreamComputer() extends GraphComputer {
       val collect = step.collect.getOrElse(false)
       if (repeats > 30) Stream(traverser) //TODO: how to handle possible infinite loops
       else
-        addSteps(step.traversal.stepsList, Some(Stream(traverser)))
+        addSteps(step.traversal.segmentList, Some(Stream(traverser)))
           .asInstanceOf[Stream[Traverser[Resource[Any]]]]
           .flatMap { traverser =>
             step.until match {
               case Some(until) =>
-                if (addSteps(until.stepsList, Some(Stream(traverser))).isEmpty) {
+                if (addSteps(until.segmentList, Some(Stream(traverser))).isEmpty) {
                   step.max match {
                     case Some(max) =>
                       if (repeats + 1 < max) {

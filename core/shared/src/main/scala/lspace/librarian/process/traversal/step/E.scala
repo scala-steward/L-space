@@ -2,7 +2,7 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
+import lspace.librarian.datatype.{DataType, ListType}
 import lspace.librarian.structure._
 import lspace.NS.types
 
@@ -12,7 +12,7 @@ object E
 
   def toStep(node: Node): E = node match {
     case node: E => node
-    case _       => E(node.out(keys.edgeUrl))
+    case _       => E(node.out(keys.edgeUrl).take(1).flatten)
   }
 
   object keys extends ResourceStep.Properties {
@@ -21,10 +21,9 @@ object E
           lspace.NS.vocab.Lspace + "librarian/step/E/edge",
           "edge",
           "An edge",
-          container = types.`@list` :: Nil,
-          `@range` = () => DataType.default.`@edgeURL` :: Nil
+          `@range` = () => ListType(DataType.default.`@edgeURL` :: Nil) :: Nil
         )
-    val edgeUrl: TypedProperty[Edge[Any, Any]] = edge.property + DataType.default.`@edgeURL`
+    val edgeUrl: TypedProperty[List[Edge[Any, Any]]] = edge.property + ListType(DataType.default.`@edgeURL` :: Nil)
   }
   override lazy val properties: List[Property] = keys.edge :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {
@@ -34,7 +33,8 @@ object E
 
   implicit def toNode(e: E): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    e.links.foreach(node.addOut(keys.edge, _))
+    node.addOut(keys.edgeUrl, e.links)
+//    e.links.foreach(node.addOut(keys.edge, _))
     node
   }
 

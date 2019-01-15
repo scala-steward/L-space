@@ -1,14 +1,20 @@
 package lspace.librarian.datatype
 
+import lspace.NS
 import lspace.NS.types
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
-object TupleType {
-  lazy val ontology = Ontology(types.`@tuple`, extendedClasses = List(StructuredValue.ontology))
+object TupleType extends DataTypeDef[TupleType[Any]] {
 
-  object keys {
+  lazy val datatype = new TupleType[Any] {
+    val iri: String                                             = NS.types.`@tuple`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@tuple`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredValue.datatype)
+  }
+
+  object keys extends StructuredValue.Properties { //TODO: change to PropertyDef
     private val _1stRangeNode = MemGraphDefault.ns.nodes.upsert("@1stRange")
     _1stRangeNode.addLabel(Property.ontology)
     _1stRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
@@ -37,6 +43,8 @@ object TupleType {
     _4rdRangeNode --- Property.default.`@range` --> types.`@class`
     val _4rdRange = Property(_4rdRangeNode)
   }
+  override lazy val properties: List[Property] = StructuredValue.properties
+  trait Properties extends StructuredValue.Properties {}
 
   def apply(node: Node): TupleType[_] = {
     node.iri match {
@@ -44,46 +52,46 @@ object TupleType {
         Tuple2Type(
           node
             .out(keys._1stRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType),
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten,
           node
             .out(keys._2ndRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType)
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten
         )
       case iri if iri.startsWith(types.`@tuple` + 3) =>
         Tuple3Type(
           node
             .out(keys._1stRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType),
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten,
           node
             .out(keys._2ndRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType),
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten,
           node
             .out(keys._3rdRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType)
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten
         )
       case iri if iri.startsWith(types.`@tuple` + 4) =>
         Tuple4Type(
           node
             .out(keys._1stRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType),
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten,
           node
             .out(keys._2ndRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType),
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten,
           node
             .out(keys._3rdRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType),
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten,
           node
             .out(keys._4rdRange)
-            .collect { case node: Node => node }
-            .map(node.graph.ns.getClassType)
+            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+            .flatten
         )
     }
   }
@@ -108,9 +116,19 @@ object TupleType {
 //    Tuple4Type(List(cta), List(ctb), List(ctc), List(ctd))
 }
 
-trait TupleType[+T] extends StructuredValue[T] {}
+trait TupleType[+T] extends StructuredValue[T]
 
-object Tuple2Type {
+object Tuple2Type extends DataTypeDef[Tuple2Type[Any, Any]] {
+
+  lazy val datatype = new Tuple2Type[Any, Any](Nil, Nil) {
+    override lazy val iri: String                               = NS.types.`@tuple` + "2"
+    override val label: Map[String, String]                     = Map("en" -> s"${NS.types.`@tuple`}2")
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+  }
+
+  object keys extends TupleType.Properties
+  override lazy val properties: List[Property] = TupleType.properties
+  trait Properties extends TupleType.Properties
 
   def apply[A, AT[+Z] <: ClassType[Z], B, BT[+Z] <: ClassType[Z]](_1stRange: List[AT[A]], _2ndRange: List[BT[B]]) =
     new Tuple2Type(_1stRange, _2ndRange) //TODO: ClassTypeable
@@ -129,12 +147,23 @@ object Tuple2Type {
 }
 class Tuple2Type[+A, +B](val _1stRange: List[ClassType[A]], val _2ndRange: List[ClassType[B]])
     extends TupleType[(A, B)] {
-
-  val iri =
-    s"${types.`@tuple`}2/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}"
+  lazy val iri =
+    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "2"
+    else
+      s"${types.`@tuple`}2/${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
 }
 
-object Tuple3Type {
+object Tuple3Type extends DataTypeDef[Tuple3Type[Any, Any, Any]] {
+
+  lazy val datatype = new Tuple3Type[Any, Any, Any](Nil, Nil, Nil) {
+    override lazy val iri: String                               = s"${NS.types.`@tuple`}3"
+    override val label: Map[String, String]                     = Map("en" -> s"${NS.types.`@tuple`}3")
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+  }
+
+  object keys extends TupleType.Properties
+  override lazy val properties: List[Property] = TupleType.properties
+  trait Properties extends TupleType.Properties
 
   def apply[A, AT[+Z] <: ClassType[Z], B, BT[+Z] <: ClassType[Z], C, CT[+Z] <: ClassType[Z]](_1stRange: List[AT[A]],
                                                                                              _2ndRange: List[BT[B]],
@@ -164,14 +193,32 @@ object Tuple3Type {
 }
 class Tuple3Type[A, B, C](val _1stRange: List[ClassType[A]],
                           val _2ndRange: List[ClassType[B]],
-                          val _3ndRange: List[ClassType[C]])
+                          val _3rdRange: List[ClassType[C]])
     extends TupleType[(A, B, C)] {
 
-  val iri =
-    s"${types.`@tuple`}3/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}/${_3ndRange.map(_.iri).sorted.mkString("+")}"
+  lazy val iri =
+    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty && _3rdRange
+          .filter(_.iri.nonEmpty)
+          .isEmpty) NS.types.`@tuple` + "3"
+    else
+      s"${types.`@tuple`}3/${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_2ndRange
+        .map(_.iri)
+        .filter(_.nonEmpty)
+        .sorted
+        .mkString("+")}/${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
 }
 
-object Tuple4Type {
+object Tuple4Type extends DataTypeDef[Tuple4Type[Any, Any, Any, Any]] {
+
+  lazy val datatype = new Tuple4Type[Any, Any, Any, Any](Nil, Nil, Nil, Nil) {
+    override lazy val iri: String                               = s"${NS.types.`@tuple`}4"
+    override val label: Map[String, String]                     = Map("en" -> s"${NS.types.`@tuple`}4")
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+  }
+
+  object keys extends TupleType.Properties
+  override lazy val properties: List[Property] = TupleType.properties
+  trait Properties extends TupleType.Properties
 
   def apply[A, AT[+Z] <: ClassType[Z], B, BT[+Z] <: ClassType[Z], C, CT[+Z] <: ClassType[Z], D, DT[+Z] <: ClassType[Z]](
       _1stRange: List[AT[A]],
@@ -208,11 +255,15 @@ object Tuple4Type {
 }
 class Tuple4Type[A, B, C, D](val _1stRange: List[ClassType[A]],
                              val _2ndRange: List[ClassType[B]],
-                             val _3ndRange: List[ClassType[C]],
-                             val _4ndRange: List[ClassType[D]])
+                             val _3rdRange: List[ClassType[C]],
+                             val _4rdRange: List[ClassType[D]])
     extends TupleType[(A, B, C, D)] {
 
-  val iri =
-    s"${types.`@tuple`}4/${_1stRange.map(_.iri).sorted.mkString("+")}/${_2ndRange.map(_.iri).sorted.mkString("+")}" +
-      s"/${_3ndRange.map(_.iri).sorted.mkString("+")}/${_4ndRange.map(_.iri).sorted.mkString("+")}"
+  lazy val iri =
+    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty && _3rdRange
+          .filter(_.iri.nonEmpty)
+          .isEmpty && _4rdRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "4"
+    else
+      s"${types.`@tuple`}4/${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}" +
+        s"/${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_4rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
 }

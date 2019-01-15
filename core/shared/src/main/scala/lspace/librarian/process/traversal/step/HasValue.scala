@@ -13,7 +13,7 @@ object HasValue
                     () => HasStep.ontology :: Nil)
     with StepWrapper[HasValue] {
 
-  def toStep(node: Node): HasValue = HasValue(node.out(Has.keys.predicateUrl).map(P.toNode))
+  def toStep(node: Node): HasValue = HasValue(node.out(Has.keys.predicateUrl).map(P.toP))
 
   object keys {
     val predicate = Has.keys.predicate

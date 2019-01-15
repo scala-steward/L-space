@@ -1,6 +1,6 @@
 package lspace.parse
 
-import lspace.librarian.structure.{ClassType, DataType, Ontology, Property}
+import lspace.librarian.structure.{ClassType, Ontology, Property}
 import lspace.NS.types
 
 import scala.collection.immutable.HashMap

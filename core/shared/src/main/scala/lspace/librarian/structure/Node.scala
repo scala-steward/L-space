@@ -8,7 +8,7 @@ object Node {
   implicit def default[T <: Node]: ClassTypeable.Aux[T, T, NodeURLType[T]] = new ClassTypeable[T] {
     type C  = T
     type CT = NodeURLType[T]
-    def ct: CT = NodeURLType.nodeType[T]
+    def ct: CT = NodeURLType.apply[T]
   }
 }
 
@@ -20,8 +20,8 @@ trait Node extends Resource[Node] {
   def labels: List[Ontology]
 
   protected def _addLabel(ontology: Ontology): Unit = {
-    if (!Ontology.allOntologies.byIri.contains(ontology.iri) && graph.ns.getOntology(ontology.iri).isEmpty)
-      graph.ns.storeOntology(ontology)
+    if (!Ontology.allOntologies.byIri.contains(ontology.iri) && graph.ns.ontologies.get(ontology.iri).isEmpty)
+      graph.ns.ontologies.store(ontology)
   }
   def addLabel(ontology: Ontology): Unit
 
@@ -36,6 +36,7 @@ trait Node extends Resource[Node] {
 
   def equalValues(o: scala.Any): Boolean = o match {
     case resource: graph._Node => resource.iri == iri || resource.iris.intersect(iris).nonEmpty
+    case p: Property           => iri == p.iri || iris.contains(p.iri)
     case _                     => false
   }
 

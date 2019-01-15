@@ -1,8 +1,8 @@
 package lspace.librarian.process.traversal.p
 
+import lspace.librarian.process.traversal.P.CollectionHelper
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Within
@@ -17,23 +17,14 @@ object Within
 
   implicit def toNode[T](within: Within[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    within.pvalues.foreach(pvalue => node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(pvalue), pvalue))
+    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(within.pvalue), within.pvalue)
     node
   }
 }
 
-case class Within[T](pvalues: List[T]) extends CollectionP[T] {
-  def assert(avalue: Any): Boolean = {
-    avalue match {
-      case avalue: Resource[_] =>
-        pvalues.exists {
-          case pvalue: Resource[_] => pvalue.iri == avalue.iri
-          case _                   => false
-        }
-      case _ => pvalues.contains(avalue)
-    }
-  }
+case class Within[+T](pvalue: T)(implicit helper: CollectionHelper[T]) extends CollectionP[T] {
+  def assert(avalue: Any): Boolean = helper.within(avalue, pvalue)
 
   lazy val toNode: Node            = this
-  override def prettyPrint: String = s"within(${pvalues.mkString(", ")})"
+  override def prettyPrint: String = s"within(${pvalue.toString})"
 }

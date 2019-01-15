@@ -1,10 +1,12 @@
 package lspace.librarian.provider.transaction
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.computer.TransactionStreamComputer
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem._
+import lspace.librarian.structure.Property.default
 import lspace.librarian.structure._
-import lspace.librarian.structure.util.IdProvider
+import lspace.librarian.structure.util.{GraphUtils, IdProvider}
 
 import scala.collection.mutable
 
@@ -88,8 +90,8 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
           })
     }
   }
-
-  override def resources: Resources = new Resources {}
+  private lazy val _resources: Resources = new Resources {}
+  override def resources: Resources      = _resources
 
   trait Nodes extends super.Nodes {
     val added: mutable.OpenHashMap[Long, GNode]          = mutable.OpenHashMap[Long, GNode]()
@@ -113,8 +115,8 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
       else super.hasId(id).orElse(parent.nodes.hasId(id).map(_.asInstanceOf[parent.GNode]).map(_TNode))
     }
   }
-
-  override val nodes: Nodes = new Nodes {}
+  private lazy val _nodes: Nodes = new Nodes {}
+  override def nodes: Nodes      = _nodes
 
   trait Edges extends super.Edges {
     val added: mutable.HashSet[GEdge[_, _]]                    = mutable.HashSet[GEdge[_, _]]()
@@ -141,8 +143,8 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
       else super.hasId(id).orElse(parent.edges.hasId(id).map(_.asInstanceOf[parent.GEdge[Any, Any]]).map(_TEdge(_)))
     }
   }
-
-  override val edges: Edges = new Edges {}
+  private lazy val _edges: Edges = new Edges {}
+  override def edges: Edges      = _edges
 
   trait Values extends super.Values {
     val added: mutable.HashSet[GValue[_]]                    = mutable.HashSet[GValue[_]]()
@@ -183,8 +185,8 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
       else super.hasId(id).orElse(parent.values.hasId(id).map(_.asInstanceOf[parent.GValue[Any]]).map(_TValue(_)))
     }
   }
-
-  override val values: Values = new Values {}
+  private lazy val _values: Values = new Values {}
+  override def values: Values      = _values
 
   protected var open: Boolean = true
 
@@ -198,7 +200,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     */
   def rollback(): Unit
 
-  override protected def getOrCreateNode(id: Long): GNode = synchronized {
+  override protected def getOrCreateNode(id: Long): GNode = {
     try {
       val node = super.getOrCreateNode(id)
       nodes.added += node.id -> node

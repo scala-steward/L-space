@@ -4,12 +4,12 @@ import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.structure._
 
-case object InV
-    extends StepDef("InV", "An inV-step ..", () => MoveStep.ontology :: Nil)
-    with StepWrapper[InV]
-    with InV {
+case object To
+    extends StepDef("To", "An to-step moves to the destination of an edge", () => MoveStep.ontology :: Nil)
+    with StepWrapper[To]
+    with To {
 
-  def toStep(node: Node): InV = this
+  def toStep(node: Node): To = this
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
@@ -20,4 +20,4 @@ case object InV
   override def prettyPrint: String = "inV"
 }
 
-trait InV extends MoveStep
+trait To extends MoveStep

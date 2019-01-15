@@ -4,21 +4,26 @@ import java.time.LocalDate
 
 import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.structure.{CalendarType, DataType}
+import lspace.librarian.structure.Property
 
-object LocalDateType {
-  val default: LocalDateType[LocalDate] = new LocalDateType[LocalDate] { type Out = LocalDate }
+object LocalDateType extends DataTypeDef[LocalDateType[LocalDate]] {
+
+  lazy val datatype: LocalDateType[LocalDate] = new LocalDateType[LocalDate] {
+    val iri: String                                             = NS.types.`@date`
+    override val iris: Set[String]                              = Set(NS.types.schemaDate)
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@date`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType.datatype)
+  }
+
+  object keys extends CalendarType.Properties
+  override lazy val properties: List[Property] = CalendarType.properties
+  trait Properties extends CalendarType.Properties
 
   implicit val defaultLocalDateType: ClassTypeable.Aux[LocalDateType[LocalDate], LocalDate, LocalDateType[LocalDate]] =
     new ClassTypeable[LocalDateType[LocalDate]] {
       type C  = LocalDate
       type CT = LocalDateType[LocalDate]
-      def ct: CT = LocalDateType.default
+      def ct: CT = datatype
     }
 }
-trait LocalDateType[+T] extends CalendarType[T] {
-  val iri: String                = NS.types.`@date`
-  override val iris: Set[String] = Set(NS.types.schemaDate)
-
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType)
-}
+trait LocalDateType[+T] extends CalendarType[T]

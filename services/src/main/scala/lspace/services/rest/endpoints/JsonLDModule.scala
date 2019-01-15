@@ -63,7 +63,8 @@ trait JsonLDModule extends Endpoint.Module[IO] {
 
   import JsonLDModule.Decode.decodeArgonaut
 
-  def jsonldTraversal(graph: Graph, jsonld: JsonLD): Endpoint[IO, Traversal[ClassType[Any], ClassType[Any], HList]] =
+  def jsonldTraversal(implicit graph: Graph,
+                      jsonld: JsonLD): Endpoint[IO, Traversal[ClassType[Any], ClassType[Any], HList]] =
     body[Json, JsonLDModule.JsonLD].mapOutput { json =>
       json.obj
         .map { obj =>

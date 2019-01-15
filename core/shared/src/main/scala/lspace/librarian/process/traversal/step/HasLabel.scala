@@ -2,11 +2,9 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
+import lspace.librarian.datatype.DataType
 
 object HasLabel
     extends StepDef("HasLabel", "A hasLabel-step filters resources by label.", () => HasStep.ontology :: Nil)
@@ -19,7 +17,7 @@ object HasLabel
         .collect {
           case node: Node => node
         }
-        .flatMap(node => node.graph.ns.getClassType(node.iri))
+        .flatMap(node => node.graph.ns.classtypes.get(node.iri))
         .collect {
           case ct if ct == DataType.ontology => DataType.default.`@datatype`
           case ct if ct == Ontology.ontology => DataType.default.`@class`

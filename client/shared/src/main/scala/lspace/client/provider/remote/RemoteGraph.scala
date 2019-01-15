@@ -2,6 +2,7 @@ package lspace.client.provider.remote
 
 import monix.eval.Task
 import lspace.client.io.LinkedDataService
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.structure._
@@ -78,10 +79,10 @@ trait RemoteGraph extends Graph {
     throw new Exception("remote graph traversals do not support synchronous calls")
 
   def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[ST, ET, Steps])(ct: ClassType[_]): Stream[Out] =
+      traversal: Traversal[ST, ET, Steps]): Stream[Out] =
     ???
 
   def buildAsyncTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[ST, ET, Steps])(ct: ClassType[_]): Task[Stream[Out]] =
-    service.traverse[Steps, Out](traversal, ct.asInstanceOf[ClassType[Out]]).map(_.item.toStream)
+      traversal: Traversal[ST, ET, Steps]): Task[Stream[Out]] =
+    service.traverse[Steps, Out](traversal).map(_.item.toStream)
 }

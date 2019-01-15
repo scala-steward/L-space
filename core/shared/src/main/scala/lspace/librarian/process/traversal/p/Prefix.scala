@@ -1,33 +1,31 @@
 package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P._
-import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.process.traversal.{EqP, PredicateDef, PredicateWrapper}
+import lspace.librarian.process.traversal.{PredicateDef, PredicateWrapper, SeqP}
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Prefix extends PredicateDef("Prefix", `@extends` = () => List(EqP.ontology)) with PredicateWrapper[Prefix[_]] {
+object Prefix extends PredicateDef("Prefix", `@extends` = () => List(SeqP.ontology)) with PredicateWrapper[Prefix[_]] {
 
   def toP(node: Node): Prefix[_] = {
 
-    val (pvalue, helper) = StringHelper map node.out(EqP.keys.value).head
+    val (pvalue, helper) = SeqHelper map node.out(SeqP.keys.value).head
     Prefix(pvalue)(helper)
   }
 
-  object keys extends EqP.Properties
-  override lazy val properties: List[Property] = EqP.properties
-  trait Properties extends EqP.Properties
+  object keys extends SeqP.Properties
+  override lazy val properties: List[Property] = SeqP.properties
+  trait Properties extends SeqP.Properties
 
   implicit def toNode[T](prefix: Prefix[T]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(prefix.pvalue), prefix.pvalue)
+    node.addOut(SeqP.keys.value, ClassType.valueToOntologyResource(prefix.pvalue), prefix.pvalue)
     node
   }
 }
 
-case class Prefix[T](pvalue: T)(implicit helper: StringHelper[T]) extends EqP[T] {
-  def assert(avalue: Any): Boolean = helper.prefix(avalue, pvalue)
+case class Prefix[+T](pvalue: T)(implicit helper: SeqHelper[T]) extends SeqP[T] {
+  def assert(avalue: Any): Boolean = helper.startsWith(avalue, pvalue)
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = s"prefix($pvalue)"

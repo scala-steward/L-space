@@ -1,5 +1,6 @@
 package lspace.librarian.provider.wrapped
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.structure._
 import lspace.util.CacheStatus
 

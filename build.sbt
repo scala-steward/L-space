@@ -117,8 +117,6 @@ lazy val graph = (project in file("graph"))
   )
 
 lazy val services = (project in file("services"))
-  .dependsOn(graph)
-  //  .dependsOn(parse.jvm)
   .dependsOn(client.jvm % "compile->compile;test->test")
   .settings(settings)
   .settings(

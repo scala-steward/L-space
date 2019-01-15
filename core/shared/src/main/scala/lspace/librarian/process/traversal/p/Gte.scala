@@ -25,7 +25,7 @@ object Gte extends PredicateDef("Gte", `@extends` = () => List(OrderP.ontology))
   }
 }
 
-case class Gte[T](pvalue: T)(implicit helper: OrderHelper[T]) extends OrderP[T] {
+case class Gte[+T](pvalue: T)(implicit helper: OrderHelper[T]) extends OrderP[T] {
   def assert(avalue: Any): Boolean = helper.gte(avalue, pvalue)
 
   lazy val toNode: Node            = this

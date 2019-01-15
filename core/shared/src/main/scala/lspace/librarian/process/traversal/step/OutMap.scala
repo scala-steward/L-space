@@ -14,7 +14,7 @@ object OutMap extends StepDef("OutMap", "An outMap-step ..", () => MoveStep.onto
       .outE(MoveStep.keys.label)
 //                   .flatMap(_.inV.hasLabel(Property.ontology).map(_.value))
       .map(_.iri)
-      .map(iri => node.graph.ns.getProperty(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .map(iri => node.graph.ns.properties.get(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
       .toSet
   )
 

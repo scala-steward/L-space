@@ -16,9 +16,9 @@ trait Store[G <: Graph] {
   def store(resource: T): Unit
   def store(resources: List[T]): Unit
 
-  def byId(id: Long): Option[T2]
-  def byId(ids: List[Long]): Stream[T2]
-  def byIri(iri: String): Stream[T2]
+  def hasId(id: Long): Option[T2]
+  def hasId(ids: List[Long]): Stream[T2]
+  def hasIri(iri: String): Stream[T2]
 
   def -(resource: T): Unit = delete(resource)
   def delete(resource: T): Unit

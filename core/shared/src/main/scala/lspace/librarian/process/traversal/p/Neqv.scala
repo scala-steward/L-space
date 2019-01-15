@@ -9,7 +9,7 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
-object Neqv extends PredicateDef("Neqv", `@extends` = () => List(EqP.ontology)) with PredicateWrapper[Neqv[_]] {
+object Neqv extends PredicateDef("Neqv", `@extends` = () => EqP.ontology :: Nil) with PredicateWrapper[Neqv[_]] {
 
   def toP(node: Node): Neqv[_] = {
     val (pvalue, helper) = EqHelper map node.out(EqP.keys.value).head
@@ -27,7 +27,7 @@ object Neqv extends PredicateDef("Neqv", `@extends` = () => List(EqP.ontology)) 
   }
 }
 
-case class Neqv[T](pvalue: T)(implicit helper: EqHelper[T]) extends EqP[T] {
+case class Neqv[+T](pvalue: T)(implicit helper: EqHelper[T]) extends EqP[T] {
   def assert(avalue: Any): Boolean = helper.neqv(avalue, pvalue)
 
   lazy val toNode: Node            = this

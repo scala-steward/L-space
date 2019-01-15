@@ -1,14 +1,11 @@
 package lspace.librarian.process.traversal
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
-import java.time.temporal.Temporal
 
 import lspace.librarian.process.traversal.p._
 import lspace.librarian.structure._
-import lspace.NS
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Ontology.OntologyDef
 import lspace.librarian.util.AssertionNotSupported
 import lspace.types.vector.Geometry
@@ -21,24 +18,26 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
   object keys
 
-  implicit def nodeToP(node: Node): P[_] = P.toNode(node)
+  implicit def nodeToP(node: Node): P[_] = P.toP(node)
 
-  def toNode(node: Node): P[_] = node match {
+  def toP(node: Node): P[_] = node match {
     case p: P[_] => p
     case _ =>
       node.labels match {
-        case types if types.contains(p.Eqv.ontology)            => p.Eqv.toP(node)
-        case types if types.contains(p.Neqv.ontology)           => p.Neqv.toP(node)
-        case types if types.contains(p.Gt.ontology)             => p.Gt.toP(node)
-        case types if types.contains(p.Gte.ontology)            => p.Gte.toP(node)
-        case types if types.contains(p.Lt.ontology)             => p.Lt.toP(node)
-        case types if types.contains(p.Lte.ontology)            => p.Lte.toP(node)
-        case types if types.contains(p.Between.ontology)        => p.Between.toP(node)
-        case types if types.contains(p.Outside.ontology)        => p.Outside.toP(node)
-        case types if types.contains(p.Inside.ontology)         => p.Inside.toP(node)
-        case types if types.contains(p.Intersect.ontology)      => p.Intersect.toP(node)
-        case types if types.contains(p.Within.ontology)         => p.Within.toP(node)
-        case types if types.contains(p.Without.ontology)        => p.Without.toP(node)
+        case types if types.contains(p.And.ontology)       => p.And.toP(node)
+        case types if types.contains(p.Or.ontology)        => p.Or.toP(node)
+        case types if types.contains(p.Eqv.ontology)       => p.Eqv.toP(node)
+        case types if types.contains(p.Neqv.ontology)      => p.Neqv.toP(node)
+        case types if types.contains(p.Gt.ontology)        => p.Gt.toP(node)
+        case types if types.contains(p.Gte.ontology)       => p.Gte.toP(node)
+        case types if types.contains(p.Lt.ontology)        => p.Lt.toP(node)
+        case types if types.contains(p.Lte.ontology)       => p.Lte.toP(node)
+        case types if types.contains(p.Between.ontology)   => p.Between.toP(node)
+        case types if types.contains(p.Outside.ontology)   => p.Outside.toP(node)
+        case types if types.contains(p.Inside.ontology)    => p.Inside.toP(node)
+        case types if types.contains(p.Intersect.ontology) => p.Intersect.toP(node)
+        case types if types.contains(p.Within.ontology)    => p.Within.toP(node)
+//        case types if types.contains(p.Without.ontology)        => p.Without.toP(node)
         case types if types.contains(p.Disjoint.ontology)       => p.Disjoint.toP(node)
         case types if types.contains(p.Contains.ontology)       => p.Contains.toP(node)
         case types if types.contains(p.Prefix.ontology)         => p.Prefix.toP(node)
@@ -53,6 +52,8 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
       }
   }
   lazy val predicates: List[PredicateDef] = List(
+    And,
+    Or,
     Eqv,
     Neqv,
     Gt,
@@ -64,11 +65,11 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
     Inside,
     Intersect,
     Within,
-    GeoWithin,
-    Without,
+//    GeoWithin,
+//    Without,
     Disjoint,
     Contains,
-    GeoContains,
+//    GeoContains,
     Prefix,
     Suffix,
     Regex,
@@ -86,15 +87,9 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
     def neqv(avalue: Any, pvalue: T): Boolean = pvalue == avalue
   }
   sealed trait EqHelper[T] extends Helper[T] {
-    def within(avalue: Any, pvalues: Set[T]) = avalue match {
-      case avalue: T => pvalues.contains(avalue)
-      case _         => false
-    }
-    def without(avalue: Any, pvalues: Set[T]) = avalue match {
-      case avalue: T => !pvalues.contains(avalue)
-      case _         => true
-    }
-    def contains(avalue: Any, pvalue: T): Boolean
+//    def within(avalue: Any, pvalues: Set[Any])  = pvalues.contains(avalue)
+//    def without(avalue: Any, pvalues: Set[Any]) = !pvalues.contains(avalue)
+//    def contains(avalue: Any, pvalue: T): Boolean
   }
   object EqHelper {
     def map[T](value: T): (T, EqHelper[T]) = {
@@ -114,10 +109,10 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case v: Geometry => v -> Helper.GeoHelper
         case v: Iterable[_] =>
           v match {
-            case v: ListSet[_] => v -> Helper.listsetHelper
-            case v: List[_]    => v -> Helper.listHelper
-            case v: Set[_]     => v -> Helper.setHelper
-            case v: Vector[_]  => v -> Helper.vectorHelper
+//            case v: ListSet[_] => v -> Helper.listsetHelper
+            case v: List[_] => v -> Helper.listHelper[Any, Seq]
+            case v: Set[_]  => v -> Helper.setHelper[Any, Set]
+//            case v: Vector[_]  => v -> Helper.vectorHelper
           }
         //        case v: IriResource => v -> Helper.IriHelper
         case v: Resource[_] => v -> Helper.ResourceHelper
@@ -137,12 +132,12 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case v: Int           => v -> Helper.IntHelper
         case v: Double        => v -> Helper.DoubleHelper
         case v: Long          => v -> Helper.LongHelper
+        case v: String        => v -> Helper.TextHelper
         case v: Quantity[_]   => v -> Helper.QuantityHelper
         case v: Instant       => v -> Helper.InstantHelper
         case v: LocalDateTime => v -> Helper.LocalDateTimeHelper
         case v: LocalDate     => v -> Helper.LocalDateHelper
         case v: LocalTime     => v -> Helper.LocalTimeHelper
-        case v: String        => v -> Helper.TextHelper
         //        case v: TimeUnit => v -> Helper.TimeHelper
       }
       helper.asInstanceOf[(T, OrderHelper[T])]
@@ -153,9 +148,9 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case dt: DoubleType[_] => P.Helper.DoubleHelper
         case dt: LongType[_]   => P.Helper.LongHelper
         case dt: TextType[_]   => P.Helper.TextHelper
-        case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.localdatetimeType.iri =>
+        case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
           P.Helper.InstantHelper
-        case dt: DateTimeType[_] if dt.iri == DateTimeType.datetimeType.iri =>
+        case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
           P.Helper.LocalDateTimeHelper
         case dt: LocalDateType[_] => P.Helper.LocalDateHelper
         case dt: LocalTimeType[_] => P.Helper.LocalTimeHelper
@@ -184,9 +179,10 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
     }
   }
 
-  sealed trait StringHelper[T] extends OrderHelper[T] {
-    def prefix(avalue: Any, pvalue: T): Boolean
-    def suffix(avalue: Any, pvalue: T): Boolean
+  sealed trait StringHelper[T] extends SeqHelper[T] {
+    def contains(avalue: Any, pvalue: T): Boolean
+//    def prefix(avalue: Any, pvalue: T): Boolean
+//    def suffix(avalue: Any, pvalue: T): Boolean
     def regex(avalue: Any, pvalue: scala.util.matching.Regex): Boolean
     def fuzzy(avalue: Any, pvalue: T): Boolean
     def containsPrefix(avalue: Any, pvalue: T): Boolean
@@ -203,29 +199,70 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
     }
   }
 
-  sealed trait ObjectHelper[T] extends EqHelper[T] {
+//  sealed trait ObjectHelper[T] extends EqHelper[T] {
+//    def intersect(avalue: Any, pvalue: T): Boolean
+//    def disjoint(avalue: Any, pvalue: T): Boolean
+//    def contains(avalue: Any, pvalue: T): Boolean
+//    def within(avalue: Any, pvalue: T): Boolean
+//    //    def within(avalue: Any, pvalue: T): Boolean
+//  }
+//  object ObjectHelper {
+//    def map[T](value: T): (T, ObjectHelper[T]) = {
+//      val helper: (_, ObjectHelper[_]) = value match {
+//        case v: Geometry => v -> Helper.GeoHelper
+//        case _           => throw new Exception("No ObjectHelper found")
+//      }
+//      helper.asInstanceOf[(T, ObjectHelper[T])]
+//    }
+//  }
+
+  object CollectionHelper {
+    def map[T](value: T): (T, CollectionHelper[T]) = {
+      val helper: (_, CollectionHelper[_]) = value match {
+        case v: String   => v -> Helper.TextHelper
+        case v: Geometry => v -> Helper.GeoHelper
+        case v: Seq[_]   => v -> Helper.listHelper[Any, Seq]
+        case v: Set[_]   => v -> Helper.setHelper[Any, Set]
+        case _           => throw new Exception("No CollectionHelper found")
+      }
+      helper.asInstanceOf[(T, CollectionHelper[T])]
+    }
+  }
+  sealed trait CollectionHelper[T] extends EqHelper[T] {
     def intersect(avalue: Any, pvalue: T): Boolean
     def disjoint(avalue: Any, pvalue: T): Boolean
     def contains(avalue: Any, pvalue: T): Boolean
     def within(avalue: Any, pvalue: T): Boolean
-    //    def within(avalue: Any, pvalue: T): Boolean
   }
-  object ObjectHelper {
-    def map[T](value: T): (T, ObjectHelper[T]) = {
-      val helper: (_, ObjectHelper[_]) = value match {
-        case v: Geometry => v -> Helper.GeoHelper
-        case _           => throw new Exception("No ObjectHelper found")
+
+  object SeqHelper {
+    def map[T](value: T): (T, SeqHelper[T]) = {
+      val helper: (_, SeqHelper[_]) = value match {
+        case v: String => v -> Helper.TextHelper
+        case v: Seq[_] => v -> Helper.listHelper[Any, Seq]
+//        case v: Vector[T] => v -> Helper.vectorHelper[T]
+        case _ => throw new Exception("No SeqHelper found")
       }
-      helper.asInstanceOf[(T, ObjectHelper[T])]
+      helper.asInstanceOf[(T, SeqHelper[T])]
     }
+  }
+  sealed trait SeqHelper[T] extends EqHelper[T] with CollectionHelper[T] {
+    def startsWith(avalue: Any, pvalue: T): Boolean
+    def endsWith(avalue: Any, pvalue: T): Boolean
   }
 
   object Helper {
     //    implicit object IriResourceHelper extends IriHelper[IriResource]
+    implicit def OntologyHelper = new EqHelper[Ontology] {
+      def contains(avalue: Any, pvalue: Ontology): Boolean = throw new Exception("")
+    }
+    implicit def PropertyHelper = new EqHelper[Property] {
+      def contains(avalue: Any, pvalue: Property): Boolean = throw new Exception("")
+    }
     implicit def ResourceHelper[T <: Resource[T]] = new EqHelper[T] {
       //      override def eqv(avalue: Any, pvalue: T): Boolean = super.eqv(avalue, pvalue.value)
       //      override def neqv(avalue: Any, pvalue: T): Boolean = super.neqv(avalue, pvalue.value)
-      def contains(avalue: Any, pvalue: T): Boolean = throw new Exception("")
+//      def contains(avalue: Any, pvalue: T): Boolean = throw new Exception("")
     }
     implicit object IntHelper extends NumericHelper[Int] {
       def gt(avalue: Any, pvalue: Int): Boolean = avalue match {
@@ -252,7 +289,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: Long   => avalue <= pvalue
         case _              => false
       }
-      def contains(avalue: Any, pvalue: Int): Boolean = throw new Exception("")
+//      def contains(avalue: Any, pvalue: Int): Boolean = throw new Exception("")
     }
     implicit object DoubleHelper extends NumericHelper[Double] {
       def gt(avalue: Any, pvalue: Double): Boolean = avalue match {
@@ -279,7 +316,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: Long   => avalue <= pvalue
         case _              => false
       }
-      def contains(avalue: Any, pvalue: Double): Boolean = throw new Exception("")
+//      def contains(avalue: Any, pvalue: Double): Boolean = throw new Exception("")
     }
     implicit object LongHelper extends NumericHelper[Long] {
       def gt(avalue: Any, pvalue: Long): Boolean = avalue match {
@@ -306,7 +343,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: Long   => avalue <= pvalue
         case _              => false
       }
-      def contains(avalue: Any, pvalue: Long): Boolean = throw new Exception("")
+//      def contains(avalue: Any, pvalue: Long): Boolean = throw new Exception("")
     }
     implicit object QuantityHelper extends NumericHelper[Quantity[_]] {
       def gt(avalue: Any, pvalue: Quantity[_]): Boolean = avalue match {
@@ -325,7 +362,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: Quantity[Any] => avalue.compare(pvalue) <= 0
         case _                     => false
       }
-      def contains(avalue: Any, pvalue: Quantity[_]): Boolean = throw new Exception("")
+//      def contains(avalue: Any, pvalue: Quantity[_]): Boolean = throw new Exception("")
     }
     //    implicit object DateRangeHelper extends RangeHelper[Date] {}
     //    implicit object QuantityRangeHelper extends RangeHelper[QuantityRange[_]] {
@@ -343,7 +380,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
     //        case _ => false
     //      }
     //    }
-    implicit object TextHelper extends StringHelper[String] {
+    implicit object TextHelper extends StringHelper[String] with OrderHelper[String] {
       def gt(avalue: Any, pvalue: String): Boolean = avalue match {
         case avalue: String => avalue > pvalue
         case _              => false
@@ -360,11 +397,23 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: String => avalue <= pvalue
         case _              => false
       }
-      def prefix(avalue: Any, pvalue: String): Boolean = avalue match {
+      def intersect(avalue: Any, pvalue: String): Boolean = avalue match {
+        case avalue: String => avalue.intersect(pvalue).nonEmpty
+        case _              => false
+      }
+      def disjoint(avalue: Any, pvalue: String): Boolean = avalue match {
+        case avalue: String => avalue.intersect(pvalue).isEmpty
+        case _              => false
+      }
+      def within(avalue: Any, pvalue: String): Boolean = avalue match {
+        case avalue: String => pvalue.containsSlice(avalue)
+        case _              => false
+      }
+      def startsWith(avalue: Any, pvalue: String): Boolean = avalue match {
         case avalue: String => avalue.startsWith(pvalue)
         case _              => false
       }
-      def suffix(avalue: Any, pvalue: String): Boolean = avalue match {
+      def endsWith(avalue: Any, pvalue: String): Boolean = avalue match {
         case avalue: String => avalue.endsWith(pvalue)
         case _              => false
       }
@@ -394,7 +443,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
       }
     }
     implicit object BooleanHelper extends EqHelper[Boolean] {
-      def contains(avalue: Any, pvalue: Boolean): Boolean = throw new Exception("")
+//      def contains(avalue: Any, pvalue: Boolean): Boolean = throw new Exception("")
     }
     implicit object InstantHelper extends RangeHelper[Instant] {
       def gt(avalue: Any, pvalue: Instant): Boolean = avalue match {
@@ -413,10 +462,10 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: Instant => avalue.isBefore(pvalue) || eqv(avalue, pvalue)
         case _               => false
       }
-      def contains(avalue: Any, pvalue: Instant): Boolean = avalue match {
-        //        case avalue: LocalDate => LocalDate.of(Instant.)
-        case _ => false
-      }
+//      def contains(avalue: Any, pvalue: Instant): Boolean = avalue match {
+//        //        case avalue: LocalDate => LocalDate.of(Instant.)
+//        case _ => false
+//      }
     }
     implicit object LocalDateTimeHelper extends RangeHelper[LocalDateTime] {
       def gt(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
@@ -435,10 +484,10 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: LocalDateTime => avalue.isBefore(pvalue) || eqv(avalue, pvalue)
         case _                     => false
       }
-      def contains(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
-        //        case avalue: LocalDate => LocalDate.of(Instant.)
-        case _ => false
-      }
+//      def contains(avalue: Any, pvalue: LocalDateTime): Boolean = avalue match {
+//        //        case avalue: LocalDate => LocalDate.of(Instant.)
+//        case _ => false
+//      }
     }
     implicit object LocalDateHelper extends RangeHelper[LocalDate] {
       def gt(avalue: Any, pvalue: LocalDate): Boolean = avalue match {
@@ -457,10 +506,10 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: LocalDate => avalue.isBefore(pvalue) || eqv(avalue, pvalue)
         case _                 => false
       }
-      def contains(avalue: Any, pvalue: LocalDate): Boolean = avalue match {
-        //        case avalue: LocalDate => LocalDate.of(Instant.)
-        case _ => false
-      }
+//      def contains(avalue: Any, pvalue: LocalDate): Boolean = avalue match {
+//        //        case avalue: LocalDate => LocalDate.of(Instant.)
+//        case _ => false
+//      }
     }
     implicit object LocalTimeHelper extends RangeHelper[LocalTime] {
       def gt(avalue: Any, pvalue: LocalTime): Boolean = avalue match {
@@ -479,88 +528,131 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case avalue: LocalTime => avalue.isBefore(pvalue) || eqv(avalue, pvalue)
         case _                 => false
       }
-      def contains(avalue: Any, pvalue: LocalTime): Boolean = avalue match {
-        //        case avalue: LocalDate => LocalDate.of(Instant.)
-        case _ => false
-      }
+//      def contains(avalue: Any, pvalue: LocalTime): Boolean = avalue match {
+//        //        case avalue: LocalDate => LocalDate.of(Instant.)
+//        case _ => false
+//      }
     }
     //    implicit object TimeHelper extends RangeHelper[TimeUnit] {}
-    implicit object GeoHelper extends ObjectHelper[Geometry] {
-      def intersect(avalue: Any, pvalue: Geometry): Boolean = avalue match {
+    implicit def GeoHelper[T <: Geometry] = new CollectionHelper[T] {
+      def intersect(avalue: Any, pvalue: T): Boolean = avalue match {
         case avalue: Geometry => avalue.intersect(pvalue)
         case _                => false
       }
-      def disjoint(avalue: Any, pvalue: Geometry): Boolean = avalue match {
+      def disjoint(avalue: Any, pvalue: T): Boolean = avalue match {
         case avalue: Geometry => avalue.disjoint(pvalue)
         case _                => false
       }
-      def contains(avalue: Any, pvalue: Geometry): Boolean = avalue match {
+      def contains(avalue: Any, pvalue: T): Boolean = avalue match {
         case avalue: Geometry => avalue.contains(pvalue)
         case _                => false
       }
-      def within(avalue: Any, pvalue: Geometry): Boolean = avalue match {
+      def within(avalue: Any, pvalue: T): Boolean = avalue match {
         case avalue: Geometry => avalue.within(pvalue)
         case _                => false
       }
     }
 
-    sealed trait CollectionHelper[T] extends EqHelper[T] {
-      def intersect(avalue: T, pvalue: T): Boolean
-      def disjoint(avalue: T, pvalue: T): Boolean
-      def contains(avalue: T, pvalue: T)(implicit ev: T <:< Iterable[_]): Boolean
-      def within(avalue: T, pvalue: T): Boolean
-    }
-    implicit def listHelper[T] = new CollectionHelper[List[T]] {
-      def eqv(avalue: List[T], pvalue: List[T]): Boolean       = avalue.intersect(pvalue).nonEmpty
-      def neqv(avalue: List[T], pvalue: List[T]): Boolean      = avalue.intersect(pvalue).nonEmpty
-      def intersect(avalue: List[T], pvalue: List[T]): Boolean = avalue.intersect(pvalue).nonEmpty
-      def disjoint(avalue: List[T], pvalue: List[T]): Boolean  = avalue.intersect(pvalue).isEmpty
-      def contains(avalue: List[T], pvalue: List[T])(implicit ev: List[T] <:< Iterable[_]): Boolean =
-        avalue.containsSlice(pvalue)
-      def contains(avalue: Any, pvalue: List[T]): Boolean = avalue match {
-        case avalue: List[T] => avalue.containsSlice(pvalue)
-        case _               => false
+    implicit def listHelper[T, F[+Z] <: Seq[Z]] = new SeqHelper[F[T]] {
+      override def eqv(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue == pvalue
+        case _            => false
       }
-      def within(avalue: List[T], pvalue: List[T]): Boolean = pvalue.containsSlice(avalue)
-    }
-    implicit def setHelper[T] = new CollectionHelper[Set[T]] {
-      def intersect(avalue: Set[T], pvalue: Set[T]): Boolean = avalue.intersect(pvalue).nonEmpty
-      def disjoint(avalue: Set[T], pvalue: Set[T]): Boolean  = avalue.intersect(pvalue).isEmpty
-      def contains(avalue: Set[T], pvalue: Set[T])(implicit ev: Set[T] <:< Iterable[_]): Boolean =
-        avalue.intersect(pvalue).size == pvalue.size
-      def contains(avalue: Any, pvalue: Set[T]): Boolean = avalue match {
-        case avalue: Set[T] => avalue.intersect(pvalue).size == pvalue.size
-        case _              => false
+      override def neqv(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue != pvalue
+        case _            => false
       }
-      def within(avalue: Set[T], pvalue: Set[T]): Boolean =
-        pvalue.intersect(avalue).size == pvalue.size
-    }
-    implicit def listsetHelper[T] = new CollectionHelper[ListSet[T]] {
-      def intersect(avalue: ListSet[T], pvalue: ListSet[T]): Boolean =
-        avalue.intersect(pvalue).nonEmpty
-      def disjoint(avalue: ListSet[T], pvalue: ListSet[T]): Boolean =
-        avalue.intersect(pvalue).isEmpty
-      def contains(avalue: ListSet[T], pvalue: ListSet[T])(implicit ev: ListSet[T] <:< Iterable[_]): Boolean =
-        avalue.toList.containsSlice(pvalue.toList)
-      def contains(avalue: Any, pvalue: ListSet[T]): Boolean = avalue match {
-        case avalue: ListSet[_] => avalue.toList.containsSlice(pvalue.toList)
-        case _                  => false
+      def intersect(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue.intersect(pvalue).nonEmpty
+        case _            => false
       }
-      def within(avalue: ListSet[T], pvalue: ListSet[T]): Boolean =
-        pvalue.toList.containsSlice(avalue.toList)
-    }
-    implicit def vectorHelper[T] = new CollectionHelper[Vector[T]] {
-      def intersect(avalue: Vector[T], pvalue: Vector[T]): Boolean =
-        avalue.intersect(pvalue).nonEmpty
-      def disjoint(avalue: Vector[T], pvalue: Vector[T]): Boolean = avalue.intersect(pvalue).isEmpty
-      def contains(avalue: Vector[T], pvalue: Vector[T])(implicit ev: Vector[T] <:< Iterable[_]): Boolean =
-        avalue.containsSlice(pvalue)
-      def contains(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
-        case avalue: Vector[_] => avalue.containsSlice(pvalue)
-        case _                 => false
+      def disjoint(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue.intersect(pvalue).isEmpty
+        case _            => false
       }
-      def within(avalue: Vector[T], pvalue: Vector[T]): Boolean = pvalue.containsSlice(avalue)
+      def contains(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue.containsSlice(pvalue)
+        case _            => false
+      }
+      def within(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => pvalue.containsSlice(avalue)
+        case _            => false
+      }
+      def startsWith(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue.startsWith(pvalue)
+        case _            => false
+      }
+      def endsWith(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[_] => avalue.endsWith(pvalue)
+        case _            => false
+      }
     }
+    implicit def setHelper[T, F[Z] <: Set[Z]] = new CollectionHelper[F[T]] {
+      def intersect(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[T] => avalue.intersect(pvalue).nonEmpty
+        case _            => false
+      }
+      def disjoint(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[T] => avalue.intersect(pvalue).isEmpty
+        case _            => false
+      }
+      def contains(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[T] => avalue.intersect(pvalue).size == pvalue.size
+        case _            => false
+      }
+      def within(avalue: Any, pvalue: F[T]): Boolean = avalue match {
+        case avalue: F[T] => pvalue.intersect(avalue).size == pvalue.size
+        case _            => false
+      }
+    }
+//    implicit def listsetHelper[T] = new CollectionHelper[ListSet[T]] {
+//      def intersect(avalue: Any, pvalue: ListSet[T]): Boolean =
+//        avalue.intersect(pvalue).nonEmpty
+//      def disjoint(avalue: Any, pvalue: ListSet[T]): Boolean =
+//        avalue.intersect(pvalue).isEmpty
+//      def contains(avalue: Any, pvalue: ListSet[T])(implicit ev: ListSet[T] <:< Iterable[_]): Boolean =
+//        avalue.toList.containsSlice(pvalue.toList)
+//      def contains(avalue: Any, pvalue: ListSet[T]): Boolean = avalue match {
+//        case avalue: ListSet[_] => avalue.toList.containsSlice(pvalue.toList)
+//        case _                  => false
+//      }
+//      def within(avalue: Any, pvalue: ListSet[T]): Boolean =
+//        pvalue.toList.containsSlice(avalue.toList)
+//    }
+//    implicit def vectorHelper[T] = new SeqHelper[Vector[T]] {
+//      override def eqv(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue == pvalue
+//        case _                 => false
+//      }
+//      override def neqv(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue != pvalue
+//        case _                 => false
+//      }
+//      def intersect(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue.intersect(pvalue).nonEmpty
+//        case _                 => false
+//      }
+//      def disjoint(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue.intersect(pvalue).isEmpty
+//        case _                 => false
+//      }
+//      def contains(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue.containsSlice(pvalue)
+//        case _                 => false
+//      }
+//      def within(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => pvalue.containsSlice(avalue)
+//        case _                 => false
+//      }
+//      def startsWith(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue.startsWith(pvalue)
+//        case _                 => false
+//      }
+//      def endsWith(avalue: Any, pvalue: Vector[T]): Boolean = avalue match {
+//        case avalue: Vector[_] => avalue.endsWith(pvalue)
+//        case _                 => false
+//      }
+//    }
     //    implicit def mapHelper[K,V] = new CollectionHelper[Map[K,V]] {
     //      def intersect(avalue: Map[K,V], pvalue: Map[K,V]): Boolean = avalue.intersect(pvalue).nonEmpty
     //      def disjoint(avalue: Map[K,V], pvalue: Map[K,V]): Boolean = avalue.intersect(pvalue).isEmpty
@@ -570,6 +662,8 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
   }
 
+  def &&[T, PR[+Z] <: P[Z]](predicate: PR[T]*): p.And = p.And(predicate.toList)
+  def ||[T, PR[+Z] <: P[Z]](predicate: PR[T]*): p.Or  = p.Or(predicate.toList)
   def eqv[T: EqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Eqv[T] =
     p.Eqv(value)
   def neqv[T: EqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Neqv[T] =
@@ -590,22 +684,27 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
   def inside[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Inside[T] = p.Inside(lower, upper)
   //  def within(values: List[Any]): P[Any] = within(values.toSet)
-  def within[T](value: T, values: T*): Within[T] = p.Within(value :: values.toList)
+  def within[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(
+      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Within[T] = p.Within(value)
   //  def within[T: ObjectHelper](value: T): GeoWithin[T] = p.GeoWithin(value)
   //  def without(values: List[Any]): P[Any] = without(values.toSet)
-  def without[T](value: T, values: T*): Without[T] = p.Without(value :: values.toList)
-  def intersect[T: ObjectHelper, T0, TT0 <: ClassType[_]](value: T)(
+//  def without[T: CollectionHelper](value: T, values: T*): Without[T] = p.Without(value :: values.toList)
+  def intersect[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Intersect[T] = p.Intersect(value)
-  def disjoint[T: ObjectHelper, T0, TT0 <: ClassType[_]](value: T)(
+  def disjoint[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Disjoint[T] = p.Disjoint(value)
   //  def contains[T: ObjectHelper](value: T): GeoContains[T] = p.GeoContains(value)
-  def contains[T: EqHelper, T0, TT0 <: ClassType[_]](value: T)(
+  def contains[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Contains[T] = p.Contains(value)
-  def prefix[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(
+  def prefix[T: SeqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Prefix[T] =
+    p.Prefix(value)
+  def startsWith[T: SeqHelper, T0, TT0 <: ClassType[_]](value: T)(
       implicit ct: ClassTypeable.Aux[T, T0, TT0]): Prefix[T] = p.Prefix(value)
-  def suffix[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Suffix[T] = p.Suffix(value)
-  def regex(value: scala.util.matching.Regex): Regex         = p.Regex(value)
+  def suffix[T: SeqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Suffix[T] =
+    p.Suffix(value)
+  def endsWith[T: SeqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Suffix[T] =
+    p.Suffix(value)
+  def regex(value: scala.util.matching.Regex): Regex = p.Regex(value)
   def fuzzy[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Fuzzy[T] =
     p.Fuzzy(value)
   def containsPrefix[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(
@@ -616,74 +715,67 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
   //  MemGraphDefault.ns.storeOntology(ontology)
 
-  implicit class WithPredicateHList[K <: HList](p: K)(implicit
-                                                      val d: LUBConstraint[K, P[_]]) {
-
-    def eqv[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.eqv(value) :: p
-    def neqv[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.neqv(value) :: p
-    def gt[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.gt(value) :: p
-    def gte[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.gte(value) :: p
-    def lt[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.lt(value) :: p
-    def lte[T: OrderHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.lte(value) :: p
-    def between[T: RangeHelper, Out <: HList, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.between(lower, upper) :: p
-    def outside[T: RangeHelper, Out <: HList, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.outside(lower, upper) :: p
-    def inside[T: RangeHelper, Out <: HList, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.inside(lower, upper) :: p
-    def within[T, Out <: HList](value: T, values: T*) =
-      P.within(value, values: _*) :: p
-    //    def within[T, Out <: HList](value: T)(implicit prepend: Prepend.Aux[K, GeoWithin[T] :: HNil, Out]) =
-    //      P.within(value))
-    def without[T, Out <: HList](value: T, values: T*) =
-      P.without(value, values: _*) :: p
-    def intersect[T: ObjectHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.intersect(value) :: p
-    def disjoint[T: ObjectHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.disjoint(value) :: p
-    def contains[T: EqHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.contains(value) :: p
-    //    def contains[T: ObjectHelper, Out <: HList](value: T)(implicit prepend: Prepend.Aux[K, GeoContains[T] :: HNil, Out]) =
-    //      P.contains(value))
-    def prefix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.prefix(value) :: p
-    def suffix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.suffix(value) :: p
-    def regex[Out <: HList](value: scala.util.matching.Regex) =
-      P.regex(value) :: p
-    def fuzzy[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.fuzzy(value) :: p
-    def containsPrefix[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.containsPrefix(value) :: p
-    def containsRegex[Out <: HList](value: scala.util.matching.Regex) =
-      P.containsRegex(value) :: p
-    def containsFuzzy[T: StringHelper, Out <: HList, T0, TT0 <: ClassType[_]](value: T)(
-        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
-      P.containsFuzzy(value) :: p
+  import shapeless.=:!=
+  implicit class WithPredicate[T <: P[_]](_predicate: T)(implicit ev: T =:!= And, ev2: T =:!= Or) {
+    def &&[T0, PR0[Z] <: P[Z]](predicate: PR0[T0]*): p.And = p.And(_predicate :: predicate.toList)
+    def ||[T0, PR0[Z] <: P[Z]](predicate: PR0[T0]*): p.Or  = p.Or(_predicate :: predicate.toList)
   }
-
-  implicit class WithPredicate[T <: P[_]](p: T) //extends WithPredicateHList(p :: HNil)
-  //  implicit def toHList[T <: P[_]](p: T) = p :: HNil
+//  implicit class WithPredicateHList[K <: HList](p: K)(implicit
+//                                                      val d: LUBConstraint[K, P[_]]) {
+//
+//    def eqv[T: EqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.eqv(value) :: p
+//    def neqv[T: EqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.neqv(value) :: p
+//    def gt[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.gt(value) :: p
+//    def gte[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.gte(value) :: p
+//    def lt[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.lt(value) :: p
+//    def lte[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.lte(value) :: p
+//    def between[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
+//        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.between(lower, upper) :: p
+//    def outside[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
+//        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.outside(lower, upper) :: p
+//    def inside[T: RangeHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
+//        implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.inside(lower, upper) :: p
+//    def within[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.within(value) :: p
+//    //    def within[T, Out <: HList](value: T)(implicit prepend: Prepend.Aux[K, GeoWithin[T] :: HNil, Out]) =
+//    //      P.within(value))
+////    def without[T, Out <: HList](value: T, values: T*) =
+////      P.without(value, values: _*) :: p
+//    def intersect[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.intersect(value) :: p
+//    def disjoint[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.disjoint(value) :: p
+//    def contains[T: CollectionHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.contains(value) :: p
+//    //    def contains[T: ObjectHelper, Out <: HList](value: T)(implicit prepend: Prepend.Aux[K, GeoContains[T] :: HNil, Out]) =
+//    //      P.contains(value))
+//    def prefix[T: SeqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.prefix(value) :: p
+//    def suffix[T: SeqHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.suffix(value) :: p
+//    def regex[Out <: HList](value: scala.util.matching.Regex) =
+//      P.regex(value) :: p
+//    def fuzzy[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.fuzzy(value) :: p
+//    def containsPrefix[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.containsPrefix(value) :: p
+//    def containsRegex[Out <: HList](value: scala.util.matching.Regex) =
+//      P.containsRegex(value) :: p
+//    def containsFuzzy[T: StringHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]) =
+//      P.containsFuzzy(value) :: p
+//  }
+//
+//  implicit class WithPredicate[T <: P[_]](p: T) //extends WithPredicateHList(p :: HNil)
+//  //  implicit def toHList[T <: P[_]](p: T) = p :: HNil
 }
 
 trait P[+T] extends Product with Serializable {
@@ -693,11 +785,12 @@ trait P[+T] extends Product with Serializable {
   def prettyPrint: String
 }
 
-trait EqP[T] extends P[T] {
+trait EqP[+T] extends P[T] {
   def pvalue: Any
   //  def datatype: DataType[T] = outE(EqP.keys.value).head.inV.types.head
 }
-object EqP extends PredicateDef(label = "EqP", comment = "Equality predicate") {
+object EqP
+    extends PredicateDef(label = "EqP", comment = "Equality/comparable predicate", `@extends` = () => P.ontology :: Nil) {
 
   object keys extends P.Properties {
     object value
@@ -705,31 +798,31 @@ object EqP extends PredicateDef(label = "EqP", comment = "Equality predicate") {
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",
-          container = List(lspace.NS.types.`@list`),
           `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         ) {}
   }
 
-  override lazy val properties: List[Property] = keys.value.property :: Nil
+  override lazy val properties: List[Property] = keys.value.property :: P.properties
 
   trait Properties extends P.Properties {
     lazy val value: Property = keys.value
   }
 }
-trait OrderP[T] extends EqP[T]
+trait OrderP[+T] extends EqP[T]
 object OrderP
-    extends PredicateDef(label = "OrderP", comment = "Order predicate", `@extends` = () => EqP.ontology :: Nil) {
+    extends PredicateDef(label = "OrderP", comment = "Order/sortable predicate", `@extends` = () => EqP.ontology :: Nil) {
 
   object keys extends EqP.Properties
   override lazy val properties: List[Property] = EqP.properties
 
   trait Properties extends EqP.Properties
 }
-trait RangeP[T] extends P[T] {
+trait RangeP[+T] extends P[T] {
   def lower: T
   def upper: T
 }
-object RangeP extends PredicateDef(label = "RangeP", comment = "Range predicate") {
+object RangeP
+    extends PredicateDef(label = "RangeP", comment = "Range predicate", `@extends` = () => P.ontology :: Nil) {
 
   object keys extends P.Properties {
     object lower
@@ -746,42 +839,50 @@ object RangeP extends PredicateDef(label = "RangeP", comment = "Range predicate"
         ) {}
   }
 
-  override lazy val properties: List[Property] = keys.lower.property :: keys.upper.property :: Nil
+  override lazy val properties: List[Property] = keys.lower.property :: keys.upper.property :: P.properties
 
   trait Properties extends P.Properties {
     lazy val lower: Property = keys.lower
     lazy val upper: Property = keys.upper
   }
 }
-
-trait CollectionP[T] extends P[T] {
-  def pvalues: List[T]
+//trait ObjectP[T] extends P[T]
+//object ObjectP
+//    extends PredicateDef(label = "ObjectP", comment = "Object predicate", `@extends` = () => EqP.ontology :: Nil) {
+//
+//  object keys extends EqP.Properties
+//  override lazy val properties: List[Property] = EqP.properties
+//
+//  trait Properties extends EqP.Properties
+//}
+trait CollectionP[+T] extends P[T] {
+  def pvalue: T
 }
-object CollectionP extends PredicateDef(label = "CollectionP", comment = "Collection predicate") {
+object CollectionP
+    extends PredicateDef(label = "CollectionP", comment = "Collection predicate", `@extends` = () => P.ontology :: Nil) {
 
   object keys extends P.Properties {
     object value
         extends Property.PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/collection/value",
           "values",
-          "Polyglot list of values",
-          container = List(lspace.NS.types.`@set`)
+          "Polyglot list of values"
         ) {}
   }
-  override lazy val properties: List[Property] = keys.value.property :: Nil
+  override lazy val properties: List[Property] = keys.value.property :: P.properties
 
   trait Properties extends P.Properties {
     lazy val value: Property = keys.value
   }
 }
-object ObjectP extends PredicateDef(label = "ObjectP", comment = "Object predicate") {
+trait SeqP[+T] extends CollectionP[T]
+object SeqP
+    extends PredicateDef(label = "SeqP", comment = "Sequence predicate", `@extends` = () => CollectionP.ontology :: Nil) {
 
-  object keys extends EqP.Properties
-  override lazy val properties: List[Property] = EqP.properties
-
-  trait Properties extends EqP.Properties
+  object keys extends CollectionP.Properties
+  override lazy val properties: List[Property] = CollectionP.properties
+  trait Properties extends CollectionP.Properties
 }
-trait ObjectP[T] extends P[T]
 
 trait PredicateWrapper[+T] {
   //  def ontology: Ontology

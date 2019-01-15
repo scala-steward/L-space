@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.lgraph.LGraph
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.structure.{ClassType, DataType}
+import lspace.librarian.structure.ClassType
 import lspace.librarian.structure.store.ValueStore
 import lspace.types.vector.Point
 
@@ -51,9 +51,9 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
   protected lazy val vectorCache: concurrent.Map[Vector[Any], Set[graph.GValue[Vector[Any]]]] =
     new ConcurrentHashMap[Vector[Any], Set[graph.GValue[Vector[Any]]]]().asScala
 
-  override def byId(id: Long): Option[T2] = cachedById(id).orElse(graph.storeManager.valueById(id).headOption)
+  override def hasId(id: Long): Option[T2] = cachedById(id).orElse(graph.storeManager.valueById(id).headOption)
 
-  def byId(ids: List[Long]): Stream[T2] = {
+  def hasId(ids: List[Long]): Stream[T2] = {
     val (deleted, tryable) = ids.partition(isDeleted)
     val byCache            = tryable.map(id => id -> cachedById(id))
     val (noCache, cache)   = byCache.partition(_._2.isEmpty)
@@ -61,7 +61,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
                                        else Stream())
   }
 
-  override def byIri(iri: String): Stream[T2] =
+  override def hasIri(iri: String): Stream[T2] =
     cachedByIri(iri).filterNot(v => isDeleted(v.id)) ++ graph.storeManager.valueByIri(iri) distinct
 
   def byValue[V, VOut, CVOut <: DataType[VOut]](value: V)(
@@ -233,13 +233,13 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
             .asInstanceOf[Boolean] -> (booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set()) + value
             .asInstanceOf[graph.GValue[Boolean]])
         }
-      case dt: DateTimeType[_] if dt.iri == DateTimeType.datetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
         datetimeCacheLock.synchronized {
           datetimeCache += value.value
             .asInstanceOf[Instant] -> (datetimeCache
             .getOrElse(value.value.asInstanceOf[Instant], Set()) + value.asInstanceOf[graph.GValue[Instant]])
         }
-      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.localdatetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
         localdatetimeCacheLock.synchronized {
           localdatetimeCache += value.value
             .asInstanceOf[LocalDateTime] -> (localdatetimeCache
@@ -346,14 +346,14 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) booleanCache -= value.value.asInstanceOf[Boolean]
           else booleanCache += value.value.asInstanceOf[Boolean] -> (values - value.asInstanceOf[graph.GValue[Boolean]])
         }
-      case dt: DateTimeType[_] if dt.iri == DateTimeType.datetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
         datetimeCacheLock.synchronized {
           val values = datetimeCache.getOrElse(value.value.asInstanceOf[Instant], Set())
           if (values.exists(_ == value)) datetimeCache -= value.value.asInstanceOf[Instant]
           else
             datetimeCache += value.value.asInstanceOf[Instant] -> (values - value.asInstanceOf[graph.GValue[Instant]])
         }
-      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.localdatetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
         localdatetimeCacheLock.synchronized {
           val values = localdatetimeCache.getOrElse(value.value.asInstanceOf[LocalDateTime], Set())
           if (values.exists(_ == value)) localdatetimeCache -= value.value.asInstanceOf[LocalDateTime]

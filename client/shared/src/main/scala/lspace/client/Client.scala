@@ -1,6 +1,7 @@
 package lspace.client
 
 import lspace.client.session.ClientSession
+import lspace.librarian.datatype.DataType
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._

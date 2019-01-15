@@ -25,7 +25,7 @@ object Eqv extends PredicateDef("Eqv", `@extends` = () => List(EqP.ontology)) wi
   }
 }
 
-case class Eqv[T](pvalue: T)(implicit helper: EqHelper[T]) extends EqP[T] {
+case class Eqv[+T](pvalue: T)(implicit helper: EqHelper[T]) extends EqP[T] {
   def assert(avalue: Any): Boolean = helper.eqv(avalue, pvalue)
 
   lazy val toNode: Node            = this

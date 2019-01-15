@@ -11,10 +11,10 @@ object LNodeStore {
 
 class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] with NodeStore[G] {
 
-  override def byId(id: Long): Option[T2] =
+  override def hasId(id: Long): Option[T2] =
     if (isDeleted(id)) None else cachedById(id).orElse(graph.storeManager.nodeById(id).headOption)
 
-  def byId(ids: List[Long]): Stream[T2] = {
+  def hasId(ids: List[Long]): Stream[T2] = {
     val (deleted, tryable) = ids.partition(isDeleted)
     val byCache            = tryable.map(id => id -> cachedById(id))
     val (noCache, cache)   = byCache.partition(_._2.isEmpty)
@@ -22,7 +22,7 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
                                        else Stream())
   }
 
-  override def byIri(iri: String): Stream[T2] =
+  override def hasIri(iri: String): Stream[T2] =
     cachedByIri(iri).filterNot(n => isDeleted(n.id)) ++ graph.storeManager.nodeByIri(iri) distinct
 
   override def store(node: T): Unit = {

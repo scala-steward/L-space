@@ -5,6 +5,7 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.NS.types
+import lspace.librarian.datatype.ListType
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.{HList, HNil}
@@ -18,6 +19,8 @@ object Or
   def toStep(node: Node): Or = Or(
     node
       .out(keys.traversalTraversal)
+      .take(1)
+      .flatten
       .map(
         Traversal
           .toTraversal(_)(DetachedGraph)
@@ -31,9 +34,9 @@ object Or
           "traversal",
           "A traversal ..",
           container = lspace.NS.types.`@list` :: Nil,
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = () => ListType(Traversal.ontology :: Nil) :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {
@@ -43,7 +46,7 @@ object Or
 
   implicit def toNode(or: Or): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    or.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
+    node.addOut(keys.traversal, or.traversals.map(_.toNode))
     node
   }
 

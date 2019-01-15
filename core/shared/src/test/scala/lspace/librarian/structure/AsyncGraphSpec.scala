@@ -31,7 +31,7 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
     graph.close()
     sampleGraph.close()
   }
-  private[this] val newIdsLock = new Object
+//  private[this] val newIdsLock = new Object
   import scala.collection.JavaConverters._
   "AGraph" can {
     "create nodes in parallel" in {
@@ -40,7 +40,7 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 
       val start = java.time.Instant.now().toEpochMilli
       Future {
-        (1 to 1000).map { i =>
+        (1 to 500).map { i =>
           val node = graph.nodes.upsert(s"some-iri-1,000-1-$i")
           node
         }
@@ -64,10 +64,9 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
                     val nodes = (1 to 1000).map { i =>
                       val node = transaction2.nodes.create()
                       node --- `@id` --> s"some-iri-1,000-2-$i"
-                      newIdsLock.synchronized {
-                        newIds += 0l -> (node.id :: newIds.getOrElse(0l, List()))
-                      }
-
+//                      newIdsLock.synchronized {
+//                        newIds += 0l -> (node.id :: newIds.getOrElse(0l, List()))
+//                      }
                       node
                     }
                     transaction2.nodes.added.map(_._2.iri).count(_.startsWith("some-iri-1,000-2-")) shouldBe 1000

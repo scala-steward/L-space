@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.librarian.structure.{DataType, Value}
+import lspace.librarian.structure.Value
 
 object LValue {}
 

@@ -1,5 +1,6 @@
 package lspace.librarian.provider.mem
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.structure.Property.default
 import lspace.librarian.structure._
 
@@ -14,7 +15,7 @@ trait MemResource[T] extends Resource[T] {
     linksOut
       .get(default.`@id`)
       .flatMap(_.headOption)
-      .map(_.inV.value.asInstanceOf[String])
+      .map(_.inV.value.toString)
       .getOrElse("")
 
   override def iris: Set[String] =
@@ -63,7 +64,7 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def in(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toVector.flatten).map(_.from.value)
+    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toList.flatten).map(_.from.value)
     else linksIn.values.toList.flatten.map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] = {

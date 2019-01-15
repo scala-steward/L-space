@@ -39,71 +39,71 @@ object ClassTypeable {
   implicit val defaultInt: ClassTypeable.Aux[Int, Int, IntType[Int]] = new ClassTypeable[Int] {
     type C  = Int
     type CT = IntType[Int]
-    def ct: CT = IntType.intType
+    def ct: CT = IntType.datatype
   }
 
   implicit val defaultDouble: ClassTypeable.Aux[Double, Double, DoubleType[Double]] = new ClassTypeable[Double] {
     type C  = Double
     type CT = DoubleType[Double]
-    def ct: CT = DoubleType.doubleType
+    def ct: CT = DoubleType.datatype
   }
 
   implicit val defaultLong: ClassTypeable.Aux[Long, Long, LongType[Long]] = new ClassTypeable[Long] {
     type C  = Long
     type CT = LongType[Long]
-    def ct: CT = LongType.longType
+    def ct: CT = LongType.datatype
   }
 
   implicit val defaultInstant: ClassTypeable.Aux[Instant, Instant, DateTimeType[Instant]] = new ClassTypeable[Instant] {
     type C  = Instant
     type CT = DateTimeType[Instant]
-    def ct: CT = DateTimeType.datetimeType
+    def ct: CT = DateTimeType.datatype
   }
 
   implicit val defaultLocalDateTime: ClassTypeable.Aux[LocalDateTime, LocalDateTime, DateTimeType[LocalDateTime]] =
     new ClassTypeable[LocalDateTime] {
       type C  = LocalDateTime
       type CT = DateTimeType[LocalDateTime]
-      def ct: CT = LocalDateTimeType.localdatetimeType
+      def ct: CT = LocalDateTimeType.datatype
     }
 
   implicit val defaultLocalDate: ClassTypeable.Aux[LocalDate, LocalDate, LocalDateType[LocalDate]] =
     new ClassTypeable[LocalDate] {
       type C  = LocalDate
       type CT = LocalDateType[LocalDate]
-      def ct: CT = LocalDateType.default
+      def ct: CT = LocalDateType.datatype
     }
 
   implicit val defaultLocalTime: ClassTypeable.Aux[LocalTime, LocalTime, LocalTimeType[LocalTime]] =
     new ClassTypeable[LocalTime] {
       type C  = LocalTime
       type CT = LocalTimeType[LocalTime]
-      def ct: CT = LocalTimeType.default
+      def ct: CT = LocalTimeType.datatype
     }
 
   implicit val defaultGeometry: ClassTypeable.Aux[Geometry, Geometry, GeometricType[Geometry]] =
     new ClassTypeable[Geometry] {
       type C  = Geometry
       type CT = GeometricType[Geometry]
-      def ct: CT = GeometricType
+      def ct: CT = GeometricType.datatype
     }
 
   implicit val defaultGeopoint: ClassTypeable.Aux[Point, Point, GeometricType[Point]] = new ClassTypeable[Point] {
     type C  = Point
     type CT = GeometricType[Point]
-    def ct: CT = GeopointType.default
+    def ct: CT = GeopointType.datatype
   }
 
   implicit val defaultBoolean: ClassTypeable.Aux[Boolean, Boolean, BoolType[Boolean]] = new ClassTypeable[Boolean] {
     type C  = Boolean
     type CT = BoolType[Boolean]
-    def ct: CT = BoolType.boolType
+    def ct: CT = BoolType.datatype
   }
 
   implicit val defaultString: ClassTypeable.Aux[String, String, TextType[String]] = new ClassTypeable[String] {
     type C  = String
     type CT = TextType[String]
-    def ct: CT = TextType.textType
+    def ct: CT = TextType.datatype
   }
 
   implicit def defaultList[T, TOut, CTOut <: ClassType[_]](
@@ -111,7 +111,7 @@ object ClassTypeable {
     new ClassTypeable[List[T]] {
       type C  = List[TOut]
       type CT = ListType[TOut]
-      def ct: CT = new ListType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListType[TOut]]
+      def ct: CT = ListType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListType[TOut]]
     }
 
   implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](
@@ -119,7 +119,7 @@ object ClassTypeable {
     new ClassTypeable[Set[T]] {
       type C  = List[TOut]
       type CT = SetType[TOut]
-      def ct: CT = new SetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[SetType[TOut]]
+      def ct: CT = SetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[SetType[TOut]]
     }
 
   implicit def defaultVector[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
@@ -127,7 +127,7 @@ object ClassTypeable {
     new ClassTypeable[Vector[T]] {
       type C  = Vector[TOut]
       type CT = VectorType[TOut]
-      def ct: CT = new VectorType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[VectorType[TOut]]
+      def ct: CT = VectorType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[VectorType[TOut]]
     }
 
   implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
@@ -135,7 +135,7 @@ object ClassTypeable {
     new ClassTypeable[ListSet[T]] {
       type C  = List[TOut]
       type CT = ListSetType[TOut]
-      def ct: CT = new ListSetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListSetType[TOut]]
+      def ct: CT = ListSetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListSetType[TOut]]
     }
 
   implicit def defaultMap[
@@ -151,8 +151,8 @@ object ClassTypeable {
       type C  = Map[KOut, VOut]
       type CT = MapType[KOut, VOut]
       def ct: CT =
-        new MapType[KOut, VOut](List(clsTpblK.ct.asInstanceOf[ClassType[KOut]]),
-                                List(clsTpblV.ct.asInstanceOf[ClassType[VOut]]))
+        MapType[KOut, VOut](List(clsTpblK.ct.asInstanceOf[ClassType[KOut]]),
+                            List(clsTpblV.ct.asInstanceOf[ClassType[VOut]]))
     }
 
   implicit def defaultTuple2[

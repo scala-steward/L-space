@@ -3,14 +3,11 @@ package lspace.librarian.process.traversal.step
 import lspace.NS.types
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Is] {
 
-  def toStep(node: Node): Is = Is(node.out(Is.keys.predicateUrl).map(P.toNode))
+  def toStep(node: Node): Is = Is(node.out(Is.keys.predicateUrl).map(P.toP))
 
   object keys {
     object predicate
@@ -18,7 +15,6 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
           lspace.NS.vocab.Lspace + "librarian/step/Is/Predicate",
           "Predicate",
           "A Predicate",
-          container = types.`@list` :: Nil,
           `@range` = () => P.ontology :: Nil
         )
     val predicateUrl: TypedProperty[Node] = predicate.property + P.ontology

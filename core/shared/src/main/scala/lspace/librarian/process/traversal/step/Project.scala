@@ -10,7 +10,7 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.HList
 
 object Project
-    extends StepDef("Project", "A project-step ..", () => Terminate.ontology :: Nil)
+    extends StepDef("Project", "A project-step ..", () => TraverseStep.ontology :: Nil)
     with StepWrapper[Project] {
 
   def toStep(node: Node): Project =
@@ -19,7 +19,7 @@ object Project
         .out(Project.keys.byTraversal)
         .map(Traversal.toTraversal(_)(DetachedGraph)))
 
-  object keys extends Terminate.Properties {
+  object keys extends TraverseStep.Properties {
     object by
         extends Property.PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Project/by",
@@ -30,8 +30,8 @@ object Project
         )
     val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
   }
-  override lazy val properties: List[Property] = keys.by :: Terminate.properties
-  trait Properties extends Terminate.Properties
+  override lazy val properties: List[Property] = keys.by :: TraverseStep.properties
+  trait Properties extends TraverseStep.Properties
 
   implicit def toNode(project: Project): Node = {
     val node = DetachedGraph.nodes.create(ontology)
@@ -41,7 +41,7 @@ object Project
 
 }
 
-case class Project(by: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]) extends Terminate {
+case class Project(by: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]) extends TraverseStep {
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = "project(" + by.map(_.toString).map("_." + _).mkString(", ") + ")"

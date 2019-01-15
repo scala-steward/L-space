@@ -3,6 +3,7 @@ package lspace.client.session
 import java.time.Instant
 
 import lspace.client.Client
+import lspace.librarian.datatype.DataType
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.structure.Ontology.OntologyDef
 import lspace.librarian.structure._

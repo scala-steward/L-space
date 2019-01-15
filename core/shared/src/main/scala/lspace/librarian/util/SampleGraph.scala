@@ -2,7 +2,7 @@ package lspace.librarian.util
 
 import java.time.LocalDate
 
-import lspace.librarian.structure.{DataType, Graph, Ontology, Property}
+import lspace.librarian.structure.{Graph, Ontology, Property}
 import lspace.types.vector.Point
 import lspace.NS.types
 
@@ -19,7 +19,7 @@ object SampleGraph {
     val birthPlace = Property("https://schema.org/birthPlace")
     val balance    = Property("balance")
     val rate       = Property("rate")
-    val knows      = Property("https://schema.org/knows", containers = List(types.`@listset`))
+    val knows      = Property("https://schema.org/knows")
   }
   object namespaces {
     case class NS(iri: String) {

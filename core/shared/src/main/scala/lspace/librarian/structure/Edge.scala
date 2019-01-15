@@ -8,7 +8,7 @@ object Edge {
   implicit def default[T <: Edge[_, _]]: ClassTypeable.Aux[T, T, EdgeURLType[T]] = new ClassTypeable[T] {
     type C  = T
     type CT = EdgeURLType[T]
-    def ct: CT = EdgeURLType.edgeUrlType[T]
+    def ct: CT = EdgeURLType.apply[T]
   }
 }
 

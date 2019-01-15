@@ -7,7 +7,7 @@ object Version {
   val argonaut  = "6.2.2"
   val monix     = "3.0.0-RC2"
   val sttp      = "1.5.1"
-  val elastic4s = "6.4.0"
+  val elastic4s = "6.5.0"
   val phantom   = "2.30.0"
 }
 

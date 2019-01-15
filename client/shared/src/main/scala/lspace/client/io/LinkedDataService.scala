@@ -7,6 +7,7 @@ import Argonaut._
 import com.softwaremill.sttp.{SttpBackend, sttp, _}
 import monix.eval.Task
 import monix.reactive.Observable
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal._
 import lspace.librarian.structure.{ClassType, Node}
 import lspace.parse.json.JsonLD
@@ -23,7 +24,7 @@ trait LinkedDataService {
   //    implicit
   //    ct: ClassType[Out]): Task[Collection[Out]]
   def traverse[Steps <: HList, Out](traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], Steps],
-                                    ct: ClassType[Out]): Task[Collection[Out]] = {
+                                    ct: Option[ClassType[Out]] = None): Task[Collection[Out]] = {
     sttp
       .post(uri"${traversal.target.iri}/traverse")
       .body(jsonld.nodeToJsonWithContext(traversal.toNode)._1.toString())

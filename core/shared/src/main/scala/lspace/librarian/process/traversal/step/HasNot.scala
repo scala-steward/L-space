@@ -20,11 +20,12 @@ object HasNot
     HasNot(node
              .outE(keys.key)
              .take(1)
-             .map(i => node.graph.ns.getProperty(i.inV.iri).get)
+             .map(i => node.graph.ns.properties.get(i.inV.iri).get)
              .head,
            node
              .out(keys.predicateUrl)
-             .map(P.toNode))
+             .headOption
+             .map(P.toP))
 
   object keys {
     object key
@@ -64,7 +65,7 @@ object HasNot
 
 }
 
-case class HasNot(key: Property, predicate: List[P[_]] = List()) extends HasStep {
+case class HasNot(key: Property, predicate: Option[P[_]] = None) extends HasStep {
 
   lazy val toNode: Node = this
   override def prettyPrint: String =

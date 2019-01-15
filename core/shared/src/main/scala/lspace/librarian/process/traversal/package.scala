@@ -1,6 +1,6 @@
 package lspace.librarian.process
 
-import lspace.librarian.datatype.{ListType, MapType}
+import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper._
 import lspace.librarian.process.traversal.step._
 import lspace.librarian.structure._
@@ -32,7 +32,7 @@ package object traversal {
     type Out
     type OutCT <: ClassType[_]
 
-    def convert(hlist: L, value: CT): OutCT
+    def convert(hlist: L, value: CT): List[OutCT]
   }
 
   object StructureCalculator {
@@ -52,15 +52,16 @@ package object traversal {
     implicit def hnil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
         implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[HNil, CT, Tout, CTout] =
       new Impl[HNil, CT, Tout, CTout] {
-        override def convert(hlist: HNil, value: CT): OutCT =
-          clsTpbl.ct //.asInstanceOf[OutCT] //.asInstanceOf[CT]
+        override def convert(hlist: HNil, value: CT): List[OutCT] =
+          List(clsTpbl.ct).filter(_.iri.nonEmpty) //.asInstanceOf[OutCT] //.asInstanceOf[CT]
       }
 
     implicit def hnil2[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
         implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[HNil.type, CT, Tout, CTout] =
       new Impl[HNil.type, CT, Tout, CTout] {
-        override def convert(hlist: HNil.type, value: CT): OutCT =
-          clsTpbl.ct //.asInstanceOf[OutCT] //ClassType.valueToOntologyResource(value).asInstanceOf[CT]
+        override def convert(hlist: HNil.type, value: CT): List[OutCT] =
+          List(clsTpbl.ct)
+            .filter(_.iri.nonEmpty) //.asInstanceOf[OutCT] //ClassType.valueToOntologyResource(value).asInstanceOf[CT]
       }
 
     //    implicit def mapStep[L <: HList, T, Step <: MapStep](implicit inner: MyLeftFolder[L, T]): Aux[Step :: L, T, Map[Property, inner.Out]] = new Impl[Step :: L, T, Map[Property, inner.Out]] {
@@ -72,41 +73,45 @@ package object traversal {
     implicit def outmapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
       : Aux[OutMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] =
       new Impl[OutMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
-        override def convert(hlist: OutMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
+        override def convert(hlist: OutMap :: L, value: CT): List[CollectionType[Map[Property, List[inner.Out]]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.`@property`),
-                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
-            .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
+          List(
+            MapType(List(DataType.default.`@property`),
+                    List(ListType(im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))))
+              .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]])
         }
       }
     implicit def outemapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
       : Aux[OutEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] =
       new Impl[OutEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
-        override def convert(hlist: OutEMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
+        override def convert(hlist: OutEMap :: L, value: CT): List[CollectionType[Map[Property, List[inner.Out]]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.`@property`),
-                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
-            .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
+          List(
+            MapType(List(DataType.default.`@property`),
+                    List(ListType(im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))))
+              .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]])
         }
       }
     implicit def inmapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
       : Aux[InMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] =
       new Impl[InMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
-        override def convert(hlist: InMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
+        override def convert(hlist: InMap :: L, value: CT): List[CollectionType[Map[Property, List[inner.Out]]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.`@property`),
-                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
-            .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
+          List(
+            MapType(List(DataType.default.`@property`),
+                    List(ListType(im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))))
+              .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]])
         }
       }
     implicit def inemapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
       : Aux[InEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] =
       new Impl[InEMap :: L, CT, Map[Property, List[inner.Out]], CollectionType[Map[Property, List[inner.Out]]]] {
-        override def convert(hlist: InEMap :: L, value: CT): CollectionType[Map[Property, List[inner.Out]]] = {
+        override def convert(hlist: InEMap :: L, value: CT): List[CollectionType[Map[Property, List[inner.Out]]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(DataType.default.`@property`),
-                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
-            .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]]
+          List(
+            MapType(List(DataType.default.`@property`),
+                    List(ListType(im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))))
+              .asInstanceOf[CollectionType[Map[Property, List[inner.Out]]]])
         }
       }
 
@@ -115,21 +120,24 @@ package object traversal {
         clsTpblA: ClassTypeable.Aux[AT, Aout, ATOut])
       : Aux[Group[AT] :: L, CT, Map[List[Aout], List[inner.Out]], CollectionType[Map[List[Aout], List[inner.Out]]]] =
       new Impl[Group[AT] :: L, CT, Map[List[Aout], List[inner.Out]], CollectionType[Map[List[Aout], List[inner.Out]]]] {
-        override def convert(hlist: Group[AT] :: L, value: CT): CollectionType[Map[List[Aout], List[inner.Out]]] = {
+        override def convert(hlist: Group[AT] :: L,
+                             value: CT): List[CollectionType[Map[List[Aout], List[inner.Out]]]] = {
           val im = inner.convert(hlist.tail, value)
-          new MapType(List(ListType(List(clsTpblA.ct.asInstanceOf[ClassType[Aout]]))),
-                      List(new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))))
-            .asInstanceOf[CollectionType[Map[List[Aout], List[inner.Out]]]]
+          List(
+            MapType(List(ListType(List(clsTpblA.ct.asInstanceOf[ClassType[Aout]]))),
+                    List(ListType(im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))))
+              .asInstanceOf[CollectionType[Map[List[Aout], List[inner.Out]]]])
         }
       }
 
     implicit def pathStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
       : Aux[Path :: L, CT, List[inner.Out], CollectionType[List[inner.Out]]] =
       new Impl[Path :: L, CT, List[inner.Out], CollectionType[List[inner.Out]]] {
-        override def convert(hlist: Path :: L, value: CT): CollectionType[List[inner.Out]] = {
+        override def convert(hlist: Path :: L, value: CT): List[CollectionType[List[inner.Out]]] = {
           val im = inner.convert(hlist.tail, value)
-          new ListType(List(im.asInstanceOf[ClassType[inner.Out]]).filter(_.iri.nonEmpty))
-            .asInstanceOf[CollectionType[List[inner.Out]]]
+          List(
+            ListType(im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
+              .asInstanceOf[CollectionType[List[inner.Out]]])
         }
       }
   }
@@ -184,22 +192,23 @@ package object traversal {
       : Aux[As[C, nameC] :: As[B, nameB] :: As[A, nameA] :: HNil, Selector3[A, nameA, B, nameB, C, nameC, HNil]] =
       new SelectorSelecter[As[C, nameC] :: As[B, nameB] :: As[A, nameA] :: HNil] {
         type Out = Selector3[A, nameA, B, nameB, C, nameC, HNil]
-        def apply(l: As[C, nameC] :: As[B, nameB] :: As[A, nameA] :: HNil) = Selector3(l, HNil)
+        def apply(l: As[C, nameC] :: As[B, nameB] :: As[A, nameA] :: HNil) =
+          Selector3.apply(l, HNil)
       }
     implicit def selector2Selecter[A, nameA <: String, B, nameB <: String]
       : Aux[As[B, nameB] :: As[A, nameA] :: HNil, Selector2[A, nameA, B, nameB, HNil]] =
       new SelectorSelecter[As[B, nameB] :: As[A, nameA] :: HNil] {
         type Out = Selector2[A, nameA, B, nameB, HNil]
-        def apply(l: As[B, nameB] :: As[A, nameA] :: HNil) = Selector2(l, HNil)
+        def apply(l: As[B, nameB] :: As[A, nameA] :: HNil) = Selector2.apply(l, HNil)
       }
 
     implicit def selector1Selecter[A, nameA <: String]: Aux[As[A, nameA] :: HNil, Selector1[A, nameA, HNil]] =
       new SelectorSelecter[As[A, nameA] :: HNil] {
         type Out = Selector1[A, nameA, HNil]
-        def apply(l: As[A, nameA] :: HNil) = Selector1(l, HNil)
+        def apply(l: As[A, nameA] :: HNil) = Selector1.apply(l, HNil)
       }
 
-    implicit def selector0Selecter = new SelectorSelecter[HNil] {
+    implicit def selector0Selecter: Aux[HNil, Selector0[HNil]] = new SelectorSelecter[HNil] {
       type Out = Selector0[HNil]
       def apply(l: HNil): Out = Selector0(l, HNil)
     }

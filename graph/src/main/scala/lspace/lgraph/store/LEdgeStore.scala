@@ -73,15 +73,15 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     super.uncache(edge)
   }
 
-  override def byIri(iri: String): Stream[T2] =
+  override def hasIri(iri: String): Stream[T2] =
     cachedByIri(iri).filterNot(e => isDeleted(e.id)) ++ graph.storeManager
       .edgeByIri(iri)
       .asInstanceOf[Stream[T2]] distinct
 
-  override def byId(id: Long): Option[T2] =
+  override def hasId(id: Long): Option[T2] =
     cachedById(id).orElse(graph.storeManager.edgeById(id).map(_.asInstanceOf[T2]))
 
-  def byId(ids: List[Long]): Stream[T2] = {
+  def hasId(ids: List[Long]): Stream[T2] = {
     val (deleted, tryable) = ids.partition(isDeleted)
     val byCache            = tryable.map(id => id -> cachedById(id))
     val (noCache, cache)   = byCache.partition(_._2.isEmpty)

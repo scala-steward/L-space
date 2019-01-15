@@ -1,12 +1,17 @@
 package lspace.librarian.process.traversal.step
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.structure._
 import lspace.NS.types
 import shapeless.{HList, Poly1}
 
-object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
+object Select
+    extends StepDef("Select",
+                    "A select-step selects the preliminary result from marked steps in the traversal path.",
+                    `@extends` = () => TraverseStep.ontology :: Nil)
+    with StepWrapper[Select[Any]] {
 
   case class Selection[SelectedLabels <: HList, TypesTuple](labels: SelectedLabels)
 
@@ -57,7 +62,7 @@ object Select extends StepDef("Select") with StepWrapper[Select[Any]] {
   }
 }
 
-case class Select[E](names: List[String]) extends TraverseStep with ModulateStep {
+case class Select[E](names: List[String]) extends TraverseStep {
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = s"select(${names.mkString("a")}"

@@ -11,18 +11,19 @@ class PSpec extends WordSpec with Matchers {
     "consist of multiple steps" in {
       P.eqv(1.0).assert(1) shouldBe true
       P.eqv(1.0).assert(2) shouldBe false
-      P.gt("aa").assert(2) shouldBe false
-      P.gt("aa").assert("aa") shouldBe false
+      P.startsWith("aa").assert(2) shouldBe false
+      P.startsWith("aa").assert("aa") shouldBe true
     }
     "is of a uniform type" in {
       P.eqv(Ontology.ontology.iri).assert("a") shouldBe false
       P.eqv(Ontology.ontology.iri).assert(Ontology.ontology.iri) shouldBe true
       P.between(1.0, 4l).assert(2) shouldBe true
       P.between(1.0, 4l).assert(5) shouldBe false
-      P.within(1.0, "a").assert("b") shouldBe false
-      P.within(1.0, "a").assert("a") shouldBe true
-      P.within(1.0, "a").assert(1) shouldBe true
-      P.within(1.0, "a").assert(1.0) shouldBe true
+      P.eqv("a") || P.eqv(1) assert "b" shouldBe false
+      P.eqv("a") || P.eqv(1) assert "a" shouldBe true
+      P.eqv("a") && P.eqv(1) assert "a" shouldBe false
+      P.eqv("a") || P.eqv(1) assert 1 shouldBe true
+      P.eqv("a") || P.eqv(1) assert 1.0 shouldBe true
       //      P.eq(1.0).neq("a").steps.size shouldBe 2 does not and should never compile
     }
   }

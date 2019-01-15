@@ -2,9 +2,7 @@ package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P.RangeHelper
 import lspace.librarian.process.traversal._
-import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Between
@@ -29,7 +27,7 @@ object Between
   }
 }
 
-case class Between[T](lower: T, upper: T)(implicit helper: RangeHelper[T]) extends RangeP[T] {
+case class Between[+T](lower: T, upper: T)(implicit helper: RangeHelper[T]) extends RangeP[T] {
   def assert(avalue: Any): Boolean =
     helper.gte(avalue, lower) && helper.lte(avalue, upper) //|| helperLower.eqv(avalue, lower) || helperUpper.eqv(avalue, upper)
 

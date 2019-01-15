@@ -1,7 +1,8 @@
 package lspace.librarian.structure
 
 import lspace.NS
-import lspace.librarian.datatype.NodeURLType
+import lspace.librarian.datatype.{DataType, IriType, NodeURLType}
+import lspace.librarian.process.traversal.Step
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Property.default
@@ -19,11 +20,11 @@ object Ontology {
     new ClassTypeable[Ontology] {
       type C  = Node
       type CT = NodeURLType[Node]
-      def ct: CT = NodeURLType.nodeType[Node]
+      def ct: CT = NodeURLType.apply[Node]
     }
 
   implicit def iriToOntology(iri: String): Ontology =
-    MemGraphDefault.ns.getOntology(iri).getOrElse(Ontology(iri)) //todo get from remote
+    MemGraphDefault.ns.ontologies.get(iri).getOrElse(Ontology(iri)) //todo get from remote
   implicit def ontologyToString(ontology: Ontology): String = ontology.iri
 
   def apply(node: Node): Ontology = {
@@ -45,7 +46,7 @@ object Ontology {
           .toMap,
         _extendedClasses = () =>
           node.out(default.`@extends`).collect {
-            case node: Node => MemGraphDefault.ns.getOntology(node.iri).getOrElse(Ontology(node))
+            case node: Node => MemGraphDefault.ns.ontologies.get(node.iri).getOrElse(Ontology(node))
         },
         base = node.out(default.typed.baseString).headOption
       )
@@ -58,9 +59,9 @@ object Ontology {
     }
   }
 
-  val allOntologies = new {
-    val ontologies = List(ontology, Property.ontology, DataType.ontology)
-    if (ontologies.size > 50) throw new Exception("extend default-ontology-id range!")
+  object allOntologies {
+    lazy val ontologies = List(ontology, Property.ontology, DataType.ontology) //::: Step.steps.map(_.ontology)
+    if (ontologies.size > 99) throw new Exception("extend default-ontology-id range!")
     val byId    = (200l to 200l + ontologies.size - 1 toList).zip(ontologies).toMap
     val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
     val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap

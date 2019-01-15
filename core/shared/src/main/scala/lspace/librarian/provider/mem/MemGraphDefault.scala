@@ -1,6 +1,7 @@
 package lspace.librarian.provider.mem
 
-import lspace.librarian.structure.{DataType, Ontology, Property}
+import lspace.librarian.datatype.DataType
+import lspace.librarian.structure.{Ontology, Property}
 import lspace.librarian.structure.util.IdProvider
 import monix.execution.atomic.Atomic
 
@@ -27,21 +28,30 @@ object MemGraphDefault extends MemDataGraph {
       lazy val index: MemIndexGraph = this
     }
 
-    override protected def ontologyFromCache(iri: String): Option[Ontology] =
-      Ontology.allOntologies.byIri
-        .get(iri)
-        .orElse(ns.ontologies.byIri
-          .get(iri))
+    trait Ontologies extends super.Ontologies {
+      override def cached(iri: String): Option[Ontology] =
+        Ontology.allOntologies.byIri
+          .get(iri)
+          .orElse(ns.ontologies.byIri
+            .get(iri))
+    }
+    override val ontologies = new Ontologies {}
 
-    override protected def propertyFromCache(iri: String): Option[Property] =
-      Property.allProperties.byIri
-        .get(iri)
-        .orElse(properties.byIri.get(iri))
+    trait Properties extends super.Properties {
+      override def cached(iri: String): Option[Property] =
+        Property.allProperties.byIri
+          .get(iri)
+          .orElse(properties.byIri.get(iri))
+    }
+    override val properties = new Properties {}
 
-    override protected def datatypeFromCache(iri: String): Option[DataType[_]] =
-      DataType.allDataTypes.byIri
-        .get(iri)
-        .orElse(ns.datatypes.byIri.get(iri))
+    trait Datatypes extends super.Datatypes {
+      override def cached(iri: String): Option[DataType[_]] =
+        DataType.allDataTypes.byIri
+          .get(iri)
+          .orElse(ns.datatypes.byIri.get(iri))
+    }
+    override val datatypes = new Datatypes {}
   }
 
   val index: MemIndexGraph = new MemIndexGraph {

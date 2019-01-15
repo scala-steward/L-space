@@ -6,24 +6,38 @@ import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
-import scala.collection.immutable.ListSet
+//import scala.collection.immutable.ListSet
 
-object MapType {
+object MapType extends DataTypeDef[MapType[Any, Any]] {
 
-  object keys {
-    //    val keyRange = Property("@keyRange")(label = Map("en" -> "@keyRange"))
-    //    keyRange --- Property.default.label --> "@keyRange" --- MemGraphDefault.language --> "en"
-    //    val keyRangeOntology: TypedPropertyKey[Node] = keyRange.addRange(keyRange.graph.ontology)
-    //    val keyRangeProperty: TypedPropertyKey[Node] = keyRange.addRange(keyRange.graph.property)
-    //    val keyRangeDataType: TypedPropertyKey[Node] = keyRange.addRange(keyRange.graph.datatype)
-
-    private val keyRangeNode = MemGraphDefault.ns.nodes.upsert("@keyRange")
-    keyRangeNode.addLabel(Property.ontology)
-    keyRangeNode --- Property.default.`@label` --> "@keyRange" --- Property.default.`@language` --> "en"
-    keyRangeNode --- Property.default.`@container` --> types.`@list`
-    keyRangeNode --- Property.default.`@range` --> types.`@class`
-    val keyRange = Property(keyRangeNode)
+  lazy val datatype = new MapType[Any, Any](Nil, Nil) {
+    val iri: String                                             = NS.types.`@map`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@map`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
   }
+
+  object keys extends CollectionType.Properties {
+    object keyRange
+        extends Property.PropertyDef(
+          "@keyRange",
+          "@keyRange",
+          "A @keyRange",
+          `@range` = () =>
+            ListType(DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil) :: Nil
+        )
+    lazy val keyRangeClassType: TypedProperty[List[ClassType[_]]] = keyRange + ListType(
+      DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil)
+//    lazy val keyRangeProperty: TypedProperty[Property]      = keyRange + DataType.default.`@property`
+//    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keyRange + DataType.default.`@datatype`
+  }
+  override lazy val properties: List[Property] = keys.keyRange :: CollectionType.properties
+  trait Properties extends CollectionType.Properties {
+    lazy val keyRange: Property                                   = keys.keyRange
+    lazy val keyRangeClassType: TypedProperty[List[ClassType[_]]] = keys.keyRangeClassType
+//    lazy val keyRangeProperty: TypedProperty[Property]      = keys.keyRangeProperty
+//    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keys.keyRangeDatatype
+  }
+
   //  def apply[K](keyType: ClassType[K])(implicit graph: Graph)= {
   //    val iri = s"${ldcontext.types.map}:[${keyType.iri}]"
   //    new MapType[K, Any](keyType, valueType, graph.getDataType(iri).getOrElse(graph.nodes.upsert(iri)))
@@ -41,11 +55,11 @@ object MapType {
 
   def wrap(node: Node): MapType[Any, Any] = {
     MapType(
-      node.out(keys.keyRange).collect { case node: Node => node }.map(node.graph.ns.getClassType),
+      node.out(keys.keyRange).collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }.flatten,
       node
         .out(CollectionType.keys.valueRange)
-        .collect { case node: Node => node }
-        .map(node.graph.ns.getClassType)
+        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+        .flatten
     )
   }
 
@@ -75,17 +89,19 @@ object MapType {
     new ClassTypeable[MapType[K, V]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[KOut, VOut]
-      def ct: CT = new MapType(List(clsTpblK.ct), List(clsTpblV.ct))
+      def ct: CT = MapType(List(clsTpblK.ct), List(clsTpblV.ct))
+    }
+
+  def apply[K, V](keyRange: List[ClassType[K]], valueRange: List[ClassType[V]]): MapType[K, V] =
+    new MapType[K, V](keyRange, valueRange) {
+      lazy val iri =
+        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
+        else
+          s"${NS.types.`@map`}/${keyRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
+
+      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
     }
 }
 
-case class MapType[K, V](val keyRange: List[ClassType[K]], val valueRange: List[ClassType[V]])
-    extends CollectionType[Map[K, V]] {
-
-  val iri =
-    s"${NS.types.`@map`}/${keyRange.map(_.iri).sorted.mkString("+")}/${valueRange.map(_.iri).sorted.mkString("+")}"
-
-  override val _properties: () => List[Property] = () => List(MapType.keys.keyRange, CollectionType.keys.valueRange)
-
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.default[Map[K, V]])
-}
+abstract class MapType[K, V](val keyRange: List[ClassType[K]], val valueRange: List[ClassType[V]])
+    extends CollectionType[Map[K, V]]

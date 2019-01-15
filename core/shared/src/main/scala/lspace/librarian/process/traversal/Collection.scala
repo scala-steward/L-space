@@ -3,6 +3,7 @@ package lspace.librarian.process.traversal
 import java.time.Instant
 
 import lspace.NS
+import lspace.librarian.datatype.{DataType, ListType}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure.Ontology.OntologyDef
@@ -18,7 +19,7 @@ object Collection
     case _ =>
       Collection(node.out(Collection.keys.startDateTime),
                  node.out(Collection.keys.endDateTime),
-                 node.out(Collection.keys.item))(node)
+                 node.out(Collection.keys.itemList).take(1).flatten)(node)
   }
 
   object keys extends Step.Properties {
@@ -45,9 +46,9 @@ object Collection
           lspace.NS.vocab.Lspace + "librarian/Collection/item",
           "item",
           "Collected item",
-          container = List(NS.types.`@list`),
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = () => ListType(Nil) :: Nil
         ) {}
+    lazy val itemList: TypedProperty[List[Any]] = item + ListType(Nil)
 
   }
 
@@ -59,17 +60,28 @@ object Collection
     lazy val `ns.l-space.eu/librarian/Collection/end`: Property                    = keys.end
     lazy val `ns.l-space.eu/librarian/Collection/end@Instant`: TypedKey[Instant]   = keys.endDateTime
     lazy val `ns.l-space.eu/librarian/Collection/item`: Property                   = keys.item
+    lazy val `ns.l-space.eu/librarian/Collection/itemList`: TypedKey[List[Any]]    = keys.itemList
   }
 
-  def apply[T](node: Node, ct: ClassType[T]): Collection[T] = wrap(node).asInstanceOf[Collection[T]]
-  def apply[T, CT <: ClassType[T]](start: Instant, end: Instant, items: List[T])(ct: CT): Collection[T] = {
+  def apply[T](node: Node, ct: Option[ClassType[T]]): Collection[T] = wrap(node).asInstanceOf[Collection[T]]
+  def apply[T, CT <: ClassType[T]](start: Instant,
+                                   end: Instant,
+                                   items: List[T],
+                                   ct: Option[CT] = None): Collection[T] = {
     val node = DetachedGraph.nodes.create(ontology)
     node.addOut(keys.start, start)
     node.addOut(keys.end, end)
     //    items.foreach(item => node.addOut(keys.item, item))
     //    node.addOuts(keys.item, items.map(item => ClassType.valueToOntologyResource(item) -> item))
     //    items.map(item => node.---(keys.item).-->(item)(ClassType.valueToOntologyResource(item)))
-    items.map(item => node.addOut(keys.item, ct, item))
+
+    ct match {
+//      case Some(ct) => items.map(item => node.addOut(keys.item, ct, item))
+      case Some(ct) => node.addOut(keys.item, ListType(ct :: Nil).asInstanceOf[ClassType[List[T]]], items)
+//      case None     => items.map(item => node.addOut(keys.item, ClassType.valueToOntologyResource(item), item))
+      case None => node.addOut(keys.item, ClassType.valueToOntologyResource(items), items)
+    }
+
     Collection(List(start), List(end), items)(node)
   }
 }

@@ -4,7 +4,17 @@ import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.structure._
 
-object ListSetType {
+object ListSetType extends DataTypeDef[ListSetType[Any]] {
+
+  lazy val datatype = new ListSetType[Any](Nil) {
+    val iri: String                                             = NS.types.`@listset`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@listset`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
+  }
+
+  object keys extends CollectionType.Properties
+  override lazy val properties: List[Property] = CollectionType.properties
+  trait Properties extends CollectionType.Properties
 
   //  def apply[V](valueRange: List[ClassType[V]])(implicit graph: Graph) = {
   //    val iri = s"${ldcontext.types.listset}:[${valueRange.map(_.iri).toList.sorted}]]"
@@ -21,7 +31,7 @@ object ListSetType {
       node
         .out(CollectionType.keys.valueRange)
         .collect { case node: Node => node }
-        .map(node.graph.ns.getClassType)
+        .map(node.graph.ns.classtypes.get)
     ).asInstanceOf[ListSetType[Any]]
   }
 
@@ -34,14 +44,16 @@ object ListSetType {
     new ClassTypeable[ListSetType[T]] {
       type C  = List[TOut]
       type CT = ListSetType[TOut]
-      def ct: CT = new ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
+      def ct: CT = ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
     }
+
+  def apply[V](valueRange: List[ClassType[V]]): ListSetType[V] = new ListSetType[V](valueRange) {
+    lazy val iri =
+      List(NS.types.`@listset`, valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"))
+        .filter(_.nonEmpty)
+        .mkString("/")
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+  }
 }
 
-case class ListSetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]] {
-
-  val iri: String = s"${NS.types.`@listset`}/${valueRange.map(_.iri).sorted.mkString("+")}"
-  //  override lazy val extendedClasses: List[DataType[Iterable[V]]] = List(CollectionType[V](valueRange))
-
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.default[V])
-}
+abstract class ListSetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]]

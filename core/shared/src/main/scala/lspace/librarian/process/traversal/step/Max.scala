@@ -7,7 +7,7 @@ import lspace.librarian.structure._
 case object Max
     extends StepDef("Max",
                     "A max-step finds the traverser with the largest value within all traversers in-scope.",
-                    () => ReducingBarrierStep.ontology :: Nil)
+                    () => FilterBarrierStep.ontology :: Nil)
     with StepWrapper[Max]
     with Max {
 
@@ -21,4 +21,4 @@ case object Max
   override def prettyPrint: String = "max"
 }
 
-trait Max extends ReducingBarrierStep
+trait Max extends FilterBarrierStep

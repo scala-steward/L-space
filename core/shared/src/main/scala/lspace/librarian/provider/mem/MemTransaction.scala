@@ -23,15 +23,12 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
     if (isOpen) {
       super.commit()
       values.added.toList.map(value => parent.newValue(value.id, value.value, value.label))
-//      parent.valueStore.store()
       nodes.added.toList.map(_._2).map { node =>
         val newNode = parent.newNode(node.id)
         node.labels.foreach(newNode._addLabel)
         newNode
       }
-//      parent.nodeStore.store()
       edges.added.toList.map(edge => parent.newEdge(edge.id, edge.from.id, edge.key, edge.to.id))
-//      parent.edgeStore.store()
 
       edges.deleted.values.foreach(_.remove())
       nodes.deleted.values.foreach(_.remove())

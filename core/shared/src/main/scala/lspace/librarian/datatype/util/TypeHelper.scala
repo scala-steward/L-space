@@ -3,7 +3,7 @@ package lspace.librarian.datatype.util
 import java.time.{Instant, LocalDate, LocalTime}
 
 import lspace.NS
-import lspace.librarian.structure.{DataType, IriResource}
+import lspace.librarian.structure.IriResource
 import lspace.types.vector.Geometry
 
 object TypeHelper {

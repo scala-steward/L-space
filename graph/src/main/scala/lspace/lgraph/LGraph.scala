@@ -3,6 +3,7 @@ package lspace.lgraph
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store._
 import lspace.lgraph.util.CacheReaper
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.computer.DefaultStreamComputer
 import monix.eval.Task
 import lspace.librarian.process.traversal.Traversal
@@ -21,11 +22,11 @@ object LGraph {
       val iri: String  = _iri
       private val self = this
 
-      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
+//      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
 
       override def init(): Unit = {
         super.init()
-        cacheReaper
+//        cacheReaper
       }
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
@@ -73,7 +74,7 @@ object LGraph {
       lazy val idProvider: IdProvider           = stateManager.idProvider
 
       override def close(): Unit = {
-        cacheReaper.kill()
+//        cacheReaper.kill()
         super.close()
         stateManager.close()
       }
@@ -221,11 +222,11 @@ trait LGraph extends Graph {
 
   val computer = DefaultStreamComputer()
   def buildTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[Start, End, Steps])(ct: ClassType[_]): Stream[Out] =
+      traversal: Traversal[Start, End, Steps]): Stream[Out] =
     computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph)
 
   def buildAsyncTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[Start, End, Steps])(ct: ClassType[_]): Task[Stream[Out]] =
+      traversal: Traversal[Start, End, Steps]): Task[Stream[Out]] =
     Task(computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph))
 
   override def close(): Unit = {

@@ -2,11 +2,8 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
-import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
+import lspace.librarian.datatype.ListType
 import shapeless.{HList, HNil}
 
 object And
@@ -21,6 +18,8 @@ object And
       And(
         node
           .out(keys.traversalTraversal)
+          .take(1)
+          .flatten
           .map(
             Traversal
               .toTraversal(_)(DetachedGraph)
@@ -34,21 +33,20 @@ object And
           lspace.NS.vocab.Lspace + "librarian/step/And/traversal",
           "traversal",
           "A traversal which must have a non-empty result",
-          container = lspace.NS.types.`@list` :: Nil,
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = () => ListType(Traversal.ontology :: Nil) :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
 
   trait Properties extends FilterStep.Properties {
-    lazy val `ns.l-space.eu/librarian/step/And/traversal`: Property                  = keys.traversal
-    lazy val `ns.l-space.eu/librarian/step/And/traversal @Traversal`: TypedKey[Node] = keys.traversalTraversal
+    lazy val `ns.l-space.eu/librarian/step/And/traversal`: Property                        = keys.traversal
+    lazy val `ns.l-space.eu/librarian/step/And/traversal @Traversal`: TypedKey[List[Node]] = keys.traversalTraversal
   }
 
   implicit def toNode(and: And): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    and.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
+    node.addOut(keys.traversalTraversal, and.traversals.map(_.toNode))
     node
   }
 }

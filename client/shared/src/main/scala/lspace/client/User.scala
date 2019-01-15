@@ -1,5 +1,8 @@
 package lspace.client
 
+import java.time.Instant
+
+import lspace.librarian.datatype.{DataType, SetType}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
@@ -28,7 +31,6 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
           lspace.NS.vocab.Lspace + "role",
           "role",
           "A role assigned to this user",
-          container = types.`@set` :: Nil,
           `@range` = () => Role.ontology :: Nil
         ) {}
     lazy val `lspace:User/role@Role`: TypedProperty[Node] = `lspace:User/role` + Role.ontology
@@ -38,18 +40,45 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
           lspace.NS.vocab.Lspace + "manager",
           "manager",
           "A user who can establish or revoke the sessions of this user.",
-          container = types.`@set` :: Nil,
           `@range` = () => User.ontology :: Nil
         ) {}
     lazy val `lspace:User/manager@User`: TypedProperty[Node] = `lspace:User/manager` + User.ontology
+
+    object `lspace:name`
+        extends Property.PropertyDef(lspace.NS.vocab.Lspace + "name",
+                                     "name",
+                                     `@extends` = () => Property(lspace.NS.vocab.schema + "name") :: Nil)
+    lazy val `lspace:name@String`: TypedProperty[String] = `lspace:name` + DataType.default.`@string`
+
+    object `sioc:last_activity_date`
+        extends Property.PropertyDef(lspace.NS.vocab.sioc + "last_activity_date", "last_activity_date")
+    lazy val `sioc:last_activity_date@Instant`: TypedProperty[Instant] =
+      `sioc:last_activity_date` + DataType.default.`@datetime`
+
+    object `lspace:User/status` extends Property.PropertyDef(lspace.NS.vocab.Lspace + "User/status", "status")
+    lazy val `lspace/User/status@String`: TypedProperty[String] =
+      `lspace:User/status` + DataType.default.`@string`
   }
+
   override lazy val properties
-    : List[Property] = keys.`lspace:User/role`.property :: keys.`lspace:User/manager`.property :: Nil
+    : List[Property] = keys.`lspace:User/role`.property :: keys.`lspace:User/manager`.property ::
+    keys.`lspace:name`.property :: keys.`sioc:last_activity_date`.property :: keys.`lspace:User/status`.property :: Nil
+
   trait Properties {
-    val `lspace:User/role`: Property    = keys.`lspace:User/role`
-    val `lspace:User/role@Role`         = keys.`lspace:User/role@Role`
+    val `lspace:User/role`: Property = keys.`lspace:User/role`
+    val `lspace:User/role@Role`      = keys.`lspace:User/role@Role`
+
     val `lspace:User/manager`: Property = keys.`lspace:User/manager`
     val `lspace:User/manager@User`      = keys.`lspace:User/manager@User`
+
+    lazy val `lspace:name`: Property                     = keys.`lspace:name`
+    lazy val `lspace:name@String`: TypedProperty[String] = keys.`lspace:name@String`
+
+    lazy val `sioc:last_activity_date`: Property                       = keys.`sioc:last_activity_date`
+    lazy val `sioc:last_activity_date@Instant`: TypedProperty[Instant] = keys.`sioc:last_activity_date@Instant`
+
+    lazy val `lspace:User/status`: Property                     = keys.`lspace:User/status`
+    lazy val `lspace/User/status@String`: TypedProperty[String] = keys.`lspace/User/status@String`
   }
 }
 

@@ -4,6 +4,7 @@ import com.sksamuel.elastic4s.RefreshPolicy
 import com.sksamuel.elastic4s.http.search.SearchResponse
 import com.sksamuel.elastic4s.http.Response
 import com.sksamuel.elastic4s.http.{ElasticClient, ElasticProperties}
+import com.sksamuel.elastic4s.monix.TaskExecutor
 import lspace.lgraph.LGraph
 import lspace.lgraph.index.IndexManager
 

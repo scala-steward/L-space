@@ -1,7 +1,7 @@
 package lspace.librarian.structure
 
 import lspace.NS.types
-import lspace.librarian.datatype.VectorType
+import lspace.librarian.datatype.{DataType, VectorType}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.MemGraphDefault
@@ -98,7 +98,7 @@ trait NodeSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       someDataTypeOntology.extendedClasses.size shouldBe 1
 
       node.addLabel(someDataTypeOntology)
-      val storedSomeDataTypeOntology = graph.ns.storeOntology(someDataTypeOntology)
+      val storedSomeDataTypeOntology = graph.ns.ontologies.store(someDataTypeOntology)
       storedSomeDataTypeOntology.labels.size shouldBe 1
       node.labels.size shouldBe 1
     }

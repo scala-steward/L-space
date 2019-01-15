@@ -1,10 +1,11 @@
 package lspace.librarian.structure
 
-import lspace.librarian.process.traversal.P
+import lspace.librarian.datatype.DataType
+import lspace.librarian.process.traversal.{P, Segment, Step, Traversal, UntypedTraversal, step => _step}
+import lspace.librarian.process.traversal.step.Has
 import lspace.librarian.structure.index.Index
 import lspace.librarian.structure.util.IdProvider
-
-import scala.collection.mutable
+import shapeless.HList
 
 trait IndexGraph extends Graph {
   def graph: Graph
@@ -17,34 +18,42 @@ trait IndexGraph extends Graph {
 
   def init(): Unit = {}
 
-  protected val indexes: mutable.HashMap[Vector[Set[_ <: ClassType[_]]], Index] =
-    new mutable.HashMap[Vector[Set[_ <: ClassType[_]]], Index]()
+  def getIndex(traversal: UntypedTraversal): Option[Index]
+  protected def createIndex(traversal: UntypedTraversal): Index
 
-  def getIndex(pattern: Vector[Set[_ <: ClassType[_]]]): Option[Index] = indexes.get(pattern)
-  def getIndex(pattern: Set[_ <: ClassType[_]]): Option[Index]         = getIndex(Vector(pattern))
-  protected def createIndex(pattern: Vector[Set[_ <: ClassType[_]]]): Index
-  def getOrCreateIndex(pattern: Vector[Set[_ <: ClassType[_]]]): Index = {
+  implicit def stepListToTraversal(steps: List[Step]): Traversal[ClassType[Any], ClassType[Any], HList] =
+    Traversal(steps.toVector)(this)
+  def findIndex(traversal: UntypedTraversal): List[Node] = {
+    stepListToTraversal(
+      g.N
+        .hasLabel(Index.ontology)
+        .steps ::: traversal.segments.zipWithIndex.foldLeft(List[Step]()) {
+        case (stepList, (segment, count)) =>
+          val steps = segment.stepsList.collect { case step: Has => step }
+          import _step._
+          Where(
+            Out(Set(Index.keys.traversal.property)) :: Out(Set(Traversal.keys.segment.property)) ::
+              Range(count, count) :: Out(Set(Segment.keys.step.property)) :: Has(
+              Has.keys.key.property,
+              Some(P.||(steps.map(_.key).map(P.eqv(_)): _*))) :: Nil) :: stepList
+      }).untyped.toList.asInstanceOf[List[Node]]
+  }
+
+  def getOrCreateIndex(traversal: UntypedTraversal): Index = {
     //TODO: log when existing index is returned and no new index is created
-    indexes.getOrElse(pattern, createIndex(pattern))
-  }
-  def getOrCreateIndex(pattern: Set[_ <: ClassType[_]]): Index = getOrCreateIndex(Vector(pattern))
-  def deleteIndex(pattern: Vector[Set[_ <: ClassType[_]]]): Unit = {
-    indexes.remove(pattern)
-  }
 
-  def find[T](predicates: List[P[T]], datatype: DataType[T]): List[Resource[T]] = {
-    getIndex(Set(datatype)).toList
-      .flatMap(_.find(predicates, datatype))
+    getIndex(traversal).getOrElse(createIndex(traversal))
   }
+  def deleteIndex(index: Index): Unit
 
-  def find[T](predicates: List[P[T]], property: Property): List[Resource[T]] = {
-    getIndex(Set(property)).toList
-      .flatMap(_.find(predicates, property))
-  }
-
-  def find(values: Vector[Map[_ <: ClassType[_], List[P[_]]]]): List[Vector[Resource[_]]] = {
-    getIndex(values.map(_.keySet)).toList.flatMap(_.find(values))
-  }
+//  def find[T](predicates: List[P[T]], property: Property): List[Resource[T]] = {
+//    getIndex(Shape(property)).toList
+//      .flatMap(_.find(predicates, property))
+//  }
+//
+//  def find(values: Vector[Map[Property, List[P[_]]]]): List[Vector[Resource[_]]] = {
+//    getIndex(values.map(_.keySet).map(Shape(_))).toList.flatMap(_.find(values))
+//  }
 
   override protected def deleteNode(node: GNode): Unit = {
     //    `@typeIndex`.delete()

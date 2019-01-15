@@ -1,6 +1,7 @@
 package lspace.librarian.structure.store
 
-import lspace.librarian.structure.{DataType, Graph}
+import lspace.librarian.datatype.DataType
+import lspace.librarian.structure.Graph
 
 trait ValueStore[G <: Graph] extends Store[G] {
   type T  = graph.GValue[_]

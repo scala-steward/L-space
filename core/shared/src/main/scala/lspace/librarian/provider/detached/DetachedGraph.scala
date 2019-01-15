@@ -41,7 +41,7 @@ object DetachedGraph extends MemDataGraph {
 
   override protected def storeValue(value: GValue[_]): Unit = {}
 
-  override protected def _indexValue(value: GValue[_]): Unit = {}
+//  override protected def _indexValue(value: GValue[_]): Unit = {}
 
 //  override def nodes.upsert(uri: String, uris: Set[String] = Set()): Node = {
 //    val node = createNode()

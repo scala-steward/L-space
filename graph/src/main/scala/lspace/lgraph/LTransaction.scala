@@ -27,6 +27,8 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
     if (isOpen) {
       super.commit()
 
+      val start = java.time.Instant.now().toEpochMilli
+
       parent.edgeStore.markDeleted(edges.deleted.keySet.toSet)
       parent.valueStore.markDeleted(edges.deleted.keySet.toSet)
       parent.nodeStore.markDeleted(edges.deleted.keySet.toSet)
@@ -50,6 +52,9 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
       val removedNodes  = nodes.deleted.values.toList
       val removedValues = values.deleted.values.toList
 
+      val iEnd = java.time.Instant.now().toEpochMilli
+      println(
+        s"update cache took ${iEnd - start} millis, added #${addedNodes.size} nodes - #${addedEdges.size} edges - #${addedValues.size}")
       Task
         .sequence(Seq(
           parent.storeManager.storeValues(addedValues),
@@ -74,9 +79,11 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
         }
         .doOnFinish {
           case None =>
+            println(s"update graph took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
             close()
             Task.unit
           case Some(ex) =>
+            println(s"update graph failed and took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
             close()
             Task.unit
         }

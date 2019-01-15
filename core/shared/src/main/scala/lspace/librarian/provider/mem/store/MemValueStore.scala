@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.librarian.datatype._
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure.Property.default.{`@id`, `@ids`}
-import lspace.librarian.structure.{ClassType, DataType, Value}
+import lspace.librarian.structure.{ClassType, Value}
 import lspace.librarian.structure.store.ValueStore
 import lspace.types.vector.Point
 
@@ -97,11 +97,11 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
         booleanCache += value.value
           .asInstanceOf[Boolean] -> (booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set()) + value
           .asInstanceOf[graph.GValue[Boolean]])
-      case dt: DateTimeType[_] if dt.iri == DateTimeType.datetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
         datetimeCache += value.value
           .asInstanceOf[Instant] -> (datetimeCache
           .getOrElse(value.value.asInstanceOf[Instant], Set()) + value.asInstanceOf[graph.GValue[Instant]])
-      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.localdatetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
         localdatetimeCache += value.value
           .asInstanceOf[LocalDateTime] -> (localdatetimeCache
           .getOrElse(value.value.asInstanceOf[LocalDateTime], Set()) + value.asInstanceOf[graph.GValue[LocalDateTime]])
@@ -147,7 +147,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
     resources.foreach(store)
   }
 
-  def byIri(iri: String): Stream[T2] =
+  def hasIri(iri: String): Stream[T2] =
     graph.`@idStore`.byValue(iri, DataType.default.`@string`)
       .flatMap(_.in(`@id`, `@ids`).filter(_.isInstanceOf[Value[_]]))
       .asInstanceOf[Stream[T2]]
@@ -177,11 +177,11 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
         val values = booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set())
         if (values.exists(_ == value)) booleanCache -= value.value.asInstanceOf[Boolean]
         else booleanCache += value.value.asInstanceOf[Boolean] -> (values - value.asInstanceOf[graph.GValue[Boolean]])
-      case dt: DateTimeType[_] if dt.iri == DateTimeType.datetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
         val values = datetimeCache.getOrElse(value.value.asInstanceOf[Instant], Set())
         if (values.exists(_ == value)) datetimeCache -= value.value.asInstanceOf[Instant]
         else datetimeCache += value.value.asInstanceOf[Instant] -> (values - value.asInstanceOf[graph.GValue[Instant]])
-      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.localdatetimeType.iri =>
+      case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
         val values = localdatetimeCache.getOrElse(value.value.asInstanceOf[LocalDateTime], Set())
         if (values.exists(_ == value)) localdatetimeCache -= value.value.asInstanceOf[LocalDateTime]
         else

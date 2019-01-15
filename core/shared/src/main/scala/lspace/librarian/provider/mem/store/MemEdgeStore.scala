@@ -1,9 +1,10 @@
 package lspace.librarian.provider.mem.store
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.provider.mem.{MemGraph, MemResource}
 import lspace.librarian.structure.Property.default.{`@id`, `@ids`}
 import lspace.librarian.structure.store.EdgeStore
-import lspace.librarian.structure.{DataType, Edge, Property}
+import lspace.librarian.structure.{Edge, Property}
 
 class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStore[G] with EdgeStore[G] {
   override def store(edge: T): Unit = {
@@ -21,7 +22,7 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
     super.store(edge)
   }
 
-  def byIri(iri: String): Stream[T2] =
+  def hasIri(iri: String): Stream[T2] =
     graph.`@idStore`.byValue(iri, DataType.default.`@string`)
       .flatMap(_.in(`@id`, `@ids`).filter(_.isInstanceOf[Edge[_, _]]))
       .asInstanceOf[Stream[T2]]
@@ -37,7 +38,7 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
             data.toStream.collect { case e if e._2.key == key => e._2 }
         }
       case Some(fromId) =>
-        val fromResources = graph.nodeStore.byId(fromId).toStream
+        val fromResources = graph.nodeStore.hasId(fromId).toStream
         key match {
           case None =>
             fromResources.flatMap(_.outE())

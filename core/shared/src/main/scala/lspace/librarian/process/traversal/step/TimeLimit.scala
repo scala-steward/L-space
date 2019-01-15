@@ -1,5 +1,6 @@
 package lspace.librarian.process.traversal.step
 
+import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.structure._

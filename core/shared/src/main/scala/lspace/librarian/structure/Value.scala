@@ -1,6 +1,6 @@
 package lspace.librarian.structure
 
-import lspace.librarian.datatype.ValueURLType
+import lspace.librarian.datatype.{DataType, ValueURLType}
 import lspace.librarian.process.traversal.helper.ClassTypeable
 
 object Value {
@@ -9,7 +9,7 @@ object Value {
   implicit def default[T <: Value[_]]: ClassTypeable.Aux[T, T, ValueURLType[T]] = new ClassTypeable[T] {
     type C  = T
     type CT = ValueURLType[T]
-    def ct: CT = ValueURLType.valueType[T]
+    def ct: CT = ValueURLType.apply[T]
   }
 }
 

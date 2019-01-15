@@ -1,14 +1,16 @@
 package lspace.lgraph.store
 
 import lspace.lgraph.{LGraph, LGraphIdProvider}
+import lspace.librarian.datatype.DataType
 import lspace.librarian.structure._
+import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
 import monix.eval.Task
 
 abstract class StoreManager[G <: LGraph](val graph: G) {
 
-  def nodeStore  = graph.nodeStore
-  def edgeStore  = graph.edgeStore
-  def valueStore = graph.valueStore
+  def nodeStore: NodeStore[G]   = graph.nodeStore.asInstanceOf[NodeStore[G]]
+  def edgeStore: EdgeStore[G]   = graph.edgeStore.asInstanceOf[EdgeStore[G]]
+  def valueStore: ValueStore[G] = graph.valueStore.asInstanceOf[ValueStore[G]]
 
   def nodeById(id: Long): Option[graph.GNode]
   def nodesById(ids: List[Long]): Stream[graph.GNode]
