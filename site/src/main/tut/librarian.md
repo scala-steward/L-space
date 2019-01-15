@@ -69,7 +69,7 @@ position: 3
 import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure._
-import lspace.librarian.structure.DataType.default._
+import lspace.librarian.datatype.DataType.default._
 import lspace.librarian.util.SampleGraph
 ```
 ## Overview
