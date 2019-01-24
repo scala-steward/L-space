@@ -1,22 +1,13 @@
 package lspace.librarian.datatype
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.NS
 import lspace.NS.types
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
-
-trait DataTypeDef[T <: DataType[_]] {
-
-  def datatype: T
-  def iri   = datatype.iri
-  def iris  = datatype.iris
-  def label = datatype.label
-
-  def keys: Object
-  def properties: List[Property] = List()
-  trait Properties {}
-}
+import monix.eval.{Coeval, Task}
 
 object DataType
     extends OntologyDef(NS.types.`@datatype`,
@@ -108,7 +99,7 @@ object DataType
     val `@color`: ColorType[Any] = ColorType.datatype
     val `@graph`                 = GraphType.datatype
 
-    val `@structured` = StructuredValue.datatype
+    val `@structured` = StructuredType.datatype
 
     def vectorType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
       VectorType(List(ct.asInstanceOf[ClassType[V]]))
@@ -222,6 +213,20 @@ object DataType
     val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
     val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
   }
+
+  import scala.collection.JavaConverters._
+  import scala.collection.concurrent
+  private val constructing: concurrent.Map[String, Task[DataType[_]]] =
+    new ConcurrentHashMap[String, Task[DataType[_]]]().asScala
+  def getOrConstructing(iri: String)(constructTask: Task[DataType[_]]): Task[DataType[_]] =
+    constructing.getOrElseUpdate(iri, constructTask.memoize)
+
+  private val constructed: concurrent.Map[String, Coeval[DataType[_]]] =
+    new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
+  def getOrConstructed(iri: String)(constructTask: Coeval[DataType[_]]): Coeval[DataType[_]] =
+    constructed.getOrElseUpdate(iri, constructTask.memoize)
+  def getConstructed(iri: String): Option[Coeval[DataType[_]]] =
+    constructed.get(iri)
 }
 
 /**

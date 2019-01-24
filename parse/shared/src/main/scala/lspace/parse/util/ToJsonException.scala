@@ -1,3 +1,5 @@
 package lspace.parse.util
 
-case class ToJsonException(message: String) extends Exception(message)
+import lspace.encode.EncodeException
+
+case class ToJsonException(message: String) extends EncodeException(message)

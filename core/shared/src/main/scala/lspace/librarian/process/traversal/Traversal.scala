@@ -8,7 +8,8 @@ import lspace.librarian.process.traversal.step.Select.Selection
 import lspace.librarian.process.traversal.step._
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem._
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
+import lspace.librarian.structure.PropertyDef
 import lspace.librarian.structure._
 import lspace.types.vector.Geometry
 import lspace.util.types.DefaultsToAny
@@ -27,7 +28,8 @@ object Traversal
     //    import shapeless.syntax.std.product._
     //    val steps0 = value0.out(Traversal.keys.stepNode).map(Step.toStep).toHList[Step :: HNil]
     val traversalSegments = node.out(Traversal.keys.segmentNode).take(1).flatten.foldLeft[HList](HNil) {
-      case (hlist, node) => Segment.toTraversalSegment(node) :: hlist
+      case (hlist, node) =>
+        Segment.toTraversalSegment(node) :: hlist
     }
 
     def findNearestParent(labels: List[ClassType[_]]): ClassType[_] = {
@@ -110,7 +112,7 @@ object Traversal
 
   object keys {
     object segment
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/Traversal/segment",
           "segment",
           "A segment in a traversal",
@@ -336,7 +338,8 @@ object Traversal
 
     implicit private def labelToProperty[L: HasStep.PropertyLabel](label: L): Property =
       label match {
-        case label: Property => label
+        case label: Property    => label
+        case label: PropertyDef => label.property
         case label: String =>
           target.ns.properties
             .get(label)
@@ -395,10 +398,18 @@ object Traversal
     //                                                                                                          et.ct)
     //    }
 
-    def hasLabel[ET0 <: ClassType[_], End1, ET1 <: ClassType[_]](label0: ET0)(
-        implicit et: ClassTypeable.Aux[ET0, End1, ET1])
+    def hasLabel(label: Ontology): Traversal[ST[Start], NodeURLType[Node], Segment[HasLabel :: Steps] :: Segments] =
+      add(HasLabel(label :: Nil), st, NodeURLType.datatype)
+    def hasLabel(
+        label: Property): Traversal[ST[Start], EdgeURLType[Edge[Any, Any]], Segment[HasLabel :: Steps] :: Segments] =
+      add(HasLabel(label :: Nil), st, EdgeURLType.datatype)
+    def hasLabel[T <: DataType[_], End1, ET1 <: ClassType[_]](label: T)(implicit et: ClassTypeable.Aux[T, End1, ET1])
       : Traversal[ST[Start], ET1, Segment[HasLabel :: Steps] :: Segments] =
-      add(HasLabel(label0 :: Nil), st, et.ct)
+      add(HasLabel(label :: Nil), st, et.ct)
+//    def hasLabel[ET0 <: ClassType[_], End1, ET1 <: ClassType[_]](label0: ET0)(
+//        implicit et: ClassTypeable.Aux[ET0, End1, ET1])
+//      : Traversal[ST[Start], ET1, Segment[HasLabel :: Steps] :: Segments] =
+//      add(HasLabel(label0 :: Nil), st, et.ct)
     def hasLabel[ET0 <: ClassType[_], End1, ET1 <: ClassType[_]](label0: ET0, label1: ET0)(
         implicit et: ClassTypeable.Aux[ET0, End1, ET1])
       : Traversal[ST[Start], ET1, Segment[HasLabel :: Steps] :: Segments] =
@@ -1446,16 +1457,16 @@ object Traversal
     protected[this] def stream: Stream[Out]
     protected[this] def astream: Task[Stream[Out]]
 
-    def iterate(): Unit           = stream.foreach(t => Unit)
-    def head: Out                 = stream.head
-    def headOption: Option[Out]   = stream.headOption
-    def toList: List[Out]         = stream.toList
-    def toListSet                 = stream.to[ListSet]
-    def toSet: Set[Out]           = stream.toSet
-    def toStream: Stream[Out]     = stream
-    def toVector: Vector[Out]     = stream.toVector
-    def next(n: Int)              = stream.take(n)
-    def toTask: Task[Stream[Out]] = astream
+    def iterate(): Unit                  = stream.foreach(t => Unit)
+    def head: Out                        = stream.head
+    def headOption: Option[Out]          = stream.headOption
+    def toList: List[Out]                = stream.toList
+    def toListSet                        = stream.to[ListSet]
+    def toSet: Set[Out]                  = stream.toSet
+    def toStream: Stream[Out]            = stream
+    def toAsyncStream: Task[Stream[Out]] = astream
+    def toVector: Vector[Out]            = stream.toVector
+    def next(n: Int)                     = stream.take(n)
   }
 
   def apply[Start: DefaultsToAny, End: DefaultsToAny](steps: Vector[Step])(target: Graph)(
@@ -1500,6 +1511,9 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
   def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector)(target)
   def toUntypedStream: Stream[Any] =
     target.buildTraversersStream[ST, DataType[Any], HNil, Any](this.asInstanceOf[Traversal[ST, DataType[Any], HNil]])
+  def toUntypedStreamTask: Task[Stream[Any]] =
+    target.buildAsyncTraversersStream[ST, DataType[Any], HNil, Any](
+      this.asInstanceOf[Traversal[ST, DataType[Any], HNil]])
 
   def withGraph(graph: Graph): Traversal[ST, ET, Segments] = {
     //    implicit val _target = target

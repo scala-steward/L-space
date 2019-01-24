@@ -13,7 +13,7 @@ object And extends PredicateDef("And", `@extends` = () => List(P.ontology)) with
 
   object keys extends P.Properties {
     object predicate
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",

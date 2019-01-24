@@ -2,11 +2,10 @@ package lspace.librarian.process.traversal
 
 import java.time.Instant
 
-import lspace.NS
 import lspace.librarian.datatype.{DataType, ListType}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
 
 object Collection
@@ -24,7 +23,7 @@ object Collection
 
   object keys extends Step.Properties {
     object start
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/Collection/start",
           "start",
           "Start time of collecting",
@@ -33,7 +32,7 @@ object Collection
     lazy val startDateTime: TypedProperty[Instant] = start.property + DataType.default.`@datetime`
 
     object end
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/Collection/end",
           "end",
           "End time of collecting",
@@ -42,7 +41,7 @@ object Collection
     lazy val endDateTime: TypedProperty[Instant] = start.property + DataType.default.`@datetime`
 
     object item
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/Collection/item",
           "item",
           "Collected item",

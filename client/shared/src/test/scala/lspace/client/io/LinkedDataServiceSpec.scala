@@ -36,22 +36,22 @@ class LinkedDataServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAf
   "a linked-data service" should {
     "work for a List[String] result" in {
       val traversal     = graph.g.N.has("name", P.eqv("Garrison")).out("name")
-      val traversalTask = traversal.toTask
-      traversalTask.runAsync(global).map { r =>
+      val traversalTask = traversal.toAsyncStream
+      traversalTask.runToFuture(global).map { r =>
         assert(r.size == 1)
       }
     }
     "work for a Map[Property, List[Any]] result" in {
       val traversal     = graph.g.N.has("name", P.eqv("Garrison")).outMap()
-      val traversalTask = traversal.toTask
-      traversalTask.runAsync(global).map { r =>
+      val traversalTask = traversal.toAsyncStream
+      traversalTask.runToFuture(global).map { r =>
         assert(r.head.size == 5)
       }
     }
     "work for a Map[String, List[Any]] result" in {
       val traversal     = graph.g.N.has("name").group(_.out("name").hasLabel[String]).count
-      val traversalTask = traversal.toTask
-      traversalTask.runAsync(global).map { r =>
+      val traversalTask = traversal.toAsyncStream
+      traversalTask.runToFuture(global).map { r =>
         assert(r.size == 1)
       }
     }

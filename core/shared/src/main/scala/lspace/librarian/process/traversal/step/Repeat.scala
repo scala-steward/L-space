@@ -31,7 +31,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
 
   object keys {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/traversal",
           "by",
           "A traversal ..",
@@ -40,7 +40,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
 
     object until
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/until",
           "until",
           "If the result of this traversal is non-empty the repeat-loop will break",
@@ -49,7 +49,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     val untilTraversal: TypedProperty[Node] = until.property + Traversal.ontology
 
     object max
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/max",
           "max",
           "The maximum number of repeats",
@@ -58,7 +58,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     val maxInt: TypedProperty[Int] = max.property + DataType.default.`@int`
 
     object collect
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/collect",
           "collect",
           "Set to true to return all intermediate results (of each repeat)",

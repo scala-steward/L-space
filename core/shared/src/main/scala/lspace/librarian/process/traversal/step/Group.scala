@@ -19,7 +19,7 @@ object Group
 
   object keys extends CollectingBarrierStep.Properties {
     object by
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Group/by",
           "by",
           "A traversal ..",

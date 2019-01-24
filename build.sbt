@@ -63,7 +63,9 @@ lazy val lspace = project
   .settings(skip in publish := true)
   .aggregate(core.jvm, core.js, parse.jvm, parse.js, client.jvm, client.js, graph, services)
 
-lazy val core: CrossProject = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full) in file("core"))
+lazy val core: CrossProject = (crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Full) in file("core"))
   .settings(settings)
   .settings(
     name := "lspace-core",
@@ -77,7 +79,9 @@ lazy val core: CrossProject = (crossProject(JSPlatform, JVMPlatform).crossType(C
     libraryDependencies ++= coreJsDeps.value
   )
 
-lazy val parse = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full) in file("parse"))
+lazy val parse = (crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Full) in file("parse"))
   .dependsOn(core % "compile->compile;test->test")
   .settings(settings)
   .settings(
@@ -93,7 +97,9 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full
   )
 
 lazy val client =
-  (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full) in file("client"))
+  (crossProject(JSPlatform, JVMPlatform)
+    .withoutSuffixFor(JVMPlatform)
+    .crossType(CrossType.Full) in file("client"))
     .dependsOn(parse % "compile->compile;test->test")
     .settings(settings)
     .settings(
@@ -115,6 +121,25 @@ lazy val graph = (project in file("graph"))
     name := "lspace-graph",
     libraryDependencies ++= graphDeps
   )
+
+lazy val cassandra = (project in file("store/cassandra"))
+  .dependsOn(graph % "compile->compile;test->test")
+  .settings(settings)
+  .settings(
+    name := "lspace-store-cassandra",
+    libraryDependencies ++= storeCassandraDeps,
+    Test / parallelExecution := false
+  )
+
+lazy val elasticsearch = (project in file("index/elasticsearch"))
+  .dependsOn(graph % "compile->compile;test->test")
+  .settings(settings)
+  .settings(
+    name := "lspace-index-elasticsearch",
+    libraryDependencies ++= indexElasticsearchDeps,
+    Test / parallelExecution := false
+  )
+
 
 lazy val services = (project in file("services"))
   .dependsOn(client.jvm % "compile->compile;test->test")

@@ -21,7 +21,7 @@ object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: 
 
   object keys {
     object by
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Path/by",
           "by",
           "A traversal ..",

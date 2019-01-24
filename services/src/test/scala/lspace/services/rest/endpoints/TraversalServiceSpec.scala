@@ -1,24 +1,16 @@
 package lspace.services.rest.endpoints
 
-import argonaut.Parse
-import com.twitter.finagle
-import com.twitter.finagle.http.{Request, Response, Status}
-import com.twitter.util.Duration
-import io.finch.{Bootstrap, Input}
-import lspace.librarian.process.traversal.{Collection, P}
+import io.finch.Input
+import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
-import lspace.librarian.structure.{Graph, Node}
 import lspace.librarian.util.SampleGraph
-import lspace.parse.json.JsonLD
 import lspace.server.util
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import shapeless.{:+:, CNil}
 
 class TraversalServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
-  val graph             = MemGraph("GraphServiceSpec")
-  val jsonld            = JsonLD(graph)
-  lazy val graphService = TraversalService(graph)(jsonld)
+  implicit val graph    = MemGraph("GraphServiceSpec")
+  lazy val graphService = TraversalService(graph)
 
   override def beforeAll(): Unit = {
     SampleGraph.loadSocial(graph)
@@ -33,6 +25,7 @@ class TraversalServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll
     "execute a traversal only on a POST request" in {
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       import JsonLDModule.Encode._
+      import lspace.encode.EncodeJsonLD._
       val input = Input
         .post("/traverse")
         .withBody[JsonLDModule.JsonLD](traversal.toNode)

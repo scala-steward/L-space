@@ -4,7 +4,7 @@ import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.librarian.datatype._
 import lspace.librarian.structure._
-import lspace.types.vector.{Geometry, Point}
+import lspace.types.vector.{Geometry, Point, Polygon}
 
 import scala.annotation.implicitNotFound
 import scala.collection.immutable.ListSet
@@ -93,6 +93,13 @@ object ClassTypeable {
     type CT = GeometricType[Point]
     def ct: CT = GeopointType.datatype
   }
+
+  implicit val defaultGeopolygon: ClassTypeable.Aux[Polygon, Polygon, GeoPolygonType[Polygon]] =
+    new ClassTypeable[Polygon] {
+      type C  = Polygon
+      type CT = GeoPolygonType[Polygon]
+      def ct: CT = GeoPolygonType.datatype
+    }
 
   implicit val defaultBoolean: ClassTypeable.Aux[Boolean, Boolean, BoolType[Boolean]] = new ClassTypeable[Boolean] {
     type C  = Boolean

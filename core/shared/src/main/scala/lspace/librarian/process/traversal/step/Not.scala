@@ -21,7 +21,7 @@ object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: 
 
   object keys extends FilterStep.Properties {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Not/traversal",
           "traversal",
           "A traversal which must have a empty result",

@@ -28,7 +28,7 @@ object As
 
   object keys extends Step.Properties {
     object name
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/As/name",
           "name",
           "A named step-label which can be referred to further in the traversal",

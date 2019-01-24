@@ -7,14 +7,11 @@ import scala.collection.immutable.{HashSet, ListMap}
 /**
   *
   * @param context base-iri -> prefix
-  * @param iriSet
   * @param language
   */
 case class LDContextBuilder(context: ListMap[String, String] = ListMap[String, String](),
                             typeMods: ListMap[Property, ClassType[_]] = ListMap[Property, ClassType[_]](),
-                            iriSet: HashSet[String] = HashSet[String](),
-                            language: String = "en",
-                            iriLessNodes: Map[String, Node] = Map()) {
+                            language: String = "en") {
 
   /**
     *

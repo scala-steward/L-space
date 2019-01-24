@@ -13,7 +13,7 @@ object V
 
   object keys extends ResourceStep.Properties {
     object value
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/V/value",
           "value",
           "A value",

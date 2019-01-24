@@ -2,7 +2,7 @@ package lspace.client.io
 
 import com.softwaremill.sttp.okhttp.monix.OkHttpMonixBackend
 import lspace.librarian.structure.Graph
-import lspace.parse.json.JsonLD
+import lspace.parse.JsonLD
 
 object LinkedDataServiceImpl {
   def apply(graph: Graph): LinkedDataServiceImpl = new LinkedDataServiceImpl(graph)

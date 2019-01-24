@@ -1,7 +1,6 @@
 package lspace.lgraph.provider.mem
 
 import lspace.lgraph.LGraph
-import lspace.lgraph.provider.elasticsearch.ESIndexProvider
 import lspace.librarian.process.computer.GraphComputerSpec
 import lspace.librarian.structure.{Graph, GraphSpec, NodeSpec}
 
@@ -11,12 +10,12 @@ class MemStoreManagerSpec extends GraphSpec with NodeSpec with GraphComputerSpec
   val sampleStore = MemStoreProvider("MemStoreManagerSpec-sample")
 
   val graph: LGraph =
-    LGraph(store, new ESIndexProvider)
+    LGraph(store, new MemIndexProvider)
   val sampleGraph: LGraph =
-    LGraph(sampleStore, new ESIndexProvider)
+    LGraph(sampleStore, new MemIndexProvider)
   def createGraph(iri: String): Graph = {
     val storage = MemStoreProvider(iri)
-    LGraph(storage, new ESIndexProvider)
+    LGraph(storage, new MemIndexProvider)
   }
 
   override def beforeAll: Unit = {

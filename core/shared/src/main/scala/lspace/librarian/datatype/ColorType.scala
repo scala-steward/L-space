@@ -9,12 +9,12 @@ object ColorType extends DataTypeDef[ColorType[Any]] { //TODO RgbType, CMYK, PMS
   val datatype: ColorType[Any] = new ColorType[Any] {
     val iri: String                                             = NS.types.`@color`
     override val label: Map[String, String]                     = Map("en" -> NS.types.`@color`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredValue.datatype)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
   }
 
-  object keys extends StructuredValue.Properties
-  override lazy val properties: List[Property] = StructuredValue.properties
-  trait Properties extends StructuredValue.Properties
+  object keys extends StructuredType.Properties
+  override lazy val properties: List[Property] = StructuredType.properties
+  trait Properties extends StructuredType.Properties
 
   implicit val clsColor: ClassTypeable.Aux[ColorType[Any], Any, ColorType[Any]] = new ClassTypeable[ColorType[Any]] {
     type C  = Any
@@ -23,4 +23,4 @@ object ColorType extends DataTypeDef[ColorType[Any]] { //TODO RgbType, CMYK, PMS
   }
 }
 
-trait ColorType[+T] extends StructuredValue[T]
+trait ColorType[+T] extends StructuredType[T]

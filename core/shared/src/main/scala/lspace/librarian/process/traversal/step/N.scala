@@ -14,7 +14,7 @@ object N
 
   object keys extends ResourceStep.Properties {
     object node
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/N/node",
           "node",
           "A node",

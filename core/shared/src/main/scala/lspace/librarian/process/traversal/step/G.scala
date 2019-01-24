@@ -13,7 +13,7 @@ object G
 
   object keys extends GraphStep.Properties {
     object graph
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/G/Graphsource",
           "Graphsource",
           "A graph to apply the upcoming traversal on",

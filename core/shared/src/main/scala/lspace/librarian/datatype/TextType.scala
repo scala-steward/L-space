@@ -9,7 +9,7 @@ object TextType extends DataTypeDef[TextType[String]] {
 
   lazy val datatype: TextType[String] = new TextType[String] {
     val iri: String                                             = NS.types.`@string`
-    override val iris: Set[String]                              = Set(NS.types.schemaText)
+    override val iris: Set[String]                              = Set(NS.types.schemaText, NS.types.xsdString)
     override val label: Map[String, String]                     = Map("en" -> NS.types.`@string`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
   }

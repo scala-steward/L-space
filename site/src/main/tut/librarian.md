@@ -21,17 +21,18 @@ position: 3
       * [HasLabel](#haslabel)
       * [HasId](#hasid)
       * [Hasiri](#hasiri)
+    * [Global Filter steps](#global-filter-steps)
+      * [Dedup](#dedup)
     * [Coin](#coin)
-    * [Dedup](#dedup)
     * [Where](#where)
     * [And](#and)
     * [Or](#or)
     * [Not](#not)
     * [Is](#is)
-    * [Clip steps](#clip-steps)
-      * [Range](#range)
-      * [Limit](#limit)
-      * [Tail](#tail)
+  * [Clip steps](#clip-steps)
+    * [Range](#range)
+    * [Limit](#limit)
+    * [Tail](#tail)
   * [Move steps](#move-steps)
     * [Out](#out)
     * [OutE](#oute)
@@ -51,15 +52,17 @@ position: 3
     * [InMap](#inmap)
     * [InEMap](#inemap)
   * [Barrier steps](#barrier-steps)
-    * [Collecting steps](#collecting-steps)
-      * [Order](#order)
+    * [Collecting barrier steps](#collecting-barrier-steps)
       * [Group](#group)
-    * [Reducing steps](#reducing-steps)
-      * [Min](#min)
-      * [Max](#max)
+    * [Reducing barrier steps](#reducing-barrier-steps)
       * [Mean](#mean)
       * [Sum](#sum)
       * [Count](#count)
+    * [Filter barrier steps](#filter-barrier-steps)
+      * [Min](#min)
+      * [Max](#max)
+    * [Rearrange barrier steps](#rearrange-barrier-steps)
+      * [Order](#order)
   * [Side-Effect steps](#side-effect-steps)
     * [Drop](#drop)
   * [Environment steps](#environment-steps)
@@ -125,12 +128,19 @@ g.N.hasLabel(labels.place).out(keys.name).toList //filters all places
 ##### HasId
 HasId-step validates if the id is within a certain set.
 ```tut:book
-g.N.hasId(1l).out(keys.name).toList
+g.N.hasId(1001l).out(keys.name).toList
 ```
 ##### HasIri
 HasIri-step validates if the iri is within a certain set.
 ```tut:book
-g.N.hasIri("place-san_jose_de_maipo").out(keys.name).toList
+g.N.hasIri("graph-doc/place/123").out(keys.name).toList
+```
+#### Global Filter steps
+##### Dedup
+Dedup-step filters traversers with distinct values
+```tut:book
+g.N.limit(1).union(_.out().limit(1), _.out().limit(1)).count.head //shouldBe 2
+g.N.limit(1).union(_.out().limit(1), _.out().limit(1)).dedup().count.head //shouldBe 1
 ```
 #### Coin
 Coin-step filters traversers on a coin-flip result for probability p
@@ -138,12 +148,6 @@ Coin-step filters traversers on a coin-flip result for probability p
 g.N.count.head //total nodes to draw from
 g.N.coin(0.2).id.toList //random selection of nodes with p = 0.2 (20%)
 g.N.coin(0.8).id.toList //random selection of nodes with p = 0.8 (80%)
-```
-#### Dedup
-Dedup-step filters traversers with distinct values
-```tut:book
-g.N.limit(1).union(_.out().limit(1), _.out().limit(1)).count.head //shouldBe 2
-g.N.limit(1).union(_.out().limit(1), _.out().limit(1)).dedup().count.head //shouldBe 1
 ```
 #### Where
 Where-step takes a traversal and filters on non-empty results
@@ -171,19 +175,19 @@ Is-step asserts a value against one or more predicates
 ```tut:book
 g.N.out().is(P.eqv(300)).out(keys.name) //filters the all outgoing resources with value 2
 ```
-#### Clip steps
-A clip filters the resulting traversers by index position
-##### Range
+### Clip steps
+A clip step cuts the resulting stream of traversers.
+#### Range
 Range-step filters by a low-end and high-end index
 ```tut:book
 g.N.range(4, 16) //takes only node 4 until 16
 ```
-##### Limit
+#### Limit
 Limit-step takes the first x-number of traversers
 ```tut:book
 g.N.limit(12) //takes only the first 12 nodes
 ```
-##### Tail
+#### Tail
 Tail-step takes the last x-number of traversers
 ```tut:book
 g.N.tail(12) //takes only the last 12 nodes
@@ -278,10 +282,8 @@ graph.g.N.has("name", P.eqv("Garrison")).inEMap().head //should return all in-co
 ```
 ### Barrier steps
 Barrier steps can operate on the entire resultset of a traversal
-#### Collecting steps
+#### Collecting barrier steps
 Collecting steps ...
-##### Order
-Order-step sorts the resultset
 ##### Group
 Group-step groups the resultset into a ```Map[Key,List[Value]]``` where Key is the value by which it is grouped and 
 ```List[Value]``` is the list of values which have the same group-key. If the traversal has any succeeding steps after the Group-step, 
@@ -290,19 +292,9 @@ the traversal will continue to operate with a traverser for each Value.
 g.N.group(_.out("name")) //groups only on nodes with a "name" and only takes the first result (head)
 g.N.group(_.out("name")).group(_.out("age")) //can e.g. be a Map[String, List[Map[Int,List[Node]]]]
 ```
-#### Reducing steps
-##### Min
-Min-step passes only the traverser with the smallest value
-```tut:book
-g.N.out("balance").hasLabel(`@double`).min.head //should be -245.05
-g.N.out("balance").hasLabel(`@double`).min.in("balance").out("name").head //should be "Levi"
-```
-##### Max
-Max-step passes only the traverser with the largest value
-```tut:book
-g.N.out("balance").hasLabel(`@double`).max.head //should be 2230.30
-g.N.out("balance").hasLabel(`@double`).max.in("balance").out("name").head //should be "Gray"
-```
+#### Reducing barrier steps
+Reducing barrier steps perform a fold task on all traverers in the stream resulting in a single traverser 
+with the resulting value of the fold task.
 ##### Mean
 Mean-step passes a traverser where the value is the mean of the values of incoming traversers
 ```tut:book
@@ -320,6 +312,24 @@ g.N.hasLabel(Ontology("https://schema.org/Person")).count.head //should be 6
 g.N.hasLabel(Ontology("https://schema.org/Person")).where(_.out(Property("https://schema.org/knows")).count.is(P.gt(1))).count.head //should be 5
 g.N.hasLabel(Ontology("https://schema.org/Person")).where(_.out(Property("https://schema.org/knows")).count.is(P.lt(2))).count.head //should be 1
 ```
+#### Filter barrier steps
+Filter barrier steps filters traversers based on some comparison against the complete stream of traversers.
+##### Min
+Min-step passes only the traverser with the smallest value
+```tut:book
+g.N.out("balance").hasLabel(`@double`).min.head //should be -245.05
+g.N.out("balance").hasLabel(`@double`).min.in("balance").out("name").head //should be "Levi"
+```
+##### Max
+Max-step passes only the traverser with the largest value
+```tut:book
+g.N.out("balance").hasLabel(`@double`).max.head //should be 2230.30
+g.N.out("balance").hasLabel(`@double`).max.in("balance").out("name").head //should be "Gray"
+```
+#### Rearrange barrier steps
+Rearrange barrier steps manipulates the position of all the traversers in the stream.
+##### Order
+Order-step sorts the resultset
 ### Side-Effect steps
 Side-Effect steps ...
 #### Drop

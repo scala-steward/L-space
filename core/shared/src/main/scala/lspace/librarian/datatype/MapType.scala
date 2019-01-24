@@ -1,9 +1,7 @@
 package lspace.librarian.datatype
 
 import lspace.NS
-import lspace.NS.types
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
 //import scala.collection.immutable.ListSet
@@ -18,7 +16,7 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
 
   object keys extends CollectionType.Properties {
     object keyRange
-        extends Property.PropertyDef(
+        extends PropertyDef(
           "@keyRange",
           "@keyRange",
           "A @keyRange",

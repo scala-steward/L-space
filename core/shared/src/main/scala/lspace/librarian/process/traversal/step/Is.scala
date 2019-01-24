@@ -11,7 +11,7 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
 
   object keys {
     object predicate
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Is/Predicate",
           "Predicate",
           "A Predicate",

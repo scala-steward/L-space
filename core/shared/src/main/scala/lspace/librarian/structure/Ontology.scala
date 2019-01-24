@@ -1,11 +1,14 @@
 package lspace.librarian.structure
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.NS
 import lspace.librarian.datatype.{DataType, IriType, NodeURLType}
-import lspace.librarian.process.traversal.Step
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Property.default
+import monix.catnap.MVar
+import monix.eval.{Coeval, Task}
 
 object Ontology {
   lazy val ontology: Ontology =
@@ -67,39 +70,6 @@ object Ontology {
     val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
   }
 
-  implicit def oDefToOntology(df: OntologyDef): Ontology = df.ontology
-
-  /**
-    *
-    * @param iri
-    * @param iris
-    * @param label a name for the Ontology in english
-    * @param comment a description for the ontology in english
-    * @param `@extends` a parent ontology
-    * @param base
-    */
-  abstract class OntologyDef(iri: String,
-                             iris: Set[String] = Set(),
-                             label: String,
-                             comment: String = "",
-                             `@extends`: () => List[Ontology] = () => List(),
-                             base: Option[String] = None) {
-
-    lazy val ontology: Ontology =
-      new Ontology(iri,
-                   iris,
-                   _properties = () => properties,
-                   label = Map("en"   -> label),
-                   comment = Map("en" -> comment),
-                   _extendedClasses = `@extends`,
-                   base = base)
-
-    def keys: Object
-    def properties: List[Property] = List()
-
-    trait Properties {}
-  }
-
   def _Ontology(iri: String)(implicit
                              iris: Set[String] = Set(),
                              _properties: () => List[Property] = () => List(),
@@ -117,6 +87,20 @@ object Ontology {
             extendedClasses: List[Ontology] = List(),
             base: Option[String] = None): Ontology =
     new Ontology(iri, iris, () => properties, label, comment, () => extendedClasses, base) {}
+
+  import scala.collection.JavaConverters._
+  import scala.collection.concurrent
+  private val constructing: concurrent.Map[String, Task[Ontology]] =
+    new ConcurrentHashMap[String, Task[Ontology]]().asScala
+  def getOrConstructing(iri: String)(constructTask: Task[Ontology]): Task[Ontology] =
+    constructing.getOrElseUpdate(iri, constructTask.memoize)
+
+  private val constructed: concurrent.Map[String, Coeval[Ontology]] =
+    new ConcurrentHashMap[String, Coeval[Ontology]]().asScala
+  def getOrConstructed(iri: String)(constructTask: Coeval[Ontology]): Coeval[Ontology] =
+    constructed.getOrElseUpdate(iri, constructTask.memoize)
+  def getConstructed(iri: String): Option[Coeval[Ontology]] =
+    constructed.get(iri)
 }
 
 /**

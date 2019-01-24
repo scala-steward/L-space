@@ -3,7 +3,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
   val scala     = "2.12.8"
-  val finch     = "0.26.1"
+  val finch     = "0.27.0"
   val argonaut  = "6.2.2"
   val monix     = "3.0.0-RC2"
   val sttp      = "1.5.1"
@@ -52,15 +52,22 @@ object Dependencies {
   )
 
   val graphDeps = Seq(
+//    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
+  )
+
+  val storeCassandraDeps = Seq(
+    "com.outworkers" %% "phantom-dsl" % Version.phantom
+  )
+
+  val indexElasticsearchDeps = Seq(
     "com.sksamuel.elastic4s" %% "elastic4s-core"  % Version.elastic4s,
     "com.sksamuel.elastic4s" %% "elastic4s-http"  % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-monix" % Version.elastic4s exclude ("io.monix", "monix"),
-//    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.outworkers" %% "phantom-dsl" % Version.phantom
+    "com.sksamuel.elastic4s" %% "elastic4s-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
   val servicesDeps = Seq(
     "com.github.finagle" %% "finchx-core"     % Version.finch,
+    "com.github.finagle" %% "finchx-generic"  % Version.finch,
     "com.github.finagle" %% "finchx-argonaut" % Version.finch,
     "com.github.finagle" %% "finchx-sse"      % Version.finch,
     "com.twitter"        %% "twitter-server"  % "18.12.0",

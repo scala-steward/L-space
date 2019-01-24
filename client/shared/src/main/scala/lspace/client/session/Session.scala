@@ -1,7 +1,7 @@
 package lspace.client.session
 
 import lspace.librarian.structure.{IriResource, Property}
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 
 object Session extends OntologyDef(lspace.NS.vocab.Lspace + "Session", Set(), "Session", "A session ..") {
   object keys

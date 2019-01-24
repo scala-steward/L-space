@@ -12,6 +12,7 @@ object NS {
     val skos   = Prefix("https://www.w3.org/2009/08/skos-reference/skos.html#")
     val dcam   = Prefix("http://dublincore.org/2012/06/14/dcam#")
     val rdfs   = Prefix("https://www.w3.org/2000/01/rdf-schema#")
+    val xsd    = Prefix("http://www.w3.org/TR/xmlschema11-2/#")
     val schema = Prefix("https://schema.org/")
     val sioc   = Prefix("http://rdfs.org/sioc/spec/#")
   }
@@ -65,6 +66,9 @@ object NS {
     val `@collection`        = "@collection"
     val `@map`               = "@map"
     val `@tuple`             = "@tuple"
+    val `@tuple2`            = "@tuple2"
+    val `@tuple3`            = "@tuple3"
+    val `@tuple4`            = "@tuple4"
     val `@list`              = "@list"
     val `@set`               = "@set"
     val `@listset`           = "@listset"
@@ -109,6 +113,29 @@ object NS {
     val schemaDateTime       = NS.vocab.schema + "DateTime"
     val schemaBoolean        = NS.vocab.schema + "Boolean"
     val schemaURL            = NS.vocab.schema + "URL"
+    val xsdAnyURI            = NS.vocab.xsd + "anyURI"
+    val xsdLanguage          = NS.vocab.xsd + "language"
+    val xsdHexBinary         = NS.vocab.xsd + "hexBinary"
+    val xsdBase64Binary      = NS.vocab.xsd + "base64Binary"
+    val xsdBoolean           = NS.vocab.xsd + "boolean"
+    val xsdString            = NS.vocab.xsd + "string"
+    val xsdShort             = NS.vocab.xsd + "short"
+    val xsdByte              = NS.vocab.xsd + "byte"
+    val xsdInt               = NS.vocab.xsd + "int"
+    val xsdDouble            = NS.vocab.xsd + "double"
+    val xsdLong              = NS.vocab.xsd + "long"
+    val xsdTime              = NS.vocab.xsd + "time"
+    val xsdDate              = NS.vocab.xsd + "date"
+    val xsdDateTime          = NS.vocab.xsd + "dateTime"
+    val xsdDateTimeStamp     = NS.vocab.xsd + "dateTimeStamp"
+    val xsdGYear             = NS.vocab.xsd + "gYear"
+    val xsdGMonth            = NS.vocab.xsd + "gMonth"
+    val xsdGDay              = NS.vocab.xsd + "gDay"
+    val xsdGYearMonth        = NS.vocab.xsd + "gYearMonth"
+    val xsdGMonthDay         = NS.vocab.xsd + "gMonthDay"
+    val xsdDuration          = NS.vocab.xsd + "duration"
+    val xsdYearMonthDuration = NS.vocab.xsd + "yearMonthDuration"
+    val xsdDayTimeDuration   = NS.vocab.xsd + "dayTimeDuration"
     val `@nodeURL`           = "@nodeURL"
     val `@edgeURL`           = "@edgeURL"
     val `@valueURL`          = "@valueURL"

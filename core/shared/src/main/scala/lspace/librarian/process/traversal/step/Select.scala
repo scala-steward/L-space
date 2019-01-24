@@ -43,7 +43,7 @@ object Select
 
   object keys {
     object name
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Select/name",
           "name",
           "The name of the result to retrieve",

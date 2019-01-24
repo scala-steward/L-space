@@ -32,7 +32,7 @@ object Order
 
   object keys extends CollectingBarrierStep.Properties {
     object by
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Order/by",
           "by",
           "A traversal ..",
@@ -41,7 +41,7 @@ object Order
     val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
 
     object increasing
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Order/increasing",
           "increasing",
           "Set to true to sort ascending",

@@ -9,7 +9,7 @@ object DoubleType extends DataTypeDef[DoubleType[Double]] {
 
   lazy val datatype: DoubleType[Double] = new DoubleType[Double] {
     val iri: String                                             = NS.types.`@double`
-    override val iris: Set[String]                              = Set(NS.types.schemaFloat)
+    override val iris: Set[String]                              = Set(NS.types.schemaFloat, NS.types.xsdDouble)
     override val label: Map[String, String]                     = Map("en" -> NS.types.`@double`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.datatype)
   }

@@ -15,7 +15,7 @@ object TimeLimit
 
   object keys extends EnvironmentStep.Properties {
     object duration
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/TimeLimit/duration",
           "duration",
           "The maximum time the underlaying traversal may take",

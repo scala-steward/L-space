@@ -13,7 +13,7 @@ object Limit
 
   object keys extends ClipStep.Properties {
     object max
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Limit/max",
           "max",
           "The maximum number of results",

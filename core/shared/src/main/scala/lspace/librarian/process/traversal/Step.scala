@@ -1,9 +1,10 @@
 package lspace.librarian.process.traversal
 
-import lspace.librarian.datatype.DataType
+import lspace.librarian.datatype.{DataType, DataTypeDef}
 import lspace.librarian.process.traversal.step._
 import lspace.librarian.structure._
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
+import lspace.librarian.structure.PropertyDef
 
 object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set(), "Step", "Step") {
 
@@ -160,7 +161,7 @@ object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", () => 
 
   object keys extends TraverseStep.Properties {
     object label
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/MoveStep/label",
           "label",
           "A label",
@@ -263,12 +264,19 @@ object ClipStep extends StepDef(label = "ClipStep", comment = "ClipStep", () => 
 }
 trait HasStep extends FilterStep
 object HasStep extends StepDef(label = "HasStep", comment = "HasStep", () => FilterStep.ontology :: Nil) {
-  sealed trait PropertyLabel[T]
-  implicit object IsProperty extends PropertyLabel[Property]
-  implicit object IsString   extends PropertyLabel[String]
-  sealed trait DataTypeLabel[T]
-  implicit object IsDataType extends DataTypeLabel[DataType[_]]
-  implicit object IsString1  extends DataTypeLabel[String]
+  sealed trait ClassTypeLabel[T]
+  sealed trait PropertyLabel[T] extends ClassTypeLabel[T]
+  implicit def IsPropertyDef[T <: PropertyDef] = new PropertyLabel[T] {}
+  implicit object IsProperty    extends PropertyLabel[Property]
+  implicit object IsString      extends PropertyLabel[String]
+  sealed trait DataTypeLabel[T] extends ClassTypeLabel[T]
+  implicit def IsDataTypeDef[T <: DataTypeDef[_]] = new DataTypeLabel[T] {}
+  implicit object IsDataType    extends DataTypeLabel[DataType[_]]
+  implicit object IsString1     extends DataTypeLabel[String]
+  sealed trait OntologyLabel[T] extends ClassTypeLabel[T]
+  implicit def IsOntologyDef[T <: OntologyDef] = new OntologyLabel[T] {}
+  implicit object IsOntology extends OntologyLabel[Ontology]
+  implicit object IsString2  extends OntologyLabel[String]
 
   object keys extends FilterStep.Properties
   override lazy val properties: List[Property] = FilterStep.properties

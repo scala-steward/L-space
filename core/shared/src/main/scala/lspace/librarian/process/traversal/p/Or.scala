@@ -13,7 +13,7 @@ object Or extends PredicateDef("Or", `@extends` = () => List(P.ontology)) with P
 
   object keys extends P.Properties {
     object predicate
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",

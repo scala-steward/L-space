@@ -6,7 +6,7 @@ import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal.TypedKey
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
 
 object OpenSession
@@ -34,7 +34,7 @@ object OpenSession
 
   object keys extends Session.Properties {
     object `lspace:OpenSession/expiration`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "expiration",
           "expiration",
           "Date and time at which the session expires.",
@@ -44,7 +44,7 @@ object OpenSession
       : TypedProperty[Instant] = `lspace:OpenSession/expiration` + DataType.default.`@datetime`
 
     object `lspace:OpenSession/startTime`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "startTime",
           "startTime",
           "Date and time at which the session has started.",
@@ -54,7 +54,7 @@ object OpenSession
       : TypedProperty[Instant] = `lspace:OpenSession/startTime` + DataType.default.`@datetime`
 
     object `lspace:OpenSession/endTime`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "endTime",
           "endTime",
           "Date and time at which the session has ended.",

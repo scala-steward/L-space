@@ -12,6 +12,7 @@ import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.librarian.structure.util.{GraphUtils, IdProvider}
 import shapeless.{::, HList, HNil}
 
+import scala.collection.immutable.ListSet
 import scala.collection.mutable
 
 object Graph {
@@ -299,6 +300,12 @@ trait Graph extends IriResource {
       node
     }
 
+    def upsert(iri: String, ontology: Ontology, ontologies: Ontology*): Node = {
+      val node = upsert(iri)
+      ontology :: ontologies.toList foreach node.addLabel
+      node
+    }
+
     /**
       *
       * @param iri an iri which should all resolve to the same resource as param uris
@@ -433,10 +440,33 @@ trait Graph extends IriResource {
       } distinct
     }
 
+    def dereferenceValue(t: Any): Any = t match {
+      case v: Vector[_]     => v.map(dereferenceValue)
+      case v: ListSet[_]    => v.map(dereferenceValue)
+      case v: List[_]       => v.map(dereferenceValue)
+      case v: Set[_]        => v.map(dereferenceValue)
+      case v: Map[_, _]     => v.map { case (key, value) => (dereferenceValue(key), dereferenceValue(value)) }
+      case (v1, v2)         => (dereferenceValue(v1), dereferenceValue(v2))
+      case (v1, v2, v3)     => (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3))
+      case (v1, v2, v3, v4) => (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
+      case (v1, v2, v3, v4, v5) =>
+        (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
+      case v: Ontology    => nodes.upsert(ns.ontologies.store(v))
+      case v: Property    => nodes.upsert(ns.properties.store(v))
+      case v: DataType[_] => nodes.upsert(ns.datatypes.store(v))
+      case v: Node        => nodes.upsert(v)
+      case v: Edge[_, _]  => edges.upsert(v)
+      case v: Value[_]    => values.upsert(v)
+      case _              => t
+    }
+
     final def create[T, TOut, CTOut <: ClassType[_]](value: T)(
         implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Value[T] = { //add implicit DataType[T]
       byValue(value).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
-        createValue(idProvider.next, value, ClassType.valueToOntologyResource(value))
+        val dereferencedValue = dereferenceValue(value).asInstanceOf[T]
+        byValue(dereferencedValue)(clsTpbl).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
+          createValue(idProvider.next, dereferencedValue, ClassType.valueToOntologyResource(dereferencedValue))
+        }
       }
     }
     final def create[T](value: T, dt: DataType[T]): Value[T] = { //add implicit DataType[T]
@@ -557,6 +587,8 @@ trait Graph extends IriResource {
     edge
   }
   protected def createEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] = {
+    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+
     val edge = newEdge(id, from, key, to)
     storeEdge(edge.asInstanceOf[GEdge[_, _]])
     edge

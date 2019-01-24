@@ -50,6 +50,8 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
   def edgeCount(): Long
   def valueCount(): Long
 
+  def init(): Unit
+
   /**
     * finishes write-queue(s) and closes connection
     */

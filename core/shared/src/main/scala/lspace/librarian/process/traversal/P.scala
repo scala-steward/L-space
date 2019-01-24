@@ -6,7 +6,7 @@ import lspace.librarian.process.traversal.p._
 import lspace.librarian.structure._
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.util.AssertionNotSupported
 import lspace.types.vector.Geometry
 import shapeless.{::, HList, HNil, LUBConstraint}
@@ -794,7 +794,7 @@ object EqP
 
   object keys extends P.Properties {
     object value
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",
@@ -826,13 +826,13 @@ object RangeP
 
   object keys extends P.Properties {
     object lower
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/range/lower",
           "lower",
           "Any value"
         ) {}
     object upper
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/range/upper",
           "upper",
           "Any value"
@@ -863,7 +863,7 @@ object CollectionP
 
   object keys extends P.Properties {
     object value
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/p/collection/value",
           "values",
           "Polyglot list of values"

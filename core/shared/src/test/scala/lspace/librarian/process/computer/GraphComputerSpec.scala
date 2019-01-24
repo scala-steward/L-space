@@ -81,7 +81,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     "a In-step" in {
       g.V("Garrison").toList.nonEmpty should be(true)
       g.V.is(P.eqv("Garrison")).toList.nonEmpty should be(true)
-      g.V.is(P.eqv("Garrison")).in("name").out(Property.default.`@id`).head shouldBe "person-garrisson"
+      g.V.is(P.eqv("Garrison")).in("name").out(Property.default.`@id`).head shouldBe (sampleGraph.iri + "/person/56789")
     }
     "a InMap-step" in {
       val values = g.N.inMap().toStream
@@ -99,7 +99,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     "a Has-step" when {
       "temporal predicate" in {
-        g.N.has(properties.birthDate).count.head shouldBe 6
+        g.N.has(properties.birthDate).count().head shouldBe 6
         g.N.has(properties.birthDate, P.gt(LocalDate.parse("2002-06-13"))).count.head shouldBe 2
         g.N.has(properties.birthDate, P.gte(LocalDate.parse("2002-06-13"))).count.head shouldBe 3
         g.N.has(properties.birthDate, P.lt(LocalDate.parse("2002-06-13"))).count.head shouldBe 3
@@ -139,11 +139,11 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       g.N.hasNot(Property.default.`@label`).toStream.nonEmpty shouldBe true
     }
     "a HasId-step" in {
-      val someId = g.N.hasIri("place-san_jose_de_maipo").id.head
-      g.N.hasId(someId).out(Property.default.`@id`).head shouldBe "place-san_jose_de_maipo"
+      val someId = g.N.hasIri(sampleGraph.iri + "/place/123").id.head
+      g.N.hasId(someId).out(Property.default.`@id`).head shouldBe sampleGraph.iri + "/place/123"
     }
     "a HasIri-step" in {
-      g.N.hasIri("place-san_jose_de_maipo").toStream.nonEmpty shouldBe true
+      g.N.hasIri(sampleGraph.iri + "/place/123").toStream.nonEmpty shouldBe true
     }
     "a Coin-step" in {
       g.N.coin(0.0).toStream.isEmpty shouldBe true
@@ -241,16 +241,16 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
     "a Is-step" which {
       "has an equivalent node-type value" in {
-        val levi = g.N.hasIri("person-levi").head
+        val levi = g.N.hasIri(sampleGraph.iri + "/person/12345").head
         g.N.is(P.eqv(levi)).toList.size shouldBe 1
       }
       "has an equal value-type value" in {
-        g.V.is(P.eqv("San José de Maipo")).toList.size shouldBe 1
+        g.V.is(P.eqv(sampleGraph.iri + "/place/123")).toList.size shouldBe 1
       }
       "has a greater than value-type value" in {
-        g.V.is(P.contains("San José de Maipo")).toList.size shouldBe 1
-        g.V.is(P.prefix("San José de Ma")).toList.size shouldBe 1
-        g.V.is(P.suffix("é de Maipo")).toList.size shouldBe 1
+        g.V.is(P.contains("place/1234")).toList.size shouldBe 1
+        g.V.is(P.prefix(sampleGraph.iri + "/place/1234")).toList.size shouldBe 1
+        g.V.is(P.suffix("ace/12345")).toList.size shouldBe 1
       }
     }
     "a HasLabel-step" in {
@@ -293,7 +293,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "a Count-step" in {
-      g.N.hasLabel(Ontology("https://schema.org/Person")).count.head shouldBe 6
+      g.N.hasLabel(SampleGraph.Person).count().head shouldBe 6
       g.N
         .hasLabel(Ontology("https://schema.org/Person"))
         .where(_.out(Property("https://schema.org/knows")).count.is(P.gt(1)))
@@ -308,29 +308,29 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
     "a Repeat-step" in {
       g.N
-        .hasIri("person-levi")
+        .hasIri(sampleGraph.iri + "/person/12345")
         .repeat(_.out(Property("https://schema.org/knows")), max = 3)
         .dedup()
         .out("name")
         .toList
         .size shouldBe 4
       g.N
-        .hasIri("person-levi")
+        .hasIri(sampleGraph.iri + "/person/12345")
         .repeat(_.out(Property("https://schema.org/knows")), max = 3, collect = true)
         .dedup()
         .out("name")
         .toList
         .size shouldBe 6
       g.N
-        .hasIri("person-levi")
-        .repeat(_.out(Property("https://schema.org/knows")), _.hasIri("person-gray"), 3)
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .repeat(_.out(Property("https://schema.org/knows")), _.hasIri(sampleGraph.iri + "/person/345"), 3)
         .dedup()
         .out("name")
         .toList
         .size shouldBe 2
       g.N
-        .hasIri("person-levi")
-        .repeat(_.out(Property("https://schema.org/knows")), _.hasIri("person-gray"), 3, true)
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .repeat(_.out(Property("https://schema.org/knows")), _.hasIri(sampleGraph.iri + "/person/345"), 3, true)
         .dedup()
         .out("name")
         .toList
@@ -391,10 +391,10 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 ////      x.select(_.a.b).head._2.iri shouldBe "person-gray"
 ////      x.select(_.b.a).head._1.iri shouldBe "person-gray"
 //
-      x.select("aname", "b").head._2.iri shouldBe "person-gray"
+      x.select("aname", "b").head._2.iri shouldBe sampleGraph.iri + "/person/345"
       x.select("aname").head shouldBe 1
-      x.select("b").head.iri shouldBe "person-gray"
-      x.select("b", "aname").head._1.iri shouldBe "person-gray"
+      x.select("b").head.iri shouldBe sampleGraph.iri + "/person/345"
+      x.select("b", "aname").head._1.iri shouldBe sampleGraph.iri + "/person/345"
 //
       g.V
         .hasLabel(`@int`)
@@ -405,7 +405,7 @@ trait GraphComputerSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         .as("b")
         .select("b")
         .head
-        .iri shouldBe "person-gray"
+        .iri shouldBe sampleGraph.iri + "/person/345"
     }
   }
 }

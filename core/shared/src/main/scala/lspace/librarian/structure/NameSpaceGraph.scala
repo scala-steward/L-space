@@ -64,12 +64,21 @@ trait NameSpaceGraph extends DataGraph {
     def get(iri: String): Option[Ontology] =
       cached(iri)
         .orElse {
-          nodeStore.hasIri(iri).find(_.hasLabel(Ontology.ontology).isDefined).map(fromNode)
+          nodeStore
+            .hasIri(iri)
+            .find(_.hasLabel(Ontology.ontology).isDefined)
+            .find(_.hasLabel(DataType.ontology).isEmpty)
+            .map(fromNode)
         }
 
     def get(id: Long): Option[Ontology] =
       cached(id)
-        .orElse(nodeStore.hasId(id).map(fromNode))
+        .orElse(
+          nodeStore
+            .hasId(id)
+            .filter(_.hasLabel(Ontology.ontology).isDefined)
+            .find(_.hasLabel(DataType.ontology).isEmpty)
+            .map(fromNode))
 
     protected def fromNode(node: _Node): Ontology = {
       val ontology = Ontology(node)
@@ -149,14 +158,13 @@ trait NameSpaceGraph extends DataGraph {
 
     def get(id: Long): Option[Property] =
       cached(id)
-        .orElse(nodeStore.hasId(id).map(fromNode))
+        .orElse(nodeStore.hasId(id).find(_.hasLabel(Property.ontology).isDefined).map(fromNode))
 
-    def get(iri: String): Option[Property] = {
+    def get(iri: String): Option[Property] =
       cached(iri)
         .orElse {
           nodeStore.hasIri(iri).find(_.hasLabel(Property.ontology).isDefined).map(fromNode)
         }
-    }
 
     protected def fromNode(node: _Node): Property = {
       //    val range = () =>
@@ -297,13 +305,11 @@ trait NameSpaceGraph extends DataGraph {
     def get[T: DefaultsToAny](id: Long): Option[DataType[T]] = {
       datatypes
         .cached(id)
-        .orElse(nodeStore.hasId(id).map(fromNode))
+        .orElse(nodeStore.hasId(id).find(_.hasLabel(DataType.ontology).isDefined).map(fromNode))
         .asInstanceOf[Option[DataType[T]]]
     }
 
     protected def fromNode(node: _Node): DataType[_] = {
-      println(datatypes.byIri.get("@vector/https://ns.l-space.eu/librarian/Step").isDefined)
-      println(MemGraphDefault.ns.datatypes.byIri.get("@vector/https://ns.l-space.eu/librarian/Step").isDefined)
       if (graph != MemGraphDefault)
         byId
           .get(node.id)

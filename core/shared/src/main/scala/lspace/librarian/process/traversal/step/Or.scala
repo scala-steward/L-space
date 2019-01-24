@@ -29,7 +29,7 @@ object Or
 
   object keys extends FilterStep.Properties {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Or/traversal",
           "traversal",
           "A traversal ..",

@@ -2,8 +2,7 @@ package lspace.librarian.process.traversal
 
 import lspace.librarian.datatype.VectorType
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.structure.Ontology.OntologyDef
-import lspace.librarian.structure.{Node, Property, TypedProperty}
+import lspace.librarian.structure._
 import shapeless.{HList, HNil, LUBConstraint}
 
 object Segment
@@ -15,7 +14,7 @@ object Segment
   object keys {
 
     object step
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/TraversalSegment/step",
           "step",
           "A step in a traversal",
@@ -39,7 +38,7 @@ object Segment
   def toTraversalSegment(node: Node): Segment[HList] = {
     val types = node.labels
 
-    val steps0 = node.out(Segment.keys.stepNode).take(1).flatten.foldLeft[HList](HNil) {
+    val steps0 = node.out(Segment.keys.stepNode).take(1).flatMap(_.toList).foldLeft[HList](HNil) {
       case (hlist, node) => Step.toStep(node) :: hlist
     }
 

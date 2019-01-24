@@ -5,7 +5,7 @@ import java.time.Instant
 import lspace.client.{Client, User}
 import lspace.librarian.datatype.DataType
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
 
@@ -36,7 +36,7 @@ object UserSession
 
   object keys extends ClientSession.Properties {
     object `lspace:UserSession/user`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "user",
           "user",
           "The user the session belongs to",

@@ -9,6 +9,12 @@ import monix.eval.Task
 object MemStoreManager {
   def apply[G <: LGraph](graph: G): MemStoreManager[G] = new MemStoreManager[G](graph)
 }
+
+/**
+  * This manager does not store or retrieve any resources. It is a stub to storageless LGraphs
+  * @param graph
+  * @tparam G
+  */
 class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(graph) {
 
   override def nodeById(id: Long): Option[graph._Node with LNode] = None
@@ -86,6 +92,8 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
   override def edgeCount(): Long = graph.edges().size
 
   override def valueCount(): Long = graph.values().size
+
+  def init(): Unit = {}
 
   /**
     * finishes write-queue(s) and closes connection

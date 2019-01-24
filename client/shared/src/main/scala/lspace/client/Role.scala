@@ -3,7 +3,7 @@ package lspace.client
 import lspace.librarian.datatype.DataType
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
 

@@ -13,7 +13,13 @@ import lspace.librarian.structure.util.IdProvider
 import shapeless.HList
 
 object LGraph {
-  def apply(storeProvider: StoreProvider, indexProvider: IndexProvider): LGraph = {
+
+  /**
+    *
+    * @param cacheLevel fraction of resources to populate the cache, 0 for nothing 1 for everything (in memory allows for it)
+    */
+  case class Options(cacheLevel: Double = 1.0)
+  def apply(storeProvider: StoreProvider, indexProvider: IndexProvider, options: Options = Options()): LGraph = {
     val _iri           = storeProvider.iri
     val _storeProvider = storeProvider
     val _indexProvider = indexProvider
@@ -25,6 +31,7 @@ object LGraph {
 //      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
 
       override def init(): Unit = {
+        storeManager.init()
         super.init()
 //        cacheReaper
       }

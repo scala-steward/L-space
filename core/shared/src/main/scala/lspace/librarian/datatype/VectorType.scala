@@ -4,8 +4,6 @@ import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.structure._
 
-//import scala.collection.immutable.ListSet
-
 object VectorType extends DataTypeDef[VectorType[Any]] {
 
   lazy val datatype = new VectorType[Any](Nil) {

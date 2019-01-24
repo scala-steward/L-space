@@ -14,7 +14,7 @@ object HasId
 
   object keys {
     object id
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/HasId/Id",
           "Id",
           "An id",

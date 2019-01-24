@@ -22,7 +22,7 @@ object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontolo
 
   object keys extends FilterStep.Properties {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Where/traversal",
           "traversal",
           "A traversal which must have a non-empty result",

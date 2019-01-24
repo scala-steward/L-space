@@ -1,7 +1,7 @@
 version: '3'
 services:
   cassandra:
-    container_name: some-cassandra
+    container_name: lspace-cassandra
     image: "cassandra:latest"
     restart: always
     ports:

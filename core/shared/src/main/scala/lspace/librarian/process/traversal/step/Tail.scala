@@ -13,7 +13,7 @@ object Tail
 
   object keys extends ClipStep.Properties {
     object max
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Tail/max",
           "max",
           "The maximum number of tail-results",

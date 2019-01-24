@@ -1,5 +1,8 @@
 package lspace.librarian.structure
 
+import lspace.librarian.datatype.IriType
+import lspace.librarian.process.traversal.helper.ClassTypeable
+
 trait IriResource {
 
   /**
@@ -20,4 +23,10 @@ object IriResource {
     val iri: String = _iri
   }
 
+  implicit def default: ClassTypeable.Aux[IriResource, IriResource, IriType[IriResource]] =
+    new ClassTypeable[IriResource] {
+      type C  = IriResource
+      type CT = IriType[IriResource]
+      def ct: CT = IriType[IriResource]
+    }
 }

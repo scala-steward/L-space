@@ -17,7 +17,7 @@ object E
 
   object keys extends ResourceStep.Properties {
     object edge
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/E/edge",
           "edge",
           "An edge",

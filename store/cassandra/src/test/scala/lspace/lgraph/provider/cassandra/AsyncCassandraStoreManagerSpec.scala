@@ -1,7 +1,7 @@
 package lspace.lgraph.provider.cassandra
 
 import lspace.lgraph.LGraph
-import lspace.lgraph.provider.elasticsearch.ESIndexProvider
+import lspace.lgraph.provider.mem.MemIndexProvider
 import lspace.librarian.structure.{AsyncGraphSpec, Graph}
 
 class AsyncCassandraStoreManagerSpec extends AsyncGraphSpec {
@@ -12,13 +12,13 @@ class AsyncCassandraStoreManagerSpec extends AsyncGraphSpec {
   sampleStore.deleteAll()
 
   val graph: LGraph =
-    LGraph(store, new ESIndexProvider)
+    LGraph(store, new MemIndexProvider)
   val sampleGraph: LGraph =
-    LGraph(sampleStore, new ESIndexProvider)
+    LGraph(sampleStore, new MemIndexProvider)
   def createGraph(iri: String): Graph = {
     val storage = LCassandraStoreProvider(iri, "localhost", 9042)
     storage.deleteAll()
-    LGraph(storage, new ESIndexProvider)
+    LGraph(storage, new MemIndexProvider)
   }
 
   override def beforeAll: Unit = {

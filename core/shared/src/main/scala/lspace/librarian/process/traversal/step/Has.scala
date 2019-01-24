@@ -28,7 +28,7 @@ object Has
 
   object keys {
     object key
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Has/Key",
           "Key",
           "A key",
@@ -37,7 +37,7 @@ object Has
     val keyUrl: TypedProperty[Node] = key.property + Property.ontology
 
     object predicate
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Has/Predicate",
           "Predicate",
           "A Predicate",
@@ -55,7 +55,7 @@ object Has
 
   implicit def toNode(has: Has): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.key, has.key)
+    val edge = node.addOut(keys.key, has.key)
     has.predicate.map(_.toNode).foreach(node.addOut(keys.predicateUrl, _))
     node
   }

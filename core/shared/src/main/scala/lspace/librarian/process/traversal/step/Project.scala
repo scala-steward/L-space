@@ -21,7 +21,7 @@ object Project
 
   object keys extends TraverseStep.Properties {
     object by
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Project/by",
           "by",
           "A traversal ..",

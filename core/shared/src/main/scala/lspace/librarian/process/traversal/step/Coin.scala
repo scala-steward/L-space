@@ -15,7 +15,7 @@ object Coin
 
   object keys extends FilterStep.Properties {
     object p
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Coin/p",
           "p",
           "The p-value thresshold to determine if the traverser keeps on existing",
@@ -24,7 +24,7 @@ object Coin
     val pDouble: TypedProperty[Double] = p.property + DataType.default.`@double`
 
     object seed
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Coin/seed",
           "seed",
           "The seed for the random-number generator",

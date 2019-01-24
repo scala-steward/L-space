@@ -1,11 +1,13 @@
 package lspace.librarian.structure
 
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 import lspace.NS
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.provider.mem.MemGraphDefault
+import monix.eval.{Coeval, Task}
 
 import scala.collection.immutable.ListSet
 
@@ -67,47 +69,6 @@ object Property {
     } else {
       throw new Exception(s"${node.iri} is not a property")
     }
-  }
-
-  implicit def pDefToProperty(df: PropertyDef): Property = df.property
-
-  /**
-    *
-    * @param iri
-    * @param label
-    * @param comment
-    * @param iris
-    * @param container
-    * @param `@range`
-    * @param `@extends`
-    */
-  abstract class PropertyDef(iri: String,
-                             label: String,
-                             comment: String = "",
-                             iris: Set[String] = Set(),
-                             container: List[String] = List(),
-                             `@range`: () => List[ClassType[_]] = () => List(),
-                             `@extends`: () => List[Property] = () => List()) {
-
-    lazy val property: Property =
-      new Property(
-        iri,
-        iris,
-        _range = `@range`,
-        containers = container,
-        _properties = () => properties,
-        label = Map("en"   -> label),
-        comment = Map("en" -> comment),
-        _extendedClasses = `@extends`
-      )
-
-    object keys
-    protected def properties: List[Property] = List()
-
-    trait Properties {}
-
-    def as[T](range: ClassType[T]): TypedProperty[T] = property.as(range)
-    def +[T](range: ClassType[T]): TypedProperty[T]  = property.as(range)
   }
 
   object default {
@@ -273,6 +234,22 @@ object Property {
             extendedClasses: List[Property] = List(),
             properties: List[Property] = List()): Property =
     new Property(iri, iris, () => range, containers, label, comment, () => extendedClasses, () => properties) {}
+
+  import scala.collection.JavaConverters._
+  import scala.collection.concurrent
+  private val constructing: concurrent.Map[String, Task[Property]] =
+    new ConcurrentHashMap[String, Task[Property]]().asScala
+  def getOrConstructing(iri: String)(constructTask: Task[Property]): Task[Property] =
+    constructing.getOrElseUpdate(iri, constructTask.memoize)
+  def getConstructing(iri: String): Option[Task[Property]] =
+    constructing.get(iri)
+
+  private val constructed: concurrent.Map[String, Coeval[Property]] =
+    new ConcurrentHashMap[String, Coeval[Property]]().asScala
+  def getOrConstructed(iri: String)(constructTask: Coeval[Property]): Coeval[Property] =
+    constructed.getOrElseUpdate(iri, constructTask.memoize)
+  def getConstructed(iri: String): Option[Coeval[Property]] =
+    constructed.get(iri)
 }
 
 /**

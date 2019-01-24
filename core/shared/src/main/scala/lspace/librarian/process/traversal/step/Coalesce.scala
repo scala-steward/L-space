@@ -28,7 +28,7 @@ object Coalesce
 
   object keys extends BranchStep.Properties {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Coalesce/traversal",
           "traversal",
           "A traversal ..",

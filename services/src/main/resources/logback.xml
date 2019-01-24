@@ -7,7 +7,7 @@
     </encoder>
   </appender>
 
-  <logger name="import lspace" level="warn" />
+  <logger name="lspace" level="warn" />
 
   <root level="warn">
     <appender-ref ref="STDOUT" />

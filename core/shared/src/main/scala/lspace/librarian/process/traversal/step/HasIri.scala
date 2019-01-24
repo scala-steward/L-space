@@ -14,7 +14,7 @@ object HasIri
 
   object keys {
     object iri
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/HasIri/iri",
           "Iri",
           "An iri",

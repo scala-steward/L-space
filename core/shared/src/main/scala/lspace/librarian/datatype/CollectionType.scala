@@ -2,14 +2,16 @@ package lspace.librarian.datatype
 
 import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.structure.{ClassType, Ontology, Property, TypedProperty}
+import lspace.librarian.structure._
 
+//TODO: a note on collections: auto-merging resources by their iri can result in obsolete references from within collection structures.
+//TODO: create a RefNode, RefEdge and RefValue to mitigate?
 object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   val datatype = new CollectionType[Iterable[Any]] {
     val iri: String                                             = NS.types.`@collection`
     override val label: Map[String, String]                     = Map("en" -> NS.types.`@collection`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredValue.datatype)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
   }
 
 //  lazy val ontology =
@@ -17,7 +19,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   object keys {
     object valueRange
-        extends Property.PropertyDef(
+        extends PropertyDef(
           "@valueRange",
           "@valueRange",
           "A @valueRange",
@@ -52,7 +54,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
     }
 }
 
-trait CollectionType[+T] extends StructuredValue[T] {
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredValue.datatype)
+trait CollectionType[+T] extends StructuredType[T] {
+  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
   override val _properties: () => List[Property]              = () => List(CollectionType.keys.valueRange)
 }

@@ -2,10 +2,8 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure.{Node, Property, TypedProperty}
+import lspace.librarian.structure.{Node, Property, PropertyDef, TypedProperty}
 import lspace.NS.types
-import lspace.librarian.provider.mem.MemGraphDefault
 
 object HasNot
     extends StepDef(
@@ -29,7 +27,7 @@ object HasNot
 
   object keys {
     object key
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/HasNot/Key",
           "Key",
           "A key",
@@ -38,7 +36,7 @@ object HasNot
     val keyUrl: TypedProperty[Node] = key.property + Property.ontology
 
     object predicate
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/HasNot/Predicate",
           "Predicate",
           "A Predicate",

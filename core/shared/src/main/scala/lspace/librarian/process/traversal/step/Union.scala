@@ -24,7 +24,7 @@ object Union
 
   object keys extends BranchStep.Properties {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Union/traversal",
           "traversal",
           "A traversal ..",

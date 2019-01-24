@@ -28,8 +28,8 @@ position: 2
 ## What is a graph
 A graph is a collection of nodes, edges and values, these are all resources. 
 Nodes can be labelled and nodes can have edges.
-Edges have a 'from' and a 'to' resource which can both be either node, edge or value 
-and the edge is labeled with a key (property). Edges can also have edges.
+Edges have a source ('from') and a destination ('to') resource which can both be either a node, edge or value. 
+The edge is always labeled with a key (property) and an edge can also be the source to other edges (statements on edges).
 Values have a data-value and values can have edges.
 
 * Graphs support Librarian-traversals
@@ -54,12 +54,12 @@ The main methods per section:
 
 hasIri
 ```tut:book
-graph.resources.hasIri("place-san_jose_de_maipo")
-graph.resources.hasIri("place-san_jose_de_maipo", "person-yoshio")
+graph.resources.hasIri("graph-doc/place/123")
+graph.resources.hasIri("graph-doc/place/123", "graph-doc/person/123")
 ```
 hasId
 ```tut:book
-val id = graph.resources.hasIri("place-san_jose_de_maipo").head.id
+val id = graph.resources.hasIri("graph-doc/place/123").head.id
 graph.resources.hasId(id)
 ```
 upsert
@@ -81,13 +81,13 @@ Nodes can be:
 
 Retrieved by Iri(s)/Uri(s):
 ```tut:book
-graph.resources.hasIri("place-san_jose_de_maipo")
-graph.resources.hasIri("place-san_jose_de_maipo", "person-yoshio")
+graph.resources.hasIri("graph-doc/place/123")
+graph.resources.hasIri("graph-doc/place/123", "graph-doc/person/123")
 ```
  
 Retrieved by Id(s):
 ```tut:book
-val id = graph.resources.hasIri("place-san_jose_de_maipo").head.id
+val id = graph.resources.hasIri("graph-doc/place/123").head.id
 graph.resources.hasId(id)
 ```
 

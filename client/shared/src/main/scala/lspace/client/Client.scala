@@ -6,7 +6,7 @@ import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 
 object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Client", "A client ..") {
 
@@ -26,7 +26,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
 
   object keys {
     object `lspace:Client/role`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "Role",
           "Role",
           "A role assigned to this user",
@@ -35,7 +35,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
     lazy val `lspace:Client/role@Role`: TypedProperty[Node] = `lspace:Client/role` + Role.ontology
 
     object `lspace:Client/manager`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "Manager",
           "Manager",
           "A user who can establish or revoke the sessions of this user.",
@@ -44,7 +44,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
     lazy val `lspace:Client/manager@User`: TypedProperty[Node] = `lspace:Client/manager` + User.ontology
 
     object `lspace:Client/session`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "Client/session",
           "session",
           "A session ...",

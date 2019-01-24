@@ -2,13 +2,12 @@ package lspace.client
 
 import java.time.Instant
 
-import lspace.librarian.datatype.{DataType, SetType}
+import lspace.librarian.datatype.DataType
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
-import lspace.NS.types
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 
 object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", "User of something") {
 
@@ -27,7 +26,7 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
 
   object keys {
     object `lspace:User/role`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "role",
           "role",
           "A role assigned to this user",
@@ -36,7 +35,7 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
     lazy val `lspace:User/role@Role`: TypedProperty[Node] = `lspace:User/role` + Role.ontology
 
     object `lspace:User/manager`
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "manager",
           "manager",
           "A user who can establish or revoke the sessions of this user.",
@@ -45,17 +44,17 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
     lazy val `lspace:User/manager@User`: TypedProperty[Node] = `lspace:User/manager` + User.ontology
 
     object `lspace:name`
-        extends Property.PropertyDef(lspace.NS.vocab.Lspace + "name",
-                                     "name",
-                                     `@extends` = () => Property(lspace.NS.vocab.schema + "name") :: Nil)
+        extends PropertyDef(lspace.NS.vocab.Lspace + "name",
+                            "name",
+                            `@extends` = () => Property(lspace.NS.vocab.schema + "name") :: Nil)
     lazy val `lspace:name@String`: TypedProperty[String] = `lspace:name` + DataType.default.`@string`
 
     object `sioc:last_activity_date`
-        extends Property.PropertyDef(lspace.NS.vocab.sioc + "last_activity_date", "last_activity_date")
+        extends PropertyDef(lspace.NS.vocab.sioc + "last_activity_date", "last_activity_date")
     lazy val `sioc:last_activity_date@Instant`: TypedProperty[Instant] =
       `sioc:last_activity_date` + DataType.default.`@datetime`
 
-    object `lspace:User/status` extends Property.PropertyDef(lspace.NS.vocab.Lspace + "User/status", "status")
+    object `lspace:User/status` extends PropertyDef(lspace.NS.vocab.Lspace + "User/status", "status")
     lazy val `lspace/User/status@String`: TypedProperty[String] =
       `lspace:User/status` + DataType.default.`@string`
   }

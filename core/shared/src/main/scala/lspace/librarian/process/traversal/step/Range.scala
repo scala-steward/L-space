@@ -12,7 +12,7 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
 
   object keys extends FilterStep.Properties {
     object low
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Range/low",
           "low",
           "The lower result-index to start from",
@@ -21,7 +21,7 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
     val lowInt: TypedProperty[Int] = low.property + DataType.default.`@int`
 
     object high
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Range/high",
           "high",
           "The higher result-index to start from",

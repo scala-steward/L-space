@@ -1,9 +1,12 @@
 package lspace.lgraph
 
+import lspace.librarian.datatype.CollectionType
 import lspace.librarian.provider.mem.{MemGraph, MemIndexGraph}
 import lspace.librarian.provider.transaction.Transaction
+import lspace.librarian.structure.{Edge, Node, Value}
 import monix.eval.Task
 
+import scala.collection.immutable.ListSet
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 
@@ -33,14 +36,44 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
       parent.valueStore.markDeleted(edges.deleted.keySet.toSet)
       parent.nodeStore.markDeleted(edges.deleted.keySet.toSet)
 
-      val addedValues = values.added.toList.map(value => parent.newValue(value.id, value.value, value.label))
-      parent.valueStore.cache(addedValues.asInstanceOf[List[parent.valueStore.T]])
+      val (collections, others) = values.added.partition(_.label.isInstanceOf[CollectionType[_]])
+      val addedOthers           = others.toList.map(value => parent.newValue(value.id, value.value, value.label))
+      parent.valueStore.cache(addedOthers.asInstanceOf[List[parent.valueStore.T]])
       val addedNodes = nodes.added.toList.map(_._2).map { node =>
         val newNode = parent.newNode(node.id)
         node.labels.foreach(newNode._addLabel)
         newNode
       }
       parent.nodeStore.cache(addedNodes.asInstanceOf[List[parent.nodeStore.T]])
+
+      def dereferenceValue(t: Any): Any = t match {
+        case v: Vector[_]  => v.map(dereferenceValue)
+        case v: ListSet[_] => v.map(dereferenceValue)
+        case v: List[_]    => v.map(dereferenceValue)
+        case v: Set[_]     => v.map(dereferenceValue)
+        case v: Map[_, _]  => v.map { case (key, value) => (dereferenceValue(key), dereferenceValue(value)) }
+        case (v1, v2)      => (dereferenceValue(v1), dereferenceValue(v2))
+        case (v1, v2, v3)  => (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3))
+        case (v1, v2, v3, v4) =>
+          (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
+        case (v1, v2, v3, v4, v5) =>
+          (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
+        //        case v: Ontology     => nodes.upsert(ns.ontologies.store(v))
+        //        case v: Property     => nodes.upsert(ns.properties.store(v))
+        //        case v: DataType[_]  => nodes.upsert(ns.datatypes.store(v))
+        case v: _TNode       => v.self
+        case v: Node         => addedNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
+        case v: _TEdge[_, _] => v.self
+        case v: Edge[_, _]   => throw new Exception("dereferencing edge failed")
+        case v: _TValue[_]   => v.self
+        case v: Value[_]     => addedOthers.find(_.id == v.id).getOrElse(throw new Exception("dereferencing value failed"))
+        case _               => t
+      }
+      val addedCollections =
+        collections.toList.map(value => parent.newValue(value.id, dereferenceValue(value.value), value.label))
+      parent.valueStore.cache(addedCollections.asInstanceOf[List[parent.valueStore.T]])
+      val addedValues = addedOthers ++ addedCollections
+
       val addedEdges = edges.added.toList.map(edge => parent.newEdge(edge.id, edge.from.id, edge.key, edge.to.id))
       parent.edgeStore.cache(addedEdges.asInstanceOf[List[parent.edgeStore.T]])
 

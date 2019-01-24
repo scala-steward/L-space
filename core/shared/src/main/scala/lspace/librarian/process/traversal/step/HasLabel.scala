@@ -28,7 +28,7 @@ object HasLabel
 
   object keys {
     object label
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/HasLabel/Label",
           "Label",
           "A label",

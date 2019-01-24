@@ -9,7 +9,7 @@ import lspace.lgraph.store.{LEdgeStore, LNodeStore, LValueStore, StoreManager}
 import lspace.librarian.datatype.DataType
 import lspace.librarian.structure
 import lspace.librarian.structure.{Ontology, Property}
-import lspace.parse.json.JsonLD
+import lspace.parse.{ActiveContext, JsonLD}
 import monix.eval.Task
 import monix.reactive._
 
@@ -27,7 +27,6 @@ object CassandraStoreManager {
     Consumer
       .loadBalance(parallelism = 50, cassandraQueryConsumer)
   }
-  monix.eval.TaskLift
 }
 
 class CassandraStoreManager[G <: LGraph](override val graph: G, override val database: CassandraGraphTables)
@@ -88,7 +87,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
           graph.edgeStore.isDeleted(e.id) || graph.edgeStore.isDeleted(e.fromId) || graph.edgeStore
             .isDeleted(e.toId) || graph.nodeStore.isDeleted(e.fromId) || graph.valueStore
             .isDeleted(e.fromId) || graph.nodeStore.isDeleted(e.toId) || graph.valueStore.isDeleted(e.toId))
-      .map(edge =>
+      .map(edge => //map with Either? batch retrieval of uncached resources? async connect?
         edgeStore.cachedById(edge.id).asInstanceOf[Option[graph.GEdge[Any, Any]]].getOrElse {
           val from = edge.fromType match {
             case 0 => nodeStore.cachedById(edge.fromId).getOrElse(nodeStore.hasId(edge.fromId).get)
@@ -117,8 +116,10 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .filterNot(v => graph.valueStore.isDeleted(v.id))
       .map(value =>
         valueStore.cachedById(value.id).asInstanceOf[Option[graph.GValue[Any]]].getOrElse {
-          val datatype    = DataType.allDataTypes.byId.get(value.label).orElse(graph.ns.datatypes.get(value.label)).get
-          val parsedValue = jsonld.jsonToValue(datatype, Parse.parseOption(value.value).get).get._2
+          val datatype = DataType.allDataTypes.byId.get(value.label).orElse(graph.ns.datatypes.get(value.label)).get
+          val parsedValue = jsonld.decode
+            .toData(Parse.parseOption(value.value).get, datatype)(ActiveContext())
+            .runSyncUnsafe()(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
           graph.newValue(value.id, parsedValue, datatype)
       }) #::: (if (!result.result.isExhausted()) pagedValuesF(f, Some(result.pagingState)) else Stream())
   }
@@ -268,7 +269,9 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
     pagedValuesF(
       () =>
         Await
-          .result(database.valuesByValue.findByValue(jsonld.anyToJson(value, List(dt))._1.toString()), 5 seconds))
+          .result(
+            database.valuesByValue.findByValue(jsonld.encode.fromData(value, dt)(ActiveContext()).json.toString()),
+            5 seconds))
       .asInstanceOf[Stream[graph.GValue[T]]]
 
   override def valuesByValue[T](values: List[(T, DataType[T])]): Stream[graph.GValue[T]] =
@@ -276,7 +279,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       () =>
         Await
           .result(database.valuesByValue.findByValues(values.map {
-            case (value, dt) => jsonld.anyToJson(value, List(dt))._1.toString()
+            case (value, dt) => jsonld.encode.fromData(value, dt)(ActiveContext()).json.toString()
           }), 5 seconds))
       .asInstanceOf[Stream[graph.GValue[T]]]
 
@@ -381,7 +384,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
                    .headOption
                    .getOrElse(graph.ns.datatypes.store(value.label))
                    .id),
-    jsonld.anyToJson(value.value, List(value.label))._1.toString()
+    jsonld.encode.fromData(value.value, value.label)(ActiveContext()).json.toString()
   )
 
   override def storeValues(values: List[graph.GValue[_]]): Task[_] = loadBalancer.synchronized {
@@ -510,6 +513,8 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .result(database.values.select.count().one(), 300 seconds)
       .get
   }
+
+  def init(): Unit = {}
 
   def close(): Unit = {
     database.shutdown()

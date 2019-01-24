@@ -1,22 +1,9 @@
-package lspace.parse
+package lspace
 
-import argonaut._
-import Argonaut._
+import argonaut.Json
 import lspace.types.vector.{Geometry, Point, Polygon}
 
-package object json {
-  implicit def GeometryCodecJson: EncodeJson[Geometry] =
-    EncodeJson({ (geometry: Geometry) =>
-      geometry match {
-        case point: Point =>
-          Json.obj("type" -> Json.jString("Point"), "coordinates" -> Json.jArray(List(point.x.asJson, point.y.asJson)))
-        case polygon: Polygon =>
-          Json.obj(
-            "type"        -> Json.jString("Polygon"),
-            "coordinates" -> Json.jArray(polygon.vector.map(p => Json.jArray(List(p.x.asJson, p.y.asJson))).toList))
-      }
-    })
-
+package object decode {
   def fromGeoJson(json: Json): Option[Geometry] = {
     json.obj.flatMap { obj =>
       obj.toMap.get("type").flatMap(_.string).map {

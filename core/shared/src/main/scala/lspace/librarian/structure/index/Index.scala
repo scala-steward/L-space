@@ -2,14 +2,14 @@ package lspace.librarian.structure.index
 
 import lspace.librarian.process.traversal.{P, Traversal, UntypedTraversal}
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.structure.Ontology.OntologyDef
+import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
 import lspace.librarian.structure.index.shape.Shape
 
 object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Index", "An index ...") {
   object keys {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "Index/segment",
           "segment",
           "The traversal segment containing only FilterStep's and RearrangeStep's (e.g. Order) " +

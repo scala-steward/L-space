@@ -286,8 +286,9 @@ trait Resource[+T] extends IriResource {
   }
 
   def addOut[V <: ClassType[_]](key: Property, value: V): Edge[T, Node] = {
+//    val toResource = graph.ns.classtypes.store(value)
     val toResource = graph.ns.classtypes.store(value)
-    graph.edges.create(this, key, toResource)
+    graph.edges.create(this, key, graph.nodes.upsert(toResource))
   }
 
   def addOut[V](key: TypedProperty[V], value: V): Edge[T, V] = {
@@ -347,8 +348,9 @@ trait Resource[+T] extends IriResource {
   }
 
   def addIn[V <: ClassType[_]](key: Property, value: V): Edge[Node, T] = {
+//    val fromResource = graph.ns.classtypes.store(value)
     val fromResource = graph.ns.classtypes.store(value)
-    graph.edges.create(fromResource, key, this)
+    graph.edges.create(graph.nodes.upsert(fromResource), key, this)
   }
 
   def addBoth[V, R[T] <: Resource[T]](key: Property, value: R[V]): (Edge[T, V], Edge[V, T]) = {

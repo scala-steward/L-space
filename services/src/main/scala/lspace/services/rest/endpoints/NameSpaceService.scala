@@ -5,14 +5,15 @@ import cats.effect.IO
 import io.finch._
 import io.finch.Endpoint
 import lspace.librarian.structure.Graph
-import lspace.parse.json.JsonLD
+import lspace.parse.JsonLD
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
-case class NameSpaceService(graph: Graph)(implicit jsonld: JsonLD) extends JsonLDModule {
+case class NameSpaceService(graph: Graph) extends JsonLDModule {
   val log             = LoggerFactory.getLogger(getClass)
   implicit val _graph = graph
+  implicit val jsonld = JsonLD(graph) //todo JsonLD context per client-session
 
   val headersAll = root.map(_.headerMap.toMap)
   val cache      = mutable.HashMap[String, mutable.HashMap[String, Json]]()
@@ -31,7 +32,7 @@ case class NameSpaceService(graph: Graph)(implicit jsonld: JsonLD) extends JsonL
         graph.ns.nodes
           .hasIri(graph.iri + "/" + path)
           .headOption
-          .map(jsonld.nodeToJsonWithContext(_)._1)
+          .map(jsonld.encode(_))
           .map { json =>
             cache += (graph.iri + "/" + path)                                                              -> (cache
               .getOrElse(graph.iri + "/" + path, mutable.HashMap[String, Json]()) += "application/ld+json" -> json)
@@ -49,7 +50,7 @@ case class NameSpaceService(graph: Graph)(implicit jsonld: JsonLD) extends JsonL
         graph.ns.nodes
           .hasIri(iri)
           .headOption
-          .map(jsonld.nodeToJsonWithContext(_)._1)
+          .map(jsonld.encode(_))
           .map { json =>
             cache += iri                                                                -> (cache
               .getOrElse(iri, mutable.HashMap[String, Json]()) += "application/ld+json" -> json)

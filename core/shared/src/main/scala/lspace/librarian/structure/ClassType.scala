@@ -44,7 +44,8 @@ object ClassType {
       case v: List[_]    => DataType.default.listType()
       case v: Set[_]     => DataType.default.setType()
       case v: Vector[_]  => DataType.default.vectorType()
-      case _             => throw new Exception(s"not a known range ${value.getClass}")
+      case _ =>
+        throw new Exception(s"not a known range ${value.getClass}")
     }).asInstanceOf[DataType[T]]
   }
 
@@ -125,4 +126,9 @@ trait ClassType[+T] extends IriResource {
   def comment: Map[String, String]
 
   def base: Option[String]
+}
+
+object ClassTypeDef {}
+trait ClassTypeDef[T <: ClassType[_]] {
+  def classtype: T
 }

@@ -11,34 +11,36 @@ import com.twitter.io.Buf
 import com.twitter.server.TwitterServer
 import com.twitter.util.{Await, Promise}
 import io.finch.Bootstrap
+import io.finch.argonaut.preserveOrder._
 import io.finch.sse.ServerSentEvent
 import lspace.services.rest.endpoints.{JsonLDModule, NameSpaceService, TraversalService}
 import lspace.services.rest.security.WithSse
 import shapeless._
 import io.finch._
+import lspace.encode.EncodeJsonLD
 import lspace.librarian.structure.Graph
-import lspace.parse.json.JsonLD
 
 class SimpleGraphServer(graph: Graph, port: Int = 8080) /*extends TwitterServer*/ {
-  lazy val jsonld = JsonLD(graph)
 
-  lazy val graphService = TraversalService(graph)(jsonld)
+  lazy val graphService = TraversalService(graph)
 
-  val policy: Cors.Policy = Cors.Policy(allowsOrigin = _ => Some("*"),
-                                        allowsMethods = _ => Some(Seq("GET", "POST")),
-                                        allowsHeaders = _ => Some(Seq("Accept")))
+//  val policy: Cors.Policy = Cors.Policy(allowsOrigin = _ => Some("*"),
+//                                        allowsMethods = _ => Some(Seq("GET", "POST")),
+//                                        allowsHeaders = _ => Some(Seq("Accept")))
 
   type JsonLDText[A] = io.finch.Encode.Aux[A, Text.Plain]
   private val printer = PrettyParams.nospace.copy(preserveOrder = true)
-  implicit def encodeArgonautText[A](implicit e: EncodeJson[A]): JsonLDText[A] = {
+  import JsonLDModule.Encode._
+  import lspace.encode.EncodeJsonLD._
+  implicit val _graph = graph
+
+  implicit def encodeArgonautText[A](implicit e: EncodeJsonLD[A]): JsonLDText[A] = {
     io.finch.Encode.instance[A, Text.Plain]((a, cs) =>
       Buf.ByteArray.Owned(printer.pretty(e.encode(a)).getBytes(cs.name)))
   }
-  import JsonLDModule.Encode._
   lazy val service: Service[Request, Response] = Bootstrap
-    .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true, negotiateContentType = true)
-    .serve[JsonLDModule.JsonLD :+: Text.Plain :+: CNil](
-      TraversalService(graph)(jsonld).api :+: NameSpaceService(graph)(jsonld).api)
+    .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
+    .serve[JsonLDModule.JsonLD :+: Text.Plain :+: CNil](TraversalService(graph).api :+: NameSpaceService(graph).api)
     .toService
 //  lazy val corsApi = new Cors.HttpFilter(policy).andThen(api)
 

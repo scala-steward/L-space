@@ -19,7 +19,7 @@ class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
     }
     "get 10,000 times from index" in {
       val start = java.time.Instant.now().toEpochMilli
-      val id    = sampleGraph.nodes.hasIri("place-san_jose_de_maipo").head.id
+      val id    = sampleGraph.nodes.hasIri(sampleGraph.iri + "/place/123").head.id
       (1 to 10000).foreach(_ => graph.nodes.hasId(id))
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start

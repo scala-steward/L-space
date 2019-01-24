@@ -23,7 +23,7 @@ object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontolo
 
   object keys extends BranchStep.Properties {
     object traversal
-        extends Property.PropertyDef(
+        extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Local/traversal",
           "traversal",
           "A traversal ..",
