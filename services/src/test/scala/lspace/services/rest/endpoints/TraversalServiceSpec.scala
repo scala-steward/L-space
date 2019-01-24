@@ -40,6 +40,7 @@ class TraversalServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll
       val input = Input
         .get("/label")
       val res = graphService.getLabels(input).awaitOutput().map { output =>
+        if (output.isLeft) println(output.left.get.getMessage)
         output.isRight shouldBe true
         val collection = output.right.get.value
         println(collection.item.size)
