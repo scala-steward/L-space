@@ -70,7 +70,7 @@ class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 //    }
 
   implicit def pagedResultToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, PagedResult)] {
-    val encode = {
+    val encode: ((Ontology, PagedResult)) => Json = {
       case (ontology: Ontology, pr: PagedResult) =>
         Json.jObject(jsonld.encode.fromAny(pr.result)(ActiveContext()).withContext)
     }
@@ -82,7 +82,7 @@ class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   }
 
   implicit def nodeToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, Node)] {
-    val encode = {
+    val encode: ((Ontology, Node)) => Json = {
       case (ontology: Ontology, node: Node) => jsonld.encode(node)
     }
   }
