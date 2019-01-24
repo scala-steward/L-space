@@ -1,54 +1,98 @@
 <html><head><title>L-space: Design</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Thijs Broersen" /><meta name="description" content="L-space, a graph computing framework for Scala" /><meta name="og:image" content="/img/poster.png" /><meta name="image" property="og:image" content="/img/poster.png" /><meta name="og:title" content="L-space: Design" /><meta name="title" property="og:title" content="L-space: Design" /><meta name="og:site_name" content="L-space" /><meta name="og:url" content="https://docs.l-space.eu" /><meta name="og:type" content="website" /><meta name="og:description" content="L-space, a graph computing framework for Scala" /><link rel="icon" type="image/png" href="/img/favicon.png" /><meta name="twitter:title" content="L-space: Design" /><meta name="twitter:image" content="/img/poster.png" /><meta name="twitter:description" content="L-space, a graph computing framework for Scala" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/highlight/styles/default.css" /><link rel="stylesheet" href="/css/style.css" /><link rel="stylesheet" href="/css/palette.css" /><link rel="stylesheet" href="/css/codemirror.css" /></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><ul id="sidebar" class="sidebar-nav"><li class="sidebar-brand"><a href="/" class="brand"><div class="brand-wrapper"><span>L-space</span></div></a></li><li><a href="/changelog.html" class="">Changelog</a></li><li><a href="/design.html" class=" active ">Design</a></li><li><a href="/graph.html" class="">Graph guide</a></li><li><a href="/librarian.html" class="">Traversal guide</a></li><li><a href="/css/palette.css" class=""></a></li><li><a href="/css/style.css" class=""></a></li></ul></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li id="gh-eyes-item" class="hidden-xs"><a href="https://github.com/L-space/L-space"><i class="fa fa-eye"></i><span>WATCH<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs"><a href="https://github.com/L-space/L-space"><i class="fa fa-star-o"></i><span>STARS<span id="stars" class="label label-default">--</span></span></a></li><li><a href="#" onclick="shareSiteTwitter('L-space L-space, a graph computing framework for Scala');"><i class="fa fa-twitter"></i></a></li><li><a href="#" onclick="shareSiteFacebook('L-space L-space, a graph computing framework for Scala');"><i class="fa fa-facebook"></i></a></li><li><a href="#" onclick="shareSiteGoogle();"><i class="fa fa-google-plus"></i></a></li></ul></div></div></div></div><div id="content" data-github-owner="L-space" data-github-repo="L-space"><div class="content-wrapper"><section><h1 id="design">Design</h1>
-<p>Moving towards Linked (Open) Data can be challenging w.r.t the technical requirements (graph computing) and semantics. 
-L-space’s data model attempts to create a data-space with less restrictions, more data and advanced traversing constructs.</p>
+<p>Moving towards Linked (Open) Data can be challenging w.r.t the technical requirements (graph computing) and semantics: 
+How to model the data? What about meta-data (properties on properties)? 
+The L-space data model attempts to create a data-space with less restrictions, more data and advanced traversing constructs.</p>
 
 <h2 id="data-model">Data model</h2>
-<p>The data-model for L-space must be non-restrictive to allow for patterns which where not accounted for: Open World Assumption (OWA).<br />
-Let’s start with a Resource. A resource can have edges (any direction). Then there are three other types which all extends Resource:</p>
+<p>The data-model for L-space allows for statements (edges) between any two resources. The different resources in a graph are:</p>
 <ul>
-  <li><strong>Value</strong>: a value is a vertex which holds a literal-value and its type is described by a data-type</li>
-  <li><strong>Edge</strong>: a edge is a link from a resource to another resource and its type is described by a property</li>
-  <li><strong>Node</strong>: a node is a vertex and can be labeled by zero or more ontolgies
-These are the core elements in a graph</li>
+  <li><strong>Value</strong>: a value is a vertex which holds a literal-value or structured-value, it is labeled with the corresponding data-type.</li>
+  <li><strong>Edge</strong>: an edge is a link from a resource to another resource, it is directed and it is labeled with a property.</li>
+  <li><strong>Node</strong>: a node is a vertex and can be labeled by zero or more ontologies.</li>
 </ul>
 
-<p>And then there is the concept of an ontology, property and data-type:</p>
+<p>The corresponding label-types are:</p>
 <ul>
-  <li><strong>Ontology</strong>: a named collection of properties. The properties within an ontology can direct users and developers to what relations are meaningful or just predefined for the ontologies in scope. This, of course, never restricts from creating edges with other property-types. This can lead to unexpected of even illogical relations. So no need to reject unknown structures, just scrape all knowledge and let the analysis reason about the content of the graph OWA!</li>
-  <li><strong>Property</strong>: a named relation with a range containing of zero or more guiding ontologies and/or datatypes. This range, like an ontology, never restrict the graph from creating edges to resources outside this range.</li>
-  <li><strong>DataType</strong>: a scala data type or advanced types
+  <li><strong>Ontology</strong>: is a label to a node, provides information on what the node represents and 
+what are common properties to a node with this label. 
+The properties within an ontology can direct users and developers to what relations are meaningful.
+L-space, of course, never restricts from creating edges with other (unknown) property-types. 
+This could lead to unexpected of even illogical statements. The fact that properties are not known upfront 
+does not mean they cannot exist (that which is not known to be true is simply unknown - Open World Assumption).
+So L-space does never reject unknown constructs, 
+just scrape all knowledge, put it in a graph and let the analysis reason about the content of the graph OWA!</li>
+  <li><strong>Property</strong>: is a label to an edge, provides information on what the edge represents and 
+what are common (meta-)properties to an edge with this label.
+A label also provides zero or more label-types as an indication on what type of resource the edge should direct to. 
+This range, like an ontology, never restrict from creating edges to resources outside of this range.</li>
+  <li><strong>DataType</strong>: is a label to a value and provides information on what the value represents. 
+Supported types are:
     <ul>
-      <li>Scala datatypes:
+      <li>Data
         <ul>
-          <li>Numeric: Int, Double, Long</li>
-          <li>String</li>
-          <li>Temporal (java.time): Instant, LocalDate, LocalTime</li>
-          <li>Geo: Geometry (work-in-progress, open-for-suggestions)</li>
-          <li>Boolean</li>
+          <li>Literal
+            <ul>
+              <li>Numeric: Int, Double, Long</li>
+              <li>String</li>
+              <li>Boolean</li>
+            </ul>
+          </li>
+          <li>Temporal
+            <ul>
+              <li>(java.time): Instant, LocalDate, LocalTime</li>
+            </ul>
+          </li>
+          <li>Structured
+            <ul>
+              <li>Geo: L-space geometric types (work-in-progress, open-for-suggestions)</li>
+              <li>Collection
+                <ul>
+                  <li>List, Vector, Set, Map, ListSet</li>
+                </ul>
+              </li>
+              <li><a href="https://github.com/typelevel/squants">Squants DSL (WIP)</a></li>
+            </ul>
+          </li>
         </ul>
       </li>
-      <li><a href="https://github.com/typelevel/squants">Squants DSL (WIP)</a></li>
     </ul>
   </li>
 </ul>
 
+<p>A note on collection types: 
+A collection can contain any type of supported data. Collections can be nested and they can contain resources.</p>
+
 <h2 id="graph-model">Graph model</h2>
 <p>A graph exists of a data-space, name-space and index-space.</p>
 
+<ul>
+  <li><strong>Data Space</strong>: 
+The data space is where the real data is store.</li>
+  <li><strong>Name Space</strong>: 
+The name space is where present label-types are stored (ontologies, properties and datatypes).</li>
+  <li><strong>Index Space</strong>: 
+The index space is where present resource-patterns are stored. This is used to limit the solution space.</li>
+</ul>
+
 <h2 id="rationales">Rationales</h2>
 <p>This project is inspired by the <a href="http://tinkerpop.apache.org/">Apache Tinkerpop</a> graph computing framework 
-and it’s query language Gremlin. I was experiencing too much restrictions with Gremlin and a lack of type-safety. 
-I was in need of polymorphic-types, -ordering and -indexing. 
-I also think there should not be any limitation on what is linkable 
-(e.g. the range of a Property can link to a both a <a href="http://schema.org/DataType">DataType</a> and 
-<a href="http://schema.org/Thing">Thing</a>). A subject/predicate/object can be a node/relation/node, a 
-node/relation/value, a relation/relation/value, a value/relation/value, a value/relation/node or a 
-relation/relation/node…OWA! All of which is not supported in Gremlin.</p>
+and it’s query language Gremlin. I was experiencing too much restrictions with Gremlin (providers) and a lack of type-safety. 
+I was in need of polymorphic-property-types, path/pattern-indexing and advanced namespaces w.r.t label-types.</p>
 
 <h2 id="approach">Approach</h2>
-<p>Because I like the semantic of Gremlin I took it as a reference for Librarian. Librarian has its differences, not all Librarian steps share all of their characteristics their Gremlin counterparts. For example, Librarian does not have a properties-step because in- and out-step traverse all of the resource types (Value, Edge, Node). So w.r.t. Linked Data: take for example the property <a href="https://schema.org/address">schema.org/address</a>, the range is <a href="https://schema.org/Text">schema.org/text</a> and <a href="https://schema.org/PostalAddress">schema.org/PostalAddress</a>. So the property schema.org/address could lead to either a text-value or a postaladdress-node. Hence the Librarian traverses them equally and the result can be a mix of text-values and address-nodes (and of course other types because L-space has no restrictions!). Don’t be frightened, there is also a step to filter only on certain types or assert the values to a certain predicate within in-/out-step. Furthermore it is still very much a WIP. 
+<p>Because I like the semantic of Gremlin I took it as a reference for Librarian. Librarian has its differences, 
+not all Librarian steps share all of their characteristics their Gremlin counterparts. For example, 
+Librarian does not have a properties-step because in- and out-step traverse all of the resource types (Value, Edge, Node). 
+So w.r.t. Linked Data: take for example the property <a href="https://schema.org/address">schema.org/address</a>, 
+the range is <a href="https://schema.org/Text">schema.org/text</a> and <a href="https://schema.org/PostalAddress">schema.org/PostalAddress</a>. 
+So the property schema.org/address could lead to either a text-value or a postaladdress-node. 
+Hence the Librarian traverses them equally and the result can be a mix of text-values 
+and address-nodes (and of course other types because L-space has no restrictions!). 
+Don’t be frightened, there is also a step to filter only on certain types or assert the values to a 
+certain predicate within in-/out-step. Furthermore it is still very much a WIP. 
 I deliberately (for now) left out SPARQL and GraphQL because the lack various advanced constructs for traversing a graph. 
-All L-space graph traversal steps are defined within the graph-data-model, hence it is serializable to Json-LD and parsed back from.</p>
+All L-space graph traversal steps are defined within the graph-data-model, 
+hence it is serializable to Json-LD and parsed back from.</p>
 </section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/highlight/highlight.pack.js"></script><script>hljs.configure({languages:['scala','java','bash']});
 hljs.initHighlighting();
               </script><script>((window.gitter = {}).chat = {}).options = {

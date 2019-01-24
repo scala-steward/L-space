@@ -24,20 +24,24 @@
               <li><a href="#hasiri">Hasiri</a></li>
             </ul>
           </li>
+          <li><a href="#global-filter-steps">Global Filter steps</a>
+            <ul>
+              <li><a href="#dedup">Dedup</a></li>
+            </ul>
+          </li>
           <li><a href="#coin">Coin</a></li>
-          <li><a href="#dedup">Dedup</a></li>
           <li><a href="#where">Where</a></li>
           <li><a href="#and">And</a></li>
           <li><a href="#or">Or</a></li>
           <li><a href="#not">Not</a></li>
           <li><a href="#is">Is</a></li>
-          <li><a href="#clip-steps">Clip steps</a>
-            <ul>
-              <li><a href="#range">Range</a></li>
-              <li><a href="#limit">Limit</a></li>
-              <li><a href="#tail">Tail</a></li>
-            </ul>
-          </li>
+        </ul>
+      </li>
+      <li><a href="#clip-steps">Clip steps</a>
+        <ul>
+          <li><a href="#range">Range</a></li>
+          <li><a href="#limit">Limit</a></li>
+          <li><a href="#tail">Tail</a></li>
         </ul>
       </li>
       <li><a href="#move-steps">Move steps</a>
@@ -69,19 +73,27 @@
       </li>
       <li><a href="#barrier-steps">Barrier steps</a>
         <ul>
-          <li><a href="#collecting-steps">Collecting steps</a>
+          <li><a href="#collecting-barrier-steps">Collecting barrier steps</a>
             <ul>
-              <li><a href="#order">Order</a></li>
               <li><a href="#group">Group</a></li>
             </ul>
           </li>
-          <li><a href="#reducing-steps">Reducing steps</a>
+          <li><a href="#reducing-barrier-steps">Reducing barrier steps</a>
             <ul>
-              <li><a href="#min">Min</a></li>
-              <li><a href="#max">Max</a></li>
               <li><a href="#mean">Mean</a></li>
               <li><a href="#sum">Sum</a></li>
               <li><a href="#count">Count</a></li>
+            </ul>
+          </li>
+          <li><a href="#filter-barrier-steps">Filter barrier steps</a>
+            <ul>
+              <li><a href="#min">Min</a></li>
+              <li><a href="#max">Max</a></li>
+            </ul>
+          </li>
+          <li><a href="#rearrange-barrier-steps">Rearrange barrier steps</a>
+            <ul>
+              <li><a href="#order">Order</a></li>
             </ul>
           </li>
         </ul>
@@ -121,10 +133,10 @@ the end of the traversal he communicates back the result that was requested.</p>
 <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">loadSocial</span><span class="o">(</span><span class="n">graph</span><span class="o">)</span>
 
 <span class="k">val</span> <span class="n">labels</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">ontologies</span>
-<span class="c1">// labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@2f31f9fe
+<span class="c1">// labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@1eb20648
 </span>
 <span class="k">val</span> <span class="n">keys</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">properties</span>
-<span class="c1">// keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@2b45a3da
+<span class="c1">// keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@272c27dd
 </span></code></pre></div></div>
 <h3 id="resource-steps">Resource steps</h3>
 <p>Resource-step to start specify what type of resources the traversal should start in.</p>
@@ -143,52 +155,53 @@ the end of the traversal he communicates back the result that was requested.</p>
 <p>Has-step validates the presence of a property and optionally asserts it by one or more predicates</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//filters on nodes which have an edge with property "https://schema.org/name"
-// res1: List[Any] = List(Kevin, Talca, Gray, Crystal Springs, Garrison, Yoshio, San José de Maipo, Levi, Stan, Haridwar)
+// res1: List[Any] = List(Talca, Levi, Crystal Springs, Stan, Yoshio, Kevin, San José de Maipo, Haridwar, Gray, Garrison)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//adds an equality constraint with value "Alice"
 // res2: List[Any] = List(Garrison)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">birthDate</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">gt</span><span class="o">(</span><span class="nc">LocalDate</span><span class="o">.</span><span class="n">parse</span><span class="o">(</span><span class="s">"2002-06-13"</span><span class="o">))).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span>
-<span class="c1">// res3: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1089, 1065)
+<span class="c1">// res3: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1088, 1112)
 </span></code></pre></div></div>
 <h5 id="hasnot">HasNot</h5>
 <p>HasNot-step is the inverse of a Has-step (this could also be written as <code class="highlighter-rouge">.not(_.has(..))</code>)</p>
 <h5 id="haslabel">HasLabel</h5>
 <p>HasLabel-step validates the precence of one or more labels (ontology, property or datatype)</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">labels</span><span class="o">.</span><span class="n">person</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//filters all persons
-// res4: List[Any] = List(Kevin, Gray, Garrison, Yoshio, Levi, Stan)
+// res4: List[Any] = List(Levi, Stan, Yoshio, Kevin, Gray, Garrison)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">labels</span><span class="o">.</span><span class="n">place</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//filters all places
 // res5: List[Any] = List(Talca, Crystal Springs, San José de Maipo, Haridwar)
 </span></code></pre></div></div>
 <h5 id="hasid">HasId</h5>
 <p>HasId-step validates if the id is within a certain set.</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="mi">1</span><span class="n">l</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">toList</span>
-<span class="c1">// res6: List[Any] = List()
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="mi">1001</span><span class="n">l</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">toList</span>
+<span class="c1">// res6: List[Any] = List(San José de Maipo)
 </span></code></pre></div></div>
 <h5 id="hasiri">HasIri</h5>
 <p>HasIri-step validates if the iri is within a certain set.</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"place-san_jose_de_maipo"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">toList</span>
-<span class="c1">// res7: List[Any] = List(San José de Maipo)
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">toList</span>
+<span class="c1">// res7: List[Any] = List()
+</span></code></pre></div></div>
+<h4 id="global-filter-steps">Global Filter steps</h4>
+<h5 id="dedup">Dedup</h5>
+<p>Dedup-step filters traversers with distinct values</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="n">union</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">),</span> <span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">)).</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//shouldBe 2
+// res8: lspace.librarian.datatype.LongType.defaultLongType.C = 2
+</span>
+<span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="n">union</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">),</span> <span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">)).</span><span class="n">dedup</span><span class="o">().</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//shouldBe 1
+// res9: lspace.librarian.datatype.LongType.defaultLongType.C = 1
 </span></code></pre></div></div>
 <h4 id="coin">Coin</h4>
 <p>Coin-step filters traversers on a coin-flip result for probability p</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//total nodes to draw from
-// res8: lspace.librarian.datatype.LongType.defaultLongType.C = 10
+// res10: lspace.librarian.datatype.LongType.defaultLongType.C = 10
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.2 (20%)
-// res9: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List()
+// res11: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1088)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.8</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.8 (80%)
-// res10: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1030, 1111, 1017, 1065, 1100, 1037)
-</span></code></pre></div></div>
-<h4 id="dedup">Dedup</h4>
-<p>Dedup-step filters traversers with distinct values</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="n">union</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">),</span> <span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">)).</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//shouldBe 2
-// res11: lspace.librarian.datatype.LongType.defaultLongType.C = 2
-</span>
-<span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="n">union</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">),</span> <span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">limit</span><span class="o">(</span><span class="mi">1</span><span class="o">)).</span><span class="n">dedup</span><span class="o">().</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//shouldBe 1
-// res12: lspace.librarian.datatype.LongType.defaultLongType.C = 1
+// res12: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1040, 1088, 1026, 1123, 1047, 1112, 1033, 1100, 1134)
 </span></code></pre></div></div>
 <h4 id="where">Where</h4>
 <p>Where-step takes a traversal and filters on non-empty results</p>
@@ -206,31 +219,31 @@ the end of the traversal he communicates back the result that was requested.</p>
 <h4 id="or">Or</h4>
 <p>Or-step takes one or more traversals and filters only those which have non-empty results for at least one traversal</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">or</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/name"</span><span class="o">),</span> <span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/birthDate"</span><span class="o">)).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">,</span> <span class="n">keys</span><span class="o">.</span><span class="n">birthDate</span><span class="o">).</span><span class="n">toList</span>
-<span class="c1">// res16: List[Any] = List(Kevin, 2008-11-30, Gray, 1997-04-10, Garrison, 1994-06-18, Yoshio, 1996-08-18, Levi, 2008-12-20, Stan, 2002-06-13)
+<span class="c1">// res16: List[Any] = List(Levi, 2008-12-20, Stan, 2002-06-13, Yoshio, 1996-08-18, Kevin, 2008-11-30, Gray, 1997-04-10, Garrison, 1994-06-18)
 </span></code></pre></div></div>
 <h4 id="not">Not</h4>
 <p>Not-step takes a traversal and filters on empty results</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">not</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/name"</span><span class="o">)).</span><span class="n">limit</span><span class="o">(</span><span class="mi">2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span>
-<span class="c1">// res17: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1089, 1044)
+<span class="c1">// res17: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1040, 1088)
 </span></code></pre></div></div>
 <h4 id="is">Is</h4>
 <p>Is-step asserts a value against one or more predicates</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">is</span><span class="o">(</span><span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="mi">300</span><span class="o">)).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">)</span> <span class="c1">//filters the all outgoing resources with value 2
 // res18: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.structure.ClassType[Any],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.Out :: shapeless.HNil] :: lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.Is :: lspace.librarian.process.traversal.step.Out :: shapeless.HNil] :: lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(Out(Set(property:name)) :: HNil) :: Segment(Is(List(Eqv(300))) :: Out(Set()) :: HNil) :: Segment(N(List()) :: HNil) :: HNil)
 </span></code></pre></div></div>
-<h4 id="clip-steps">Clip steps</h4>
-<p>A clip filters the resulting traversers by index position</p>
-<h5 id="range">Range</h5>
+<h3 id="clip-steps">Clip steps</h3>
+<p>A clip step cuts the resulting stream of traversers.</p>
+<h4 id="range">Range</h4>
 <p>Range-step filters by a low-end and high-end index</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">range</span><span class="o">(</span><span class="mi">4</span><span class="o">,</span> <span class="mi">16</span><span class="o">)</span> <span class="c1">//takes only node 4 until 16
 // res19: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.datatype.NodeURLType[lspace.librarian.structure.Node],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.Range :: lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(Range(4,16) :: N(List()) :: HNil) :: HNil)
 </span></code></pre></div></div>
-<h5 id="limit">Limit</h5>
+<h4 id="limit">Limit</h4>
 <p>Limit-step takes the first x-number of traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">limit</span><span class="o">(</span><span class="mi">12</span><span class="o">)</span> <span class="c1">//takes only the first 12 nodes
 // res20: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.datatype.NodeURLType[lspace.librarian.structure.Node],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.Limit :: lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(Limit(12) :: N(List()) :: HNil) :: HNil)
 </span></code></pre></div></div>
-<h5 id="tail">Tail</h5>
+<h4 id="tail">Tail</h4>
 <p>Tail-step takes the last x-number of traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">tail</span><span class="o">(</span><span class="mi">12</span><span class="o">)</span> <span class="c1">//takes only the last 12 nodes
 // res21: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.datatype.NodeURLType[lspace.librarian.structure.Node],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.Tail :: lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(Tail(12) :: N(List()) :: HNil) :: HNil)
@@ -324,29 +337,27 @@ the traversal will continue to operate with a traverser for each Value.</p>
 // res39: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.structure.ClassType[Any],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.OutMap :: shapeless.HNil] :: lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(OutMap(Set()) :: HNil) :: Segment(N(List()) :: HNil) :: HNil)
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">outMap</span><span class="o">().</span><span class="n">head</span>
-<span class="c1">// res40: this.Out = Map(property:name -&gt; List(Garrison), property:https://schema.org/birthDate -&gt; List(1994-06-18), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e44f, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e444), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e417), property:@id -&gt; List(person-garrisson))
+<span class="c1">// res40: this.Out = Map(property:name -&gt; List(Garrison), property:https://schema.org/birthDate -&gt; List(1994-06-18), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e466, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e45b), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e413), property:@id -&gt; List(librarian-doc/person/56789))
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">outMap</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="s">"knows"</span><span class="o">)</span> <span class="c1">//returns a property-map for edges with label "name" or "knows"
 // res41: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.structure.ClassType[Any],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.OutMap :: shapeless.HNil] :: lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(OutMap(Set(property:name, property:knows)) :: HNil) :: Segment(N(List()) :: HNil) :: HNil)
 </span></code></pre></div></div>
 <h4 id="outemap">OutEMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">outEMap</span><span class="o">().</span><span class="n">head</span> <span class="c1">//should return all out-going edges grouped by key
-// res42: this.Out = Map(property:name -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e45e), property:https://schema.org/birthDate -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e460), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e462, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e467), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e461), property:@id -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e45c))
+// res42: this.Out = Map(property:name -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e475), property:https://schema.org/birthDate -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e477), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e479, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e47b), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e478), property:@id -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e473))
 </span></code></pre></div></div>
 <h4 id="inmap">InMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">inMap</span><span class="o">().</span><span class="n">head</span> <span class="c1">//returns a property-map on all incoming connected resources
-// res43: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e44f, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e444))
+// res43: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e466, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e45b))
 </span></code></pre></div></div>
 <h4 id="inemap">InEMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">inEMap</span><span class="o">().</span><span class="n">head</span> <span class="c1">//should return all in-coming edges grouped by key
-// res44: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e466, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e468))
+// res44: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e47a, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e47c))
 </span></code></pre></div></div>
 <h3 id="barrier-steps">Barrier steps</h3>
 <p>Barrier steps can operate on the entire resultset of a traversal</p>
-<h4 id="collecting-steps">Collecting steps</h4>
+<h4 id="collecting-barrier-steps">Collecting barrier steps</h4>
 <p>Collecting steps …</p>
-<h5 id="order">Order</h5>
-<p>Order-step sorts the resultset</p>
 <h5 id="group">Group</h5>
 <p>Group-step groups the resultset into a <code class="highlighter-rouge">Map[Key,List[Value]]</code> where Key is the value by which it is grouped and
 <code class="highlighter-rouge">List[Value]</code> is the list of values which have the same group-key. If the traversal has any succeeding steps after the Group-step, 
@@ -357,44 +368,52 @@ the traversal will continue to operate with a traverser for each Value.</p>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">group</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">)).</span><span class="n">group</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"age"</span><span class="o">))</span> <span class="c1">//can e.g. be a Map[String, List[Map[Int,List[Node]]]]
 // res46: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.datatype.NodeURLType[lspace.librarian.structure.Node],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.Group[lspace.librarian.structure.ClassType[Any]] :: lspace.librarian.process.traversal.step.Group[lspace.librarian.structure.ClassType[Any]] :: lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(Group(Traversal(Segment(Out(Set(property:age)) :: HNil) :: HNil)) :: Group(Traversal(Segment(Out(Set(property:name)) :: HNil) :: HNil)) :: N(List()) :: HNil) :: HNil)
 </span></code></pre></div></div>
-<h4 id="reducing-steps">Reducing steps</h4>
-<h5 id="min">Min</h5>
-<p>Min-step passes only the traverser with the smallest value</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">min</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be -245.05
-// res47: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = -245.05
-</span>
-<span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">min</span><span class="o">.</span><span class="n">in</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should be "Levi"
-// res48: Any = Levi
-</span></code></pre></div></div>
-<h5 id="max">Max</h5>
-<p>Max-step passes only the traverser with the largest value</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">max</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 2230.30
-// res49: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = 2230.3
-</span>
-<span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">max</span><span class="o">.</span><span class="n">in</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should be "Gray"
-// res50: Any = Gray
-</span></code></pre></div></div>
+<h4 id="reducing-barrier-steps">Reducing barrier steps</h4>
+<p>Reducing barrier steps perform a fold task on all traverers in the stream resulting in a single traverser 
+with the resulting value of the fold task.</p>
 <h5 id="mean">Mean</h5>
 <p>Mean-step passes a traverser where the value is the mean of the values of incoming traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">mean</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 624.0225
-// res51: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = 624.0225
+// res47: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = 624.0225
 </span></code></pre></div></div>
 <h5 id="sum">Sum</h5>
 <p>Sum-step passes a traverser where the value is the sum of the values of incoming traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">sum</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 2496.09
-// res52: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = 2496.09
+// res48: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = 2496.09
 </span></code></pre></div></div>
 <h5 id="count">Count</h5>
 <p>Count-step returns the number of incoming traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="nc">Ontology</span><span class="o">(</span><span class="s">"https://schema.org/Person"</span><span class="o">)).</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 6
-// res53: lspace.librarian.datatype.LongType.defaultLongType.C = 6
+// res49: lspace.librarian.datatype.LongType.defaultLongType.C = 6
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="nc">Ontology</span><span class="o">(</span><span class="s">"https://schema.org/Person"</span><span class="o">)).</span><span class="n">where</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="nc">Property</span><span class="o">(</span><span class="s">"https://schema.org/knows"</span><span class="o">)).</span><span class="n">count</span><span class="o">.</span><span class="n">is</span><span class="o">(</span><span class="n">P</span><span class="o">.</span><span class="n">gt</span><span class="o">(</span><span class="mi">1</span><span class="o">))).</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 5
-// res54: lspace.librarian.datatype.LongType.defaultLongType.C = 5
+// res50: lspace.librarian.datatype.LongType.defaultLongType.C = 5
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="nc">Ontology</span><span class="o">(</span><span class="s">"https://schema.org/Person"</span><span class="o">)).</span><span class="n">where</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="nc">Property</span><span class="o">(</span><span class="s">"https://schema.org/knows"</span><span class="o">)).</span><span class="n">count</span><span class="o">.</span><span class="n">is</span><span class="o">(</span><span class="n">P</span><span class="o">.</span><span class="n">lt</span><span class="o">(</span><span class="mi">2</span><span class="o">))).</span><span class="n">count</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 1
-// res55: lspace.librarian.datatype.LongType.defaultLongType.C = 1
+// res51: lspace.librarian.datatype.LongType.defaultLongType.C = 1
 </span></code></pre></div></div>
+<h4 id="filter-barrier-steps">Filter barrier steps</h4>
+<p>Filter barrier steps filters traversers based on some comparison against the complete stream of traversers.</p>
+<h5 id="min">Min</h5>
+<p>Min-step passes only the traverser with the smallest value</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">min</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be -245.05
+// res52: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = -245.05
+</span>
+<span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">min</span><span class="o">.</span><span class="n">in</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should be "Levi"
+// res53: Any = Levi
+</span></code></pre></div></div>
+<h5 id="max">Max</h5>
+<p>Max-step passes only the traverser with the largest value</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">max</span><span class="o">.</span><span class="n">head</span> <span class="c1">//should be 2230.30
+// res54: lspace.librarian.datatype.DoubleType.defaultDoubleTypeDouble.C = 2230.3
+</span>
+<span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">`@double`</span><span class="o">).</span><span class="n">max</span><span class="o">.</span><span class="n">in</span><span class="o">(</span><span class="s">"balance"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should be "Gray"
+// res55: Any = Gray
+</span></code></pre></div></div>
+<h4 id="rearrange-barrier-steps">Rearrange barrier steps</h4>
+<p>Rearrange barrier steps manipulates the position of all the traversers in the stream.</p>
+<h5 id="order">Order</h5>
+<p>Order-step sorts the resultset</p>
 <h3 id="side-effect-steps">Side-Effect steps</h3>
 <p>Side-Effect steps …</p>
 <h4 id="drop">Drop</h4>
