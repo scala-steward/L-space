@@ -32,4 +32,5 @@ RUN 	pip install --upgrade pip && \
         -o almond && \
         ./almond --install && \
         jupyter labextension install @jupyterlab/git && \
+        jupyter labextension install @jupyterlab/plotly-extension && \
         export NODE_OPTIONS=--max-old-space-size=4096 && jupyter lab build
