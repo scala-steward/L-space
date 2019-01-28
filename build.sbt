@@ -3,7 +3,9 @@ import sbtcrossproject.CrossProject
 // shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
-scalaVersion in ThisBuild := "2.12.8"
+ThisBuild / organization := "eu.l-space"
+ThisBuild / scalaVersion := "2.12.8"
+
 lazy val settings = commonSettings
 
 lazy val compilerOptions = Seq(
@@ -27,7 +29,6 @@ lazy val compilerOptions = Seq(
 )
 
 lazy val projectSettings = Seq(
-  organization := "eu.l-space",
   homepage := Some(url("https://github.com/L-space/L-space")),
   licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
   developers := List(
@@ -128,6 +129,15 @@ lazy val cassandra = (project in file("store/cassandra"))
   .settings(
     name := "lspace-store-cassandra",
     libraryDependencies ++= storeCassandraDeps,
+    Test / parallelExecution := false
+  )
+
+lazy val kafka = (project in file("store/kafka"))
+  .dependsOn(graph % "compile->compile;test->test")
+  .settings(settings)
+  .settings(
+    name := "lspace-store-kafka",
+    libraryDependencies ++= storeKafkaDeps,
     Test / parallelExecution := false
   )
 

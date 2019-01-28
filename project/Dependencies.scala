@@ -59,6 +59,10 @@ object Dependencies {
     "com.outworkers" %% "phantom-dsl" % Version.phantom
   )
 
+  val storeKafkaDeps = Seq(
+    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC2"
+  )
+
   val indexElasticsearchDeps = Seq(
     "com.sksamuel.elastic4s" %% "elastic4s-core"  % Version.elastic4s,
     "com.sksamuel.elastic4s" %% "elastic4s-http"  % Version.elastic4s,
