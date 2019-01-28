@@ -6,12 +6,10 @@ import io.finch._
 import io.finch.Endpoint
 import lspace.librarian.structure.Graph
 import lspace.parse.JsonLD
-import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
 case class NameSpaceService(graph: Graph) extends JsonLDModule {
-  val log             = LoggerFactory.getLogger(getClass)
   implicit val _graph = graph
   implicit val jsonld = JsonLD(graph) //todo JsonLD context per client-session
 

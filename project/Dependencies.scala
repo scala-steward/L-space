@@ -6,7 +6,7 @@ object Version {
   val finch     = "0.27.0"
   val argonaut  = "6.2.2"
   val monix     = "3.0.0-RC2"
-  val sttp      = "1.5.1"
+  val sttp      = "1.5.8"
   val elastic4s = "6.5.0"
   val phantom   = "2.30.0"
 }
@@ -19,6 +19,7 @@ object Dependencies {
       "com.chuusai"   %%% "shapeless"      % "2.3.3",
       "org.typelevel" %%% "squants"        % "1.4.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
+      "com.outr"      %%% "scribe"    % "2.7.1",
       "org.scalatest" %%% "scalatest" % "3.0.5" % "test"
     ))
 
@@ -28,7 +29,7 @@ object Dependencies {
       "org.scala-js"      %%% "scalajs-dom"     % "0.9.6"
     ))
 
-  val coreJvmDeps = Seq("ch.qos.logback" % "logback-classic" % "1.2.3")
+  val coreJvmDeps = Seq()
 
   val parseDeps = Def.setting(
     Seq(
@@ -74,7 +75,7 @@ object Dependencies {
     "com.github.finagle" %% "finchx-generic"  % Version.finch,
     "com.github.finagle" %% "finchx-argonaut" % Version.finch,
     "com.github.finagle" %% "finchx-sse"      % Version.finch,
-    "com.twitter"        %% "twitter-server"  % "18.12.0",
+    "com.twitter"        %% "twitter-server"  % "19.1.0",
     "com.vmunier"        %% "scalajs-scripts" % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi"   %% "scalatags" % "0.6.7",

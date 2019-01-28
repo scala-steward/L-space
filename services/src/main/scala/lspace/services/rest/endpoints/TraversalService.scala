@@ -4,15 +4,14 @@ import java.time.Instant
 
 import lspace.librarian.process.traversal.{Collection, Traversal}
 import lspace.librarian.structure._
-import org.slf4j.LoggerFactory
 import cats.effect.IO
 import io.finch._
 import lspace.librarian.datatype.DataType
 import lspace.parse.JsonLD
+import scribe._
 import shapeless.{CNil, HList}
 
 case class TraversalService(graph: Graph) extends JsonLDModule {
-  val log             = LoggerFactory.getLogger(getClass)
   implicit val _graph = graph
   implicit val jsonld = JsonLD(graph) //todo JsonLD context per client-session
 
@@ -25,7 +24,8 @@ case class TraversalService(graph: Graph) extends JsonLDModule {
       val start                     = Instant.now()
       val result                    = traversal.toUntypedStream.toList
       val collection: Collection[_] = Collection(start, Instant.now(), result)
-      log.debug("result count: " + result.size.toString)
+
+      collection.logger.debug("result count: " + result.size.toString)
       Ok(collection)
     }
 

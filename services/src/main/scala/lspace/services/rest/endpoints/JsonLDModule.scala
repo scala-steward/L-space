@@ -13,7 +13,7 @@ import lspace.encode.EncodeJsonLD
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.structure._
 import lspace.parse.util.{FromJsonException, NotAcceptableException}
-import org.slf4j.Logger
+import scribe._
 
 import scala.util.{Failure, Success}
 
@@ -62,7 +62,6 @@ object JsonLDModule {
 }
 
 trait JsonLDModule extends Endpoint.Module[IO] {
-  def log: Logger
 
   import JsonLDModule.Decode._
 
@@ -83,10 +82,10 @@ trait JsonLDModule extends Endpoint.Module[IO] {
           }
           .onErrorHandle {
             case e: NotAcceptableException =>
-              log.debug(e.getMessage)
+              e.logger.debug(e.getMessage)
               NotAcceptable(new Exception(s"Body does not look like a ${Traversal.ontology.iri}"))
             case e =>
-              log.debug(e.getMessage)
+              e.logger.debug(e.getMessage)
               NotAcceptable(new Exception("not a valid traversal"))
           }
           .toIO(catsEffect(global))

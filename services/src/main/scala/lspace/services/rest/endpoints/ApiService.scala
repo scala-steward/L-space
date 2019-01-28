@@ -5,13 +5,11 @@ import io.finch._
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.structure._
 import lspace.parse.JsonLD
-import org.slf4j.LoggerFactory
 import shapeless.HList
 
 case class PagedResult(result: List[Node])
 
 case class ApiService(ontology: Ontology)(implicit graph: Graph) extends JsonLDModule {
-  val log             = LoggerFactory.getLogger(getClass)
   implicit val jsonld = JsonLD(graph) //todo JsonLD context per client-session
 
   implicit val ec = monix.execution.Scheduler.global
