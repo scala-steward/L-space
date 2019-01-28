@@ -324,7 +324,8 @@ trait Graph extends IriResource {
 //        println("added iri")
         node
       } else if (nodes.size > 1) {
-        GraphUtils.mergeNodes(nodes.toSet)
+        GraphUtils.mergeNodes(nodes.toSet).runAsyncAndForget(monix.execution.Scheduler.global)
+        nodes.minBy(_.id)
       } else {
 //        println(s"found existing $iri")
 //        try {
@@ -478,10 +479,12 @@ trait Graph extends IriResource {
     def upsert[V, TOut, CTOut <: ClassType[_]](value: V)(
         implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Value[V] = {
       val values = byValue(value)
+
       val _value: Value[V] = if (values.isEmpty) {
         create(value)
       } else if (values.size > 1) {
-        GraphUtils.mergeValues(values.toSet)
+        Task(GraphUtils.mergeValues(values.toSet)).runAsyncAndForget(monix.execution.Scheduler.global)
+        values.minBy(_.id)
       } else values.head
       _value
     }

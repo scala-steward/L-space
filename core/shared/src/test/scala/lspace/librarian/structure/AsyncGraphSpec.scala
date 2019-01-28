@@ -3,6 +3,8 @@ package lspace.librarian.structure
 import lspace.librarian.process.traversal.P
 import lspace.librarian.structure.Property.default._
 import lspace.librarian.util.SampleGraph
+import monix.eval.Task
+import monix.reactive.Observable
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Filter, Matchers}
 
 import scala.concurrent.Future
@@ -95,6 +97,17 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
             graph.g.N.has(`@id`, P.prefix("some-iri-1,000-1")).count().head should (be >= 1000l and be < 6000l)
           }
       }
+    }
+
+    "create edges in parallel" in {
+      Observable
+        .fromIterable(1 to 5000)
+        .mapParallelUnordered(20)(i => Task(graph.nodes.upsert("abcabc") --- `@id` --> graph.nodes.upsert("defdef")))
+        .completedL
+        .runToFuture(monix.execution.Scheduler.global)
+        .map { t =>
+          1 shouldBe 1
+        }
     }
   }
 }

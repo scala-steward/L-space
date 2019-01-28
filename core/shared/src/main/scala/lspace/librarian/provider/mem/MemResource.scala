@@ -1,10 +1,13 @@
 package lspace.librarian.provider.mem
 
-import lspace.librarian.datatype.DataType
+import java.util.concurrent.ConcurrentHashMap
+
+import lspace.librarian.datatype.{DataType, TextType}
 import lspace.librarian.structure.Property.default
 import lspace.librarian.structure._
 
-import scala.collection.mutable
+import scala.collection.{concurrent, mutable}
+import scala.collection.JavaConverters._
 
 object MemResource {}
 
@@ -15,28 +18,31 @@ trait MemResource[T] extends Resource[T] {
     linksOut
       .get(default.`@id`)
       .flatMap(_.headOption)
-      .map(_.inV.value.toString)
+      .flatMap(_.inV.hasLabel(TextType.datatype).map(_.value))
       .getOrElse("")
 
   override def iris: Set[String] =
-    linksOut.get(default.`@id`).map(_.map(_.inV.value.asInstanceOf[String]).toSet).getOrElse(Set()) ++
-      linksOut.get(default.`@ids`).map(_.map(_.inV.value.asInstanceOf[String]).toSet).getOrElse(Set())
+    linksOut.get(default.`@id`).map(_.flatMap(_.inV.hasLabel(TextType.datatype).map(_.value)).toSet).getOrElse(Set()) ++
+      linksOut.get(default.`@ids`).map(_.flatMap(_.inV.hasLabel(TextType.datatype).map(_.value)).toSet).getOrElse(Set())
 
-  private val linksOut
-    : mutable.OpenHashMap[Property, List[Edge[T, _]]] = //what about mutable.LinkedHashMap[Property, mutable.LinkedHashSet[Edge[T, _]]]
+//  private val linksOut: concurrent.Map[Property, List[Edge[T, _]]] =
+//    new ConcurrentHashMap[Property, List[Edge[T, _]]](16, 0.9f, 32).asScala
+  private val linksOut: mutable.OpenHashMap[Property, List[Edge[T, _]]] =
     mutable.OpenHashMap[Property, List[Edge[T, _]]]()
 
-  protected[librarian] def _addOut(edge: Edge[T, _]): Unit = synchronized {
+  protected[librarian] def _addOut(edge: Edge[T, _]): Unit = this.synchronized {
     if (edge.from != this) throw new Exception("edge.from != this, cannot add out-link")
     linksOut += edge.key -> (edge :: linksOut
       .getOrElse(edge.key, List[Edge[T, _]]())
       .reverse).distinct.reverse
   }
 
+//  private val linksIn: concurrent.Map[Property, List[Edge[_, T]]] =
+//    new ConcurrentHashMap[Property, List[Edge[_, T]]](2, 0.9f, 4).asScala
   private val linksIn: mutable.OpenHashMap[Property, List[Edge[_, T]]] =
     mutable.OpenHashMap[Property, List[Edge[_, T]]]()
 
-  protected[librarian] def _addIn(edge: Edge[_, T]): Unit = synchronized {
+  protected[librarian] def _addIn(edge: Edge[_, T]): Unit = this.synchronized {
     if (edge.to != this) throw new Exception("edge.from != this, cannot add in-link")
     linksIn += edge.key -> (edge :: linksIn
       .getOrElse(edge.key, List[Edge[_, T]]())
@@ -84,7 +90,7 @@ trait MemResource[T] extends Resource[T] {
   private def validateDT[V](dt: DataType[V], value: V) =
     if (dt.iri.nonEmpty) dt else ClassType.valueToOntologyResource(value)
 
-  def removeIn[V >: T](edge: Edge[_, V]): Unit = synchronized {
+  def removeIn[V >: T](edge: Edge[_, V]): Unit = this.synchronized {
     linksIn.get(edge.key).foreach { links =>
       if (links.contains(edge)) {
         val newSet = links.filterNot(_ == edge)
@@ -94,7 +100,7 @@ trait MemResource[T] extends Resource[T] {
       }
     }
   }
-  def removeOut[V >: T](edge: Edge[V, _]): Unit = synchronized {
+  def removeOut[V >: T](edge: Edge[V, _]): Unit = this.synchronized {
     linksOut.get(edge.key).foreach { links =>
       if (links.contains(edge)) {
         val newSet = links.filterNot(_ == edge)
@@ -104,12 +110,12 @@ trait MemResource[T] extends Resource[T] {
       }
     }
   }
-  def removeIn(key: Property): Unit = synchronized {
+  def removeIn(key: Property): Unit = this.synchronized {
     val toRemove = inE(key)
     linksIn -= key
     toRemove.foreach(_.remove())
   }
-  def removeOut(key: Property): Unit = synchronized {
+  def removeOut(key: Property): Unit = this.synchronized {
     val toRemove = outE(key)
     linksOut -= key
     toRemove.foreach(_.remove())

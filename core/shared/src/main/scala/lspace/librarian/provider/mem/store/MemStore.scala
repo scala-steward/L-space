@@ -16,7 +16,7 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   val graph: G
 
   protected[mem] lazy val data: concurrent.Map[Long, T2] =
-    new ConcurrentHashMap[Long, T2]().asScala
+    new ConcurrentHashMap[Long, T2](16, 0.9f, 32).asScala
 
   def store(resource: T): Unit = {
     data += resource.id -> resource.asInstanceOf[T2]
