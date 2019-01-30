@@ -5,6 +5,7 @@ import lspace.lgraph.store.StoreManager
 import lspace.librarian.datatype._
 import lspace.librarian.structure.Property
 import monix.eval.Task
+import monix.execution.CancelableFuture
 
 object MemStoreManager {
   def apply[G <: LGraph](graph: G): MemStoreManager[G] = new MemStoreManager[G](graph)
@@ -93,10 +94,12 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   override def valueCount(): Long = graph.values().size
 
-  def init(): Unit = {}
+  def init(): CancelableFuture[Unit] = CancelableFuture.unit
+
+  def persist: CancelableFuture[Unit] = CancelableFuture.unit
 
   /**
     * finishes write-queue(s) and closes connection
     */
-  override def close(): Unit = {}
+  override def close(): CancelableFuture[Unit] = CancelableFuture.unit
 }

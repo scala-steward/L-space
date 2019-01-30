@@ -2,7 +2,6 @@ package lspace.encode
 
 import argonaut.Json
 import lspace.librarian.structure.{Graph, Node, Property, Resource}
-import lspace.parse.LDContextBuilder
 
 trait EncodeJsonLD[A] {
   val encode: A => Json

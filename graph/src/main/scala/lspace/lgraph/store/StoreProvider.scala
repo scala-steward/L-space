@@ -10,5 +10,5 @@ trait StoreProvider {
   def nsManager[G <: LGraph](graph: G): StoreManager[G]
   def nsIndexManager[G <: LGraph](graph: G): StoreManager[G]
   def indexManager[G <: LGraph](graph: G): StoreManager[G]
-  def indexIndexManager[G <: LGraph](graph: G): StoreManager[G]
+//  def indexIndexManager[G <: LGraph](graph: G): StoreManager[G]
 }

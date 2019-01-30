@@ -5,6 +5,7 @@ import lspace.librarian.datatype.DataType
 import lspace.librarian.structure._
 import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
 import monix.eval.Task
+import monix.execution.{Cancelable, CancelableFuture}
 
 abstract class StoreManager[G <: LGraph](val graph: G) {
 
@@ -50,11 +51,13 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
   def edgeCount(): Long
   def valueCount(): Long
 
-  def init(): Unit
+  def init(): CancelableFuture[Unit]
+
+  def persist: CancelableFuture[Unit]
 
   /**
     * finishes write-queue(s) and closes connection
     */
-  def close(): Unit
+  def close(): CancelableFuture[Unit]
 
 }

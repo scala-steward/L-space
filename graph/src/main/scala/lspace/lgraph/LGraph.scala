@@ -10,6 +10,7 @@ import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.structure._
 import lspace.librarian.structure.util.IdProvider
+import monix.execution.{Cancelable, CancelableFuture}
 import shapeless.HList
 
 object LGraph {
@@ -63,15 +64,15 @@ object LGraph {
         lazy val graph: LGraph = self
         private val _thisgraph = thisgraph
 
-        lazy val index: LIndexGraph = new LIndexGraph {
-          def iri: String = _iri + ".index" + ".index"
-
-          lazy val graph: LGraph      = _thisgraph
-          lazy val index: LIndexGraph = this
-
-          lazy val storeManager: StoreManager[this.type] = storeProvider.indexIndexManager(this)
-          lazy val indexManager: IndexManager[this.type] = indexProvider.indexIndexManager(this)
-        }
+//        lazy val index: LIndexGraph = new LIndexGraph {
+//          def iri: String = _iri + ".index" + ".index"
+//
+//          lazy val graph: LGraph      = _thisgraph
+//          lazy val index: LIndexGraph = this
+//
+//          lazy val storeManager: StoreManager[this.type] = storeProvider.indexIndexManager(this)
+//          lazy val indexManager: IndexManager[this.type] = indexProvider.indexIndexManager(this)
+//        }
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.indexManager(this)
         lazy val indexManager: IndexManager[this.type] = indexProvider.indexManager(this)
@@ -80,7 +81,7 @@ object LGraph {
       val stateManager: GraphManager[this.type] = storeProvider.stateManager(this)
       lazy val idProvider: IdProvider           = stateManager.idProvider
 
-      override def close(): Unit = {
+      override def close(): CancelableFuture[Unit] = {
 //        cacheReaper.kill()
         super.close()
         stateManager.close()
@@ -119,7 +120,7 @@ trait LGraph extends Graph {
       .asInstanceOf[GNode]
   }
 
-  override protected def getOrCreateNode(id: Long): GNode = synchronized {
+  override protected[lspace] def getOrCreateNode(id: Long): GNode = synchronized {
     val node       = super.getOrCreateNode(id)
     val lastaccess = LResource.getLastAccessStamp()
     node._lastoutsync = Some(lastaccess)
@@ -236,8 +237,13 @@ trait LGraph extends Graph {
       traversal: Traversal[Start, End, Steps]): Task[Stream[Out]] =
     Task(computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph))
 
-  override def close(): Unit = {
-    super.close()
-    storeManager.close()
+  override def persist: CancelableFuture[Unit] = storeManager.persist
+
+  override def close(): CancelableFuture[Unit] = {
+    super
+      .close()
+      .flatMap { u =>
+        storeManager.close()
+      }(monix.execution.Scheduler.global)
   }
 }

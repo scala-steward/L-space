@@ -36,7 +36,7 @@ trait RemoteGraph extends Graph {
   override def values: Values                     = throw new Exception("remote graph has no local values:") //g.VR.toStream
 
   override protected def newNode(id: Long): GNode = throw new Exception("remote graphs do not (yet) support writing")
-  override protected def getOrCreateNode(id: Long): GNode =
+  override protected[lspace] def getOrCreateNode(id: Long): GNode =
     throw new Exception("remote graphs do not (yet) support writing")
   override protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
     throw new Exception("remote graphs do not (yet) support writing")

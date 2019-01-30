@@ -4,6 +4,7 @@ import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.librarian.structure.util.IdProvider
 import lspace.librarian.structure.{DataGraph, History, NameSpaceGraph}
+import monix.execution.CancelableFuture
 
 object LHistory {
   def apply(iri: String, storeProvider: StoreProvider, indexProvider: IndexProvider): LGraph = {
@@ -41,15 +42,15 @@ object LHistory {
         lazy val graph: LGraph = self
         private val _thisgraph = thisgraph
 
-        lazy val index: LIndexGraph = new LIndexGraph {
-          def iri: String = _iri + ".index" + ".index"
-
-          lazy val graph: LGraph      = _thisgraph
-          lazy val index: LIndexGraph = this
-
-          lazy val storeManager: StoreManager[this.type] = storeProvider.indexIndexManager(this)
-          lazy val indexManager: IndexManager[this.type] = indexProvider.indexIndexManager(this)
-        }
+//        lazy val index: LIndexGraph = new LIndexGraph {
+//          def iri: String = _iri + ".index" + ".index"
+//
+//          lazy val graph: LGraph      = _thisgraph
+//          lazy val index: LIndexGraph = this
+//
+//          lazy val storeManager: StoreManager[this.type] = storeProvider.indexIndexManager(this)
+//          lazy val indexManager: IndexManager[this.type] = indexProvider.indexIndexManager(this)
+//        }
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.indexManager(this)
         lazy val indexManager: IndexManager[this.type] = indexProvider.indexManager(this)
@@ -58,9 +59,12 @@ object LHistory {
       val stateManager: GraphManager[this.type] = storeProvider.stateManager(this)
       override def idProvider: IdProvider       = stateManager.idProvider
 
-      override def close(): Unit = {
-        super.close()
-        stateManager.close()
+      override def close(): CancelableFuture[Unit] = {
+        super
+          .close()
+          .flatMap { u =>
+            storeManager.close()
+          }(monix.execution.Scheduler.global)
       }
     }
     graph.init()

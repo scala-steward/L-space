@@ -1,6 +1,7 @@
 package lspace.lgraph.provider.mem
 
 import lspace.lgraph.{GraphManager, LGraph, LGraphIdProvider}
+import monix.execution.CancelableFuture
 import monix.execution.atomic.Atomic
 
 object MemGraphManager {
@@ -14,5 +15,5 @@ class MemGraphManager[G <: LGraph](override val graph: G) extends GraphManager[G
     override def next: Long                = id.incrementAndGet()
   }
 
-  override def close(): Unit = {}
+  override def close(): CancelableFuture[Unit] = CancelableFuture.unit
 }

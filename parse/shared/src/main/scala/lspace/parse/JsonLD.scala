@@ -14,9 +14,6 @@ import squants.time.Time
 
 import scala.collection.immutable.{ListMap, ListSet}
 
-object JsonLD {
-  val httpClient: HttpClient = HttpClientImpl
-}
 object JsonObjectInProgress {
   def apply(json: JsonObject, doubledefinitionWA: Int = 1)(
       implicit activeContext: ActiveContext): JsonObjectInProgress =
@@ -27,6 +24,7 @@ object JsonObjectInProgress {
       case Some(context) => JsonObject.fromTraversableOnce(ListMap(types.`@context` -> context) ++ jip.json.toMap)
       case None          => jip.json
     }
+    lazy val withContextAsJson: Json = Json.jObject(withContext)
 
     implicit class WithIriString(iri: String)(implicit activeContext: ActiveContext) {
       lazy val compact: String = activeContext.compactIri(iri)
@@ -102,13 +100,19 @@ case class JsonInProgress(json: Json, activeContext: ActiveContext) {
   def map(cb: (Json, ActiveContext) => JsonInProgress): JsonInProgress =
     cb(json, activeContext)
 }
-case class JsonLD(graph: Graph) {
+
+object JsonLD {
+  val httpClient: HttpClient = HttpClientImpl
+
+  def apply(graph: Graph): JsonLD = new JsonLD(graph)
+}
+class JsonLD(graph: Graph) {
   import JsonLD._
 
   implicit val ec = monix.execution.Scheduler.global
 //  val jsonld      = json.JsonLD(graph)
 
-  object encode {
+  trait encode {
     def apply[T <: Node](node: Node): Json =
       Json.jObject(fromNode(node)(ActiveContext()).withContext)
 
@@ -255,41 +259,64 @@ case class JsonLD(graph: Graph) {
     def fromCalendar(value: Any, expectedType: CalendarType[_])(
         implicit activeContext: ActiveContext): JsonInProgress = {
       expectedType match {
-        case label: DateTimeType[_] =>
-          value match {
-            case v: Instant => JsonInProgress(Json.jString(v.toString()))
-            case _          => throw ToJsonException(s"datetime expected ${value.getClass} found")
-          }
-        case label: LocalDateType[_] =>
-          value match {
-            case v: LocalDate => JsonInProgress(Json.jString(v.toString()))
-            case _            => throw ToJsonException(s"date expected ${value.getClass} found")
-          }
-        case label: LocalTimeType[_] =>
-          value match {
-            case v: LocalTime => JsonInProgress(Json.jString(v.toString()))
-            case _            => throw ToJsonException(s"time expected ${value.getClass} found")
-          }
+        case label: DateTimeType[_]  => fromDateTime(value, label)
+        case label: LocalDateType[_] => fromDate(value, label)
+        case label: LocalTimeType[_] => fromTime(value, label)
+      }
+    }
+
+    def fromDateTime(value: Any, expectedType: DateTimeType[_])(
+        implicit activeContext: ActiveContext): JsonInProgress = {
+      value match {
+        case v: Instant => JsonInProgress(Json.jString(v.toString()))
+        case _          => throw ToJsonException(s"datetime expected ${value.getClass} found")
+      }
+    }
+
+    def fromDate(value: Any, expectedType: LocalDateType[_])(implicit activeContext: ActiveContext): JsonInProgress = {
+      value match {
+        case v: LocalDate => JsonInProgress(Json.jString(v.toString()))
+        case _            => throw ToJsonException(s"date expected ${value.getClass} found")
+      }
+    }
+
+    def fromTime(value: Any, expectedType: LocalTimeType[_])(implicit activeContext: ActiveContext): JsonInProgress = {
+      value match {
+        case v: LocalTime => JsonInProgress(Json.jString(v.toString()))
+        case _ =>
+          println(value.asInstanceOf[Resource[_]].value)
+          throw ToJsonException(s"time expected ${value.getClass} found")
       }
     }
 
     def fromNumeric(value: Any, expectedType: NumericType[_])(implicit activeContext: ActiveContext): JsonInProgress = {
       expectedType match {
-        case label: IntType[_] =>
-          value match {
-            case v: Int => JsonInProgress(Json.jNumber(v))
-            case _      => throw ToJsonException(s"int expected ${value.getClass} found")
-          }
-        case label: DoubleType[_] =>
-          value match {
-            case v: Double => JsonInProgress(Json.jNumber(v).get)
-            case _         => throw ToJsonException(s"double expected ${value.getClass} found")
-          }
-        case label: LongType[_] =>
-          value match {
-            case v: Long => JsonInProgress(Json.jString(v.toString))
-            case _       => throw ToJsonException(s"long expected ${value.getClass} found")
-          }
+        case label: IntType[_]    => fromInt(value, label)
+        case label: DoubleType[_] => fromDouble(value, label)
+        case label: LongType[_]   => fromLong(value, label)
+      }
+    }
+
+    def fromInt(value: Any, expectedType: IntType[_])(implicit activeContext: ActiveContext): JsonInProgress = {
+      value match {
+        case v: Int => JsonInProgress(Json.jNumber(v))
+        case _ =>
+          println(value.asInstanceOf[Resource[_]].value)
+          throw ToJsonException(s"int expected ${value.getClass} found")
+      }
+    }
+
+    def fromDouble(value: Any, expectedType: DoubleType[_])(implicit activeContext: ActiveContext): JsonInProgress = {
+      value match {
+        case v: Double => JsonInProgress(Json.jNumber(v).get)
+        case _         => throw ToJsonException(s"double expected ${value.getClass} found")
+      }
+    }
+
+    def fromLong(value: Any, expectedType: LongType[_])(implicit activeContext: ActiveContext): JsonInProgress = {
+      value match {
+        case v: Long => JsonInProgress(Json.jString(v.toString))
+        case _       => throw ToJsonException(s"long expected ${value.getClass} found")
       }
     }
 
@@ -607,7 +634,8 @@ case class JsonLD(graph: Graph) {
         } match { case (l, activeContext) => JsonInProgress(l.asJson, activeContext) }
     }
   }
-  object decode {
+  lazy val encode = new encode {}
+  trait decode {
     def toLabeledNode(json: Json, ontology: Ontology, activeContext: ActiveContext = ActiveContext()): Task[Node] = {
       json.obj
         .map { obj =>
@@ -658,7 +686,14 @@ case class JsonLD(graph: Graph) {
           tryValue(expandedJson, et.collectFirst { case datatype: DataType[_] => datatype })
             .orElse(toEdge(expandedJson, et.collectFirst { case property: Property => property }))
             .getOrElse {
-              toNode(expandedJson, expectedType.collect { case ontology: Ontology => ontology })
+              et match {
+                case (geo: GeometricType[_]) :: tail =>
+                  toGeometric(Json.jObject(obj), geo).map { v =>
+                    graph.values.create(v, geo)
+                  }
+                case _ =>
+                  toNode(expandedJson, expectedType.collect { case ontology: Ontology => ontology })
+              }
             }
         }
       }
@@ -775,9 +810,10 @@ case class JsonLD(graph: Graph) {
         }
     }
 
-    def tryNodeRef(json: Json, label: Ontology)(implicit activeContext: ActiveContext): Option[Task[Node]] =
+    def tryNodeRef(json: Json)(implicit activeContext: ActiveContext): Option[Task[Node]] =
       json.string
-        .map(graph.nodes.upsert(_))
+        .map(activeContext.expandIri)
+        .map(graph.nodes.upsert(_)) //TODO: add label if missing?
         .map(Task.now)
 //        .getOrElse(Task.raiseError(FromJsonException("object expected when parsing to node")))
 
@@ -798,6 +834,11 @@ case class JsonLD(graph: Graph) {
       }
     }
 
+    def tryEdgeRef(json: Json, label: Property)(implicit activeContext: ActiveContext): Option[Task[Edge[_, _]]] =
+      json.string
+        .map(activeContext.expandIri)
+        .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
+        .map(Task.now)
     def toEdge(expandedJson: Map[String, Json], expectedType: Option[Property])(
         implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = toEdge(expandedJson, expectedType.toList)
     def toEdge(expandedJson: Map[String, Json], expectedTypes: List[Property])(
@@ -928,10 +969,11 @@ case class JsonLD(graph: Graph) {
           }
         }
         .orElse(label.headOption.flatMap {
-          case label: Ontology => tryNodeRef(json, label).map(_.map(label -> _))
+          case label: Ontology => tryNodeRef(json).map(_.map(label -> _))
           case label: Property =>
-            Some(Task.raiseError(
-              UnexpectedJsonException(s"expected edge with @type ${label.iri} but json is not an object")))
+            tryEdgeRef(json, label).map(_.map(label -> _))
+//            Some(Task.raiseError(
+//              UnexpectedJsonException(s"expected edge with @type ${label.iri} but json is not an object")))
           case label: DataType[_] => Some(toData(json, label).map(label -> _))
         })
         .orElse(tryRaw(json))
@@ -1415,7 +1457,7 @@ case class JsonLD(graph: Graph) {
       if (expandedJson.get(types.`@type`).exists(_.string.exists(_ == types.`@datatype`))) {
         activeContext.extractId(expandedJson) match {
           case Some(iri) =>
-            graph.ns.datatypes.get(iri).map(Task.now).getOrElse {
+            graph.ns.datatypes.get(iri).orElse(collectionIri(iri)).map(Task.now).getOrElse {
               DataType.getOrConstructing(iri)(Task.evalOnce {
                 val iris     = activeContext.extractIds(expandedJson)
                 val labels   = activeContext.extractLabels(expandedJson)
@@ -1427,7 +1469,15 @@ case class JsonLD(graph: Graph) {
                   .getOrElse(List())
                 if (`@extends`.lengthCompare(1) == 1)
                   Task.raiseError(FromJsonException("datatype cannot extend multiple datatypes"))
-                else
+                else if (`@extends`.isEmpty) {
+                  if (iri.startsWith("@"))
+                    graph.ns.datatypes
+                      .get(iri)
+                      .orElse(collectionIri(iri))
+                      .map(Task.now)
+                      .getOrElse(Task.raiseError(FromJsonException("not a collection-iri")))
+                  else Task.raiseError(FromJsonException("datatype should start with '@'"))
+                } else
                   `@extends`.head match {
                     case types.`@list` =>
                       toListType(expandedJson)
@@ -1459,6 +1509,92 @@ case class JsonLD(graph: Graph) {
       } else Task.raiseError(FromJsonException("datatype is not of type '@class'"))
     }
 
+    private def collectionIri(iri: String)(implicit activeContext: ActiveContext): Option[DataType[_]] = {
+      def iriToCollectionType(iri: String, tail: String): (StructuredType[Any], String) = iri match {
+        case types.`@list` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListType(list.head) -> newTail
+        case types.`@listset` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListSetType(list.head) -> newTail
+        case types.`@set` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListType(list.head) -> newTail
+        case types.`@vector` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListType(list.head) -> newTail
+        case types.`@map` =>
+          val (list, newTail) = getIris(tail, 2)
+          MapType(list.head, list(1)) -> newTail
+        case types.`@tuple2` =>
+          val (list, newTail) = getIris(tail, 2)
+          Tuple2Type(list.head, list(1)) -> newTail
+        case types.`@tuple3` =>
+          val (list, newTail) = getIris(tail, 3)
+          Tuple3Type(list.head, list(1), list(2)) -> newTail
+        case types.`@tuple4` =>
+          val (list, newTail) = getIris(tail, 4)
+          Tuple4Type(list.head, list(1), list(2), list(3)) -> newTail
+        //TODO: catch others
+      }
+      def getIris(tail: String, parts: Int = 1): (List[List[ClassType[Any]]], String) = {
+        val indexClosingParenthesis = tail.indexOf(')')
+        val indexOpeningParenthesis = tail.indexOf('(')
+        if (indexClosingParenthesis < indexOpeningParenthesis) {
+          val (tailClasstypes, tailIri) =
+            if (parts > 1) getIris(tail.drop(indexClosingParenthesis + 1), parts - 1)
+            else List[List[ClassType[_]]]() -> tail //get other parts
+          (tail
+            .take(indexClosingParenthesis)
+            .split('+')
+            .toList
+            .map(iriToClassType(_).getOrElse(throw FromJsonException("unknown @type"))) :: tailClasstypes) -> tailIri //concat
+        } else {
+
+          tail
+            .take(indexOpeningParenthesis)
+            .split('+')
+            .toList match { //split types until nested type @int+@double+@list/(
+            case head :: Nil =>
+              val (tpe, newTail) = iriToCollectionType(head.stripSuffix("/"), tail.drop(indexOpeningParenthesis + 1))
+              val (tailTpes, newTail2) =
+                if (parts > 2) getIris(newTail, parts - 2)
+                else List[List[ClassType[_]]]() -> tail
+              (List(tpe) :: tailTpes) -> newTail2
+            case list =>
+              val (tpe, newTail) =
+                iriToCollectionType(list.last.stripSuffix("/"), tail.drop(indexOpeningParenthesis + 1))
+              val (tailTpes, newTail2) =
+                if (parts > 1 + list.size) getIris(newTail, parts - (1 + list.size))
+                else List[List[ClassType[_]]]() -> tail
+              (List((list
+                .dropRight(1)
+                .map(iriToClassType(_).getOrElse(throw FromJsonException("unknown @type"))) :+ tpe) ::: tailTpes.head) ::: tailTpes.tail) -> newTail2
+          }
+        }
+      }
+      iri.replaceAll("/", "").split("(", 2).toList match {
+        case List(iri, tail) =>
+          Some(iri match {
+            case types.`@list`    => iriToCollectionType(iri, tail)._1
+            case types.`@listset` => iriToCollectionType(iri, tail)._1
+            case types.`@set`     => iriToCollectionType(iri, tail)._1
+            case types.`@vector`  => iriToCollectionType(iri, tail)._1
+            case types.`@map`     => iriToCollectionType(iri, tail)._1
+            case types.`@tuple2`  => iriToCollectionType(iri, tail)._1
+            case types.`@tuple3`  => iriToCollectionType(iri, tail)._1
+            case types.`@tuple4`  => iriToCollectionType(iri, tail)._1
+          })
+      }
+    }
+
+    def iriToClassType(iri: String)(implicit activeContext: ActiveContext): Option[ClassType[Any]] =
+      graph.ns.ontologies
+        .get(iri)
+        .orElse(graph.ns.properties.get(iri))
+        .orElse(graph.ns.datatypes.get(iri))
+        .orElse(collectionIri(iri))
+
     def toClasstype(obj: JsonObject)(implicit activeContext: ActiveContext): Task[ClassType[Any]] = {
       val expandedJson = activeContext.expandKeys(obj)
       if (expandedJson.get(types.`@type`).exists(_.string.exists(_ == types.`@datatype`))) {
@@ -1488,6 +1624,7 @@ case class JsonLD(graph: Graph) {
                           .get(iri)
                           .orElse(graph.ns.properties.get(iri))
                           .orElse(graph.ns.datatypes.get(iri))
+                          .orElse(collectionIri(iri))
                           .map(Task.now)
                           .getOrElse(fetchProperty(iri))))
                 .getOrElse(Task.raiseError(FromJsonException("nested arrays not allowed")))))
@@ -1827,4 +1964,5 @@ case class JsonLD(graph: Graph) {
       }
     }
   }
+  lazy val decode = new decode {}
 }

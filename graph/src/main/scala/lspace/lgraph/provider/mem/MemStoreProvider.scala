@@ -18,5 +18,5 @@ class MemStoreProvider(val iri: String) extends StoreProvider {
 
   override def indexManager[G <: LGraph](graph: G): StoreManager[G] = MemStoreManager(graph)
 
-  override def indexIndexManager[G <: LGraph](graph: G): StoreManager[G] = MemStoreManager(graph)
+//  override def indexIndexManager[G <: LGraph](graph: G): StoreManager[G] = MemStoreManager(graph)
 }

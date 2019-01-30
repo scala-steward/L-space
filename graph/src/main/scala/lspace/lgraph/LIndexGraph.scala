@@ -5,6 +5,8 @@ import lspace.librarian.process.traversal.UntypedTraversal
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure.index.Index
 import lspace.librarian.structure.{IndexGraph, Property}
+import monix.eval.Task
+import monix.execution.CancelableFuture
 
 import scala.collection.mutable
 
@@ -39,4 +41,6 @@ trait LIndexGraph extends LGraph with IndexGraph {
 //    indexes.remove(pattern)
   }
 //  override def _storeEdge[S, E](edge: _Edge[S, E]): Unit = super._storeEdge(edge)
+
+  override def persist: CancelableFuture[Unit] = storeManager.persist
 }

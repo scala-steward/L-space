@@ -1,3 +1,3 @@
 package lspace.encode
 
-abstract class EncodeException(message: String) extends Exception
+abstract class EncodeException(message: String) extends Exception(message)
