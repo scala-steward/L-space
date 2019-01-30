@@ -150,7 +150,7 @@ class Tuple2Type[+A, +B](val _1stRange: List[ClassType[A]], val _2ndRange: List[
   lazy val iri =
     if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "2"
     else
-      s"${types.`@tuple`}2/${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
+      s"${types.`@tuple`}2/(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple2Type.datatype)
 }
@@ -203,11 +203,11 @@ class Tuple3Type[A, B, C](val _1stRange: List[ClassType[A]],
           .filter(_.iri.nonEmpty)
           .isEmpty) NS.types.`@tuple` + "3"
     else
-      s"${types.`@tuple`}3/${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_2ndRange
+      s"${types.`@tuple`}3/(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_2ndRange
         .map(_.iri)
         .filter(_.nonEmpty)
         .sorted
-        .mkString("+")}/${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
+        .mkString("+")})/(${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple3Type.datatype)
 }
@@ -268,8 +268,8 @@ class Tuple4Type[A, B, C, D](val _1stRange: List[ClassType[A]],
           .filter(_.iri.nonEmpty)
           .isEmpty && _4rdRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "4"
     else
-      s"${types.`@tuple`}4/${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}" +
-        s"/${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}/${_4rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")}"
+      s"${types.`@tuple`}4/(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})" +
+        s"/(${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_4rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple4Type.datatype)
 }

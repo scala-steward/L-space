@@ -16,7 +16,7 @@ object History {
   */
 trait History extends Graph {
 
-  override protected def getOrCreateNode(id: Long): GNode = {
+  override protected[lspace] def getOrCreateNode(id: Long): GNode = {
     val createdNode = super.getOrCreateNode(id)
 
     //TODO: make time configurable

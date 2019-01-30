@@ -124,7 +124,7 @@ trait Resource[+T] extends IriResource {
 
   /** Filters out-going resources by the provided [[Property*]]
     *
-    * @param key the [[Edge]]'s labels
+    * @param key the [[Edge[_,_]]'s labels
     * @return List of unboxed values
     */
   def out(key: Property*): List[Any]

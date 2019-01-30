@@ -48,7 +48,7 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
 
   def apply[V](valueRange: List[ClassType[V]]): VectorType[V] = new VectorType[V](valueRange) {
     lazy val iri =
-      List(NS.types.`@vector`, valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"))
+      List(NS.types.`@vector`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
         .filter(_.nonEmpty)
         .mkString("/")
 

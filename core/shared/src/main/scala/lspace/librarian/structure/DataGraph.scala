@@ -15,7 +15,7 @@ trait DataGraph extends Graph {
   protected def `@idIndex`: Index
   protected def `@typeIndex`: Index
 
-  override protected def getOrCreateNode(id: Long): GNode = {
+  override protected[lspace] def getOrCreateNode(id: Long): GNode = {
     val node = super.getOrCreateNode(id)
     _indexNode(node)
     node

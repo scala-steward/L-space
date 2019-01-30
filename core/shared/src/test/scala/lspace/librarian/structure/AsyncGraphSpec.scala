@@ -7,6 +7,7 @@ import monix.eval.Task
 import monix.reactive.Observable
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Filter, Matchers}
 
+import scala.concurrent.duration._
 import scala.concurrent.Future
 
 trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
@@ -35,7 +36,7 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   }
 //  private[this] val newIdsLock = new Object
   import scala.collection.JavaConverters._
-  "AGraph" can {
+  "A Graph" can {
     "create nodes in parallel" in {
       val newIds: scala.collection.concurrent.Map[Long, List[Long]] =
         new java.util.concurrent.ConcurrentHashMap[Long, List[Long]]().asScala
@@ -108,6 +109,24 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         .map { t =>
           1 shouldBe 1
         }
+    }
+
+    "merges existing nodes when multiple nodes in the graph are identified by this iri" in {
+      import Property.default._
+      graph.nodes.upsert("dup-existing-node-123")
+      graph.nodes.hasIri("dup-existing-node-123").size shouldBe 1
+      graph.nodes.create() --- `@id` --> "dup-existing-node-123"
+      graph.nodes.create() --- `@id` --> "dup-existing-node-123"
+      graph.nodes.create() --- `@id` --> "dup-existing-node-123"
+      graph.nodes.upsert("dup-existing-node-123")
+      graph.nodes.hasIri("dup-existing-node-123").size shouldBe 1
+      graph.nodes.create() --- `@id` --> "dup-existing-node-123"
+      graph.nodes.create() --- `@id` --> "dup-existing-node-123"
+      graph.nodes.create() --- `@id` --> "dup-existing-node-123"
+      Task { //merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
+        graph.nodes.upsert("dup-existing-node-123")
+        graph.nodes.hasIri("dup-existing-node-123").size shouldBe 1
+      }.delayExecution(300.millis).runToFuture(monix.execution.Scheduler.global)
     }
   }
 }

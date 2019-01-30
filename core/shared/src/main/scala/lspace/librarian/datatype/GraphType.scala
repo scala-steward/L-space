@@ -8,7 +8,7 @@ object GraphType extends DataTypeDef[GraphType[Graph]] {
   lazy val datatype: GraphType[Graph] = new GraphType[Graph] {
     val iri: String                                             = NS.types.`@graph`
     override val label: Map[String, String]                     = Map("en" -> NS.types.`@graph`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype) //TODO: extend IriType?
   }
 
   object keys extends DataType.Properties

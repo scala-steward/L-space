@@ -200,7 +200,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     */
   def rollback(): Unit
 
-  override protected def getOrCreateNode(id: Long): GNode = {
+  override protected[lspace] def getOrCreateNode(id: Long): GNode = {
     try {
       val node = super.getOrCreateNode(id)
       nodes.added += node.id -> node

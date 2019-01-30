@@ -10,6 +10,7 @@ import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.provider.wrapped.WrappedResource
 import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.librarian.structure.util.{GraphUtils, IdProvider}
+import monix.execution.{Cancelable, CancelableFuture}
 import shapeless.{::, HList, HNil}
 
 import scala.collection.immutable.ListSet
@@ -557,7 +558,7 @@ trait Graph extends IriResource {
   def values: Values               = _values
 
   protected def newNode(id: Long): GNode
-  protected def getOrCreateNode(id: Long): GNode = {
+  protected[lspace] def getOrCreateNode(id: Long): GNode = {
     nodeStore.hasId(id).getOrElse {
       val node = newNode(id)
       storeNode(node)
@@ -676,7 +677,9 @@ trait Graph extends IriResource {
   def buildAsyncTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
       traversal: Traversal[ST, ET, Segments]): Task[Stream[Out]]
 
-  def close(): Unit = {}
+  def persist: CancelableFuture[Unit] = CancelableFuture.unit
+
+  def close(): CancelableFuture[Unit] = CancelableFuture.unit
 
   override def toString: String = s"graph:$iri"
 }

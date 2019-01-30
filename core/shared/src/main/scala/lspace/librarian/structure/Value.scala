@@ -20,6 +20,10 @@ trait Value[+T] extends Resource[T] {
   def label: DataType[T] // = labels.collect { case tpe: DataType[T] => tpe }.head
   def labels: List[DataType[_]] = List(label)
 
+  override def hasLabel[L](label: ClassType[L]*): Option[Value[L]] = {
+    super.hasLabel(label: _*).asInstanceOf[Option[Value[L]]]
+  }
+
   def remove(): Unit = graph.values.delete(this)
 
   override def equals(o: scala.Any): Boolean = o match {
