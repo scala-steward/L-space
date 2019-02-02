@@ -47,7 +47,7 @@ object JsonObjectInProgress {
           }
       }
       JsonObject.fromTraversableOnce(newActiveContext.`@prefix`.map {
-        case (iri, prefix) => prefix -> iri.asJson
+        case (prefix, iri) => prefix -> iri.asJson
       }.toList ++ result.toList) match {
         case kv if kv.isNotEmpty => Some(Json.jObject(kv))
         case kv                  => None
@@ -284,7 +284,6 @@ class JsonLD(graph: Graph) {
       value match {
         case v: LocalTime => JsonInProgress(Json.jString(v.toString()))
         case _ =>
-          println(value.asInstanceOf[Resource[_]].value)
           throw ToJsonException(s"time expected ${value.getClass} found")
       }
     }
@@ -301,7 +300,6 @@ class JsonLD(graph: Graph) {
       value match {
         case v: Int => JsonInProgress(Json.jNumber(v))
         case _ =>
-          println(value.asInstanceOf[Resource[_]].value)
           throw ToJsonException(s"int expected ${value.getClass} found")
       }
     }
@@ -1806,7 +1804,7 @@ class JsonLD(graph: Graph) {
     def fetchProperty(iri: String)(implicit activeContext: ActiveContext): Task[Property]      = fetch(iri)(toProperty)
     def fetchClassType(iri: String)(implicit activeContext: ActiveContext): Task[ClassType[_]] = fetch(iri)(toClasstype)
     private def fetch[T](iri: String)(cb: JsonObject => Task[T]): Task[T] = {
-      println(s"fetch ${iri}")
+      scribe.trace(s"fetch ${iri}")
       Task
         .fromTry(httpClient.getResource(iri) { content =>
           Parse.parseOption(content).flatMap(_.obj).map(cb).getOrElse(throw FromJsonException("could not parse"))

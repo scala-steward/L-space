@@ -4,6 +4,8 @@ import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.{MemIndexProvider, MemStoreProvider}
 import lspace.librarian.structure.{AsyncGraphSpec, Graph}
 
+import scala.concurrent.Await
+
 class FileStoreManagerSpec extends AsyncGraphSpec {
 
   val store       = MemStoreProvider("MemStoreManagerSpec")
@@ -19,9 +21,14 @@ class FileStoreManagerSpec extends AsyncGraphSpec {
   }
 
   override def beforeAll: Unit = {
+    import scala.concurrent.duration._
+    Await.ready(sampleGraph.init, 10 seconds)
     sampleGraph.edges().foreach(_.remove())
     sampleGraph.nodes().foreach(_.remove())
     sampleGraph.values().foreach(_.remove())
+    sampleGraph.ns.edges().foreach(_.remove())
+    sampleGraph.ns.nodes().foreach(_.remove())
+    sampleGraph.ns.values().foreach(_.remove())
     super.beforeAll
   }
 
@@ -30,7 +37,7 @@ class FileStoreManagerSpec extends AsyncGraphSpec {
       sampleGraph.persist
         .map { u =>
           val persistedGraph: LGraph =
-            LGraph(FileStoreProvider("MemStoreManagerSpec-sample", "_data/MemStoreManagerSpec-sample"),
+            LGraph(FileStoreProvider("MemStoreManagerSpec-sample2", "_data/MemStoreManagerSpec-sample"),
                    new MemIndexProvider)
           assert(1 == 1)
 //        val newGraph = createGraph("graphspec2merge")

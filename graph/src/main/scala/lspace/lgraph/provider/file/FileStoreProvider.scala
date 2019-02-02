@@ -16,7 +16,7 @@ class FileStoreProvider(val iri: String, path: String) extends StoreProvider {
 
   override def dataManager[G <: LGraph](graph: G): StoreManager[G] = FileStoreManager(graph, path + "/data")
 
-  override def nsManager[G <: LGraph](graph: G): StoreManager[G] = FileStoreManager(graph, path + s"/ns")
+  override def nsManager[G <: LGraph](graph: G): StoreManager[G] = FileStoreManager(graph, path + "/ns")
 
   override def nsIndexManager[G <: LGraph](graph: G): StoreManager[G] = FileStoreManager(graph, path + "/ns/index")
 

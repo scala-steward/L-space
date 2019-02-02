@@ -9,6 +9,7 @@ import monix.eval.Task
 import scala.collection.immutable.ListSet
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
+import scribe._
 
 object LTransaction {
   def apply(parent: LGraph): LTransaction = new LTransaction(parent)
@@ -86,7 +87,7 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
       val removedValues = values.deleted.values.toList
 
       val iEnd = java.time.Instant.now().toEpochMilli
-      println(
+      scribe.info(
         s"update cache took ${iEnd - start} millis, added #${addedNodes.size} nodes - #${addedEdges.size} edges - #${addedValues.size}")
       Task
         .sequence(Seq(
@@ -112,11 +113,12 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
         }
         .doOnFinish {
           case None =>
-            println(s"update graph took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
+            scribe.info(s"update graph took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
             close()
             Task.unit
           case Some(ex) =>
-            println(s"update graph failed and took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
+            scribe.error(ex.getMessage)
+            scribe.info(s"update graph failed and took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
             close()
             Task.unit
         }

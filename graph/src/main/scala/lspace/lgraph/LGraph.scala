@@ -31,22 +31,49 @@ object LGraph {
 
 //      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
 
-      override def init(): Unit = {
-        storeManager.init()
-        super.init()
-//        cacheReaper
-      }
+      override lazy val init: CancelableFuture[Unit] =
+        Task
+          .gatherUnordered(
+            Seq(
+              Task.fromFuture(ns.init),
+              Task.fromFuture(index.init),
+              Task.fromFuture(storeManager.init)
+            ))
+          .foreachL(f => Task.unit)
+          .memoize
+          .runToFuture(monix.execution.Scheduler.global)
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 
-      def ns: NameSpaceGraph = new LNSGraph {
+      lazy val ns: LNSGraph = new LNSGraph {
         val iri: String = _iri + ".ns"
 
         lazy val graph: LGraph = self
 
-        private val _thisgraph = thisgraph
+        override lazy val init: CancelableFuture[Unit] =
+          Task
+            .gatherUnordered(
+              Seq(
+                Task.fromFuture(index.init),
+                Task.fromFuture(storeManager.init)
+              ))
+            .foreachL(f => Task.unit)
+            .memoize
+            .runToFuture(monix.execution.Scheduler.global)
+
+        private lazy val _thisgraph = thisgraph
         lazy val index: LIndexGraph = new LIndexGraph {
-          def iri: String = _iri + ".ns" + ".index"
+          val iri: String = _iri + ".ns" + ".index"
+
+          override lazy val init: CancelableFuture[Unit] =
+            Task
+              .gatherUnordered(
+                Seq(
+                  Task.fromFuture(storeManager.init)
+                ))
+              .foreachL(f => Task.unit)
+              .memoize
+              .runToFuture(monix.execution.Scheduler.global)
 
           lazy val graph: LGraph      = _thisgraph
           lazy val index: LIndexGraph = this
@@ -58,11 +85,11 @@ object LGraph {
         lazy val storeManager: StoreManager[this.type] = storeProvider.nsManager(this)
       }
 
-      def index: IndexGraph = new LIndexGraph {
-        def iri: String = _iri + ".index"
+      lazy val index: LIndexGraph = new LIndexGraph {
+        val iri: String = _iri + ".index"
 
-        lazy val graph: LGraph = self
-        private val _thisgraph = thisgraph
+        lazy val graph: LGraph      = self
+        private lazy val _thisgraph = thisgraph
 
 //        lazy val index: LIndexGraph = new LIndexGraph {
 //          def iri: String = _iri + ".index" + ".index"
@@ -87,7 +114,7 @@ object LGraph {
         stateManager.close()
       }
     }
-    graph.init()
+    graph.init
     graph
   }
 }
@@ -99,9 +126,11 @@ trait LGraph extends Graph {
 
   protected[lgraph] def storeManager: StoreManager[this.type]
 
-  override protected[lgraph] val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
-  override protected[lgraph] val edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
-  override protected[lgraph] val valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
+  def ns: LNSGraph
+
+  override protected[lgraph] lazy val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
+  override protected[lgraph] lazy val edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
+  override protected[lgraph] lazy val valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
 
   object writenode
   protected[lgraph] def newNode(id: Long): GNode = writenode.synchronized {

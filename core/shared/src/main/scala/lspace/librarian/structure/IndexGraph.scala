@@ -5,6 +5,7 @@ import lspace.librarian.process.traversal.{P, Segment, Step, Traversal, UntypedT
 import lspace.librarian.process.traversal.step.Has
 import lspace.librarian.structure.index.Index
 import lspace.librarian.structure.util.IdProvider
+import monix.execution.CancelableFuture
 import shapeless.HList
 
 trait IndexGraph extends Graph {
@@ -16,8 +17,7 @@ trait IndexGraph extends Graph {
 //  protected def `@patternIndex`: Index
   protected def `@typeIndex`: Index
 
-  def init(): Unit = {}
-
+  lazy val init: CancelableFuture[Unit] = CancelableFuture.unit
   def getIndex(traversal: UntypedTraversal): Option[Index]
   protected def createIndex(traversal: UntypedTraversal): Index
 

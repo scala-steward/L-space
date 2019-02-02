@@ -18,7 +18,7 @@ object LHistory {
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 
-      lazy val ns: NameSpaceGraph = new LNSGraph {
+      lazy val ns: LNSGraph = new LNSGraph {
         def iri: String = _iri + ".ns"
 
         lazy val graph: LGraph = self
@@ -67,7 +67,7 @@ object LHistory {
           }(monix.execution.Scheduler.global)
       }
     }
-    graph.init()
+    graph.init
     graph
   }
 }

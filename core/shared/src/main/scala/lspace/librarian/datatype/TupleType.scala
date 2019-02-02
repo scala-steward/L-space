@@ -15,33 +15,34 @@ object TupleType extends DataTypeDef[TupleType[Any]] {
   }
 
   object keys extends StructuredType.Properties { //TODO: change to PropertyDef
-    private val _1stRangeNode = MemGraphDefault.ns.nodes.upsert("@1stRange")
-    _1stRangeNode.addLabel(Property.ontology)
-    _1stRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
-    _1stRangeNode --- Property.default.`@container` --> types.`@list`
-    _1stRangeNode --- Property.default.`@range` --> types.`@class`
-    val _1stRange = Property(_1stRangeNode)
-
-    private val _2ndRangeNode = MemGraphDefault.ns.nodes.upsert("@2ndRange")
-    _2ndRangeNode.addLabel(Property.ontology)
-    _2ndRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
-    _2ndRangeNode --- Property.default.`@container` --> types.`@list`
-    _2ndRangeNode --- Property.default.`@range` --> types.`@class`
-    val _2ndRange = Property(_2ndRangeNode)
-
-    private val _3rdRangeNode = MemGraphDefault.ns.nodes.upsert("@3rdRange")
-    _3rdRangeNode.addLabel(Property.ontology)
-    _3rdRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
-    _3rdRangeNode --- Property.default.`@container` --> types.`@list`
-    _3rdRangeNode --- Property.default.`@range` --> types.`@class`
-    val _3rdRange = Property(_3rdRangeNode)
-
-    private val _4rdRangeNode = MemGraphDefault.ns.nodes.upsert("@4rdRange")
-    _4rdRangeNode.addLabel(Property.ontology)
-    _4rdRangeNode --- Property.default.`@label` --> "@1stRange" --- Property.default.`@language` --> "en"
-    _4rdRangeNode --- Property.default.`@container` --> types.`@list`
-    _4rdRangeNode --- Property.default.`@range` --> types.`@class`
-    val _4rdRange = Property(_4rdRangeNode)
+    object _1stRange
+        extends PropertyDef(
+          "@1stRange",
+          label = "@1stRange",
+          comment = "@1stRange",
+          `@extends` = () => Property.default.`@range` :: Nil
+        )
+    object _2ndRange
+        extends PropertyDef(
+          "@2ndRange",
+          label = "@2ndRange",
+          comment = "@2ndRange",
+          `@extends` = () => Property.default.`@range` :: Nil
+        )
+    object _3rdRange
+        extends PropertyDef(
+          "@3rdRange",
+          label = "@3rdRange",
+          comment = "@3rdRange",
+          `@extends` = () => Property.default.`@range` :: Nil
+        )
+    object _4rdRange
+        extends PropertyDef(
+          "@4rdRange",
+          label = "@4rdRange",
+          comment = "@4rdRange",
+          `@extends` = () => Property.default.`@range` :: Nil
+        )
   }
   override lazy val properties: List[Property] = StructuredType.properties
   trait Properties extends StructuredType.Properties {}
@@ -148,9 +149,9 @@ object Tuple2Type extends DataTypeDef[Tuple2Type[Any, Any]] {
 class Tuple2Type[+A, +B](val _1stRange: List[ClassType[A]], val _2ndRange: List[ClassType[B]])
     extends TupleType[(A, B)] {
   lazy val iri =
-    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "2"
-    else
-      s"${types.`@tuple`}2/(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
+//    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "2"
+//    else
+    s"${types.`@tuple`}2(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})(${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple2Type.datatype)
 }
@@ -199,15 +200,15 @@ class Tuple3Type[A, B, C](val _1stRange: List[ClassType[A]],
     extends TupleType[(A, B, C)] {
 
   lazy val iri =
-    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty && _3rdRange
-          .filter(_.iri.nonEmpty)
-          .isEmpty) NS.types.`@tuple` + "3"
-    else
-      s"${types.`@tuple`}3/(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_2ndRange
-        .map(_.iri)
-        .filter(_.nonEmpty)
-        .sorted
-        .mkString("+")})/(${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
+//    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty && _3rdRange
+//          .filter(_.iri.nonEmpty)
+//          .isEmpty) NS.types.`@tuple` + "3"
+//    else
+    s"${types.`@tuple`}3(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})(${_2ndRange
+      .map(_.iri)
+      .filter(_.nonEmpty)
+      .sorted
+      .mkString("+")})(${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple3Type.datatype)
 }
@@ -264,12 +265,12 @@ class Tuple4Type[A, B, C, D](val _1stRange: List[ClassType[A]],
     extends TupleType[(A, B, C, D)] {
 
   lazy val iri =
-    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty && _3rdRange
-          .filter(_.iri.nonEmpty)
-          .isEmpty && _4rdRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "4"
-    else
-      s"${types.`@tuple`}4/(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})" +
-        s"/(${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${_4rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
+//    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty && _3rdRange
+//          .filter(_.iri.nonEmpty)
+//          .isEmpty && _4rdRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "4"
+//    else
+    s"${types.`@tuple`}4(${_1stRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})(${_2ndRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})" +
+      s"(${_3rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})(${_4rdRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
   override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple4Type.datatype)
 }

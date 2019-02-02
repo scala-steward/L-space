@@ -5,6 +5,7 @@ import monix.eval.Task
 import monix.execution.CancelableFuture
 
 trait LNSGraph extends LDataGraph with NameSpaceGraph {
+  def index: LIndexGraph
   def graph: LGraph
 
   override def persist: CancelableFuture[Unit] = {

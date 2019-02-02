@@ -4,6 +4,8 @@ import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.structure._
 
+import scala.collection.immutable.ListSet
+
 object ListSetType extends DataTypeDef[ListSetType[Any]] {
 
   lazy val datatype = new ListSetType[Any](Nil) {
@@ -40,9 +42,9 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
 //    new ListSetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListSetType[TOut]]
 
   implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListSetType[T], List[TOut], ListSetType[TOut]] =
+    : ClassTypeable.Aux[ListSetType[T], ListSet[TOut], ListSetType[TOut]] =
     new ClassTypeable[ListSetType[T]] {
-      type C  = List[TOut]
+      type C  = ListSet[TOut]
       type CT = ListSetType[TOut]
       def ct: CT = ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
     }
@@ -51,9 +53,9 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
     lazy val iri =
       List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
         .filter(_.nonEmpty)
-        .mkString("/")
+        .reduceLeft(_ + _)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
   }
 }
 
-abstract class ListSetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]]
+abstract class ListSetType[V](val valueRange: List[ClassType[V]]) extends CollectionType[ListSet[V]]

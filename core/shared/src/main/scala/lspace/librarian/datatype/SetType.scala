@@ -50,7 +50,7 @@ object SetType extends DataTypeDef[SetType[Any]] {
     lazy val iri =
       List(NS.types.`@set`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
         .filter(_.nonEmpty)
-        .mkString("/")
+        .reduceLeft(_ + _)
 
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
   }

@@ -31,9 +31,20 @@ object Property {
       _Property(node.iri)(
         iris = node.iris,
         _range = () =>
-          node.out(default.`@range`).collect {
-            case node: Node => node.graph.ns.classtypes.get(node)
-        },
+          node
+            .out(default.`@range`)
+            .collect {
+              case nodes: List[_] =>
+                nodes.map {
+                  case node: Node => node.graph.ns.classtypes.get(node)
+                  case iri: String =>
+                    node.graph.ns.classtypes
+                      .get(iri)
+                      .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+                }
+              case node: Node => List(node.graph.ns.classtypes.get(node))
+            }
+            .flatten,
         containers = node.out(default.typed.containerString),
         label = node
           .outE(default.typed.labelString)
@@ -81,7 +92,7 @@ object Property {
       _Property(NS.types.`@container`)(_range = () => `@string` :: Nil, containers = NS.types.`@list` :: Nil)
     val `@range`: Property = _Property(NS.types.`@range`)(
       iris = Set(NS.types.schemaRange),
-      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
+      _range = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
     val `@type`: Property = _Property(NS.types.`@type`)(
@@ -119,6 +130,12 @@ object Property {
     val `@deletedon`: Property = _Property(NS.types.`@deletedon`)(_range = () => `@datetime` :: Nil)
     val `@transcendedon`: Property =
       _Property(NS.types.`@transcendedon`)(_range = () => `@datetime` :: Nil)
+    lazy val `@valueRange`: Property = CollectionType.keys.valueRange
+    lazy val `@keyRange`: Property   = MapType.keys.keyRange
+    lazy val `@ARange`: Property     = TupleType.keys._1stRange
+    lazy val `@BRange`: Property     = TupleType.keys._2ndRange
+    lazy val `@CRange`: Property     = TupleType.keys._3rdRange
+    lazy val `@DRange`: Property     = TupleType.keys._4rdRange
 
     object typed {
       lazy val iriUrlString: TypedProperty[String]    = `@id` as `@string`
@@ -126,7 +143,10 @@ object Property {
       lazy val containerString: TypedProperty[String] = `@container` as `@string`
       //  lazy val entryInt: TypedPropertyKey[Int] = entry as intType)
       lazy val rangeOntology: TypedProperty[Node] = `@range` as Ontology.ontology
+      lazy val rangeProperty: TypedProperty[Node] = `@range` as Property.ontology
       lazy val rangeDataType: TypedProperty[Node] = `@range` as DataType.ontology
+      lazy val rangeListClassType: TypedProperty[List[Node]] = `@range` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
 
       lazy val typeOntology: TypedProperty[Node] = `@type` as Ontology.ontology //Ontology.classType
       //  TYPE.addRange(ontology)
@@ -151,6 +171,18 @@ object Property {
       lazy val modifiedonDateTime: TypedProperty[Instant]    = `@modifiedon` as `@datetime`
       lazy val deletedonDateTime: TypedProperty[Instant]     = `@deletedon` as `@datetime`
       lazy val transcendedOnDateTime: TypedProperty[Instant] = `@transcendedon` as `@datetime`
+      lazy val valueListClassType: TypedProperty[List[Node]] = `@valueRange` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val keyListClassType: TypedProperty[List[Node]] = `@keyRange` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val AListClassType: TypedProperty[List[Node]] = `@ARange` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val BListClassType: TypedProperty[List[Node]] = `@BRange` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val CListClassType: TypedProperty[List[Node]] = `@CRange` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val DListClassType: TypedProperty[List[Node]] = `@DRange` as ListType(
+        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
     }
   }
 
@@ -177,7 +209,13 @@ object Property {
       `@createdon`,
       `@modifiedon`,
       `@deletedon`,
-      `@transcendedon`
+      `@transcendedon`,
+      `@valueRange`,
+      `@keyRange`,
+      `@ARange`,
+      `@BRange`,
+      `@CRange`,
+      `@DRange`
     )
 
     if (properties.size > 99) throw new Exception("extend default-property-id range!")
@@ -211,7 +249,13 @@ object Property {
     createdonDateTime.iri     -> createdonDateTime,
     modifiedonDateTime.iri    -> modifiedonDateTime,
     deletedonDateTime.iri     -> deletedonDateTime,
-    transcendedOnDateTime.iri -> transcendedOnDateTime
+    transcendedOnDateTime.iri -> transcendedOnDateTime,
+    valueListClassType.iri    -> valueListClassType,
+    keyListClassType.iri      -> keyListClassType,
+    AListClassType.iri        -> AListClassType,
+    BListClassType.iri        -> BListClassType,
+    CListClassType.iri        -> CListClassType,
+    DListClassType.iri        -> DListClassType
   )
 
   def _Property(iri: String)(implicit
@@ -280,7 +324,7 @@ class Property(val iri: String,
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
   def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
 
-  lazy val range: ListSet[ClassType[_]] = _range().to[ListSet] ++ extendedClasses.flatMap(_.range)
+  lazy val range: List[ClassType[Any]] = _range() ++ extendedClasses.flatMap(_.range) distinct
 
   def container: Option[String] = containers.headOption
 

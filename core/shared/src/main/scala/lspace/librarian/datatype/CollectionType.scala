@@ -23,8 +23,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
           "@valueRange",
           "@valueRange",
           "A @valueRange",
-          `@range` = () =>
-            ListType(DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil) :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil
         )
     lazy val valueRangeClassType: TypedProperty[List[ClassType[_]]] = valueRange + ListType(
       DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil)

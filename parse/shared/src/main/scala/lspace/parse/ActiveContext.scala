@@ -23,10 +23,10 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap(),
     key.label.get(`@language`.getOrElse("en")) match {
       case Some(label) if label.nonEmpty =>
         val uriBase = key.iri.stripSuffix(label)
-        if (uriBase != key.iri) {
-          `@prefix`.get(uriBase).map(_ + ":" + label).map(iri => iri -> this).getOrElse {
+        if (uriBase.nonEmpty && uriBase != key.iri) {
+          `@prefix`.find(_._2 == uriBase).map(_._1 + ":" + label).map(iri => iri -> this).getOrElse {
             val prefix = `@prefix`.size.toString
-            s"$prefix:$label" -> this.copy(`@prefix` = `@prefix` + (uriBase -> prefix))
+            s"$prefix:$label" -> this.copy(`@prefix` = `@prefix` + (prefix -> uriBase))
           }
         } else key.iri -> this
       case _ =>

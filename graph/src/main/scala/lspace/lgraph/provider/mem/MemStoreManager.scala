@@ -94,7 +94,7 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   override def valueCount(): Long = graph.values().size
 
-  def init(): CancelableFuture[Unit] = CancelableFuture.unit
+  lazy val init: CancelableFuture[Unit] = CancelableFuture.unit
 
   def persist: CancelableFuture[Unit] = CancelableFuture.unit
 

@@ -87,7 +87,7 @@ trait Graph extends IriResource {
 //  protected def `@idStore`: ValueStore[this.type]
 //  protected def `@typeStore`: ValueStore[String, _Value[String]]
 
-  def init(): Unit
+  def init: CancelableFuture[Unit]
 
   sealed trait RApi[T <: Resource[_]] {
 
@@ -147,8 +147,7 @@ trait Graph extends IriResource {
             case value: Value[V] =>
               values.upsert(value).asInstanceOf[Resource[V]]
             case _ =>
-              println(s"${value.getClass.toString}")
-              println(s"${value.asInstanceOf[Edge[_, _]].labels.map(_.iri).mkString(" and ")}")
+              scribe.error(s"cannot upsert value with class ${value.getClass.toString}")
               throw new Exception("???")
           }
       }

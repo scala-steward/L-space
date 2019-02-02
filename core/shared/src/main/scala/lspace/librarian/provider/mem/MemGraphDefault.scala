@@ -67,5 +67,5 @@ object MemGraphDefault extends MemDataGraph {
     }
   }
 
-  init()
+  init
 }

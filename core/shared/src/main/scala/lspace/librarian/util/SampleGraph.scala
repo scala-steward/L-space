@@ -10,7 +10,7 @@ import lspace.librarian.structure.PropertyDef
 
 object SampleGraph {
 
-  object Place extends OntologyDef("httsp://schema.org/Place", label = "Place") {
+  object Place extends OntologyDef("https://schema.org/Place", label = "Place") {
     object keys {
       lazy val name                              = SampleGraph.properties.name
       lazy val nameString: TypedProperty[String] = SampleGraph.properties.nameString

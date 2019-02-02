@@ -40,7 +40,7 @@ object MemGraphHistory {
           lazy val index: MemIndexGraph = this
         }
       }
-      init()
+      init
     }
 
     graph

@@ -23,7 +23,7 @@ class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
       (1 to 10000).foreach(_ => graph.nodes.hasId(id))
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
-      println(s"get 10,000 times from index took ${duration} milli-seconds")
+      scribe.info(s"get 10,000 times from index took ${duration} milli-seconds")
     }
     "create 10,000 nodes with an iri" ignore {
       val start       = java.time.Instant.now().toEpochMilli
@@ -37,7 +37,7 @@ class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
 
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
-      println(s"create 10,000 nodes took ${duration} milli-seconds")
+      scribe.info(s"create 10,000 nodes took ${duration} milli-seconds")
     }
     "create 20,000 nodes with an iri" ignore {
       val start       = java.time.Instant.now().toEpochMilli
@@ -51,7 +51,7 @@ class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
 
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
-      println(s"create 20,000 nodes took ${duration} milli-seconds")
+      scribe.info(s"create 20,000 nodes took ${duration} milli-seconds")
     }
 
     //    "upsert 40,000 different uri's" in {

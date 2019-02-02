@@ -29,12 +29,12 @@ object MemGraph {
         def next: Long = id.incrementAndGet()
       }
 
-      private val self = this
+      private lazy val self = this
       lazy val ns: MemNSGraph = new MemNSGraph {
         def iri: String = _iri + ".ns"
 
-        lazy val graph: MemGraph = self
-        private val _thisgraph   = thisgraph
+        lazy val graph: MemGraph    = self
+        private lazy val _thisgraph = thisgraph
         lazy val index: MemIndexGraph = new MemIndexGraph {
           def iri: String = _iri + ".ns" + ".index"
 
@@ -42,11 +42,11 @@ object MemGraph {
           lazy val index: MemIndexGraph = this
         }
       }
-      val index: MemIndexGraph = new MemIndexGraph {
+      lazy val index: MemIndexGraph = new MemIndexGraph {
         def iri: String = _iri + ".index"
 
-        lazy val graph: MemGraph = self
-        private val _thisgraph   = thisgraph
+        lazy val graph: MemGraph    = self
+        private lazy val _thisgraph = thisgraph
         lazy val index: MemIndexGraph = new MemIndexGraph {
           def iri: String = _iri + ".index" + ".index"
 
@@ -54,7 +54,7 @@ object MemGraph {
           lazy val index: MemIndexGraph = this
         }
       }
-      init()
+      init
     }
 
     graph

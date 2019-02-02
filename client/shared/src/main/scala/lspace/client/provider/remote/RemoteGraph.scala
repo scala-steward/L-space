@@ -9,6 +9,7 @@ import lspace.librarian.structure._
 import lspace.librarian.structure.index.Index
 import lspace.librarian.structure.store.{EdgeStore, NodeStore, Store, ValueStore}
 import lspace.librarian.structure.util.IdProvider
+import monix.execution.CancelableFuture
 import shapeless.HList
 
 object RemoteGraph {
@@ -73,7 +74,7 @@ trait RemoteGraph extends Graph {
 //  override def postResource[V](resource: Resource[V]): Resource[V] =
 //    throw new Exception("remote graphs do not (yet) support writing")
 
-  override def init(): Unit = {} //TODO: test connection?
+  lazy val init: CancelableFuture[Unit] = CancelableFuture.unit //TODO: test connection?
 
   private def throwDoesNotSupportSyncTraversal =
     throw new Exception("remote graph traversals do not support synchronous calls")

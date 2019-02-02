@@ -50,7 +50,7 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
     lazy val iri =
       List(NS.types.`@vector`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
         .filter(_.nonEmpty)
-        .mkString("/")
+        .reduceLeft(_ + _)
 
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
   }

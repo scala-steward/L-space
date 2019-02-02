@@ -62,9 +62,7 @@ object GraphUtils {
                         property.from.addOut(property.key, unmerged.head)
                       } catch {
                         case NonFatal(e) =>
-                          println(property.key.iri)
-                          println(property.from.iri)
-                          println(property.from.value)
+                          scribe.error(e.getMessage)
                           throw e
                       }
                     }
@@ -124,9 +122,7 @@ object GraphUtils {
                         property.from.addOut(property.key, unmerged.head)
                       } catch {
                         case NonFatal(e) =>
-                          println(property.key.iri)
-                          println(property.from.iri)
-                          println(property.from.value)
+                          scribe.error(e.getMessage)
                           throw e
                       }
                     }

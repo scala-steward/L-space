@@ -138,9 +138,9 @@ object ClassTypeable {
     }
 
   implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListSet[T], List[TOut], ListSetType[TOut]] =
+    : ClassTypeable.Aux[ListSet[T], ListSet[TOut], ListSetType[TOut]] =
     new ClassTypeable[ListSet[T]] {
-      type C  = List[TOut]
+      type C  = ListSet[TOut]
       type CT = ListSetType[TOut]
       def ct: CT = ListSetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListSetType[TOut]]
     }

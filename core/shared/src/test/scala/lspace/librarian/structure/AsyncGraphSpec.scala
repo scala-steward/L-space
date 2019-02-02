@@ -25,7 +25,7 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   override val invokeBeforeAllAndAfterAllEvenIfNoTestsAreExpected = true
 
   override def beforeAll = {
-    if (expectedTestCount(Filter()) > 0) {
+    if (expectedTestCount(Filter()) > 0) { //this is to prevent initializing a graph when no tests will executed
       SampleGraph.loadSocial(sampleGraph)
     }
   }
@@ -37,7 +37,7 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //  private[this] val newIdsLock = new Object
   import scala.collection.JavaConverters._
   "A Graph" can {
-    "create nodes in parallel" in {
+    "create nodes in parallel" ignore { //more of a benchmark, enable to test concurrency
       val newIds: scala.collection.concurrent.Map[Long, List[Long]] =
         new java.util.concurrent.ConcurrentHashMap[Long, List[Long]]().asScala
 
@@ -100,7 +100,7 @@ trait AsyncGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       }
     }
 
-    "create edges in parallel" in {
+    "create edges in parallel" ignore { //more of a benchmark, enable to test concurrency
       Observable
         .fromIterable(1 to 5000)
         .mapParallelUnordered(20)(i => Task(graph.nodes.upsert("abcabc") --- `@id` --> graph.nodes.upsert("defdef")))

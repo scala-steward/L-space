@@ -38,7 +38,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComput
       (1 to 10000).foreach(_ => sampleGraph.nodes.hasId(id))
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
-      println(s"get 10,000 times from store took ${duration} milli-seconds")
+      scribe.info(s"get 10,000 times from store took ${duration} milli-seconds")
     }
     "create 10,000 nodes with an iri" ignore {
       val start       = java.time.Instant.now().toEpochMilli
@@ -52,7 +52,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComput
 
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
-      println(s"create 10,000 nodes took ${duration} milli-seconds")
+      scribe.info(s"create 10,000 nodes took ${duration} milli-seconds")
     }
     "create 20,000 nodes with an iri" ignore {
       val start       = java.time.Instant.now().toEpochMilli
@@ -66,7 +66,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComput
 
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
-      println(s"create 20,000 nodes took ${duration} milli-seconds")
+      scribe.info(s"create 20,000 nodes took ${duration} milli-seconds")
     }
   }
 }

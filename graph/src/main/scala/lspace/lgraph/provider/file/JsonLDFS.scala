@@ -75,7 +75,7 @@ case class JsonLDFS(graph: Graph, idMaps: IdMaps = IdMaps()) extends JsonLD(grap
               if (ontologies.isEmpty) label.foreach(node.addLabel)
               else ontologies.foreach(node.addLabel)
               if ((expandedJson - types.`@id` - types.`@type`).nonEmpty) {
-                println("node object has more properties that expected for ld+json+fs")
+                scribe.warn("node object has more properties that expected for ld+json+fs")
               } //TODO: log/warn if more unexpected data is found
               node
             }

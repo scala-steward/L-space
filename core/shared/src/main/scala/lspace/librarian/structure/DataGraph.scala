@@ -3,12 +3,12 @@ package lspace.librarian.structure
 import lspace.librarian.datatype.DataType
 import lspace.librarian.structure.index.Index
 import lspace.librarian.structure.index.shape.Shape
+import monix.execution.CancelableFuture
 
 trait DataGraph extends Graph {
 
-  def init(): Unit = {
-    ns.init()
-    index.init()
+  lazy val init: CancelableFuture[Unit] = {
+    ns.init.flatMap(u => index.init)(monix.execution.Scheduler.global)
   }
 
   def index: IndexGraph
@@ -44,7 +44,7 @@ trait DataGraph extends Graph {
                                                    key: Property,
                                                    _to: GResource[E]): GEdge[S, E] = {
     val edge = super.createEdge(id, _from, key, _to)
-    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+//    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
     _indexEdge(edge)
     edge
   }

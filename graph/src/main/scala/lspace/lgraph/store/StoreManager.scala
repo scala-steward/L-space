@@ -51,7 +51,7 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
   def edgeCount(): Long
   def valueCount(): Long
 
-  def init(): CancelableFuture[Unit]
+  def init: CancelableFuture[Unit]
 
   def persist: CancelableFuture[Unit]
 

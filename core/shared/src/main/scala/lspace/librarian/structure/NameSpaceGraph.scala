@@ -5,19 +5,18 @@ import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Property.default
 import lspace.librarian.structure.util.IdProvider
 import lspace.util.types.DefaultsToAny
+import monix.execution.CancelableFuture
 
 import scala.collection.mutable
 
 trait NameSpaceGraph extends DataGraph {
-  def ns: NameSpaceGraph = this
+  def ns: this.type = this
   def index: IndexGraph
   def graph: Graph
 
   lazy val idProvider: IdProvider = graph.idProvider
 
-  override def init(): Unit = {
-    index.init()
-  }
+  override lazy val init: CancelableFuture[Unit] = index.init
 
   trait Classtypes {
     def get(iri: String): Option[ClassType[_]] =
@@ -80,6 +79,8 @@ trait NameSpaceGraph extends DataGraph {
             .find(_.hasLabel(DataType.ontology).isEmpty)
             .map(fromNode))
 
+    def all: List[Ontology] = ontologies.byId.values.toList
+
     protected def fromNode(node: _Node): Ontology = {
       val ontology = Ontology(node)
       ontologies.byId += node.id -> ontology
@@ -95,10 +96,17 @@ trait NameSpaceGraph extends DataGraph {
         .orElse(ontologies.byId.get(id))
 
     def cached(iri: String): Option[Ontology] =
-      MemGraphDefault.ns.ontologies
+      Ontology.allOntologies.byIri
         .get(iri)
         .orElse(ontologies.byIri
           .get(iri))
+        .orElse(
+          MemGraphDefault.ns.ontologies
+            .get(iri)
+            .map { ontology =>
+              store(ontology)
+              ontology
+            })
 
     def store(ontology: Ontology): Node = {
       if (graph != MemGraphDefault) MemGraphDefault.ns.ontologies.store(ontology)
@@ -166,47 +174,9 @@ trait NameSpaceGraph extends DataGraph {
           nodeStore.hasIri(iri).find(_.hasLabel(Property.ontology).isDefined).map(fromNode)
         }
 
+    def all: List[Property] = properties.byId.values.toList
+
     protected def fromNode(node: _Node): Property = {
-      //    val range = () =>
-      //      node.out(Property.default.`@range`).collect {
-      //        case node: _Node =>
-      //          if (node.hasLabel(DataType.ontology).isDefined)
-      //            datatypes
-      //              .cached(node.iri)
-      //              .getOrElse(datatypeFromNode(node))
-      //          else if (node.hasLabel(Ontology.ontology).isDefined)
-      //            ontologies
-      //              .cached(node.iri)
-      //              .getOrElse(ontologyFromNode(node))
-      //          else if (node.hasLabel(Property.ontology).isDefined)
-      //            this.properties
-      //              .cached(node.iri)
-      //              .getOrElse(propertyFromNode(node))
-      //          else throw new Exception(s"range ${node.iri} is not of @type @class, @property or @datatype")
-      //    }
-      //
-      //    val containers = node.out(default.typed.containerString)
-      //    val label = node
-      //      .outE(default.typed.labelString)
-      //      .flatMap { edge =>
-      //        edge.out(default.typed.languageString).map(_ -> edge.to.value)
-      //      }
-      //      .toMap
-      //    val comment = node
-      //      .outE(default.typed.commentString)
-      //      .flatMap { edge =>
-      //        edge.out(default.typed.languageString).map(_ -> edge.to.value)
-      //      }
-      //      .toMap
-      //    val extendedClasses = () =>
-      //      node.out(default.`@extends`).collect {
-      //        case node: _Node => this.properties.cached(node.iri).getOrElse(propertyFromNode(node))
-      //    }
-      //    val properties = () => node.out(default.typed.propertyProperty).map(Property.apply)
-      //    val base       = node.out(default.typed.baseString).headOption
-      //
-      //    val property =
-      //      Property._Property(node.iri)(node.iris, range, containers, label, comment, extendedClasses, properties, base)
       val property = Property(node)
       if (graph != MemGraphDefault && MemGraphDefault.ns.properties.get(node.iri).isEmpty) {
         MemGraphDefault.ns.properties.store(property)
@@ -218,19 +188,34 @@ trait NameSpaceGraph extends DataGraph {
     }
 
     def cached(id: Long): Option[Property] =
-      Property.allProperties.byId
+      properties.byId
         .get(id)
-        .orElse(properties.byId.get(id))
+        .orElse(
+          Property.allProperties.byId
+            .get(id)
+            .map { property =>
+              store(property)
+              property
+            })
 
     def cached(iri: String): Option[Property] =
-      MemGraphDefault.ns.properties
+      Property.allProperties.byIri
         .get(iri)
         .orElse(properties.byIri
           .get(iri))
+        .orElse(
+          MemGraphDefault.ns.properties
+            .get(iri)
+            .map { property =>
+              store(property)
+              property
+            })
 
     def store(property: Property): Node = {
       if (graph != MemGraphDefault) MemGraphDefault.ns.properties.store(property)
-      if (Property.allProperties.byIri.get(property.iri).isDefined) {
+      if (Property.allProperties.byIri
+            .get(property.iri)
+            .isDefined) { //check if it a default property which is always available by the L-space framework
         val node = nodes.upsert(property.iri, property.iris)
         node.addLabel(Property.ontology)
         node
@@ -250,7 +235,7 @@ trait NameSpaceGraph extends DataGraph {
           node.addOut(default.typed.iriUrlString, property.iri)
           property.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
 
-          property.range.foreach(_createEdge(node, Property.default.`@range`, _))
+          node.addOut(Property.default.typed.rangeListClassType, property.range.map(classtypes.store))
           property.containers.foreach { container =>
             node.addOut(default.`@container`, container)
           }
@@ -309,6 +294,8 @@ trait NameSpaceGraph extends DataGraph {
         .asInstanceOf[Option[DataType[T]]]
     }
 
+    def all: List[DataType[Any]] = datatypes.byId.values.toList
+
     protected def fromNode(node: _Node): DataType[_] = {
       if (graph != MemGraphDefault)
         byId
@@ -317,19 +304,32 @@ trait NameSpaceGraph extends DataGraph {
           .orElse(MemGraphDefault.ns.datatypes.byId.get(node.id))
           .orElse(MemGraphDefault.ns.datatypes.byIri.get(node.iri))
           .get
-      else throw new Exception("datatypeFromNode not fully implemented")
+      else throw new Exception(s"datatypeFromNode not fully implemented ${node.iri}")
     } //TODO: retrieve custom collection datatypes
 
     def cached(id: Long): Option[DataType[_]] =
-      DataType.allDataTypes.byId
+      datatypes.byId
         .get(id)
-        .orElse(datatypes.byId.get(id))
+        .orElse(
+          DataType.allDataTypes.byId
+            .get(id)
+            .map { datatype =>
+              store(datatype)
+              datatype
+            })
 
     def cached(iri: String): Option[DataType[_]] =
-      MemGraphDefault.ns.datatypes
+      DataType.allDataTypes.byIri
         .get(iri)
         .orElse(datatypes.byIri
           .get(iri))
+        .orElse(
+          MemGraphDefault.ns.datatypes
+            .get(iri)
+            .map { datatype =>
+              store(datatype)
+              datatype
+            })
 
     def store(dataType: DataType[_]): Node = {
       if (DataType.allDataTypes.byIri.get(dataType.iri).isDefined) {

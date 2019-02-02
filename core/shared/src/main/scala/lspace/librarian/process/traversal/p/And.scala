@@ -1,6 +1,6 @@
 package lspace.librarian.process.traversal.p
 
-import lspace.librarian.datatype.ListSetType
+import lspace.librarian.datatype.ListType
 import lspace.librarian.process.traversal.{P, PredicateDef, PredicateWrapper}
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.structure._
@@ -17,9 +17,9 @@ object And extends PredicateDef("And", `@extends` = () => List(P.ontology)) with
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",
-          `@range` = () => ListSetType(P.ontology :: Nil) :: Nil
+          `@range` = () => ListType(P.ontology :: Nil) :: Nil
         ) {}
-    lazy val predicateP: TypedProperty[List[Node]] = predicate as ListSetType(P.ontology :: Nil)
+    lazy val predicateP: TypedProperty[List[Node]] = predicate as ListType(P.ontology :: Nil)
   }
   override lazy val properties: List[Property] = keys.predicate.property :: P.properties
   trait Properties extends P.Properties {

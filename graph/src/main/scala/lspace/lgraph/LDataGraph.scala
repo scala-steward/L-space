@@ -9,6 +9,9 @@ import monix.execution.CancelableFuture
 import scala.concurrent.Future
 
 trait LDataGraph extends LGraph with DataGraph {
+
+  def index: LIndexGraph
+
   protected def `@idIndex`: Index =
     LIndex(__[Any, Any].has(Property.default.`@id`).has(Property.default.`@ids`).untyped)
   protected def `@typeIndex`: Index = LIndex(__[Any, Any].has(Property.default.`@type`).untyped)

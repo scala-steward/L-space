@@ -20,8 +20,7 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
           "@keyRange",
           "@keyRange",
           "A @keyRange",
-          `@range` = () =>
-            ListType(DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil) :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil
         )
     lazy val keyRangeClassType: TypedProperty[List[ClassType[_]]] = keyRange + ListType(
       DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil)
@@ -93,9 +92,9 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
   def apply[K, V](keyRange: List[ClassType[K]], valueRange: List[ClassType[V]]): MapType[K, V] =
     new MapType[K, V](keyRange, valueRange) {
       lazy val iri =
-        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
-        else
-          s"${NS.types.`@map`}/(${keyRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})/(${valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
+//        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
+//        else
+        s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})(${valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
 
       override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
     }

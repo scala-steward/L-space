@@ -157,11 +157,11 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
   override def deleteValues(values: List[(graph._Value[_$1] with LValue[_$1]) forSome { type _$1 }]): Task[_] =
     Task {}
 
-  override def nodes: Stream[graph._Node with LNode] = Stream()
+  override val nodes: Stream[graph._Node with LNode] = Stream()
 
-  override def edges: Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override val edges: Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
 
-  override def values: Stream[graph._Value[Any] with LValue[Any]] = Stream()
+  override val values: Stream[graph._Value[Any] with LValue[Any]] = Stream()
 
   override def nodeCount(): Long = graph.nodes().size
 
@@ -194,7 +194,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
     } else Task(ActiveContext())
   }
 
-  def init(): CancelableFuture[Unit] = {
+  lazy val init: CancelableFuture[Unit] = {
     readLiterals
       .flatMap { u =>
         readNodes
@@ -203,10 +203,6 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
           .flatMap(readStructuredEdges)
       }
       .foreachL { f =>
-//        println(s"reading file for ${graph.iri} done")
-//        println(s"starting with ${graph.edges().size} edges")
-//        println(s"starting with ${graph.nodes().size} nodes")
-//        println(s"starting with ${graph.values().size} values")
         Unit
       }
       .runToFuture(monix.execution.Scheduler.global)
@@ -428,7 +424,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                   }
                   .getOrElse(Observable.raiseError(FromJsonException("line should be a json-object")))
               }
-              .onErrorHandle { case e => println(e.getMessage); throw e }
+              .onErrorHandle { case e => scribe.error(e.getMessage); throw e }
               .completedL
               .map { u =>
                 idMaps
@@ -552,8 +548,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                   .groupBy(_.key)
                   .foldLeft(ActiveContext()) {
                     case (ac, (key, edges)) =>
+                      val (cKeyIri, _ac)            = ac.compactIri(key)
                       val (byFromNode, byFromValue) = edges.partition(_.from.isInstanceOf[Node])
-                      val (newAc, fromNodeJsons) = byFromNode.foldLeft(ac -> List[Json]()) {
+                      val (newAc, fromNodeJsons) = byFromNode.foldLeft(_ac -> List[Json]()) {
                         case ((ac, jsons), edge) =>
                           val jip = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
                           jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
@@ -567,7 +564,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                       fromNodeJsons.sliding(50, 50).zipAll(fromLiteralJsons.sliding(50, 50), List(), List()).foreach {
                         case (fromNodes, fromLiterals) =>
                           val json = jObject(JsonObject.single(
-                            key.iri,
+                            cKeyIri,
                             List(fromNodes.asJson, fromLiterals.asJson).asJson
                           ))
                           f.println(json.toString)
@@ -595,8 +592,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                   .groupBy(_.key)
                   .foldLeft(ActiveContext()) {
                     case (ac, (key, edges)) =>
+                      val (cKeyIri, _ac)                  = ac.compactIri(key)
                       val (byFromNode, byFromEdgeOrValue) = edges.partition(_.from.isInstanceOf[Node])
-                      val (newAc, fromNodeJsons) = byFromNode.foldLeft(ac -> List[Json]()) {
+                      val (newAc, fromNodeJsons) = byFromNode.foldLeft(_ac -> List[Json]()) {
                         case ((ac, jsons), edge) =>
                           val jip = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
                           jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
@@ -614,9 +612,10 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                           val jip2 = jsonld.encode.fromAny(edge.from)(jip.activeContext)
                           jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
                       }
+
                       val json = jObject(
                         JsonObject.single(
-                          key.iri,
+                          cKeyIri,
                           List(fromNodeJsons.asJson, fromEdgeJsons.asJson, fromLiteralJsons.asJson).asJson
                         ))
                       f.println(json.toString)
@@ -684,5 +683,5 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
   /**
     * finishes write-queue(s) and closes connection
     */
-  override def close(): CancelableFuture[Unit] = persist
+  override def close(): CancelableFuture[Unit] = CancelableFuture.unit //persist
 }

@@ -13,6 +13,7 @@ import scala.collection.mutable
 trait LIndexGraph extends LGraph with IndexGraph {
   def graph: LGraph
   def indexManager: IndexManager[this.type]
+  override def ns: LNSGraph = graph.ns
 
   lazy val indexCache = MemGraph(s"${graph.iri}-cache")
   protected val indexes: mutable.HashMap[Long, Index] =
