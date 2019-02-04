@@ -23,7 +23,7 @@ class NameSpaceServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll
         .withHeaders("Accept" -> "application/ld+json")
       nsService.getResource(input).awaitOutput().map { output =>
         output.isRight shouldBe true
-        output.right.get.value.toString shouldBe """{"@label":{"en":"Eqv"},"@extends":["https://ns.l-space.eu/librarian/p/EqP"],"@comment":{"en":""},"@type":"@class","@properties":"https://ns.l-space.eu/librarian/p/value","@id":"https://ns.l-space.eu/librarian/p/Eqv"}"""
+        output.right.get.value.toString shouldBe """{"@label":{"en":"Eqv"},"@extends":["https://ns.l-space.eu/librarian/p/EqP"],"@type":"@class","@properties":"https://ns.l-space.eu/librarian/p/value","@id":"https://ns.l-space.eu/librarian/p/Eqv"}"""
       }
     }
   }
