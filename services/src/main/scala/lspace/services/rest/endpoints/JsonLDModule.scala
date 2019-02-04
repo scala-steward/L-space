@@ -1,5 +1,7 @@
 package lspace.services.rest.endpoints
 
+import java.util.UUID
+
 import argonaut._
 import argonaut.Argonaut._
 import cats.effect.IO
@@ -11,8 +13,10 @@ import io.finch.internal.HttpContent
 import lspace.decode.DecodeJsonLD
 import lspace.encode.EncodeJsonLD
 import lspace.librarian.process.traversal.Traversal
+import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure._
 import lspace.parse.util.{FromJsonException, NotAcceptableException}
+import monix.eval.Task
 import scribe._
 
 import scala.util.{Failure, Success}
@@ -68,43 +72,53 @@ trait JsonLDModule extends Endpoint.Module[IO] {
   import monix.eval.Task.catsEffect
   import monix.execution.Scheduler.global
 
-  def bodyJsonLDTraversal(implicit graph: Graph,
-                          jsonld: lspace.parse.JsonLD): Endpoint[IO, Traversal[ClassType[Any], ClassType[Any], HList]] =
+  def bodyJsonLDTyped[T](label: Ontology, nodeToT: Node => T): Endpoint[IO, T] =
+    bodyJsonLDLabeled(label).mapOutputAsync(
+      node =>
+        Task(nodeToT(node))
+          .map(Ok)
+          .onErrorHandle {
+            case e =>
+              e.logger.debug(e.getMessage)
+              NotAcceptable(new Exception(s"not a valid ${label.iri}"))
+          }
+          .toIO(catsEffect(global)))
+
+  def bodyJsonLDLabeled(label: Ontology): Endpoint[IO, Node] =
     body[Json, JsonLDModule.JsonLD]
       .handle {
         case t => NotAcceptable(new Exception("body is invalid 'application/ld+json'"))
       }
       .mapOutputAsync { json =>
+        val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+        val jsonld      = lspace.parse.JsonLD(resultGraph)
         jsonld.decode
-          .toLabeledNode(json, Traversal.ontology)
-          .map { traversalNode =>
-            Ok(Traversal.toTraversal(traversalNode)(graph))
-          }
+          .toLabeledNode(json, label)
+          .map(Ok)
           .onErrorHandle {
             case e: NotAcceptableException =>
               e.logger.debug(e.getMessage)
-              NotAcceptable(new Exception(s"Body does not look like a ${Traversal.ontology.iri}"))
-            case e =>
-              e.logger.debug(e.getMessage)
-              NotAcceptable(new Exception("not a valid traversal"))
+              NotAcceptable(new Exception(s"Body does not look like a ${label.iri}"))
           }
           .toIO(catsEffect(global))
       }
 
-  def bodyJsonLDNode(implicit graph: Graph, jsonld: lspace.parse.JsonLD): Endpoint[IO, Node] =
+  def bodyJsonLD: Endpoint[IO, Node] =
     body[Json, JsonLDModule.JsonLD]
       .handle {
         case t => NotAcceptable(new Exception("body is invalid 'application/ld+json'"))
       }
       .mapOutputAsync { json =>
+        val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+        val jsonld      = lspace.parse.JsonLD(resultGraph)
         jsonld.decode
           .toNode(json)
           .map(Ok)
           .onErrorHandle {
             case e: NotAcceptableException =>
-              NotAcceptable(new Exception(s"Body does not look like a ${Traversal.ontology.iri}"))
+              NotAcceptable(new Exception(s"Body does not look like a node"))
             case e =>
-              NotAcceptable(new Exception("not a valid traversal"))
+              NotAcceptable(new Exception("not a valid node"))
           }
           .toIO(catsEffect(global))
       }

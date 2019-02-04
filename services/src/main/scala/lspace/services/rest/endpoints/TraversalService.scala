@@ -20,14 +20,22 @@ case class TraversalService(graph: Graph) extends JsonLDModule {
     * @return
     */
   val traverse: Endpoint[IO, Collection[Any]] =
-    post("traverse" :: bodyJsonLDTraversal) { traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
-      val start                     = Instant.now()
-      val result                    = traversal.toUntypedStream.toList
-      val collection: Collection[_] = Collection(start, Instant.now(), result)
+    post("traverse" :: bodyJsonLDTyped(Traversal.ontology, node => Traversal.toTraversal(node)(graph))) {
+      traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
+        val start                     = Instant.now()
+        val result                    = traversal.toUntypedStream.toList
+        val collection: Collection[_] = Collection(start, Instant.now(), result)
 
-      collection.logger.debug("result count: " + result.size.toString)
-      Ok(collection)
+        collection.logger.debug("result count: " + result.size.toString)
+        Ok(collection)
     }
+
+  import eu.timepit.refined.api.Refined
+  import eu.timepit.refined.string._
+  import io.finch.refined._
+//  val byIri = get(param[String Refined Url]("url")) { (s: String Refined Url) =>
+//    ???
+//  }
 
   val getLabels: Endpoint[IO, Collection[Any]] = get("label") {
     val start = Instant.now()

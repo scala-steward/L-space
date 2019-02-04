@@ -11,7 +11,7 @@ import lspace.librarian.structure.Property.default.`@id`
 import lspace.librarian.util.SampleGraph
 import lspace.parse.ActiveContext
 import lspace.parse.JsonLD
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Failed, Matchers, WordSpec}
 import shapeless.{:+:, CNil, Poly1}
 
 class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
@@ -25,7 +25,7 @@ class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   val person     = SampleGraph.Person
   val personKeys = SampleGraph.Person.keys
-  case class Person(name: String, id: Option[String])
+  case class Person(name: String, id: Option[String] = None)
 
   import argonaut._, Argonaut._
   implicit def PersonCodecJson =
@@ -86,8 +86,6 @@ class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       case (ontology: Ontology, node: Node) => jsonld.encode(node)
     }
   }
-//  import EncodeJsonLD._
-//  import lspace.encode.EncodeJsonLD._
 
   lazy val service: com.twitter.finagle.Service[Request, Response] = Bootstrap
     .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
@@ -102,22 +100,154 @@ class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     "return a Ok(Person) for a known id on a get-request" in {
       val input = Input
         .get("/123")
-      personApiService.getById(input).awaitOutput().map { output =>
-        output.isRight shouldBe true
-        val response = output.right.get
-        response.status shouldBe Status.Ok
-        val node = response.value
-        node.out(person.keys.nameString).head shouldBe "Yoshio"
-      }
+      personApiService
+        .byId(input)
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Ok
+          val node = response.value
+          node.out(person.keys.nameString).head shouldBe "Yoshio"
+        }
+        .getOrElse(fail("endpoint does not match"))
     }
     "return NotFound for an unknown id on a get-request" in {
+      personApiService
+        .byId(Input
+          .get("/0000"))
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.NotFound
+        }
+        .getOrElse(fail("endpoint does not match"))
+    }
+    "create a person with new id on a post-request" in {
+      import EncodeJsonLD._
+      import lspace.encode.EncodeJsonLD._
       val input = Input
-        .get("/0000")
-      personApiService.getById(input).awaitOutput().map { output =>
-        output.isRight shouldBe true
-        val response = output.right.get
-        response.status shouldBe Status.NotFound
-      }
+        .post("/")
+        .withBody[JsonLDModule.JsonLD](toNode(Person("Alice")))
+      personApiService
+        .create(input)
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value
+          createdNode.out(person.keys.nameString).head shouldBe "Alice"
+
+          personApiService
+            .create(Input
+              .post("/")
+              .withBody[JsonLDModule.JsonLD](toNode(Person("Ali"))))
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.Created
+              val node = response.value
+              createdNode.iri should not be node.iri
+              node.out(person.keys.nameString).head shouldBe "Ali"
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))
+    }
+    "replace a person with on a put-request" in {
+      import EncodeJsonLD._
+      import lspace.encode.EncodeJsonLD._
+      personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[JsonLDModule.JsonLD](toNode(Person("Alice"))))
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value
+
+          personApiService
+            .replaceById(Input
+              .put(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+              .withBody[JsonLDModule.JsonLD](toNode(Person("Ali"))))
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.Ok
+              val node = response.value
+              createdNode.iri shouldBe node.iri
+              node.out(person.keys.nameString).head shouldBe "Ali"
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))
+    }
+    "update a person with on a patch-request" in {
+      import EncodeJsonLD._
+      import lspace.encode.EncodeJsonLD._
+      personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[JsonLDModule.JsonLD](toNode(Person("Alice"))))
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value
+
+          personApiService
+            .updateById(Input
+              .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+              .withBody[JsonLDModule.JsonLD](toNode(Person("Ali"))))
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.Ok
+              val node = response.value
+              createdNode.iri shouldBe node.iri
+              node.out(person.keys.nameString).head shouldBe "Ali"
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))
+    }
+    "remove a person on a delete-request" in {
+      import EncodeJsonLD._
+      import lspace.encode.EncodeJsonLD._
+      personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[JsonLDModule.JsonLD](toNode(Person("Alice"))))
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value
+
+          personApiService
+            .removeById(Input
+              .delete(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}"))
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.NoContent
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))
     }
   }
 }
