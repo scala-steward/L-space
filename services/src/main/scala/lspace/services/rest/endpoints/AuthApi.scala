@@ -2,7 +2,7 @@ package lspace.services.rest.endpoints
 
 import io.finch._
 
-case class AuthService() extends Service {
+case class AuthApi() extends Api {
 
   private val path = "session"
 

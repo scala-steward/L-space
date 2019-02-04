@@ -7,7 +7,7 @@ import lspace.librarian.structure.Graph
 import lspace.parse.JsonLD
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
-class NameSpaceServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+class NameSpaceLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
   val jsonld            = JsonLD(graph)

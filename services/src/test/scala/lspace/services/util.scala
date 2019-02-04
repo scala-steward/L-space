@@ -1,7 +1,8 @@
-package lspace.server
+package lspace.services
 
 object util {
   import com.twitter.util.{Future => TwFuture}
+
   import scala.concurrent.{Future => ScFuture, Promise => ScPromise}
   implicit def twFutureToScala[T](twFuture: TwFuture[T]): ScFuture[T] = {
     val prom = ScPromise[T]()

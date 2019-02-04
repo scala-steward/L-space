@@ -1,6 +1,7 @@
 package lspace.services.rest.endpoints
 
 import cats.effect.IO
+import com.twitter.finagle.http.{Request, Response}
 import io.finch._
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.structure._
@@ -15,7 +16,11 @@ import io.finch.refined._
 
 case class PagedResult(result: List[Node])
 
-case class ApiService(ontology: Ontology)(implicit graph: Graph) extends JsonLDModule {
+object LabeledNodeApi {
+  def apply(ontology: Ontology)(implicit graph: Lspace): LabeledNodeApi = new LabeledNodeApi(ontology)(graph)
+}
+
+class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api with JsonLDModule {
   implicit val jsonld = JsonLD.detached //todo JsonLD context per client-session
 
   implicit val ec = monix.execution.Scheduler.global
@@ -151,6 +156,7 @@ case class ApiService(ontology: Ontology)(implicit graph: Graph) extends JsonLDM
 //    }.map(Created(_)).toIO
 //  }
 
-  def api = byId :+: /*byIri :+:*/ list :+: create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
-
+  def api =
+    byId :+: /*byIri :+:*/ list :+: create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
+  def labeledApi = label :: api
 }

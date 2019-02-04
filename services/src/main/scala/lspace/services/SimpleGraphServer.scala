@@ -1,26 +1,20 @@
-package lspace.app.server
+package lspace.services
 
 import argonaut._
 import com.twitter.concurrent.AsyncStream
 import com.twitter.finagle.Service
-import com.twitter.finagle.Http
-import com.twitter.finagle.http.filter.Cors
 import com.twitter.finagle.http.{Request, Response}
-import com.twitter.finagle.param.Stats
 import com.twitter.io.Buf
-import com.twitter.server.TwitterServer
-import com.twitter.util.{Await, Promise}
-import io.finch.Bootstrap
-import io.finch.argonaut.preserveOrder._
+import com.twitter.util.Promise
+import io.finch.{Bootstrap, _}
 import io.finch.sse.ServerSentEvent
+import lspace.encode.EncodeJsonLD
+import lspace.librarian.structure.Graph
 import lspace.services.rest.endpoints.{JsonLDModule, NameSpaceService, TraversalService}
 import lspace.services.rest.security.WithSse
 import shapeless._
-import io.finch._
-import lspace.encode.EncodeJsonLD
-import lspace.librarian.structure.Graph
 
-class SimpleGraphServer(graph: Graph, port: Int = 8080) /*extends TwitterServer*/ {
+class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
 
   lazy val graphService = TraversalService(graph)
 

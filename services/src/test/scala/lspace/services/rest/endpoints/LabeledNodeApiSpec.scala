@@ -1,6 +1,7 @@
 package lspace.services.rest.endpoints
 
 import com.twitter.finagle.http.{Request, Response, Status}
+import com.twitter.server.TwitterServer
 import io.finch.{Application, Bootstrap, Input, Text}
 import lspace.encode.EncodeJsonLD
 import lspace.librarian.datatype.TextType
@@ -14,7 +15,8 @@ import lspace.parse.JsonLD
 import org.scalatest.{BeforeAndAfterAll, Failed, Matchers, WordSpec}
 import shapeless.{:+:, CNil, Poly1}
 
-class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+object LabeledNodeApiSpec {}
+class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
   implicit val jsonld         = JsonLD(sampleGraph)
@@ -32,7 +34,7 @@ class ApiServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     casecodec2(Person.apply, Person.unapply)("name", "id")
   implicit val enc = PersonCodecJson.Encoder
 
-  lazy val personApiService = ApiService(person)(sampleGraph)
+  lazy val personApiService = LabeledNodeApi(person)(sampleGraph)
   val toCC = { node: Node =>
     Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as TextType).headOption)
   }

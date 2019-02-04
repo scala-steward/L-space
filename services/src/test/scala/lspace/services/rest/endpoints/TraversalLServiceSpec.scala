@@ -4,10 +4,10 @@ import io.finch.Input
 import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
 import lspace.librarian.util.SampleGraph
-import lspace.server.util
+import lspace.services.util
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
-class TraversalServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   implicit val graph    = MemGraph("GraphServiceSpec")
   lazy val graphService = TraversalService(graph)
