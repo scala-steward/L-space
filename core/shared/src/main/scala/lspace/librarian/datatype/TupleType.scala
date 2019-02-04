@@ -44,7 +44,8 @@ object TupleType extends DataTypeDef[TupleType[Any]] {
           `@extends` = () => Property.default.`@range` :: Nil
         )
   }
-  override lazy val properties: List[Property] = StructuredType.properties
+  override lazy val properties
+    : List[Property] = keys._1stRange.property :: keys._2ndRange.property :: keys._3rdRange.property :: keys._4rdRange.property :: StructuredType.properties
   trait Properties extends StructuredType.Properties {}
 
   def apply(node: Node): TupleType[_] = {

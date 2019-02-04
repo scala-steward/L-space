@@ -21,7 +21,7 @@ trait LDataGraph extends LGraph with DataGraph {
       .gatherUnordered(
         Seq(
           Task.fromFuture(storeManager.persist),
-          Task.fromFuture(ns.persist),
+//          Task.fromFuture(ns.persist),
           Task.fromFuture(index.persist)
         ))
       .foreachL(f => Task.unit)

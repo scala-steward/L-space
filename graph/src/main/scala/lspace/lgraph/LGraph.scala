@@ -35,7 +35,7 @@ object LGraph {
         Task
           .gatherUnordered(
             Seq(
-              Task.fromFuture(ns.init),
+//              Task.fromFuture(ns.init),
               Task.fromFuture(index.init),
               Task.fromFuture(storeManager.init)
             ))

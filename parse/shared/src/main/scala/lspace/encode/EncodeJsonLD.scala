@@ -9,8 +9,8 @@ trait EncodeJsonLD[A] {
 
 object EncodeJsonLD {
 
-  implicit def nodeToJsonLD[T <: Node](implicit graph: Graph) = new EncodeJsonLD[T] {
-    val encode = (node: T) => lspace.parse.JsonLD(graph).encode(node)
+  implicit def nodeToJsonLD[T <: Node] = new EncodeJsonLD[T] {
+    val encode = (node: T) => lspace.parse.JsonLD.detached.encode(node)
   }
 
 //  implicit def nodeToJsonLD[T <: Node] = new EncodeJsonLD[List[T]] {

@@ -6,6 +6,7 @@ import argonaut._
 import Argonaut._
 import lspace.NS.types
 import lspace.librarian.datatype._
+import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.structure._
 import lspace.parse.util._
 import lspace.types.vector.{Geometry, Point, Polygon}
@@ -14,103 +15,23 @@ import squants.time.Time
 
 import scala.collection.immutable.{ListMap, ListSet}
 
-object JsonObjectInProgress {
-  def apply(json: JsonObject, doubledefinitionWA: Int = 1)(
-      implicit activeContext: ActiveContext): JsonObjectInProgress =
-    JsonObjectInProgress(json, activeContext)
-
-  implicit class WithJsonObject(jip: JsonObjectInProgress) {
-    lazy val withContext: JsonObject = _context(jip.activeContext) match {
-      case Some(context) => JsonObject.fromTraversableOnce(ListMap(types.`@context` -> context) ++ jip.json.toMap)
-      case None          => jip.json
-    }
-    lazy val withContextAsJson: Json = Json.jObject(withContext)
-
-    implicit class WithIriString(iri: String)(implicit activeContext: ActiveContext) {
-      lazy val compact: String = activeContext.compactIri(iri)
-    }
-
-    private def _context(activeContext: ActiveContext): Option[Json] = {
-      val (newActiveContext, result) = activeContext.properties.foldLeft((activeContext, ListMap[String, Json]())) {
-        case ((activeContext, result), (key, activeProperty)) =>
-          val (keyIri, newActiveContext) = activeContext.compactIri(key)
-          List(
-            _context(activeProperty.`@context`).map(types.`@context` -> _),
-            _containers(activeProperty).map(types.`@container`       -> _),
-            _types(activeProperty).map(types.`@type`                 -> _)
-          ).flatten match {
-            case kv if kv.nonEmpty =>
-              newActiveContext -> (result ++ ListMap(
-                keyIri -> Json.jObject(JsonObject.fromTraversableOnce(ListMap(kv: _*)))))
-            case kv =>
-              newActiveContext -> result
-          }
-      }
-      JsonObject.fromTraversableOnce(newActiveContext.`@prefix`.map {
-        case (prefix, iri) => prefix -> iri.asJson
-      }.toList ++ result.toList) match {
-        case kv if kv.isNotEmpty => Some(Json.jObject(kv))
-        case kv                  => None
-      }
-    }
-
-    private def _containers(activeProperty: ActiveProperty): Option[Json] = {
-      implicit val activeContext = activeProperty.`@context`
-      activeProperty.`@container` match {
-        case Nil             => None
-        case List(container) => Some(container.iri.compact.asJson)
-        case containers =>
-          Some(activeProperty.`@container`.foldLeft(List[Json]()) {
-            case (result, container) => result :+ container.iri.compact.asJson
-          }.asJson)
-      }
-    }
-
-    private def _types(activeProperty: ActiveProperty): Option[Json] = {
-      implicit val activeContext = activeProperty.`@context`
-      activeProperty.`@type` match {
-        case Nil       => None
-        case List(tpe) => Some(tpe.iri.compact.asJson)
-        case tpes =>
-          Some(activeProperty.`@type`.foldLeft(List[Json]()) {
-            case (result, container) => result :+ container.iri.compact.asJson
-          }.asJson)
-      }
-    }
-  }
-}
-case class JsonObjectInProgress(json: JsonObject, activeContext: ActiveContext) {
-  def map(cb: (JsonObject, ActiveContext) => JsonObjectInProgress): JsonObjectInProgress =
-    cb(json, activeContext)
-  def map(cb: (JsonObject, ActiveContext) => JsonInProgress): JsonInProgress =
-    cb(json, activeContext)
-}
-object JsonInProgress {
-  def apply(json: Json, doubledefinitionWA: Int = 1)(implicit activeContext: ActiveContext): JsonInProgress =
-    JsonInProgress(json, activeContext)
-
-  implicit class WithJsonInProgress(jip: JsonInProgress) {
-    lazy val withContext: JsonObject =
-      JsonObjectInProgress(JsonObject.single(types.`@graph`, jip.json), jip.activeContext).withContext
-  }
-}
-case class JsonInProgress(json: Json, activeContext: ActiveContext) {
-  def map(cb: (Json, ActiveContext) => JsonObjectInProgress): JsonObjectInProgress =
-    cb(json, activeContext)
-  def map(cb: (Json, ActiveContext) => JsonInProgress): JsonInProgress =
-    cb(json, activeContext)
-}
+case class JsonLDGraph(nodeIds: Map[String, Node])
 
 object JsonLD {
   val httpClient: HttpClient = HttpClientImpl
 
   def apply(graph: Graph): JsonLD = new JsonLD(graph)
+  def detached: JsonLD            = new JsonLD(DetachedGraph)
 }
+
+/**
+  *
+  * @param graph a graph which will be the container for the decoded elements and
+  */
 class JsonLD(graph: Graph) {
   import JsonLD._
 
   implicit val ec = monix.execution.Scheduler.global
-//  val jsonld      = json.JsonLD(graph)
 
   trait encode {
     def apply[T <: Node](node: Node): Json =
@@ -1026,7 +947,14 @@ class JsonLD(graph: Graph) {
           toLiteral(json, label)
         case label: StructuredType[Any] =>
           toStructured(json, label)
-        case _ => Task.raiseError(UnexpectedJsonException(s"unknown DataType ${label.iri}"))
+        case label: IriType[_] =>
+          json.string
+            .map(activeContext.expandIri)
+            .map(graph.nodes.upsert(_))
+            .map(Task(_))
+            .getOrElse(Task.raiseError(UnexpectedJsonException("unknown IriType, expected IRI/URL")))
+        case _ =>
+          Task.raiseError(UnexpectedJsonException(s"unknown DataType ${label.iri}"))
       }
 
     def tryValue(expandedJson: Map[String, Json], expectedType: Option[DataType[_]])(

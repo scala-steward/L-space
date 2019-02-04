@@ -32,8 +32,8 @@ abstract class PropertyDef(iri: String,
       _range = `@range`,
       containers = container,
       _properties = () => properties,
-      label = Map("en"   -> label),
-      comment = Map("en" -> comment),
+      label = Map("en" -> label),
+      comment = Map("en" -> comment).filter(_._2.nonEmpty),
       _extendedClasses = `@extends`
     )
 

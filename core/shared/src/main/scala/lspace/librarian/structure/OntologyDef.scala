@@ -13,12 +13,13 @@ object OntologyDef {
   * @param `@extends` a parent ontology
   * @param base
   */
-abstract class OntologyDef(iri: String,
-                           iris: Set[String] = Set(),
-                           label: String,
-                           comment: String = "",
-                           `@extends`: () => List[Ontology] = () => List(),
-                           base: Option[String] = None)
+abstract class OntologyDef(
+    iri: String,
+    iris: Set[String] = Set(),
+    label: String, //move to union types (e.g. String | Map[String, String]) once available (dotty?)
+    comment: String = "", //move to union types (e.g. String | Map[String, String]) once available (dotty?)
+    `@extends`: () => List[Ontology] = () => List(),
+    base: Option[String] = None)
     extends ClassTypeDef[Ontology] {
 
   def classtype = ontology
@@ -27,8 +28,8 @@ abstract class OntologyDef(iri: String,
     new Ontology(iri,
                  iris,
                  _properties = () => properties,
-                 label = Map("en"   -> label),
-                 comment = Map("en" -> comment),
+                 label = Map("en" -> label),
+                 comment = Map("en" -> comment).filter(_._2.nonEmpty),
                  _extendedClasses = `@extends`,
                  base = base)
 

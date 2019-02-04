@@ -16,7 +16,7 @@ trait NameSpaceGraph extends DataGraph {
 
   lazy val idProvider: IdProvider = graph.idProvider
 
-  override lazy val init: CancelableFuture[Unit] = index.init
+  override lazy val init: CancelableFuture[Unit] = CancelableFuture.unit //index.init
 
   trait Classtypes {
     def get(iri: String): Option[ClassType[_]] =

@@ -318,7 +318,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
   }
 
   private def readLiteralEdges(idMaps: IdMaps): Task[IdMaps] = {
-//    println("ledges")
+//    println(s"ledges ${graph.iri}")
     val jsonld = JsonLDFS(graph, idMaps)
     graphfiles.read.context.literalEdges
       .use(parseContext)

@@ -5,7 +5,7 @@ import monix.eval.Task
 import lspace.librarian.process.traversal._
 import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.structure.Property.default
-import lspace.librarian.datatype.{DataType, GraphType}
+import lspace.librarian.datatype.{DataType, GraphType, TextType}
 import lspace.librarian.provider.transaction.Transaction
 import lspace.librarian.provider.wrapped.WrappedResource
 import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
@@ -471,8 +471,9 @@ trait Graph extends IriResource {
       }
     }
     final def create[T](value: T, dt: DataType[T]): Value[T] = { //add implicit DataType[T]
-      byValue(value -> dt :: Nil).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
-        createValue(idProvider.next, value, dt)
+      val dereferencedValue = dereferenceValue(value).asInstanceOf[T]
+      byValue(dereferencedValue -> dt :: Nil).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
+        createValue(idProvider.next, dereferencedValue, dt)
       }
     }
 
@@ -650,15 +651,39 @@ trait Graph extends IriResource {
   def add(graph: Graph): Unit = ++(graph)
   def ++(graph: Graph): Unit = {
     if (graph != this) {
-      graph.nodes().foreach { node =>
-        nodes.post(node)
-      }
-//      graph.edges().foreach { edge =>
-//        postEdge(edge)
-//      }
-//      graph.values().foreach { value =>
-//        postValue(value)
-//      }
+      val oldIdNewNodeMap = graph
+        .nodes()
+        .map { node =>
+          node.id -> (if (node.iri.nonEmpty) nodes.upsert(node.iri)
+                      else nodes.create(node.labels: _*))
+        }
+        .toMap
+      val oldIdNewValueMap = graph
+        .values()
+        .map { value =>
+          value.id -> values.upsert(value)
+        }
+        .toMap
+
+      graph
+        .edges()
+        .filterNot(e => e.key == Property.default.`@id` && e.to.hasLabel(TextType.datatype).isDefined)
+        .foldLeft(Map[Long, Edge[_, _]]()) {
+          case (oldIdNewEdgeMap, edge) =>
+            oldIdNewEdgeMap + (edge.id -> edges.create(
+              edge.from match {
+                case (resource: Node)       => oldIdNewNodeMap(resource.id)
+                case (resource: Edge[_, _]) => oldIdNewEdgeMap(resource.id)
+                case (resource: Value[_])   => oldIdNewValueMap(resource.id)
+              },
+              edge.key,
+              edge.to match {
+                case (resource: Node)       => oldIdNewNodeMap(resource.id)
+                case (resource: Edge[_, _]) => oldIdNewEdgeMap(resource.id)
+                case (resource: Value[_])   => oldIdNewValueMap(resource.id)
+              }
+            ))
+        }
     }
   }
 

@@ -27,33 +27,30 @@ object DataType
     val iri: String = NS.types.`@datatype`
   }
 
-  def apply(node: Node): DataType[_] = node match {
-    case literalType: LiteralType[_] => literalType
-    case node =>
-      node.iri match {
-        case types.`@id` | types.schemaURL            => IriType.datatype
-        case types.`@nodeURL`                         => NodeURLType.datatype
-        case types.`@edgeURL`                         => EdgeURLType.datatype
-        case types.`@valueURL`                        => ValueURLType.datatype
-        case types.`@string` | types.schemaText       => TextType.datatype
-        case types.`@number` | types.schemaNumber     => IntType.datatype
-        case types.`@int` | types.schemaInteger       => IntType.datatype
-        case types.`@double` | types.schemaFloat      => DoubleType.datatype
-        case types.`@long`                            => LongType.datatype
-        case types.`@date` | types.schemaDate         => LocalDateType.datatype
-        case types.`@datetime` | types.schemaDateTime => DateTimeType.datatype
-        case types.`@time` | types.schemaTime         => LocalTimeType.datatype
-        case types.`@temporal`                        => CalendarType.datatype
-        case types.`@duration`                        => DurationType.datatype
-        case types.`@quantity`                        => QuantityType.datatype
+  def apply(node: Node): DataType[_] =
+    node.iri match {
+      case types.`@id` | types.schemaURL            => IriType.datatype
+      case types.`@nodeURL`                         => NodeURLType.datatype
+      case types.`@edgeURL`                         => EdgeURLType.datatype
+      case types.`@valueURL`                        => ValueURLType.datatype
+      case types.`@string` | types.schemaText       => TextType.datatype
+      case types.`@number` | types.schemaNumber     => IntType.datatype
+      case types.`@int` | types.schemaInteger       => IntType.datatype
+      case types.`@double` | types.schemaFloat      => DoubleType.datatype
+      case types.`@long`                            => LongType.datatype
+      case types.`@date` | types.schemaDate         => LocalDateType.datatype
+      case types.`@datetime` | types.schemaDateTime => DateTimeType.datatype
+      case types.`@time` | types.schemaTime         => LocalTimeType.datatype
+      case types.`@temporal`                        => CalendarType.datatype
+      case types.`@duration`                        => DurationType.datatype
+      case types.`@quantity`                        => QuantityType.datatype
 //        case types.`@epoch`                           => EpochType
-        case types.`@boolean` | types.schemaBoolean => BoolType.datatype
-        case types.`@geo`                           => GeometricType.datatype
-        case types.`@color`                         => TextType.datatype
-        case _ =>
-          throw new Exception(s"ontology/property ${node.iri} not known in graph ${node.graph.iri}")
-      }
-  }
+      case types.`@boolean` | types.schemaBoolean => BoolType.datatype
+      case types.`@geo`                           => GeometricType.datatype
+      case types.`@color`                         => TextType.datatype
+      case _ =>
+        throw new Exception(s"ontology/property ${node.iri} not known in graph ${node.graph.iri}")
+    }
 
   implicit def clsDatatype[T]: ClassTypeable.Aux[DataType[T], T, DataType[T]] = new ClassTypeable[DataType[T]] {
     type C  = T

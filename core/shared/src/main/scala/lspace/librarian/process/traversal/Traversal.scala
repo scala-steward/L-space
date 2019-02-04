@@ -14,6 +14,7 @@ import lspace.librarian.structure._
 import lspace.types.vector.Geometry
 import lspace.util.types.DefaultsToAny
 import monix.eval.Task
+import monix.reactive.Observable
 import shapeless.{::, <:!<, =:!=, HList, HNil, IsHCons1, LUBConstraint, Poly1, Witness, Id => _, Path => _, Select => _}
 import shapeless.ops.hlist.{Collect, IsHCons, Mapper, Prepend, Reverse, ToList, ToTraversable, Unifier}
 
@@ -1464,6 +1465,7 @@ object Traversal
     def toListSet                        = stream.to[ListSet]
     def toSet: Set[Out]                  = stream.toSet
     def toStream: Stream[Out]            = stream
+    def toObservable: Observable[Out]    = Observable.fromIterable(stream)
     def toAsyncStream: Task[Stream[Out]] = astream
     def toVector: Vector[Out]            = stream.toVector
     def next(n: Int)                     = stream.take(n)
@@ -1511,6 +1513,8 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
   def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector)(target)
   def toUntypedStream: Stream[Any] =
     target.buildTraversersStream[ST, DataType[Any], HNil, Any](this.asInstanceOf[Traversal[ST, DataType[Any], HNil]])
+  def toUntypedObservable: Observable[Any] =
+    Observable.fromIterable(toUntypedStream)
   def toUntypedStreamTask: Task[Stream[Any]] =
     target.buildAsyncTraversersStream[ST, DataType[Any], HNil, Any](
       this.asInstanceOf[Traversal[ST, DataType[Any], HNil]])
