@@ -75,6 +75,7 @@ object Dependencies {
     "com.github.finagle" %% "finchx-generic"  % Version.finch,
     "com.github.finagle" %% "finchx-argonaut" % Version.finch,
     "com.github.finagle" %% "finchx-sse"      % Version.finch,
+    "com.github.finagle" %% "finchx-refined"  % Version.finch,
     "com.twitter"        %% "twitter-server"  % "19.1.0",
     "com.vmunier"        %% "scalajs-scripts" % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
