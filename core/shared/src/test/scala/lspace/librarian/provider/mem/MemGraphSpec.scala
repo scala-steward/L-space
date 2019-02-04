@@ -17,7 +17,7 @@ class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
       MemGraphDefault.ns.ontologies.byIri.size should be > 0
       MemGraphDefault.ns.properties.byIri.size should be > 0
     }
-    "get 10,000 times from index" in {
+    "get 10,000 times from index" ignore {
       val start = java.time.Instant.now().toEpochMilli
       val id    = sampleGraph.nodes.hasIri(sampleGraph.iri + "/place/123").head.id
       (1 to 10000).foreach(_ => graph.nodes.hasId(id))
@@ -38,6 +38,19 @@ class MemGraphSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
       val end      = java.time.Instant.now().toEpochMilli
       val duration = end - start
       scribe.info(s"create 10,000 nodes took ${duration} milli-seconds")
+    }
+    "upsert 10,000 nodes with a unique iri" ignore {
+      val start       = java.time.Instant.now().toEpochMilli
+      val transaction = graph.transaction
+      (1 to 10000).foreach { i =>
+        val node = transaction.nodes.upsert(s"some-upsert-iri-10,000-$i")
+      }
+      transaction
+        .commit()
+
+      val end      = java.time.Instant.now().toEpochMilli
+      val duration = end - start
+      scribe.info(s"upsert 10,000 nodes took ${duration} milli-seconds")
     }
     "create 20,000 nodes with an iri" ignore {
       val start       = java.time.Instant.now().toEpochMilli
