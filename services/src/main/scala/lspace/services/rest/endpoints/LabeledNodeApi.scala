@@ -70,51 +70,43 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
       newNode.addLabel(ontology)
       t ++ node.graph
       t.commit()
-      Created(newNode)
+      Created(graph.nodes.hasId(newNode.id).get)
     }.toIO
   }
 
   val replaceById
     : Endpoint[IO, Node] = put(path[Long] :: bodyJsonLD) { (id: Long, node: Node) => //TODO: validate before mutating
-    val t = graph //.transaction
+    val t = graph.transaction
     t.nodes
       .hasIri(graph.iri + "/" + label + "/" + id)
       .headOption //TODO: handle 'unexpected' multiple results
       .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
         Task {
-          existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
           node.outE(`@id`).foreach(_.remove())
           node --- `@id` --> (graph.iri + "/" + label + "/" + id)
-          println("replace with " + node.out())
-          try {
-            t ++ node.graph
-            //t.commit()
-          } catch {
-            case e =>
-              println(e.getMessage)
-              throw e
-          }
-          println("replaced with " + existingNode.out())
-          Ok(existingNode)
+          existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
+          t ++ node.graph
+          t.commit()
+          Ok(graph.nodes.hasId(existingNode.id).get)
         }.toIO
       }
       .getOrElse(Task(NotFound(new Exception("cannot PUT a resource which does not exist"))).toIO)
   }
 
   val updateById: Endpoint[IO, Node] = patch(path[Long] :: bodyJsonLD) { (id: Long, node: Node) =>
-    val t = graph //.transaction
+    val t = graph.transaction
     t.nodes
       .hasIri(graph.iri + "/" + label + "/" + id)
       .headOption //TODO: handle 'unexpected' multiple results
       .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
         Task {
           node.outE(`@id`).foreach(_.remove())
-//          existingNode.outE(node.outEMap().keys.toList: _*).foreach(_.remove())
-          node.outEMap().keys.foreach(existingNode.removeOut)
           node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+//          existingNode.outE(node.outEMap().keys.toList: _*).foreach(_.remove())
+          node.outEMap().keys.filterNot(_ == `@id`).foreach(existingNode.removeOut)
           t ++ node.graph
-          //  t.commit()
-          Ok(existingNode)
+          t.commit()
+          Ok(graph.nodes.hasId(existingNode.id).get)
         }.toIO
       }
       .getOrElse(Task(NotFound(new Exception("cannot PATCH a resource which does not exist"))).toIO)

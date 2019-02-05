@@ -185,7 +185,9 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
               response.status shouldBe Status.Ok
               val node = response.value
               createdNode.iri shouldBe node.iri
+              createdNode.id shouldBe node.id
               node.out(person.keys.nameString).head shouldBe "Ali"
+              createdNode.out(person.keys.nameString).head shouldBe "Ali"
             }
             .getOrElse(fail("endpoint does not match"))
         }
@@ -217,7 +219,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
               response.status shouldBe Status.Ok
               val node = response.value
               createdNode.iri shouldBe node.iri
-              node.out(person.keys.nameString).head shouldBe "Ali"
+              createdNode.out(person.keys.nameString).head shouldBe "Ali"
             }
             .getOrElse(fail("endpoint does not match"))
         }
