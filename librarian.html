@@ -133,10 +133,10 @@ the end of the traversal he communicates back the result that was requested.</p>
 <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">loadSocial</span><span class="o">(</span><span class="n">graph</span><span class="o">)</span>
 
 <span class="k">val</span> <span class="n">labels</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">ontologies</span>
-<span class="c1">// labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@ae483c4
+<span class="c1">// labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@43efc184
 </span>
 <span class="k">val</span> <span class="n">keys</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">properties</span>
-<span class="c1">// keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@395036f2
+<span class="c1">// keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@32768e0b
 </span></code></pre></div></div>
 <h3 id="resource-steps">Resource steps</h3>
 <p>Resource-step to start specify what type of resources the traversal should start in.</p>
@@ -198,10 +198,10 @@ the end of the traversal he communicates back the result that was requested.</p>
 // res10: lspace.librarian.datatype.LongType.defaultLongType.C = 10
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.2 (20%)
-// res11: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1209)
+// res11: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1175, 1058, 1001)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.8</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.8 (80%)
-// res12: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1163, 1175, 1058, 1001, 1198, 1079, 1209)
+// res12: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1163, 1175, 1058, 1001, 1065, 1198, 1072, 1079, 1209)
 </span></code></pre></div></div>
 <h4 id="where">Where</h4>
 <p>Where-step takes a traversal and filters on non-empty results</p>
