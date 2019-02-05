@@ -300,9 +300,9 @@ trait Graph extends IriResource {
       node
     }
 
-    def upsert(iri: String, ontology: Ontology, ontologies: Ontology*): Node = {
-      val node = upsert(iri)
-      ontology :: ontologies.toList foreach node.addLabel
+    def upsert(iri: String, ontologies: Ontology*): Node = {
+      val node = upsert(iri, Set[String]())
+      ontologies.toList foreach node.addLabel
       node
     }
 
@@ -312,7 +312,7 @@ trait Graph extends IriResource {
       * @param iris a set of iri's which should all resolve to the same resource
       * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
       */
-    def upsert(iri: String, iris: Set[String] = Set()): Node = {
+    def upsert(iri: String, iris: Set[String]): Node = {
       val nodes = hasIri(iris + iri toList)
       val node: Node = if (nodes.isEmpty) {
 //        println(s"create node ${iri} ${iris}")
@@ -643,9 +643,9 @@ trait Graph extends IriResource {
     */
   protected def deleteResource[T <: _Resource[_]](resource: T): Unit
 
-  private def addMeta[S <: Resource[_], T, RT[Z] <: Resource[Z]](source: S, target: RT[T]): Unit =
+  private def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T): Unit =
     source.outE().filterNot(p => Graph.baseKeys.contains(p.key)).foreach { edge =>
-      addMeta(edge, edges.create(target, edge.key, edge.to))
+      addMeta(edge, edges.create[Any, Any](target, edge.key, edge.to))
     }
 
   def add(graph: Graph): Unit = ++(graph)
@@ -654,7 +654,7 @@ trait Graph extends IriResource {
       val oldIdNewNodeMap = graph
         .nodes()
         .map { node =>
-          node.id -> (if (node.iri.nonEmpty) nodes.upsert(node.iri)
+          node.id -> (if (node.iri.nonEmpty) nodes.upsert(node.iri, node.labels: _*)
                       else nodes.create(node.labels: _*))
         }
         .toMap

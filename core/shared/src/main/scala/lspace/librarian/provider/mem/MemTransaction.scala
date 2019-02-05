@@ -45,9 +45,9 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
           (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
         case (v1, v2, v3, v4, v5) =>
           (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
-//        case v: Ontology     => nodes.upsert(ns.ontologies.store(v))
-//        case v: Property     => nodes.upsert(ns.properties.store(v))
-//        case v: DataType[_]  => nodes.upsert(ns.datatypes.store(v))
+//        case v: Ontology     => nodes.upsert(parent.ns.ontologies.store(v)) //irrelevant, value is already dereferenced
+//        case v: Property     => nodes.upsert(parent.ns.properties.store(v))
+//        case v: DataType[_]  => nodes.upsert(parent.ns.datatypes.store(v))
         case v: _TNode       => v.self
         case v: Node         => newNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
         case v: _TEdge[_, _] => v.self

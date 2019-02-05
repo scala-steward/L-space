@@ -63,24 +63,24 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   override def valuesByValue[T](values: List[(T, DataType[T])]): Stream[graph._Value[T] with LValue[T]] = Stream()
 
-  override def storeNodes(nodes: List[graph._Node with LNode]): Task[_] = Task {}
+  override def storeNodes(nodes: List[graph._Node with LNode]): Task[_] = Task.unit
 
   override def storeEdges(
       edges: List[(graph._Edge[_$1, _$2] with LEdge[_$1, _$2]) forSome { type _$1; type _$2 }]): Task[_] =
-    Task {}
+    Task.unit
 
   override def storeValues(values: List[(graph._Value[_$1] with LValue[_$1]) forSome { type _$1 }]): Task[_] =
-    Task {}
+    Task.unit
 
   override def deleteNodes(nodes: List[graph._Node with LNode]): Task[_] =
-    Task {}
+    Task.unit
 
   override def deleteEdges(
       edges: List[(graph._Edge[_$1, _$2] with LEdge[_$1, _$2]) forSome { type _$1; type _$2 }]): Task[_] =
-    Task {}
+    Task.unit
 
   override def deleteValues(values: List[(graph._Value[_$1] with LValue[_$1]) forSome { type _$1 }]): Task[_] =
-    Task {}
+    Task.unit
 
   override def nodes: Stream[graph._Node with LNode] = Stream()
 

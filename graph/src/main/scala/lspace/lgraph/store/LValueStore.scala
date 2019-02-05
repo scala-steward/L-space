@@ -13,6 +13,7 @@ import lspace.types.vector.Point
 import scala.collection.immutable.ListSet
 import scala.collection.concurrent
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 object LValueStore {
   def apply[G <: LGraph](iri: String, graph: G): LValueStore[G] = new LValueStore(iri, graph)
@@ -167,16 +168,16 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     super.store(value)
     graph.storeManager
       .storeValues(List(value))
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def store(values: List[T]): Unit = {
     values.foreach(super.store)
     graph.storeManager
       .storeValues(values)
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def cache(value: T): Unit = {
@@ -304,8 +305,8 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     super.delete(value)
     graph.storeManager
       .deleteValues(List(value))
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def uncache(value: T): Unit = {
@@ -429,8 +430,8 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     values.foreach(super.delete)
     graph.storeManager
       .deleteValues(values)
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   def all(): Stream[T2] =

@@ -6,6 +6,8 @@ import lspace.lgraph.{LGraph, LResource}
 import lspace.librarian.structure.store.EdgeStore
 import lspace.librarian.structure.{Edge, Property}
 
+import scala.concurrent.duration._
+
 object LEdgeStore {
   def apply[G <: LGraph](iri: String, graph: G): LEdgeStore[G] = new LEdgeStore(iri, graph)
 }
@@ -19,16 +21,16 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
 
     graph.storeManager
       .storeEdges(List(edge))
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def store(edges: List[T]): Unit = {
     edges.foreach(super.store)
     graph.storeManager
       .storeEdges(edges)
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def cache(edge: T): Unit = {
@@ -130,8 +132,8 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     super.delete(edge)
     graph.storeManager
       .deleteEdges(List(edge))
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def delete(edges: List[T]): Unit = {
@@ -140,8 +142,8 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     edges.foreach(super.delete)
     graph.storeManager
       .deleteEdges(edges)
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   def all(): Stream[T2] = _cache.toStream.map(_._2).filterNot(v => isDeleted(v.id)) ++ graph.storeManager.edges distinct

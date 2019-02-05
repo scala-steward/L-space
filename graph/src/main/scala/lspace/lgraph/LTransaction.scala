@@ -1,9 +1,9 @@
 package lspace.lgraph
 
-import lspace.librarian.datatype.CollectionType
+import lspace.librarian.datatype.{CollectionType, DataType}
 import lspace.librarian.provider.mem.{MemGraph, MemIndexGraph}
 import lspace.librarian.provider.transaction.Transaction
-import lspace.librarian.structure.{Edge, Node, Value}
+import lspace.librarian.structure._
 import monix.eval.Task
 
 import scala.collection.immutable.ListSet
@@ -59,9 +59,9 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
           (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
         case (v1, v2, v3, v4, v5) =>
           (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
-        //        case v: Ontology     => nodes.upsert(ns.ontologies.store(v))
-        //        case v: Property     => nodes.upsert(ns.properties.store(v))
-        //        case v: DataType[_]  => nodes.upsert(ns.datatypes.store(v))
+//        case v: Ontology     => nodes.upsert(ns.ontologies.store(v))
+//        case v: Property     => nodes.upsert(ns.properties.store(v))
+//        case v: DataType[_]  => nodes.upsert(ns.datatypes.store(v))
         case v: _TNode       => v.self
         case v: Node         => addedNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
         case v: _TEdge[_, _] => v.self
@@ -91,21 +91,17 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
         s"update cache took ${iEnd - start} millis, added #${addedNodes.size} nodes - #${addedEdges.size} edges - #${addedValues.size}")
       Task
         .sequence(Seq(
-          parent.storeManager.storeValues(addedValues),
-          parent.storeManager.storeNodes(addedNodes),
-          parent.storeManager.storeEdges(addedEdges),
+          Task {
+            removedNodes.foreach(parent.nodeStore.uncache)
+            removedValues.foreach(parent.valueStore.uncache)
+            removedEdges.foreach(parent.edgeStore.uncache)
+          },
           parent.storeManager.deleteEdges(removedEdges),
           parent.storeManager.deleteNodes(removedNodes),
           parent.storeManager.deleteValues(removedValues),
-          Task {
-            removedNodes.foreach(parent.nodeStore.uncacheByIri)
-            removedValues.foreach(parent.valueStore.uncacheByIri)
-            removedEdges.foreach(parent.edgeStore.uncacheByIri)
-
-            removedEdges.foreach(parent.edgeStore.uncacheById)
-            removedNodes.foreach(parent.nodeStore.uncacheById)
-            removedValues.foreach(parent.valueStore.uncacheById)
-          }
+          parent.storeManager.storeValues(addedValues),
+          parent.storeManager.storeNodes(addedNodes),
+          parent.storeManager.storeEdges(addedEdges)
         ))
         .onErrorHandleWith {
           case _: TimeoutException => Task.now("recovered")

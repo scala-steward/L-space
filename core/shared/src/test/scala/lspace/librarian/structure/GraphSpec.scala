@@ -4,7 +4,7 @@ import java.time.Instant
 
 import lspace.librarian.datatype.DataType
 import lspace.librarian.process.traversal._
-import lspace.librarian.provider.detached.DetachedGraph
+import lspace.librarian.structure.Property.default._
 import lspace.librarian.util.SampleGraph
 import org.scalatest.{BeforeAndAfterAll, Matchers, Outcome, WordSpec}
 
@@ -147,7 +147,7 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "A graph" should {
     "merge nodes to a single node when upserting an existing iri and multiple nodes are found" in {
-      val graph = createGraph("graphspec-mergeNodes")
+//      val graph = createGraph("graphspec-mergeNodes")
       try {
         1.to(10).map(i => graph.nodes.create()).map { node =>
           node.addOut(Property.default.typed.createdonDateTime, Instant.now())
@@ -166,25 +166,37 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         graph.nodes.hasIri("someuniqueurl").size shouldBe 1
       } catch {
         case t: Throwable =>
-          t.printStackTrace()
+//          t.printStackTrace()
           fail(t.getMessage)
       } finally {
         graph.close()
       }
     }
 
+    "support transactions to add edges to existing nodes" in {
+      val node = graph.nodes.create(SampleGraph.Person.ontology)
+      node --- `@id` --> "support-transaction-to-add-edges"
+      node --- SampleGraph.Person.keys.name --> "Alice"
+      val t = graph.transaction
+      t.nodes.hasId(node.id).foreach { node =>
+        node.outE(SampleGraph.Person.keys.name).foreach(_.remove())
+        node --- SampleGraph.Person.keys.balance --> 1.2
+        node --- SampleGraph.Person.keys.name --> "Ali"
+      }
+      t.commit()
+      node.out() should contain(1.2)
+      node.out() should not contain ("Alice")
+      node.out() should contain("Ali")
+    }
+
     "supports transactions" in {
-      val graph       = createGraph("graphspec-support-transactions")
-      val graphFilled = createSampleGraph("graphspec-support-transactions-filled")
+      val graph = createGraph("graphspec-support-transactions")
+//      val graphFilled = createSampleGraph("graphspec-support-transactions-filled")
       val transaction = graph.transaction
 
       graph.nodes().size shouldBe 0
       graph.edges().size shouldBe 0
       graph.values().size shouldBe 0
-
-      graphFilled.nodes().size should not be 0
-      graphFilled.edges().size should not be 0
-      graphFilled.values().size should not be 0
 
       SampleGraph.loadSocial(transaction)
 
@@ -192,19 +204,17 @@ trait GraphSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       graph.edges().size shouldBe 0
       graph.values().size shouldBe 0
 
-      graphFilled.nodes().size shouldBe transaction.nodes.count
-      graphFilled.edges().size shouldBe transaction.edges.count
-      graphFilled.values().size shouldBe transaction.values.count
+      sampleGraph.nodes().size shouldBe transaction.nodes.count
+      sampleGraph.edges().size shouldBe transaction.edges.count
+      sampleGraph.values().size shouldBe transaction.values.count
 
       transaction.commit()
 
-      graphFilled.nodes().size shouldBe graph.nodes.count
-      graphFilled.edges().size shouldBe graph.edges.count
-      graphFilled.values().size shouldBe graph.values.count
+      sampleGraph.nodes().size shouldBe graph.nodes.count
+      sampleGraph.edges().size shouldBe graph.edges.count
+      sampleGraph.values().size shouldBe graph.values.count
 
-      graphFilled.close()
       graph.close()
-
     }
 
     "support traversals" which {

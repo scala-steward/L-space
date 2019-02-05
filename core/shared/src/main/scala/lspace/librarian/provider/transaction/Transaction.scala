@@ -43,15 +43,15 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     def label = self.label
   }
 
-  def wrapTR[T <: parent.GResource[_]](resource: T): TResource[_] = resource match {
-    case n: parent._Node => super.nodes.hasId(n.id).map(_.asInstanceOf[TNode]).getOrElse(_TNode(n))
+  def wrapTR[T <: parent.GResource[_]](resource: T): _Resource[_] = resource match {
+    case n: parent._Node => super.nodes.hasId(n.id).map(_.asInstanceOf[_Node]).getOrElse(_TNode(n))
     case e: parent._Edge[Any, Any] =>
       super.edges
         .hasId(e.id)
-        .map(_.asInstanceOf[TEdge[Any, Any]])
+        .map(_.asInstanceOf[_Edge[Any, Any]])
         .getOrElse(_TEdge(e.asInstanceOf[parent.GEdge[Any, Any]]))
     case v: parent._Value[Any] =>
-      super.values.hasId(v.id).map(_.asInstanceOf[TValue[Any]]).getOrElse(_TValue(v.asInstanceOf[parent.GValue[Any]]))
+      super.values.hasId(v.id).map(_.asInstanceOf[_Value[Any]]).getOrElse(_TValue(v.asInstanceOf[parent.GValue[Any]]))
   }
 
   lazy val ns: NameSpaceGraph = parent.ns
@@ -113,6 +113,14 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     override def hasId(id: Long): Option[Node] = {
       if (deleted.contains(id)) None
       else super.hasId(id).orElse(parent.nodes.hasId(id).map(_.asInstanceOf[parent.GNode]).map(_TNode))
+    }
+
+    override def hasId(id: List[Long]): Stream[Node] = {
+      id.toStream
+        .filterNot(deleted.contains)
+        .flatMap { id =>
+          super.hasId(id).orElse(parent.nodes.hasId(id).map(_.asInstanceOf[parent.GNode]).map(_TNode))
+        }
     }
   }
   private lazy val _nodes: Nodes = new Nodes {}

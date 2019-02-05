@@ -28,11 +28,11 @@ trait LStore[G <: LGraph] extends Store[G] {
   }
 
   def isDeleted(id: Long) = _deleted.contains(id)
-  def markDeleted(ids: Set[Long]) = {
+  def markDeleted(ids: Set[Long]): Unit = {
     val delTime = Instant.now()
     _deleted ++= ids.map(_ -> delTime)
   }
-  def dropDeletedMarks(seconds: Int) = {
+  def dropDeletedMarks(seconds: Int): Unit = {
     val now = Instant.now()
     _deleted --= _deleted.filter(_._2.plusSeconds(seconds).isBefore(now)).keys
   }
@@ -81,10 +81,10 @@ trait LStore[G <: LGraph] extends Store[G] {
   }
 
   def uncache(resource: T): Unit = {
-    resource.outE().foreach(e => graph.edgeStore.uncache(e.asInstanceOf[graph.edgeStore.T]))
-    resource.inE().foreach(e => graph.edgeStore.uncache(e.asInstanceOf[graph.edgeStore.T]))
     uncacheById(resource)
     uncacheByIri(resource)
+    resource.outE().foreach(e => graph.edgeStore.uncache(e.asInstanceOf[graph.edgeStore.T]))
+    resource.inE().foreach(e => graph.edgeStore.uncache(e.asInstanceOf[graph.edgeStore.T]))
   }
   def uncacheById(resource: T): Unit = {
     _cache -= resource.id

@@ -95,7 +95,7 @@ trait MemGraph extends Graph {
 
   override protected[mem] def storeNode(node: GNode): Unit = super.storeNode(node)
 
-  private[this] val newEdgeLock = new Object
+  protected[this] val newEdgeLock = new Object
   protected[mem] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
     newEdgeLock
       .synchronized {
@@ -139,7 +139,7 @@ trait MemGraph extends Graph {
   override protected[mem] def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
     super.createEdge(id, from, key, to).asInstanceOf[GEdge[Any, Any]]
 
-  private[this] val newValueLock = new Object
+  protected[this] val newValueLock = new Object
   protected[mem] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
     newValueLock
       .synchronized {

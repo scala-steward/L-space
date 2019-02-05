@@ -4,6 +4,7 @@ import java.time.Instant
 
 import lspace.lgraph.LGraph
 import lspace.librarian.structure.store.NodeStore
+import scala.concurrent.duration._
 
 object LNodeStore {
   def apply[G <: LGraph](iri: String, graph: G): LNodeStore[G] = new LNodeStore(iri, graph)
@@ -29,16 +30,16 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     super.store(node)
     graph.storeManager
       .storeNodes(List(node))
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def store(nodes: List[T]): Unit = {
     nodes.foreach(super.store)
     graph.storeManager
       .storeNodes(nodes)
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def delete(node: T): Unit = {
@@ -46,8 +47,8 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     super.delete(node)
     graph.storeManager
       .deleteNodes(List(node))
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def delete(nodes: List[T]): Unit = {
@@ -56,8 +57,8 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     nodes.foreach(super.delete)
     graph.storeManager
       .deleteNodes(nodes)
-//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+//      .runToFuture(monix.execution.Scheduler.global)
   }
 
   override def all(): Stream[T2] =
