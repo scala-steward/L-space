@@ -17,7 +17,7 @@ lazy val compilerOptions = Seq(
   "-language:postfixOps",
   "-language:reflectiveCalls",
 //  "-language:experimental.macros",
-//  "-Ypartial-unification",
+  "-Ypartial-unification",
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
 //  "-Ytyper-debug",
