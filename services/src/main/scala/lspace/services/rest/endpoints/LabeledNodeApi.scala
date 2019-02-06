@@ -8,11 +8,12 @@ import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
 import lspace.parse.JsonLD
 import monix.eval.Task
-import shapeless.HList
+import shapeless.{HList, Poly1}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string._
 import eu.timepit.refined.numeric._
 import io.finch.refined._
+import lspace.services.codecs.{JsonLDModule, JsonModule}
 
 case class PagedResult(result: List[Node])
 
@@ -20,7 +21,7 @@ object LabeledNodeApi {
   def apply(ontology: Ontology)(implicit graph: Lspace): LabeledNodeApi = new LabeledNodeApi(ontology)(graph)
 }
 
-class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api with JsonLDModule {
+class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api with JsonLDModule with JsonModule {
   implicit val jsonld = JsonLD.detached //todo JsonLD context per client-session
 
   implicit val ec = monix.execution.Scheduler.global
@@ -57,11 +58,29 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
   /**
     * GET /
     */
-  val list: Endpoint[IO, PagedResult] = get(zero).mapOutputAsync { hn =>
-    graph.g.N.hasLabel(ontology).toObservable.toListL.map(PagedResult).map(Ok).toIO
+  val list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
+    graph.g.N.hasLabel(ontology).toObservable.toListL.map(Ok).toIO
   }
 
-  val create = post(bodyJsonLD) { node: Node =>
+  object polyNodeToNode extends Poly1 {
+    implicit def caseNode = at[Node](node => node)
+  }
+//  val create2: Endpoint[IO, Node] =
+//    post(bodyJson(ontology.properties.toList)).mapOutputAsync { node: Node =>
+//      Task {
+//        val t       = graph.transaction
+//        val newNode = t.nodes.create(ontology)
+//        newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+//        node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+//        newNode.addLabel(ontology)
+//        t ++ node.graph
+//        t.commit()
+//        Created(graph.nodes.hasId(newNode.id).get)
+//      }.onErrorHandle { f =>
+//        f.printStackTrace(); throw f
+//      }.toIO
+//    }
+  val _create = { node: Node =>
     Task {
       val t       = graph.transaction
       val newNode = t.nodes.create(ontology)
@@ -74,43 +93,53 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
     }.toIO
   }
 
+  val create: Endpoint[IO, Node] =
+    post(bodyJsonLD()).mapOutputAsync(_create)
+  val create2: Endpoint[IO, Node] =
+    post(bodyJson(ontology.properties.toList)).mapOutputAsync(_create)
+//  val create: Endpoint[IO, Node] =
+//    post((bodyJsonLD() :+: bodyJson(ontology.properties.toList)).map(_.unify)).mapOutputAsync(_create)
+
   val replaceById
-    : Endpoint[IO, Node] = put(path[Long] :: bodyJsonLD) { (id: Long, node: Node) => //TODO: validate before mutating
-    val t = graph.transaction
-    t.nodes
-      .hasIri(graph.iri + "/" + label + "/" + id)
-      .headOption //TODO: handle 'unexpected' multiple results
-      .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-        Task {
-          node.outE(`@id`).foreach(_.remove())
-          node --- `@id` --> (graph.iri + "/" + label + "/" + id)
-          existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
-          t ++ node.graph
-          t.commit()
-          Ok(graph.nodes.hasId(existingNode.id).get)
-        }.toIO
-      }
-      .getOrElse(Task(NotFound(new Exception("cannot PUT a resource which does not exist"))).toIO)
+    : Endpoint[IO, Node] = put(path[Long] :: (bodyJsonLD() :+: bodyJson(ontology.properties.toList)).map(_.unify)) {
+    (id: Long, node: Node) => //TODO: validate before mutating
+      val t = graph.transaction
+      t.nodes
+        .hasIri(graph.iri + "/" + label + "/" + id)
+        .headOption //TODO: handle 'unexpected' multiple results
+        .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
+          Task {
+            node.outE(`@id`).foreach(_.remove())
+            node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+            existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
+            t ++ node.graph
+            t.commit()
+            Ok(graph.nodes.hasId(existingNode.id).get)
+          }.toIO
+        }
+        .getOrElse(Task(NotFound(new Exception("cannot PUT a resource which does not exist"))).toIO)
   }
 
-  val updateById: Endpoint[IO, Node] = patch(path[Long] :: bodyJsonLD) { (id: Long, node: Node) =>
-    val t = graph.transaction
-    t.nodes
-      .hasIri(graph.iri + "/" + label + "/" + id)
-      .headOption //TODO: handle 'unexpected' multiple results
-      .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-        Task {
-          node.outE(`@id`).foreach(_.remove())
-          node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+  val updateById: Endpoint[IO, Node] =
+    patch(path[Long] :: (bodyJsonLD() :+: bodyJson(ontology.properties.toList)).map(_.unify)) {
+      (id: Long, node: Node) =>
+        val t = graph.transaction
+        t.nodes
+          .hasIri(graph.iri + "/" + label + "/" + id)
+          .headOption //TODO: handle 'unexpected' multiple results
+          .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
+            Task {
+              node.outE(`@id`).foreach(_.remove())
+              node --- `@id` --> (graph.iri + "/" + label + "/" + id)
 //          existingNode.outE(node.outEMap().keys.toList: _*).foreach(_.remove())
-          node.outEMap().keys.filterNot(_ == `@id`).foreach(existingNode.removeOut)
-          t ++ node.graph
-          t.commit()
-          Ok(graph.nodes.hasId(existingNode.id).get)
-        }.toIO
-      }
-      .getOrElse(Task(NotFound(new Exception("cannot PATCH a resource which does not exist"))).toIO)
-  }
+              node.outEMap().keys.filterNot(_ == `@id`).foreach(existingNode.removeOut)
+              t ++ node.graph
+              t.commit()
+              Ok(graph.nodes.hasId(existingNode.id).get)
+            }.toIO
+          }
+          .getOrElse(Task(NotFound(new Exception("cannot PATCH a resource which does not exist"))).toIO)
+    }
   val removeById: Endpoint[IO, Node] = delete(path[Long]) { id: Long =>
     val t = graph.transaction
     t.nodes
@@ -129,13 +158,12 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
     * GET /
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
-  val getByLibrarian: Endpoint[IO, PagedResult] =
+  val getByLibrarian: Endpoint[IO, List[Node]] =
     get(bodyJsonLDTyped(Traversal.ontology, node => Traversal.toTraversal(node)(graph))).mapOutputAsync {
       traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
         traversal.toUntypedStreamTask
           .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
           .map(_.toList)
-          .map(PagedResult(_))
           .map(Ok)
           .toIO
     }

@@ -6,6 +6,7 @@ import io.finch._
 import io.finch.Endpoint
 import lspace.librarian.structure.Graph
 import lspace.parse.JsonLD
+import lspace.services.codecs.JsonLDModule
 
 import scala.collection.mutable
 

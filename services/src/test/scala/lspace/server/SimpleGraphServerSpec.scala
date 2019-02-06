@@ -10,7 +10,7 @@ import lspace.librarian.structure.{Graph, Node}
 import lspace.librarian.util.SampleGraph
 import lspace.parse.JsonLD
 import lspace.services.SimpleGraphServer
-import lspace.services.rest.endpoints.{JsonLDModule, NameSpaceService, TraversalService}
+import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
 import org.scalatest._
 import org.scalatest.Matchers
 import shapeless.{:+:, CNil}
@@ -42,7 +42,8 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
 
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       import lspace.encode.EncodeJsonLD._
-      import JsonLDModule.Encode._
+      import lspace.services.codecs.JsonLDModule
+      import lspace.services.codecs.JsonLDModule.Encode._
       val input = Input
         .post("/traverse")
         .withBody[JsonLDModule.JsonLD](traversal.toNode)

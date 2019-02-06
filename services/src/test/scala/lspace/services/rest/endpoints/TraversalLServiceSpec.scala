@@ -24,7 +24,8 @@ class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAl
   "a traversal-service" should {
     "execute a traversal only on a POST request" in {
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
-      import JsonLDModule.Encode._
+      import lspace.services.codecs.JsonLDModule
+      import lspace.services.codecs.JsonLDModule.Encode._
       import lspace.encode.EncodeJsonLD._
       val input = Input
         .post("/traverse")

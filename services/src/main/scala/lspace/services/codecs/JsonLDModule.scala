@@ -1,25 +1,22 @@
-package lspace.services.rest.endpoints
+package lspace.services.codecs
 
 import java.util.UUID
 
-import argonaut._
 import argonaut.Argonaut._
+import argonaut._
 import cats.effect.IO
-import com.twitter.io.Buf
-import io.finch.{Endpoint, NotAcceptable, Ok}
-import shapeless.{HList, Witness}
 import cats.syntax.either._
+import com.twitter.io.Buf
 import io.finch.internal.HttpContent
-import lspace.decode.DecodeJsonLD
+import io.finch.{Endpoint, NotAcceptable, Ok}
 import lspace.encode.EncodeJsonLD
-import lspace.librarian.process.traversal.Traversal
+import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure._
-import lspace.parse.util.{FromJsonException, NotAcceptableException}
+import lspace.parse.util.NotAcceptableException
 import monix.eval.Task
 import scribe._
-
-import scala.util.{Failure, Success}
+import shapeless.Witness
 
 object JsonLDModule {
   type JsonLD = Witness.`"application/ld+json"`.T
@@ -29,26 +26,10 @@ object JsonLDModule {
 
     private val printer = PrettyParams.nospace.copy(preserveOrder = true)
 
-//    trait EncodeJsonLD[A] {
-//      def encode(a: A): Json
-//    }
-//    implicit def nodeToJsonLD[T <: Node] = new EncodeJsonLD[T] {
-//      def encode(a: T): Json = lspace.parse.json.JsonLD.default.nodeToJsonWithContext(a)._1
-//    }
-//    implicit val encodeJsonLDJson = new EncodeJsonLD[Json] {
-//      def encode(a: Json): Json = a
-//    }
     implicit def encodeArgonautJsonLD[A](implicit e: EncodeJsonLD[A]): JsonLD[A] = {
       io.finch.Encode.instance[A, JsonLDModule.JsonLD]((a, cs) =>
         Buf.ByteArray.Owned(printer.pretty(e.encode(a)).getBytes(cs.name)))
     }
-//    val encPagedResult = EncodeJson { result: PagedResult =>
-//      result.result.map(_.asJson).asJson
-//    }
-//    implicit def encodeArgonautPagedResult: JsonLD[PagedResult] = {
-//      io.finch.Encode.instance[PagedResult, JsonLDModule.JsonLD]((a, cs) =>
-//        Buf.ByteArray.Owned(printer.pretty(e.encode(a)).getBytes(cs.name)))
-//    }
   }
 
   object Decode {
@@ -68,13 +49,21 @@ object JsonLDModule {
 trait JsonLDModule extends Endpoint.Module[IO] {
 
   import JsonLDModule.Decode._
-
   import monix.eval.Task.catsEffect
   import monix.execution.Scheduler.global
 
-  def bodyJsonLDTyped[T](label: Ontology, nodeToT: Node => T): Endpoint[IO, T] =
-    bodyJsonLDLabeled(label).mapOutputAsync(
-      node =>
+  def bodyJsonLDTyped[T](label: Ontology,
+                         nodeToT: Node => T,
+                         allowedProperties: List[Property] = List()): Endpoint[IO, T] =
+    bodyJsonLDLabeled(label)
+      .map { node =>
+        if (allowedProperties.nonEmpty) {
+          val fNode = DetachedGraph.nodes.create()
+          node.outE(allowedProperties: _*).foreach(e => fNode --- e.key --> e.to)
+          fNode
+        } else node
+      }
+      .mapOutputAsync(node =>
         Task(nodeToT(node))
           .map(Ok)
           .onErrorHandle {
@@ -84,7 +73,7 @@ trait JsonLDModule extends Endpoint.Module[IO] {
           }
           .toIO(catsEffect(global)))
 
-  def bodyJsonLDLabeled(label: Ontology): Endpoint[IO, Node] =
+  def bodyJsonLDLabeled(label: Ontology, allowedProperties: List[Property] = List()): Endpoint[IO, Node] =
     body[Json, JsonLDModule.JsonLD]
       .handle {
         case t => NotAcceptable(new Exception("body is invalid 'application/ld+json'"))
@@ -94,6 +83,13 @@ trait JsonLDModule extends Endpoint.Module[IO] {
         val jsonld      = lspace.parse.JsonLD(resultGraph)
         jsonld.decode
           .toLabeledNode(json, label)
+          .map { node =>
+            if (allowedProperties.nonEmpty) {
+              val fNode = DetachedGraph.nodes.create()
+              node.outE(allowedProperties: _*).foreach(e => fNode --- e.key --> e.to)
+              fNode
+            } else node
+          }
           .map(Ok)
           .onErrorHandle {
             case e: NotAcceptableException =>
@@ -103,7 +99,7 @@ trait JsonLDModule extends Endpoint.Module[IO] {
           .toIO(catsEffect(global))
       }
 
-  def bodyJsonLD: Endpoint[IO, Node] =
+  def bodyJsonLD(allowedProperties: List[Property] = List()): Endpoint[IO, Node] =
     body[Json, JsonLDModule.JsonLD]
       .handle {
         case t => NotAcceptable(new Exception("body is invalid 'application/ld+json'"))
@@ -113,6 +109,13 @@ trait JsonLDModule extends Endpoint.Module[IO] {
         val jsonld      = lspace.parse.JsonLD(resultGraph)
         jsonld.decode
           .toNode(json)
+          .map { node =>
+            if (allowedProperties.nonEmpty) {
+              val fNode = DetachedGraph.nodes.create()
+              node.outE(allowedProperties: _*).foreach(e => fNode --- e.key --> e.to)
+              fNode
+            } else node
+          }
           .map(Ok)
           .onErrorHandle {
             case e: NotAcceptableException =>

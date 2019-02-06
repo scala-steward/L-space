@@ -8,6 +8,7 @@ import cats.effect.IO
 import io.finch._
 import lspace.librarian.datatype.DataType
 import lspace.parse.JsonLD
+import lspace.services.codecs.JsonLDModule
 import scribe._
 import shapeless.{CNil, HList}
 

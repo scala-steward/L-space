@@ -10,7 +10,7 @@ import io.finch.{Bootstrap, _}
 import io.finch.sse.ServerSentEvent
 import lspace.encode.EncodeJsonLD
 import lspace.librarian.structure.Graph
-import lspace.services.rest.endpoints.{JsonLDModule, NameSpaceService, TraversalService}
+import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
 import lspace.services.rest.security.WithSse
 import shapeless._
 
@@ -24,7 +24,8 @@ class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
 
   type JsonLDText[A] = io.finch.Encode.Aux[A, Text.Plain]
   private val printer = PrettyParams.nospace.copy(preserveOrder = true)
-  import JsonLDModule.Encode._
+  import lspace.services.codecs.JsonLDModule
+  import lspace.services.codecs.JsonLDModule.Encode._
   import lspace.encode.EncodeJsonLD._
   implicit val _graph = graph
 

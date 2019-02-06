@@ -48,11 +48,20 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   import argonaut._
   import argonaut.Argonaut._
   import io.finch.argonaut.preserveOrder._
-  import JsonLDModule.Encode._
+  import lspace.services.codecs.JsonLDModule
+  import lspace.services.codecs.JsonLDModule.Encode._
 
   implicit val nodeToJson: EncodeJson[Node] =
     EncodeJson { node: Node =>
-      Json.jString("ab")
+      node
+        .outEMap()
+        .map {
+          case (property, edges) =>
+            property.label("en") -> (edges match {
+              case List(e) => JsonLD.detached.encode.fromAny(e.to, Some(e.to.labels.head))(ActiveContext()).json
+            })
+        }
+        .asJson
     }
 
   implicit val labeledNodeToJson: EncodeJson[(Ontology, Node)] =
@@ -61,26 +70,26 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         Json.jString("ab")
     }
 
-  implicit val labeledPagedResultToJson: EncodeJson[(Ontology, PagedResult)] =
+  implicit val labeledPagedResultToJson: EncodeJson[(Ontology, List[Node])] =
     EncodeJson {
-      case (ontology: Ontology, pr: PagedResult) =>
-        pr.result.map(_.asJson).asJson
+      case (ontology: Ontology, nodes: List[Node]) =>
+        nodes.map(_.asJson).asJson
     }
 //  implicit val pagedResultToJson: EncodeJson[PagedResult] =
 //    EncodeJson { pr: PagedResult =>
 //      pr.result.map(_.asJson).asJson
 //    }
 
-  implicit def pagedResultToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, PagedResult)] {
-    val encode: ((Ontology, PagedResult)) => Json = {
-      case (ontology: Ontology, pr: PagedResult) =>
-        Json.jObject(jsonld.encode.fromAny(pr.result)(ActiveContext()).withContext)
+  implicit def pagedResultToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, List[Node])] {
+    val encode: ((Ontology, List[Node])) => Json = {
+      case (ontology: Ontology, nodes: List[Node]) =>
+        Json.jObject(jsonld.encode.fromAny(nodes)(ActiveContext()).withContext)
     }
   }
 
   object labelResult extends Poly1 {
     implicit def caseNode        = at[Node](node => (person.ontology, node))
-    implicit def casePagedResult = at[PagedResult](pagedResult => (person.ontology, pagedResult))
+    implicit def casePagedResult = at[List[Node]](nodes => (person.ontology, nodes))
   }
 
   implicit def nodeToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, Node)] {
@@ -250,6 +259,39 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
               response.status shouldBe Status.NoContent
             }
             .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))
+    }
+    "update a person with on a patch-request for Content-Type application/json" in {
+      import EncodeJsonLD._
+      import lspace.encode.EncodeJsonLD._
+      val input = Input
+        .post("/")
+        .withBody[Application.Json](toNode(Person("Alice")))
+      personApiService
+        .create2(input)
+        .awaitOutput()
+        .map { output =>
+          if (output.isLeft) println(output.left.get.getMessage)
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+//          val createdNode = response.value
+
+//          personApiService
+//            .updateById(Input
+//              .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+//              .withBody[Application.Json](toNode(Person("Ali"))))
+//            .awaitOutput()
+//            .map { output =>
+//              output.isRight shouldBe true
+//              val response = output.right.get
+//              response.status shouldBe Status.Ok
+//              val node = response.value
+//              createdNode.iri shouldBe node.iri
+//              createdNode.out(person.keys.nameString).head shouldBe "Ali"
+//            }
+//            .getOrElse(fail("endpoint does not match"))
         }
         .getOrElse(fail("endpoint does not match"))
     }

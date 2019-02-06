@@ -672,15 +672,21 @@ trait Graph extends IriResource {
           case (oldIdNewEdgeMap, edge) =>
             oldIdNewEdgeMap + (edge.id -> edges.create(
               edge.from match {
-                case (resource: Node)       => oldIdNewNodeMap(resource.id)
-                case (resource: Edge[_, _]) => oldIdNewEdgeMap(resource.id)
-                case (resource: Value[_])   => oldIdNewValueMap(resource.id)
+                case (resource: Node) =>
+                  oldIdNewNodeMap(resource.id)
+                case (resource: Edge[_, _]) =>
+                  oldIdNewEdgeMap(resource.id)
+                case (resource: Value[_]) =>
+                  oldIdNewValueMap(resource.id)
               },
               edge.key,
               edge.to match {
-                case (resource: Node)       => oldIdNewNodeMap(resource.id)
-                case (resource: Edge[_, _]) => oldIdNewEdgeMap(resource.id)
-                case (resource: Value[_])   => oldIdNewValueMap(resource.id)
+                case (resource: Node) =>
+                  oldIdNewNodeMap(resource.id)
+                case (resource: Edge[_, _]) =>
+                  oldIdNewEdgeMap(resource.id)
+                case (resource: Value[_]) =>
+                  oldIdNewValueMap(resource.id)
               }
             ))
         }
