@@ -64,7 +64,7 @@ lazy val lspace = project
   .settings(skip in publish := true)
   .aggregate(core.jvm, core.js, parse.jvm, parse.js, client.jvm, client.js, graph, services)
 
-lazy val core: CrossProject = (crossProject(JSPlatform, JVMPlatform)
+lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("core"))
   .settings(settings)
@@ -101,7 +101,7 @@ lazy val client =
   (crossProject(JSPlatform, JVMPlatform)
     .withoutSuffixFor(JVMPlatform)
     .crossType(CrossType.Full) in file("client"))
-    .dependsOn(parse % "compile->compile;test->test")
+    .dependsOn(core % "compile->compile;test->test")
     .settings(settings)
     .settings(
       name := "lspace-client",
@@ -116,7 +116,7 @@ lazy val client =
     )
 
 lazy val graph = (project in file("graph"))
-  .dependsOn(client.jvm % "compile->compile;test->test")
+  .dependsOn(parse.jvm % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-graph",
@@ -152,7 +152,7 @@ lazy val elasticsearch = (project in file("index/elasticsearch"))
 
 
 lazy val services = (project in file("services"))
-  .dependsOn(client.jvm % "compile->compile;test->test")
+  .dependsOn(client.jvm % "compile->compile;test->test",parse.jvm % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-services",
