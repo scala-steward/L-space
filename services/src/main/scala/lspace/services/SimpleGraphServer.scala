@@ -1,14 +1,14 @@
 package lspace.services
 
-import argonaut._
 import com.twitter.concurrent.AsyncStream
 import com.twitter.finagle.Service
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.io.Buf
 import com.twitter.util.Promise
-import io.finch.{Bootstrap, _}
+import io.finch.Bootstrap
 import io.finch.sse.ServerSentEvent
 import lspace.encode.EncodeJsonLD
+import lspace.encode.EncodeJson
 import lspace.librarian.structure.Graph
 import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
 import lspace.services.rest.security.WithSse
@@ -22,20 +22,26 @@ class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
 //                                        allowsMethods = _ => Some(Seq("GET", "POST")),
 //                                        allowsHeaders = _ => Some(Seq("Accept")))
 
-  type JsonLDText[A] = io.finch.Encode.Aux[A, Text.Plain]
-  private val printer = PrettyParams.nospace.copy(preserveOrder = true)
-  import lspace.services.codecs.JsonLDModule
-  import lspace.services.codecs.JsonLDModule.Encode._
+  import lspace.services.codecs
+  import lspace.services.codecs.Encode._
+  import lspace.encode.EncodeJson._
   import lspace.encode.EncodeJsonLD._
-  implicit val _graph = graph
 
-  implicit def encodeArgonautText[A](implicit e: EncodeJsonLD[A]): JsonLDText[A] = {
-    io.finch.Encode.instance[A, Text.Plain]((a, cs) =>
-      Buf.ByteArray.Owned(printer.pretty(e.encode(a)).getBytes(cs.name)))
-  }
+  implicit val _graph = graph
+  io.finch.Encode
+//  implicit val labeledNodeToJson: EncodeJsonLD[String] =
+//    EncodeJson { string: String =>
+//      string
+//    }
+
+//  implicit def encodeArgonautText[A](implicit e: EncodeJsonLD[A]): JsonLDText[A] = {
+//    io.finch.Encode.instance[A, Text.Plain]((a, cs) =>
+//      Buf.ByteArray.Owned(printer.pretty(e.encode(a)).getBytes(cs.name)))
+//  }
   lazy val service: Service[Request, Response] = Bootstrap
     .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-    .serve[JsonLDModule.JsonLD :+: Text.Plain :+: CNil](TraversalService(graph).api :+: NameSpaceService(graph).api)
+    .serve[lspace.services.codecs.Application.JsonLD :+: CNil](
+      TraversalService(graph).api :+: NameSpaceService(graph).api)
     .toService
 //  lazy val corsApi = new Cors.HttpFilter(policy).andThen(api)
 
@@ -55,8 +61,8 @@ class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
 //    Await.ready(adminHttpServer)
 //  }
 
-  def someStream(session: WithSse): AsyncStream[ServerSentEvent[Json]] = {
-    val p = Promise[ServerSentEvent[Json]]()
+  def someStream(session: WithSse): AsyncStream[ServerSentEvent[argonaut.Json]] = {
+    val p = Promise[ServerSentEvent[argonaut.Json]]()
     session.sse = Some(p)
     AsyncStream.fromFuture(p.map { e =>
       session.sse = None

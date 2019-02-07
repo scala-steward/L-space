@@ -1,15 +1,17 @@
 package lspace.lgraph.provider.file
 
+import argonaut._
+import Argonaut._
 import java.io.PrintWriter
 import java.time.{Instant, LocalDate, LocalTime}
 
 import cats.effect.Resource
+import lspace.codec.exception.FromJsonException
 import lspace.lgraph._
 import lspace.lgraph.store.StoreManager
 import lspace.librarian.datatype._
 import lspace.librarian.structure.{Edge, Node, Property}
-import lspace.parse.util.FromJsonException
-import lspace.parse.{ActiveContext, JsonLD, JsonObjectInProgress}
+import lspace.parse.{ActiveContext, JsonObjectInProgress}
 import monix.eval.Task
 import monix.execution.{Cancelable, CancelableFuture}
 import monix.reactive.Observable
@@ -171,7 +173,8 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
 
   import argonaut._
   import Argonaut._
-  private val jsonld = JsonLDFS(graph)
+  private val encoder = EncodeLDFS()
+  private val decoder = DecodeLDFS(graph)
 
   private def parse(buf: BufferedSource): Observable[Json] = {
     val it = buf.getLines()
@@ -183,13 +186,13 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
     }
   }
 
-  private def parseContext(buf: BufferedSource): Task[ActiveContext] = {
+  private def parseContext(buf: BufferedSource): Task[decoder.AC] = {
     val it = buf.getLines()
     if (it.hasNext) Parse.parse(it.next()) match {
       case Left(issues) => Task.raiseError(FromJsonException(issues))
       case Right(json) =>
         json.obj
-          .map(obj => jsonld.decode.extractContext(obj)(ActiveContext()))
+          .map(obj => decoder.extractContext(obj.toMap)(ActiveContext()))
           .getOrElse(Task(ActiveContext()))
     } else Task(ActiveContext())
   }
@@ -319,7 +322,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
 
   private def readLiteralEdges(idMaps: IdMaps): Task[IdMaps] = {
 //    println(s"ledges ${graph.iri}")
-    val jsonld = JsonLDFS(graph, idMaps)
+    val jsonld = EncodeLDFS(idMaps)
     graphfiles.read.context.literalEdges
       .use(parseContext)
       .flatMap { implicit context =>
@@ -343,10 +346,10 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                                       .map {
                                         case List(from, to) =>
                                           for {
-                                            fromNode <- jsonld.decode
+                                            fromNode <- decoder
                                               .tryNodeRef(from)
                                               .getOrElse(throw FromJsonException("cannot parse noderef"))
-                                            fromResource <- jsonld.decode.toResource(to, property.range.headOption)
+                                            fromResource <- decoder.toResource(to, property.range.headOption)
                                           } yield {
                                             fromNode --- property --> fromResource
                                           }
@@ -375,7 +378,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
 
   private def readStructuredEdges(idMaps: IdMaps): Task[IdMaps] = {
 //    println("sedges")
-    val jsonld = JsonLDFS(graph, idMaps)
+    val jsonld = EncodeLDFS(idMaps)
     graphfiles.read.context.structuredEdges
       .use(parseContext)
       .flatMap { implicit context =>
@@ -400,11 +403,11 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                                       .map {
                                         case List(from, to) =>
                                           for {
-                                            fromNode <- jsonld.decode
+                                            fromNode <- decoder
                                               .tryNodeRef(from)
                                               .getOrElse(throw FromJsonException("cannot parse noderef"))
                                             fromResource <- {
-                                              jsonld.decode.toResource(to, property.range.headOption)
+                                              decoder.toResource(to, property.range.headOption)
                                             }
                                           } yield {
                                             fromNode --- property --> fromResource
@@ -435,7 +438,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
 
   private def readStructures(idMaps: IdMaps): Task[IdMaps] = {
 //    println("s")
-    val jsonld = JsonLDFS(graph, idMaps)
+    val jsonld = EncodeLDFS(idMaps)
     graphfiles.read.context.structures
       .use(parseContext)
       .flatMap { implicit context =>
@@ -451,11 +454,11 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                         datatype <- label.string
                           .map(context.expandIri)
                           .flatMap { iri =>
-                            jsonld.decode.iriToClassType(iri)
+                            decoder.iriToClassType(iri)
                           }
                           .collect { case dt: DataType[_] => dt }
                       } yield {
-                        jsonld.decode.toValue(value, datatype).map(_.id).map(longId -> _)
+                        decoder.toValue(value, datatype).map(_.id).map(longId -> _)
                       }).getOrElse(throw FromJsonException("id not a long, label unknown or value not parsable"))
                     case _ =>
                       Task.raiseError(FromJsonException("nodes-line should be an [[label-ref*][id*]]"))
@@ -470,7 +473,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
   }
 
   override def persist: CancelableFuture[Unit] = {
-    val jsonld = JsonLDFS(graph)
+    val encoder = EncodeLDFS()
     import argonaut._
     import Argonaut._
 //    println(s"persisting ${graph.iri} to $path")
@@ -489,18 +492,18 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                   case (label, values) =>
                     implicit val ac = ActiveContext()
                     val jsons = label match {
-                      case label: TextType[_] => values.map(jsonld.encode.fromText(_, label).json)
+                      case label: TextType[_] => values.map(encoder.fromText(_, label).json)
                       case label: NumericType[_] =>
                         label match {
-                          case label: IntType[_]    => values.map(jsonld.encode.fromInt(_, label).json)
-                          case label: DoubleType[_] => values.map(jsonld.encode.fromDouble(_, label).json)
-                          case label: LongType[_]   => values.map(jsonld.encode.fromLong(_, label).json)
+                          case label: IntType[_]    => values.map(encoder.fromInt(_, label).json)
+                          case label: DoubleType[_] => values.map(encoder.fromDouble(_, label).json)
+                          case label: LongType[_]   => values.map(encoder.fromLong(_, label).json)
                         }
                       case label: CalendarType[_] =>
                         label match {
-                          case label: DateTimeType[_]  => values.map(jsonld.encode.fromDateTime(_, label).json)
-                          case label: LocalDateType[_] => values.map(jsonld.encode.fromDate(_, label).json)
-                          case label: LocalTimeType[_] => values.map(jsonld.encode.fromTime(_, label).json)
+                          case label: DateTimeType[_]  => values.map(encoder.fromDateTime(_, label).json)
+                          case label: LocalDateType[_] => values.map(encoder.fromDate(_, label).json)
+                          case label: LocalTimeType[_] => values.map(encoder.fromTime(_, label).json)
                         }
                       //            case label: BoolType[_] => values.map(jsonld.encode.from(_))
                     }
@@ -517,7 +520,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                 graph
                   .nodes()
                   .groupBy(_.labels.toSet)
-                  .foldLeft(ActiveContext()) {
+                  .foldLeft[decoder.AC](ActiveContext()) {
                     case (ac, (labels, nodes)) =>
                       val (newAc, cLabels) = labels.foldLeft(ac -> List[String]()) {
                         case ((ac, labels), label) =>
@@ -533,7 +536,12 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.nodes.use { f =>
                 Task {
-                  f.println(JsonObjectInProgress(JsonObject.empty, ac).withContextAsJson.toString())
+                  import JsonObjectInProgress._
+                  f.println(
+                    lspace.codec
+                      .JsonObjectInProgress[Json, JsonObject](JsonObject.empty)(ac)
+                      .withContextAsJson
+                      .toString())
                 }
               }
             },
@@ -546,19 +554,19 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                     (e.from.isInstanceOf[Node] || e.from.hasLabel(LiteralType.datatype).isDefined) && (e.to
                       .isInstanceOf[Node] || e.to.hasLabel(LiteralType.datatype).isDefined))
                   .groupBy(_.key)
-                  .foldLeft(ActiveContext()) {
+                  .foldLeft[decoder.AC](ActiveContext()) {
                     case (ac, (key, edges)) =>
                       val (cKeyIri, _ac)            = ac.compactIri(key)
                       val (byFromNode, byFromValue) = edges.partition(_.from.isInstanceOf[Node])
                       val (newAc, fromNodeJsons) = byFromNode.foldLeft(_ac -> List[Json]()) {
                         case ((ac, jsons), edge) =>
-                          val jip = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
+                          val jip = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
                           jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
                       }
                       val (newAc2, fromLiteralJsons) = byFromValue.foldLeft(newAc -> List[Json]()) {
                         case ((ac, jsons), edge) =>
-                          val jip  = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
-                          val jip2 = jsonld.encode.fromAny(edge.from)(jip.activeContext)
+                          val jip  = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
+                          val jip2 = encoder.fromAny(edge.from)(jip.activeContext)
                           jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
                       }
                       fromNodeJsons.sliding(50, 50).zipAll(fromLiteralJsons.sliding(50, 50), List(), List()).foreach {
@@ -577,7 +585,8 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.literalEdges.use { f =>
                 Task {
-                  f.println(JsonObjectInProgress(JsonObject.empty, ac).withContextAsJson.toString())
+                  import lspace.parse.JsonObjectInProgress._
+                  f.println(lspace.codec.JsonObjectInProgress(JsonObject.empty)(ac).withContextAsJson.toString())
                 }
               }
             },
@@ -590,26 +599,26 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                     (e.from.isInstanceOf[Node] || e.from.hasLabel(LiteralType.datatype).isDefined) && (e.to
                       .isInstanceOf[Node] || e.to.hasLabel(LiteralType.datatype).isDefined))
                   .groupBy(_.key)
-                  .foldLeft(ActiveContext()) {
+                  .foldLeft[decoder.AC](ActiveContext()) {
                     case (ac, (key, edges)) =>
                       val (cKeyIri, _ac)                  = ac.compactIri(key)
                       val (byFromNode, byFromEdgeOrValue) = edges.partition(_.from.isInstanceOf[Node])
                       val (newAc, fromNodeJsons) = byFromNode.foldLeft(_ac -> List[Json]()) {
                         case ((ac, jsons), edge) =>
-                          val jip = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
+                          val jip = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
                           jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
                       }
                       val (byFromEdge, byFromValue) = byFromEdgeOrValue.partition(_.from.isInstanceOf[Edge[_, _]])
                       val (newAc2, fromEdgeJsons) = byFromEdge.foldLeft(newAc -> List[Json]()) {
                         case ((ac, jsons), edge) =>
-                          val jip  = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
-                          val jip2 = jsonld.encode.fromAny(edge.from)(jip.activeContext)
+                          val jip  = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
+                          val jip2 = encoder.fromAny(edge.from)(jip.activeContext)
                           jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
                       }
                       val (newAc3, fromLiteralJsons) = byFromValue.foldLeft(newAc2 -> List[Json]()) {
                         case ((ac, jsons), edge) =>
-                          val jip  = jsonld.encode.fromAny(edge.to, edge.key.range.headOption)(ac)
-                          val jip2 = jsonld.encode.fromAny(edge.from)(jip.activeContext)
+                          val jip  = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
+                          val jip2 = encoder.fromAny(edge.from)(jip.activeContext)
                           jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
                       }
 
@@ -627,7 +636,12 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.structuredEdges.use { f =>
                 Task {
-                  f.println(JsonObjectInProgress(JsonObject.empty, ac).withContextAsJson.toString())
+                  import lspace.parse.JsonObjectInProgress._
+                  f.println(
+                    lspace.codec
+                      .JsonObjectInProgress(JsonObject.empty)(ac)
+                      .withContextAsJson
+                      .toString())
                 }
               }
             },
@@ -643,7 +657,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                 case label: Tuple4Type[_,_,_,_] =>
               }
               case label: GeometricType[_] => label match {
-                case label: GeopointType[_] => jsonld.encode.fromGeometric(_, label)
+                case label: GeopointType[_] => encoder.fromGeometric(_, label)
 //                case label: GeoMultipointType[_] =>
 //                case label: GeoLineType[_] =>
 //                case label: GeoMultiLineType[_] =>
@@ -659,9 +673,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                 graph
                   .values()
                   .flatMap(_.hasLabel(StructuredType.datatype))
-                  .foldLeft(ActiveContext()) {
+                  .foldLeft[encoder.AC](ActiveContext()) {
                     case (ac, v) =>
-                      val jip            = jsonld.encode.fromStructured(v.value, v.label.asInstanceOf[StructuredType[_]])(ac)
+                      val jip            = encoder.fromStructured(v.value, v.label.asInstanceOf[StructuredType[_]])(ac)
                       val (label, newAc) = jip.activeContext.compactIri(v.label)
                       f.println(List(v.id.asJson, label.asJson, jip.json).asJson)
                       newAc
@@ -671,7 +685,12 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.structures.use { f =>
                 Task {
-                  f.println(JsonObjectInProgress(JsonObject.empty, ac).withContextAsJson.toString())
+                  import lspace.parse.JsonObjectInProgress._
+                  f.println(
+                    lspace.codec
+                      .JsonObjectInProgress[Json, JsonObject](JsonObject.empty)(ac)
+                      .withContextAsJson
+                      .toString())
                 }
               }
             }

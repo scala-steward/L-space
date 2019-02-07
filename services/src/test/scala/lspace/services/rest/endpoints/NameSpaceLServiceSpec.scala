@@ -4,13 +4,12 @@ import io.finch.Input
 import lspace.librarian.process.traversal.{P, Step}
 import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure.Graph
-import lspace.parse.JsonLD
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 class NameSpaceLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
-  val jsonld            = JsonLD(graph)
+  implicit val encoder  = lspace.codec.argonaut.Encode
   lazy val nsService    = NameSpaceService(graph)
 
   P.predicates.map(_.ontology).foreach(graph.ns.ontologies.store)

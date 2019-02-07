@@ -8,6 +8,7 @@ import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
 import lspace.librarian.structure._
 import lspace.librarian.util.SampleGraph
 import lspace.parse.util.{HttpClient, HttpClientImpl}
+import lspace.parse.JsonObjectInProgress._
 import monix.execution.Scheduler
 import org.scalatest.{AsyncWordSpec, Matchers}
 
@@ -15,8 +16,8 @@ import scala.concurrent.ExecutionContextExecutor
 
 class JsonLDSpec extends AsyncWordSpec with Matchers {
   val graph       = MemGraph("JsonLDSpec")
-  val djsonld     = lspace.parse.JsonLD(graph)
-  val jsonld      = JsonLD(graph)
+  val decoder     = lspace.codec.argonaut.Decode(graph)
+  val encoder     = lspace.codec.argonaut.Encode
   implicit val ac = ActiveContext()
   implicit val ec = Scheduler.apply(new ExecutionContextExecutor {
 
@@ -38,37 +39,36 @@ class JsonLDSpec extends AsyncWordSpec with Matchers {
 
   "A JsonLDParser" should {
     "parse and encode literals" in {
-      val json5 = jsonld.encode.fromAny(5L, Some(DataType.default.`@long`)).json
-      json5.toString() shouldBe """"5""""
+      val json5 = encoder.fromAny(5L, Some(DataType.default.`@long`)).json
+      json5.toString() shouldBe """5"""
 
-      djsonld.decode.toData(json5, DataType.default.`@long`).runToFuture.map { v =>
+      decoder.toData(json5, DataType.default.`@long`).runToFuture.map { v =>
         v shouldBe 5L
-        val json5object = jsonld.encode.fromAny(5L)
-        json5object.json.toString() shouldBe """{"@value":"5","@type":"@long"}"""
+        val json5object = encoder.fromAny(5L)
+        json5object.json.toString() shouldBe """{"@value":5,"@type":"@long"}"""
         Parse.parse(""""5"""").right.get.string.isDefined shouldBe true
         Parse.parse(""""5"""").right.get.string.get.toLong shouldBe 5L
       //      Parse.parse("""""5"""").right.get.number.isDefined shouldBe true
       }
     }
     "parse a traversal to json" in {
-      val traversal                       = MemGraphDefault.g.N.has(SampleGraph.properties.name) //, Some(Traversal.ontology))
-      val JsonObjectInProgress(json, ac1) = jsonld.encode.fromNode(traversal.toNode)
-      jsonld.encode.fromNode(traversal.toNode).withContext ?? types.`@context` shouldBe true
-      djsonld.decode
-        .toNode(jsonld.encode(traversal.toNode))
+      val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.name) //, Some(Traversal.ontology))
+      val jip       = encoder.fromNode(traversal.toNode)
+      encoder.fromNode(traversal.toNode).withContext ?? types.`@context` shouldBe true
+      decoder
+        .stringToNode(encoder(traversal.toNode))
         .runToFuture
         .flatMap { node =>
-          val parsedTraversal                  = Traversal.toTraversal(node)(MemGraphDefault)
-          val JsonObjectInProgress(json2, ac2) = jsonld.encode.fromNode(parsedTraversal.toNode)
-          djsonld.decode.toLabeledNode(jsonld.encode(parsedTraversal.toNode), Traversal.ontology).runToFuture.map {
-            node2 =>
-              val parsedTraversal2                 = Traversal.toTraversal(node2)(MemGraphDefault)
-              val JsonObjectInProgress(json3, ac3) = jsonld.encode.fromNode(parsedTraversal2.toNode)
-              json shouldBe json2
-              json shouldBe json2
-              json shouldBe json3
-              ac1 shouldBe ac2
-              ac2 shouldBe ac3
+          val parsedTraversal = Traversal.toTraversal(node)(MemGraphDefault)
+          val jip2            = encoder.fromNode(parsedTraversal.toNode)
+          decoder.stringToLabeledNode(encoder(parsedTraversal.toNode), Traversal.ontology).runToFuture.map { node2 =>
+            val parsedTraversal2 = Traversal.toTraversal(node2)(MemGraphDefault)
+            val jip3             = encoder.fromNode(parsedTraversal2.toNode)
+            jip.json shouldBe jip2.json
+            jip.json shouldBe jip2.json
+            jip.json shouldBe jip3.json
+            jip.activeContext shouldBe jip2.activeContext
+            jip2.activeContext shouldBe jip3.activeContext
           }
         }
     }
@@ -82,7 +82,8 @@ class JsonLDSpec extends AsyncWordSpec with Matchers {
       val testOntology: Ontology =
         Ontology("thing", properties = name :: surname :: Nil, extendedClasses = new Ontology("basething") {} :: Nil)
 
-      val JsonObjectInProgress(json, ac1) = jsonld.encode.fromOntology(testOntology)
+      val jip  = encoder.fromOntology(testOntology)
+      val json = jip.json
       json ?? types.`@id` shouldBe true
       json(types.`@id`).exists(_.string.contains("thing")) shouldBe true
 
@@ -104,18 +105,18 @@ class JsonLDSpec extends AsyncWordSpec with Matchers {
     val testOntology: Ontology =
       Ontology("thing", properties = name :: surname :: Nil, extendedClasses = baseOntology :: Nil)
 
-    val propertyJsonName = jsonld.encode.fromProperty(name)
+    val propertyJsonName = encoder.fromProperty(name)
     MemGraphDefault.ns.properties.store(name)
     //    name.status := CacheStatus.CACHED
-    val propertyJsonSurname = jsonld.encode.fromProperty(surname)
+    val propertyJsonSurname = encoder.fromProperty(surname)
     MemGraphDefault.ns.properties.store(surname)
     //    surname.status := CacheStatus.CACHED
-    val ontologyJson = jsonld.encode.fromOntology(testOntology)
+    val ontologyJson = encoder.fromOntology(testOntology)
     val ontologyNode = MemGraphDefault.ns.ontologies.store(testOntology)
 
     "parse json to an ontology" in {
       MemGraphDefault.ns.ontologies.get(testOntology.iri).isDefined shouldBe true
-      djsonld.decode.toOntology(ontologyJson.json)(ontologyJson.activeContext).runToFuture.map { ontology =>
+      decoder.toOntology(ontologyJson.json.toMap)(ontologyJson.activeContext).runToFuture.map { ontology =>
         ontology shouldBe testOntology
       }
     }

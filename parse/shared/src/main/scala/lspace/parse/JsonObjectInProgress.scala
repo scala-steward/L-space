@@ -6,19 +6,19 @@ import lspace.NS.types
 
 import scala.collection.immutable.ListMap
 
-case class JsonObjectInProgress(json: JsonObject, activeContext: ActiveContext) {
-  def map(cb: (JsonObject, ActiveContext) => JsonObjectInProgress): JsonObjectInProgress =
-    cb(json, activeContext)
-  def map(cb: (JsonObject, ActiveContext) => JsonInProgress): JsonInProgress =
-    cb(json, activeContext)
-}
+//case class JsonObjectInProgress(json: JsonObject, activeContext: ActiveContext) {
+//  def map(cb: (JsonObject, ActiveContext) => JsonObjectInProgress): JsonObjectInProgress =
+//    cb(json, activeContext)
+//  def map(cb: (JsonObject, ActiveContext) => JsonInProgress): JsonInProgress =
+//    cb(json, activeContext)
+//}
 
 object JsonObjectInProgress {
-  def apply(json: JsonObject, doubledefinitionWA: Int = 1)(
-      implicit activeContext: ActiveContext): JsonObjectInProgress =
-    JsonObjectInProgress(json, activeContext)
+//  def apply(json: JsonObject, doubledefinitionWA: Int = 1)(
+//      implicit activeContext: ActiveContext): lspace.codec.JsonObjectInProgress[Json, JsonObject] =
+//    lspace.codec.JsonObjectInProgress[Json, JsonObject](json)(activeContext)
 
-  implicit class WithJsonObject(jip: JsonObjectInProgress) {
+  implicit class WithJsonObject(jip: lspace.codec.JsonObjectInProgress[Json, JsonObject]) {
     lazy val withContext: JsonObject = _context(jip.activeContext) match {
       case Some(context) => JsonObject.fromTraversableOnce(ListMap(types.`@context` -> context) ++ jip.json.toMap)
       case None          => jip.json
@@ -29,7 +29,7 @@ object JsonObjectInProgress {
       lazy val compact: String = activeContext.compactIri(iri)
     }
 
-    private def _context(activeContext: ActiveContext): Option[Json] = {
+    private def _context(activeContext: lspace.codec.ActiveContext[Json, JsonObject]): Option[Json] = {
       val (newActiveContext, result) = activeContext.properties.foldLeft((activeContext, ListMap[String, Json]())) {
         case ((activeContext, result), (key, activeProperty)) =>
           val (keyIri, newActiveContext) = activeContext.compactIri(key)
@@ -53,26 +53,26 @@ object JsonObjectInProgress {
       }
     }
 
-    private def _containers(activeProperty: ActiveProperty): Option[Json] = {
+    private def _containers(activeProperty: lspace.codec.ActiveProperty[Json, JsonObject]): Option[Json] = {
       implicit val activeContext = activeProperty.`@context`
       activeProperty.`@container` match {
         case Nil             => None
-        case List(container) => Some(container.iri.compact.asJson)
+        case List(container) => Some(activeContext.compactIri(container.iri).asJson)
         case containers =>
           Some(activeProperty.`@container`.foldLeft(List[Json]()) {
-            case (result, container) => result :+ container.iri.compact.asJson
+            case (result, container) => result :+ activeContext.compactIri(container.iri).asJson
           }.asJson)
       }
     }
 
-    private def _types(activeProperty: ActiveProperty): Option[Json] = {
+    private def _types(activeProperty: lspace.codec.ActiveProperty[Json, JsonObject]): Option[Json] = {
       implicit val activeContext = activeProperty.`@context`
       activeProperty.`@type` match {
         case Nil       => None
-        case List(tpe) => Some(tpe.iri.compact.asJson)
+        case List(tpe) => Some(activeContext.compactIri(tpe.iri).asJson)
         case tpes =>
           Some(activeProperty.`@type`.foldLeft(List[Json]()) {
-            case (result, container) => result :+ container.iri.compact.asJson
+            case (result, tpe) => result :+ activeContext.compactIri(tpe.iri).asJson
           }.asJson)
       }
     }

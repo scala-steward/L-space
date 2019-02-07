@@ -1,6 +1,7 @@
 package lspace.services.rest.endpoints
 
 import io.finch.Input
+import lspace.services.codecs.Application
 import lspace.librarian.process.traversal.P
 import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
 import lspace.librarian.util.SampleGraph
@@ -24,12 +25,12 @@ class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAl
   "a traversal-service" should {
     "execute a traversal only on a POST request" in {
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
-      import lspace.services.codecs.JsonLDModule
-      import lspace.services.codecs.JsonLDModule.Encode._
+      import lspace.services.codecs
+      import lspace.services.codecs.Encode._
       import lspace.encode.EncodeJsonLD._
       val input = Input
         .post("/traverse")
-        .withBody[JsonLDModule.JsonLD](traversal.toNode)
+        .withBody[Application.JsonLD](traversal.toNode)
         .withHeaders("Accept" -> "text/plain")
       graphService.traverse(input).awaitOutput().map { output =>
         output.isRight shouldBe true

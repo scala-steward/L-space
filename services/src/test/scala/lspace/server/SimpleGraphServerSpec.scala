@@ -8,7 +8,6 @@ import lspace.librarian.process.traversal.{Collection, P}
 import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
 import lspace.librarian.structure.{Graph, Node}
 import lspace.librarian.util.SampleGraph
-import lspace.parse.JsonLD
 import lspace.services.SimpleGraphServer
 import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
 import org.scalatest._
@@ -21,7 +20,7 @@ import scala.concurrent.Future
 class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   implicit val graph = MemGraph("SimpleGraphServerSpec")
-  val jsonld         = JsonLD(graph)
+  def decoder        = lspace.codec.argonaut.Decode(graph)
 
   val server = new SimpleGraphServer(graph)
 
@@ -42,11 +41,11 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
 
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       import lspace.encode.EncodeJsonLD._
-      import lspace.services.codecs.JsonLDModule
-      import lspace.services.codecs.JsonLDModule.Encode._
+      import lspace.services.codecs
+      import lspace.services.codecs.Encode._
       val input = Input
         .post("/traverse")
-        .withBody[JsonLDModule.JsonLD](traversal.toNode)
+        .withBody[lspace.services.codecs.Application.JsonLD](traversal.toNode)
         .withHeaders("Accept" -> "application/ld+json")
       val res: Future[Response] = server.service(input.request)
 
@@ -54,7 +53,7 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
         val headers = response.headerMap
         response.status shouldBe Status.Ok
         response.contentType shouldBe Some("application/ld+json")
-        jsonld.decode
+        decoder
           .toNode(Parse.parse(response.getContentString()).right.get)
           .runToFuture(monix.execution.Scheduler.global)
           .map { node =>

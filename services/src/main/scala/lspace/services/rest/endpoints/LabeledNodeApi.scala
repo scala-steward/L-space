@@ -6,14 +6,14 @@ import io.finch._
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
-import lspace.parse.JsonLD
+import lspace.codec.argonaut.{Decode, Encode}
 import monix.eval.Task
-import shapeless.{HList, Poly1}
+import shapeless.{:+:, CNil, HList, Poly1}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string._
 import eu.timepit.refined.numeric._
 import io.finch.refined._
-import lspace.services.codecs.{JsonLDModule, JsonModule}
+import lspace.decode.{DecodeJson, DecodeJsonLD}
 
 case class PagedResult(result: List[Node])
 
@@ -21,8 +21,13 @@ object LabeledNodeApi {
   def apply(ontology: Ontology)(implicit graph: Lspace): LabeledNodeApi = new LabeledNodeApi(ontology)(graph)
 }
 
-class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api with JsonLDModule with JsonModule {
-  implicit val jsonld = JsonLD.detached //todo JsonLD context per client-session
+class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api {
+  implicit val encoder = Encode //todo Encode context per client-session
+  implicit val decoder
+    : lspace.codec.Decode[Any, Any] = Decode(graph).asInstanceOf[lspace.codec.Decode[Any, Any]] //todo Decode context per client-session
+
+  //  import monix.eval.Task.catsEffect
+  //  import monix.execution.Scheduler.global
 
   implicit val ec = monix.execution.Scheduler.global
   val label       = ontology.label.getOrElse("en", throw new Exception("no label found")).toLowerCase()
@@ -62,9 +67,6 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
     graph.g.N.hasLabel(ontology).toObservable.toListL.map(Ok).toIO
   }
 
-  object polyNodeToNode extends Poly1 {
-    implicit def caseNode = at[Node](node => node)
-  }
 //  val create2: Endpoint[IO, Node] =
 //    post(bodyJson(ontology.properties.toList)).mapOutputAsync { node: Node =>
 //      Task {
@@ -80,66 +82,90 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
 //        f.printStackTrace(); throw f
 //      }.toIO
 //    }
-  val _create = { node: Node =>
-    Task {
-      val t       = graph.transaction
-      val newNode = t.nodes.create(ontology)
-      newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-      node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-      newNode.addLabel(ontology)
-      t ++ node.graph
-      t.commit()
-      Created(graph.nodes.hasId(newNode.id).get)
-    }.toIO
-  }
 
-  val create: Endpoint[IO, Node] =
-    post(bodyJsonLD()).mapOutputAsync(_create)
-  val create2: Endpoint[IO, Node] =
-    post(bodyJson(ontology.properties.toList)).mapOutputAsync(_create)
-//  val create: Endpoint[IO, Node] =
-//    post((bodyJsonLD() :+: bodyJson(ontology.properties.toList)).map(_.unify)).mapOutputAsync(_create)
-
-  val replaceById
-    : Endpoint[IO, Node] = put(path[Long] :: (bodyJsonLD() :+: bodyJson(ontology.properties.toList)).map(_.unify)) {
-    (id: Long, node: Node) => //TODO: validate before mutating
-      val t = graph.transaction
-      t.nodes
-        .hasIri(graph.iri + "/" + label + "/" + id)
-        .headOption //TODO: handle 'unexpected' multiple results
-        .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-          Task {
-            node.outE(`@id`).foreach(_.remove())
-            node --- `@id` --> (graph.iri + "/" + label + "/" + id)
-            existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
-            t ++ node.graph
-            t.commit()
-            Ok(graph.nodes.hasId(existingNode.id).get)
-          }.toIO
-        }
-        .getOrElse(Task(NotFound(new Exception("cannot PUT a resource which does not exist"))).toIO)
-  }
-
-  val updateById: Endpoint[IO, Node] =
-    patch(path[Long] :: (bodyJsonLD() :+: bodyJson(ontology.properties.toList)).map(_.unify)) {
-      (id: Long, node: Node) =>
-        val t = graph.transaction
-        t.nodes
-          .hasIri(graph.iri + "/" + label + "/" + id)
-          .headOption //TODO: handle 'unexpected' multiple results
-          .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-            Task {
-              node.outE(`@id`).foreach(_.remove())
-              node --- `@id` --> (graph.iri + "/" + label + "/" + id)
-//          existingNode.outE(node.outEMap().keys.toList: _*).foreach(_.remove())
-              node.outEMap().keys.filterNot(_ == `@id`).foreach(existingNode.removeOut)
-              t ++ node.graph
-              t.commit()
-              Ok(graph.nodes.hasId(existingNode.id).get)
-            }.toIO
-          }
-          .getOrElse(Task(NotFound(new Exception("cannot PATCH a resource which does not exist"))).toIO)
+  val create: Endpoint[IO, Node] = {
+    import io.finch.internal.HttpContent
+    implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
+      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
     }
+    implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
+      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+    }
+    post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
+      nodeTask: Task[Node] =>
+        nodeTask.map { node =>
+          val t       = graph.transaction
+          val newNode = t.nodes.create(ontology)
+          newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+          node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+          newNode.addLabel(ontology)
+          t ++ node.graph
+          t.commit()
+          Created(graph.nodes.hasId(newNode.id).get)
+        }.toIO //(catsEffect(global))
+    }
+  }
+
+  val replaceById: Endpoint[IO, Node] = {
+    import io.finch.internal.HttpContent
+    implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
+      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+    }
+    implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
+      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+    }
+    put(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
+      (id: Long, nodeTask: Task[Node]) => //TODO: validate before mutating
+        nodeTask.flatMap { node =>
+          val t = graph.transaction
+          t.nodes
+            .hasIri(graph.iri + "/" + label + "/" + id)
+            .headOption //TODO: handle 'unexpected' multiple results
+            .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
+              Task {
+                node.outE(`@id`).foreach(_.remove())
+                node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+                existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
+                t ++ node.graph
+                t.commit()
+                Ok(graph.nodes.hasId(existingNode.id).get)
+              }
+            }
+            .getOrElse(Task(NotFound(new Exception("cannot PUT a resource which does not exist"))))
+        }.toIO
+    }
+  }
+
+  val updateById: Endpoint[IO, Node] = {
+    import io.finch.internal.HttpContent
+    implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
+      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+    }
+    implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
+      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+    }
+    patch(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
+      (id: Long, nodeTask: Task[Node]) =>
+        nodeTask.flatMap { node =>
+          val t = graph.transaction
+          t.nodes
+            .hasIri(graph.iri + "/" + label + "/" + id)
+            .headOption //TODO: handle 'unexpected' multiple results
+            .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
+              Task {
+                node.outE(`@id`).foreach(_.remove())
+                node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+                //          existingNode.outE(node.outEMap().keys.toList: _*).foreach(_.remove())
+                node.outEMap().keys.filterNot(_ == `@id`).foreach(existingNode.removeOut)
+                t ++ node.graph
+                t.commit()
+                Ok(graph.nodes.hasId(existingNode.id).get)
+              }
+            }
+            .getOrElse(Task(NotFound(new Exception("cannot PATCH a resource which does not exist"))))
+        }.toIO
+    }
+  }
   val removeById: Endpoint[IO, Node] = delete(path[Long]) { id: Long =>
     val t = graph.transaction
     t.nodes
@@ -158,15 +184,25 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
     * GET /
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
-  val getByLibrarian: Endpoint[IO, List[Node]] =
-    get(bodyJsonLDTyped(Traversal.ontology, node => Traversal.toTraversal(node)(graph))).mapOutputAsync {
-      traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
-        traversal.toUntypedStreamTask
-          .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
-          .map(_.toList)
-          .map(Ok)
-          .toIO
+  val getByLibrarian: Endpoint[IO, List[Node]] = {
+    import io.finch.internal.HttpContent
+    implicit val d1 = io.finch.Decode
+      .instance[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD] {
+        (b, cs) =>
+          Right(
+            DecodeJsonLD.jsonldToTraversal
+              .decode(b.asString(cs)))
+      }
+    get(body[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD]) {
+      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
+        traversalTask.flatMap { traversal =>
+          traversal.toUntypedStreamTask
+            .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
+            .map(_.toList)
+            .map(Ok)
+        }.toIO
     }
+  }
 
 //  val getBySPARQL: Endpoint[IO, PagedResult]
 
@@ -177,6 +213,7 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
 //  }
 
   def api =
-    byId :+: /*byIri :+:*/ list :+: create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
+    byId :+: /*byIri :+:*/ list :+:
+      create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
   def labeledApi = label :: api
 }

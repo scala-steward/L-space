@@ -2,8 +2,10 @@ package lspace.services.rest.endpoints
 
 import com.twitter.finagle.http.{Request, Response, Status}
 import com.twitter.server.TwitterServer
+import com.twitter.util.Await
 import io.finch.{Application, Bootstrap, Input, Text}
 import lspace.encode.EncodeJsonLD
+import lspace.services.codecs.{Application => LApplication}
 import lspace.librarian.datatype.TextType
 import lspace.librarian.provider.detached.DetachedGraph
 import lspace.librarian.provider.mem.MemGraph
@@ -11,7 +13,6 @@ import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default.`@id`
 import lspace.librarian.util.SampleGraph
 import lspace.parse.ActiveContext
-import lspace.parse.JsonLD
 import org.scalatest.{BeforeAndAfterAll, Failed, Matchers, WordSpec}
 import shapeless.{:+:, CNil, Poly1}
 
@@ -19,7 +20,8 @@ object LabeledNodeApiSpec {}
 class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
-  implicit val jsonld         = JsonLD(sampleGraph)
+  implicit val encoder        = lspace.codec.argonaut.Encode
+  implicit val decoder        = lspace.codec.argonaut.Decode(sampleGraph)
 
   override def beforeAll(): Unit = {
     SampleGraph.loadSocial(sampleGraph)
@@ -48,63 +50,60 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
   import argonaut._
   import argonaut.Argonaut._
   import io.finch.argonaut.preserveOrder._
-  import lspace.services.codecs.JsonLDModule
-  import lspace.services.codecs.JsonLDModule.Encode._
+  import lspace.services.codecs
+  import lspace.services.codecs.Encode._
 
-  implicit val nodeToJson: EncodeJson[Node] =
-    EncodeJson { node: Node =>
-      node
-        .outEMap()
-        .map {
-          case (property, edges) =>
-            property.label("en") -> (edges match {
-              case List(e) => JsonLD.detached.encode.fromAny(e.to, Some(e.to.labels.head))(ActiveContext()).json
-            })
-        }
-        .asJson
-    }
+//  implicit val nodeToJson: lspace.encode.EncodeJson[Node] =
+//    EncodeJson { node: Node =>
+//      node
+//        .outEMap()
+//        .map {
+//          case (property, edges) =>
+//            property.label("en") -> (edges match {
+//              case List(e) => encoder.fromAny(e.to, Some(e.to.labels.head))(ActiveContext()).json
+//            })
+//        }
+//        .asJson
+//    }
 
-  implicit val labeledNodeToJson: EncodeJson[(Ontology, Node)] =
-    EncodeJson {
-      case (ontology: Ontology, node: Node) =>
-        Json.jString("ab")
-    }
+//  implicit val labeledNodeToJson: EncodeJson[(Ontology, Node)] =
+//    EncodeJson {
+//      case (ontology: Ontology, node: Node) =>
+//        Json.jString("ab")
+//    }
 
-  implicit val labeledPagedResultToJson: EncodeJson[(Ontology, List[Node])] =
-    EncodeJson {
-      case (ontology: Ontology, nodes: List[Node]) =>
-        nodes.map(_.asJson).asJson
-    }
+//  implicit val labeledPagedResultToJson: EncodeJson[(Ontology, List[Node])] =
+//    EncodeJson {
+//      case (ontology: Ontology, nodes: List[Node]) =>
+//        nodes.map(_.asJson).asJson
+//    }
 //  implicit val pagedResultToJson: EncodeJson[PagedResult] =
 //    EncodeJson { pr: PagedResult =>
 //      pr.result.map(_.asJson).asJson
 //    }
 
-  implicit def pagedResultToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, List[Node])] {
-    val encode: ((Ontology, List[Node])) => Json = {
-      case (ontology: Ontology, nodes: List[Node]) =>
-        Json.jObject(jsonld.encode.fromAny(nodes)(ActiveContext()).withContext)
-    }
-  }
+//  import lspace.parse.JsonInProgress._
+//  implicit def pagedResultToJsonLD = new EncodeJsonLD[(Ontology, List[Node])] {
+//    val encode: ((Ontology, List[Node])) => Json = {
+//      case (ontology: Ontology, nodes: List[Node]) =>
+//        Json.jObject(encoder.fromAny(nodes)(ActiveContext()).withContext)
+//    }
+//  }
 
-  object labelResult extends Poly1 {
-    implicit def caseNode        = at[Node](node => (person.ontology, node))
-    implicit def casePagedResult = at[List[Node]](nodes => (person.ontology, nodes))
-  }
+//  object labelResult extends Poly1 {
+//    implicit def caseNode        = at[Node](node => (person.ontology, node))
+//    implicit def casePagedResult = at[List[Node]](nodes => (person.ontology, nodes))
+//  }
 
-  implicit def nodeToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, Node)] {
-    val encode: ((Ontology, Node)) => Json = {
-      case (ontology: Ontology, node: Node) => jsonld.encode(node)
-    }
-  }
+//  implicit def nodeToJsonLD(implicit jsonld: lspace.parse.JsonLD) = new EncodeJsonLD[(Ontology, Node)] {
+//    val encode: ((Ontology, Node)) => Json = {
+//      case (ontology: Ontology, node: Node) => jsonld.encode(node)
+//    }
+//  }
 
   lazy val service: com.twitter.finagle.Service[Request, Response] = Bootstrap
     .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-    .serve[JsonLDModule.JsonLD :+: Application.Json :+: CNil](
-      personApiService.api.mapOutput(p => io.finch.Ok(p map labelResult)).handle {
-        case e: Exception => io.finch.InternalServerError(e)
-        case e            => io.finch.BadRequest(new Exception("bad request"))
-      })
+    .serve[LApplication.JsonLD :+: Application.Json :+: CNil](personApiService.api)
     .toService
 
   "The personApiService" should {
@@ -140,7 +139,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       import lspace.encode.EncodeJsonLD._
       val input = Input
         .post("/")
-        .withBody[JsonLDModule.JsonLD](toNode(Person("Alice")))
+        .withBody[LApplication.JsonLD](toNode(Person("Alice")))
       personApiService
         .create(input)
         .awaitOutput()
@@ -154,7 +153,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
           personApiService
             .create(Input
               .post("/")
-              .withBody[JsonLDModule.JsonLD](toNode(Person("Ali"))))
+              .withBody[LApplication.JsonLD](toNode(Person("Ali"))))
             .awaitOutput()
             .map { output =>
               output.isRight shouldBe true
@@ -175,7 +174,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         .create(
           Input
             .post("/")
-            .withBody[JsonLDModule.JsonLD](toNode(Person("Alice"))))
+            .withBody[LApplication.JsonLD](toNode(Person("Alice"))))
         .awaitOutput()
         .map { output =>
           output.isRight shouldBe true
@@ -186,7 +185,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
           personApiService
             .replaceById(Input
               .put(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-              .withBody[JsonLDModule.JsonLD](toNode(Person("Ali"))))
+              .withBody[LApplication.JsonLD](toNode(Person("Ali"))))
             .awaitOutput()
             .map { output =>
               output.isRight shouldBe true
@@ -209,7 +208,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         .create(
           Input
             .post("/")
-            .withBody[JsonLDModule.JsonLD](toNode(Person("Alice"))))
+            .withBody[LApplication.JsonLD](toNode(Person("Alice"))))
         .awaitOutput()
         .map { output =>
           output.isRight shouldBe true
@@ -220,7 +219,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
           personApiService
             .updateById(Input
               .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-              .withBody[JsonLDModule.JsonLD](toNode(Person("Ali"))))
+              .withBody[LApplication.JsonLD](toNode(Person("Ali"))))
             .awaitOutput()
             .map { output =>
               output.isRight shouldBe true
@@ -241,7 +240,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         .create(
           Input
             .post("/")
-            .withBody[JsonLDModule.JsonLD](toNode(Person("Alice"))))
+            .withBody[LApplication.JsonLD](toNode(Person("Alice"))))
         .awaitOutput()
         .map { output =>
           output.isRight shouldBe true
@@ -269,7 +268,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
         .post("/")
         .withBody[Application.Json](toNode(Person("Alice")))
       personApiService
-        .create2(input)
+        .create(input)
         .awaitOutput()
         .map { output =>
           if (output.isLeft) println(output.left.get.getMessage)
@@ -294,6 +293,14 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 //            .getOrElse(fail("endpoint does not match"))
         }
         .getOrElse(fail("endpoint does not match"))
+    }
+    "s test" in {
+      val input = Input
+        .post("/")
+        .withBody[Application.Json](toNode(Person("Alice2")))
+      Await.result(service(input.request).map { r =>
+        r.status shouldBe Status.Created
+      })
     }
   }
 }
