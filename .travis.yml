@@ -39,7 +39,7 @@ jobs:
       install:
         - npm install jsdom
       script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test client/test graph/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test client/test graph/test services/test
         - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
       after_success:
         - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
