@@ -7,7 +7,7 @@ import lspace.librarian.structure._
 import monix.eval.Task
 
 case class DecodeLDFS(override val graph: Graph, idMaps: IdMaps = IdMaps())
-    extends lspace.codec.argonaut.Decode(graph) {
+    extends lspace.codec.argonaut.Decoder(graph) {
 
   override def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] = //need IdMaps here
     json.string

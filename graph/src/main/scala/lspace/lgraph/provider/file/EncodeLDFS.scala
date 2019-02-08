@@ -8,7 +8,7 @@ import lspace.librarian.structure._
 import lspace.codec.{ActiveContext, JsonInProgress}
 import monix.eval.Task
 
-case class EncodeLDFS(idMaps: IdMaps = IdMaps()) extends lspace.codec.argonaut.Encode {
+case class EncodeLDFS(idMaps: IdMaps = IdMaps()) extends lspace.codec.argonaut.Encoder {
 
   override def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: AC): JIP = {
     value match {
@@ -19,7 +19,7 @@ case class EncodeLDFS(idMaps: IdMaps = IdMaps()) extends lspace.codec.argonaut.E
               fromData(value.value, value.label)
             } else {
               val jip = fromData(value.value, value.label)
-              JsonInProgress[Json, JsonObject](
+              JsonInProgress[Json](
                 Json.jObject(
                   JsonObject
                     .fromTraversableOnce(

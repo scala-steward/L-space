@@ -82,7 +82,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
 
 lazy val parse = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full) in file("parse"))
+  .crossType(CrossType.Full) in file("parse/core"))
   .dependsOn(core % "compile->compile;test->test")
   .settings(settings)
   .settings(
@@ -95,6 +95,21 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
   .jsSettings(
     jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
     libraryDependencies ++= parseJsDeps.value
+  )
+
+lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure) in file("parse/argonaut"))
+  .dependsOn(parse % "compile->compile;test->test")
+  .settings(settings)
+  .settings(
+    name := "lspace-parse-argonaut",
+    libraryDependencies ++= parseArgonautDeps.value
+  )
+  .jvmSettings(
+  )
+  .jsSettings(
+    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv()
   )
 
 lazy val client =
@@ -116,7 +131,7 @@ lazy val client =
     )
 
 lazy val graph = (project in file("graph"))
-  .dependsOn(parse.jvm % "compile->compile;test->test")
+  .dependsOn(parseArgonaut.jvm % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-graph",
@@ -152,7 +167,7 @@ lazy val elasticsearch = (project in file("index/elasticsearch"))
 
 
 lazy val services = (project in file("services"))
-  .dependsOn(client.jvm % "compile->compile;test->test",parse.jvm % "compile->compile;test->test")
+  .dependsOn(client.jvm % "compile->compile;test->test",parseArgonaut.jvm % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-services",

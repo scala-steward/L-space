@@ -22,13 +22,13 @@ class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
 //                                        allowsMethods = _ => Some(Seq("GET", "POST")),
 //                                        allowsHeaders = _ => Some(Seq("Accept")))
 
+  implicit val encoder = lspace.codec.argonaut.Encoder
   import lspace.services.codecs
   import lspace.services.codecs.Encode._
   import lspace.encode.EncodeJson._
   import lspace.encode.EncodeJsonLD._
 
   implicit val _graph = graph
-  io.finch.Encode
 //  implicit val labeledNodeToJson: EncodeJsonLD[String] =
 //    EncodeJson { string: String =>
 //      string

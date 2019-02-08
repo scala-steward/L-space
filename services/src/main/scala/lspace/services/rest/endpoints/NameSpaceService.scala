@@ -10,10 +10,10 @@ import scala.collection.mutable
 
 case class NameSpaceService(graph: Graph) extends Api {
   implicit val _graph  = graph
-  implicit val encoder = lspace.codec.argonaut.Encode
-  implicit val decoder: lspace.codec.Decode[Any, Any] = lspace.codec.argonaut
-    .Decode(graph)
-    .asInstanceOf[lspace.codec.Decode[Any, Any]] //todo JsonLD context per client-session
+  implicit val encoder = lspace.codec.argonaut.Encoder
+  implicit val decoder: lspace.codec.Decoder[Any] = lspace.codec.argonaut
+    .Decoder(graph)
+    .asInstanceOf[lspace.codec.Decoder[Any]] //todo JsonLD context per client-session
 
   val headersAll = root.map(_.headerMap.toMap)
   val cache      = mutable.HashMap[String, mutable.HashMap[String, String]]()

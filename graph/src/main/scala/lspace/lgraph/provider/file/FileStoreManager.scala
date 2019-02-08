@@ -11,7 +11,6 @@ import lspace.lgraph._
 import lspace.lgraph.store.StoreManager
 import lspace.librarian.datatype._
 import lspace.librarian.structure.{Edge, Node, Property}
-import lspace.parse.{ActiveContext, JsonObjectInProgress}
 import monix.eval.Task
 import monix.execution.{Cancelable, CancelableFuture}
 import monix.reactive.Observable
@@ -30,6 +29,7 @@ object FileStoreManager {
   * @tparam G
   */
 class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends StoreManager(graph) {
+
   private val directory = new java.io.File(path)
   directory.mkdirs
   if (!directory.isDirectory) throw new Exception(s"storage path ${directory.getAbsolutePath} is not a directory")
@@ -173,8 +173,8 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
 
   import argonaut._
   import Argonaut._
-  private val encoder = EncodeLDFS()
-  private val decoder = DecodeLDFS(graph)
+  implicit private val encoder: lspace.codec.Encoder[Json] = EncodeLDFS()
+  private val decoder                                      = DecodeLDFS(graph)
 
   private def parse(buf: BufferedSource): Observable[Json] = {
     val it = buf.getLines()
@@ -192,9 +192,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
       case Left(issues) => Task.raiseError(FromJsonException(issues))
       case Right(json) =>
         json.obj
-          .map(obj => decoder.extractContext(obj.toMap)(ActiveContext()))
-          .getOrElse(Task(ActiveContext()))
-    } else Task(ActiveContext())
+          .map(obj => decoder.extractContext(obj.toMap)(decoder.getNewActiveContext))
+          .getOrElse(Task(decoder.getNewActiveContext))
+    } else Task(decoder.getNewActiveContext)
   }
 
   lazy val init: CancelableFuture[Unit] = {
@@ -490,7 +490,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                 .mapValues(_.map(_.value))
                 .foreach {
                   case (label, values) =>
-                    implicit val ac = ActiveContext()
+                    implicit val ac = decoder.getNewActiveContext
                     val jsons = label match {
                       case label: TextType[_] => values.map(encoder.fromText(_, label).json)
                       case label: NumericType[_] =>
@@ -520,7 +520,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                 graph
                   .nodes()
                   .groupBy(_.labels.toSet)
-                  .foldLeft[decoder.AC](ActiveContext()) {
+                  .foldLeft[decoder.AC](decoder.getNewActiveContext) {
                     case (ac, (labels, nodes)) =>
                       val (newAc, cLabels) = labels.foldLeft(ac -> List[String]()) {
                         case ((ac, labels), label) =>
@@ -536,12 +536,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.nodes.use { f =>
                 Task {
-                  import JsonObjectInProgress._
-                  f.println(
-                    lspace.codec
-                      .JsonObjectInProgress[Json, JsonObject](JsonObject.empty)(ac)
-                      .withContextAsJson
-                      .toString())
+                  f.println(ac
+                    .asJson(encoder)
+                    .toString())
                 }
               }
             },
@@ -554,7 +551,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                     (e.from.isInstanceOf[Node] || e.from.hasLabel(LiteralType.datatype).isDefined) && (e.to
                       .isInstanceOf[Node] || e.to.hasLabel(LiteralType.datatype).isDefined))
                   .groupBy(_.key)
-                  .foldLeft[decoder.AC](ActiveContext()) {
+                  .foldLeft[decoder.AC](decoder.getNewActiveContext) {
                     case (ac, (key, edges)) =>
                       val (cKeyIri, _ac)            = ac.compactIri(key)
                       val (byFromNode, byFromValue) = edges.partition(_.from.isInstanceOf[Node])
@@ -585,8 +582,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.literalEdges.use { f =>
                 Task {
-                  import lspace.parse.JsonObjectInProgress._
-                  f.println(lspace.codec.JsonObjectInProgress(JsonObject.empty)(ac).withContextAsJson.toString())
+                  f.println(ac.asJson(encoder).toString())
                 }
               }
             },
@@ -599,7 +595,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                     (e.from.isInstanceOf[Node] || e.from.hasLabel(LiteralType.datatype).isDefined) && (e.to
                       .isInstanceOf[Node] || e.to.hasLabel(LiteralType.datatype).isDefined))
                   .groupBy(_.key)
-                  .foldLeft[decoder.AC](ActiveContext()) {
+                  .foldLeft[decoder.AC](decoder.getNewActiveContext) {
                     case (ac, (key, edges)) =>
                       val (cKeyIri, _ac)                  = ac.compactIri(key)
                       val (byFromNode, byFromEdgeOrValue) = edges.partition(_.from.isInstanceOf[Node])
@@ -636,12 +632,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.structuredEdges.use { f =>
                 Task {
-                  import lspace.parse.JsonObjectInProgress._
-                  f.println(
-                    lspace.codec
-                      .JsonObjectInProgress(JsonObject.empty)(ac)
-                      .withContextAsJson
-                      .toString())
+                  f.println(ac
+                    .asJson(encoder)
+                    .toString())
                 }
               }
             },
@@ -673,7 +666,7 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
                 graph
                   .values()
                   .flatMap(_.hasLabel(StructuredType.datatype))
-                  .foldLeft[encoder.AC](ActiveContext()) {
+                  .foldLeft[encoder.AC](decoder.getNewActiveContext) {
                     case (ac, v) =>
                       val jip            = encoder.fromStructured(v.value, v.label.asInstanceOf[StructuredType[_]])(ac)
                       val (label, newAc) = jip.activeContext.compactIri(v.label)
@@ -685,12 +678,9 @@ class FileStoreManager[G <: LGraph](override val graph: G, path: String) extends
             .flatMap { ac =>
               graphfiles.write.context.structures.use { f =>
                 Task {
-                  import lspace.parse.JsonObjectInProgress._
-                  f.println(
-                    lspace.codec
-                      .JsonObjectInProgress[Json, JsonObject](JsonObject.empty)(ac)
-                      .withContextAsJson
-                      .toString())
+                  f.println(ac
+                    .asJson(encoder)
+                    .toString())
                 }
               }
             }

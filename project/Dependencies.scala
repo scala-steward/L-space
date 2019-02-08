@@ -33,24 +33,24 @@ object Dependencies {
 
   val parseDeps = Def.setting(
     Seq(
-      "io.argonaut" %%% "argonaut" % Version.argonaut
-    ))
-
-  val parseJsDeps = Def.setting(Seq())
-
-  val parseJvmDeps = Seq()
-
-  val clientDeps = Def.setting(
-    Seq(
       "com.softwaremill.sttp" %%% "core"  % Version.sttp,
       "com.softwaremill.sttp" %%% "monix" % Version.sttp
     ))
 
+  val parseJsDeps = Def.setting(Seq())
+
+  val parseJvmDeps = Seq("com.softwaremill.sttp" %% "okhttp-backend-monix" % Version.sttp)
+
+  val parseArgonautDeps = Def.setting(
+    Seq(
+      "io.argonaut" %%% "argonaut" % Version.argonaut
+    ))
+
+  val clientDeps = Def.setting(Seq())
+
   val clientJsDeps = Def.setting(Seq())
 
-  val clientJvmDeps = Seq(
-    "com.softwaremill.sttp" %% "okhttp-backend-monix" % Version.sttp
-  )
+  val clientJvmDeps = Seq()
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",

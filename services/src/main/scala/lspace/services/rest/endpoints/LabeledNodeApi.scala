@@ -6,7 +6,7 @@ import io.finch._
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
-import lspace.codec.argonaut.{Decode, Encode}
+import lspace.codec.argonaut.{Decoder, Encoder}
 import monix.eval.Task
 import shapeless.{:+:, CNil, HList, Poly1}
 import eu.timepit.refined.api.Refined
@@ -22,9 +22,9 @@ object LabeledNodeApi {
 }
 
 class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api {
-  implicit val encoder = Encode //todo Encode context per client-session
+  implicit val encoder = Encoder //todo Encode context per client-session
   implicit val decoder
-    : lspace.codec.Decode[Any, Any] = Decode(graph).asInstanceOf[lspace.codec.Decode[Any, Any]] //todo Decode context per client-session
+    : lspace.codec.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.Decoder[Any]] //todo Decode context per client-session
 
   //  import monix.eval.Task.catsEffect
   //  import monix.execution.Scheduler.global

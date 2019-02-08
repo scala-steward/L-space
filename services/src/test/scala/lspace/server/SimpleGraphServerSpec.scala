@@ -19,8 +19,9 @@ import scala.concurrent.Future
 
 class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
-  implicit val graph = MemGraph("SimpleGraphServerSpec")
-  def decoder        = lspace.codec.argonaut.Decode(graph)
+  implicit val graph   = MemGraph("SimpleGraphServerSpec")
+  implicit val encoder = lspace.codec.argonaut.Encoder
+  def decoder          = lspace.codec.argonaut.Decoder(graph)
 
   val server = new SimpleGraphServer(graph)
 
@@ -40,6 +41,7 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
     "execute a traversal only on a POST request" in {
 
       val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
+      import lspace.encode.EncodeJson._
       import lspace.encode.EncodeJsonLD._
       import lspace.services.codecs
       import lspace.services.codecs.Encode._

@@ -12,6 +12,7 @@ class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAl
 
   implicit val graph    = MemGraph("GraphServiceSpec")
   lazy val graphService = TraversalService(graph)
+  implicit val encoder  = lspace.codec.argonaut.Encoder
 
   override def beforeAll(): Unit = {
     SampleGraph.loadSocial(graph)
