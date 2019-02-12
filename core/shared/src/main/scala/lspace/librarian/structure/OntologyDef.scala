@@ -24,14 +24,17 @@ abstract class OntologyDef(
 
   def classtype = ontology
 
-  lazy val ontology: Ontology =
-    new Ontology(iri,
-                 iris,
-                 _properties = () => properties,
-                 label = Map("en" -> label),
-                 comment = Map("en" -> comment).filter(_._2.nonEmpty),
-                 _extendedClasses = `@extends`,
-                 base = base)
+  lazy val ontology: Ontology = {
+    val ontology = new Ontology(iri,
+                                iris,
+                                _properties = () => properties,
+                                label = Map("en" -> label),
+                                comment = Map("en" -> comment).filter(_._2.nonEmpty),
+                                _extendedClasses = `@extends`,
+                                base = base)
+    Ontology.ontologies.byIri.getOrElseUpdate(ontology.iri, ontology)
+    ontology
+  }
 
   def keys: Object
   def properties: List[Property] = List()

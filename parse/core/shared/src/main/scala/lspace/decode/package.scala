@@ -6,9 +6,10 @@ import lspace.types.vector.{Geometry, Point, Polygon}
 import scala.util.Try
 
 package object decode {
-  def fromGeoJson[Json](json: Json)(implicit decoder: lspace.codec.Decoder[Json]): Try[Geometry] =
+  def fromGeoJson[Json](json: Json)(implicit decoder: lspace.codec.NativeTypeDecoder.Aux[Json]): Try[Geometry] =
     decoder.jsonToMap(json).map(fromGeoJson(_)).getOrElse(throw FromJsonException("not a valid geojson Geometry"))
-  def fromGeoJson[Json](obj: Map[String, Json])(implicit decoder: lspace.codec.Decoder[Json]): Try[Geometry] = Try {
+  def fromGeoJson[Json](obj: Map[String, Json])(
+      implicit decoder: lspace.codec.NativeTypeDecoder.Aux[Json]): Try[Geometry] = Try {
     obj
       .get("type")
       .flatMap(decoder.jsonToString)

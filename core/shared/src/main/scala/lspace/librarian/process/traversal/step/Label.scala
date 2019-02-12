@@ -10,7 +10,7 @@ object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology
     node
       .out(MoveStep.keys.labelUrl)
       .map(_.iri)
-      .flatMap(node.graph.ns.classtypes.get(_)) //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
+      .flatMap(node.graph.ns.classtypes.cached(_)) //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
       .toSet
   )
 

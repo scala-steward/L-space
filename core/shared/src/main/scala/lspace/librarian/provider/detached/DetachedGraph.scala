@@ -8,13 +8,25 @@ import monix.execution.atomic.Atomic
 
 object DetachedGraph extends MemDataGraph {
   lazy val iri: String = "detachedmemgraph"
+  lazy val self        = this
 
   lazy val idProvider: IdProvider = new IdProvider {
     private val id = Atomic(1000l)
     def next: Long = id.incrementAndGet()
   }
 
-  val ns: MemNSGraph = MemGraphDefault.ns
+  val ns: MemNSGraph = new MemNSGraph {
+    def iri: String = "detachedmemgraph.ns"
+
+    lazy val graph: MemGraph    = self
+    private lazy val _thisgraph = thisgraph
+    lazy val index: MemIndexGraph = new MemIndexGraph {
+      def iri: String = "detachedmemgraph.ns" + ".index"
+
+      lazy val graph: MemGraph      = _thisgraph
+      lazy val index: MemIndexGraph = this
+    }
+  }
   val index: MemIndexGraph = {
     lazy val self = thisgraph
     new MemIndexGraph {

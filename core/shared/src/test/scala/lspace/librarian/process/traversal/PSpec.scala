@@ -1,11 +1,9 @@
 package lspace.librarian.process.traversal
 
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Ontology
 import org.scalatest.{Matchers, WordSpec}
 
 class PSpec extends WordSpec with Matchers {
-  MemGraphDefault.iri
 
   "A P" can {
     "consist of multiple steps" in {

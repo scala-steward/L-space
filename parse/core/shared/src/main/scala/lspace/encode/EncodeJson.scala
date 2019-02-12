@@ -8,7 +8,8 @@ trait EncodeJson[A] extends Encode[A] {
 
 object EncodeJson {
 
-  private def _nodeToJsonMap[Json](node: Node)(implicit encoder: lspace.codec.Encoder[Json]): Json = {
+  private def _nodeToJsonMap(node: Node)(implicit encoder: lspace.codec.Encoder): encoder.Json = {
+    import encoder._
     encoder.mapToJson(
       node
         .outEMap()
@@ -24,14 +25,13 @@ object EncodeJson {
         })
   }
 
-  implicit def nodeToJson[T <: Node, Json](implicit encoder: lspace.codec.Encoder[Json]) = new EncodeJson[T] {
-
+  implicit def nodeToJson[T <: Node](implicit encoder: lspace.codec.Encoder) = new EncodeJson[T] {
     val encode = (node: T) => _nodeToJsonMap(node).toString()
   }
 
-  implicit def nodeToJsonLD[T <: Node, Json](implicit encoder: lspace.codec.Encoder[Json]) = new EncodeJson[List[T]] {
+  implicit def nodesToJson[T <: Node](implicit encoder: lspace.codec.Encoder) = new EncodeJson[List[T]] {
     def encode: List[T] => String =
-      (nodes: List[T]) => encoder.listToJson(nodes.map(_nodeToJsonMap(_))).toString
+      (nodes: List[T]) => encoder.listToJson(nodes.map(_nodeToJsonMap(_).asInstanceOf[encoder.Json])).toString
   }
 
   implicit val encodeJsonJson = new EncodeJson[String] {

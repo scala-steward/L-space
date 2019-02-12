@@ -3,33 +3,37 @@ package lspace.codec
 import lspace.NS.types
 import lspace.librarian.datatype.{DataType, LongType}
 import lspace.librarian.process.traversal.Traversal
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.{Ontology, Property}
 import lspace.librarian.util.SampleGraph
 import lspace.types.vector.Point
 import org.scalatest.{Matchers, WordSpec}
 
-trait EncoderSpec[Json] extends WordSpec with Matchers {
-  def encoder: lspace.codec.Encoder[Json]
-  implicit lazy val ac = encoder.getNewActiveContext
+trait NativeTypeEncoderSpec extends WordSpec with Matchers {
+  type Json
+  def encoder: lspace.codec.NativeTypeEncoder.Aux[Json]
+
+  def toMinString(json: Json): String
+  implicit class WithJson(json: Json) {
+    def minify: String = toMinString(json)
+  }
 
   "An encoder" should {
     "encode literals" in {
-      encoder.intToJson(5).toString shouldBe """5"""
-      encoder.doubleToJson(5.6).toString shouldBe """5.6"""
-      encoder.longToJson(5L).toString shouldBe """5"""
-      encoder.boolToJson(true).toString shouldBe """true"""
-      encoder.textToJson("5.5").toString shouldBe """"5.5""""
-      encoder.textToJson("abc").toString shouldBe """"abc""""
-      encoder.geoToJson(Point(1.1, 2.2)).toString shouldBe """{"type":"Point","coordinates":[1.1,2.2]}"""
-      encoder.mapToJson(Map("name" -> encoder.textToJson("Alice"))).toString shouldBe """{"name":"Alice"}"""
+      encoder.encode(5).minify shouldBe """5"""
+      encoder.encode(5.6).minify shouldBe """5.6"""
+      encoder.encode(5L).minify shouldBe """5"""
+      encoder.encode(true).minify shouldBe """true"""
+      encoder.encode("5.5").minify shouldBe """"5.5""""
+      encoder.encode("abc").minify shouldBe """"abc""""
+      encoder.encode(Point(1.1, 2.2)).minify shouldBe """{"type":"Point","coordinates":[1.1,2.2]}"""
+      encoder.encode(Map("name" -> encoder.encode("Alice"))).minify shouldBe """{"name":"Alice"}"""
       encoder
-        .listToJson(List(encoder.doubleToJson(4.4), encoder.textToJson("Alice")))
-        .toString shouldBe """[4.4,"Alice"]"""
+        .encode(List(encoder.encode(4.4), encoder.encode("Alice")))
+        .minify shouldBe """[4.4,"Alice"]"""
     }
     "encode typed literals" in {
-      encoder.fromAny(5L, Some(LongType.datatype)).json.toString shouldBe """5"""
-      encoder.fromAny(5L).json.toString shouldBe """{"@value":5,"@type":"@long"}"""
+//      encoder.fromAny(5L, Some(LongType.datatype)).json.minify shouldBe """5"""
+//      encoder.fromAny(5L).json.minify shouldBe """{"@value":5,"@type":"@long"}"""
     }
     "encode a traversal" ignore {
 //      val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.name) //, Some(Traversal.ontology))

@@ -3,7 +3,6 @@ package lspace.librarian.datatype
 import lspace.NS
 import lspace.NS.types
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
 object TupleType extends DataTypeDef[TupleType[Any]] {
@@ -20,83 +19,95 @@ object TupleType extends DataTypeDef[TupleType[Any]] {
           "@1stRange",
           label = "@1stRange",
           comment = "@1stRange",
-          `@extends` = () => Property.default.`@range` :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )
+    lazy val _1stRangeClassType: TypedProperty[List[Node]] = _1stRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
     object _2ndRange
         extends PropertyDef(
           "@2ndRange",
           label = "@2ndRange",
           comment = "@2ndRange",
-          `@extends` = () => Property.default.`@range` :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )
+    lazy val _2ndRangeClassType: TypedProperty[List[Node]] = _2ndRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
     object _3rdRange
         extends PropertyDef(
           "@3rdRange",
           label = "@3rdRange",
           comment = "@3rdRange",
-          `@extends` = () => Property.default.`@range` :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )
+    lazy val _3rdRangeClassType: TypedProperty[List[Node]] = _3rdRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
     object _4rdRange
         extends PropertyDef(
           "@4rdRange",
           label = "@4rdRange",
           comment = "@4rdRange",
-          `@extends` = () => Property.default.`@range` :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )
+    lazy val _4rdRangeClassType: TypedProperty[List[Node]] = _4rdRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
   }
   override lazy val properties
     : List[Property] = keys._1stRange.property :: keys._2ndRange.property :: keys._3rdRange.property :: keys._4rdRange.property :: StructuredType.properties
   trait Properties extends StructuredType.Properties {}
 
-  def apply(node: Node): TupleType[_] = {
-    node.iri match {
-      case iri if iri.startsWith(types.`@tuple` + 2) =>
-        Tuple2Type(
-          node
-            .out(keys._1stRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten,
-          node
-            .out(keys._2ndRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten
-        )
-      case iri if iri.startsWith(types.`@tuple` + 3) =>
-        Tuple3Type(
-          node
-            .out(keys._1stRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten,
-          node
-            .out(keys._2ndRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten,
-          node
-            .out(keys._3rdRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten
-        )
-      case iri if iri.startsWith(types.`@tuple` + 4) =>
-        Tuple4Type(
-          node
-            .out(keys._1stRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten,
-          node
-            .out(keys._2ndRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten,
-          node
-            .out(keys._3rdRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten,
-          node
-            .out(keys._4rdRange)
-            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-            .flatten
-        )
-    }
-  }
+//  def apply(node: Node): TupleType[_] = {
+//    node.iri match {
+//      case iri if iri.startsWith(types.`@tuple` + 2) =>
+//        Tuple2Type(
+//          node
+//            .out(keys._1stRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten,
+//          node
+//            .out(keys._2ndRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten
+//        )
+//      case iri if iri.startsWith(types.`@tuple` + 3) =>
+//        Tuple3Type(
+//          node
+//            .out(keys._1stRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten,
+//          node
+//            .out(keys._2ndRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten,
+//          node
+//            .out(keys._3rdRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten
+//        )
+//      case iri if iri.startsWith(types.`@tuple` + 4) =>
+//        Tuple4Type(
+//          node
+//            .out(keys._1stRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten,
+//          node
+//            .out(keys._2ndRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten,
+//          node
+//            .out(keys._3rdRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten,
+//          node
+//            .out(keys._4rdRange)
+//            .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//            .flatten
+//        )
+//    }
+//  }
 
 //  implicit def defaultTuple2[A: ClassType, B: ClassType](implicit
 //                                                         cta: ClassType[A],

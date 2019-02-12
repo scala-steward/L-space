@@ -3,7 +3,7 @@ package lspace.services.rest.endpoints
 import io.finch.Input
 import lspace.services.codecs.Application
 import lspace.librarian.process.traversal.P
-import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
+import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.util.SampleGraph
 import lspace.services.util
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
@@ -11,8 +11,10 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   implicit val graph    = MemGraph("GraphServiceSpec")
+  implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
+  implicit val encoder  = lspace.codec.Encoder(nencoder)
+  implicit val ndecoder = lspace.codec.argonaut.NativeTypeDecoder
   lazy val graphService = TraversalService(graph)
-  implicit val encoder  = lspace.codec.argonaut.Encoder
 
   override def beforeAll(): Unit = {
     SampleGraph.loadSocial(graph)
@@ -25,7 +27,7 @@ class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAl
   import util._
   "a traversal-service" should {
     "execute a traversal only on a POST request" in {
-      val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
+      val traversal = graph.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       import lspace.services.codecs
       import lspace.services.codecs.Encode._
       import lspace.encode.EncodeJsonLD._

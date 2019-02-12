@@ -6,8 +6,6 @@ import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 import lspace.NS.types
 import lspace.librarian.datatype.ListType
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
 import shapeless.{HList, HNil}
 
 object Or

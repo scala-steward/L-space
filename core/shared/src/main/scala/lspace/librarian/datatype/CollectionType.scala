@@ -23,18 +23,19 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
           "@valueRange",
           "@valueRange",
           "A @valueRange",
-          `@extends` = () => Property.default.`@range` :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )
-    lazy val valueRangeClassType: TypedProperty[List[ClassType[_]]] = valueRange + ListType(
-      DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil)
+    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
 //    lazy val valueRangeOntology: TypedProperty[Ontology]      = valueRange + DataType.default.`@class`
 //    lazy val valueRangeProperty: TypedProperty[Property]      = valueRange + DataType.default.`@property`
 //    lazy val valueRangeDatatype: TypedProperty[DataType[Any]] = valueRange + DataType.default.`@datatype`
   }
   override lazy val properties: List[Property] = keys.valueRange :: Nil //StructuredValue.properties
   trait Properties { //extends StructuredValue.Properties {
-    lazy val valueRange: Property                                   = keys.valueRange
-    lazy val valueRangeClassType: TypedProperty[List[ClassType[_]]] = keys.valueRangeClassType
+    lazy val valueRange: Property                           = keys.valueRange
+    lazy val valueRangeClassType: TypedProperty[List[Node]] = keys.valueRangeClassType
 //    lazy val valueRangeOntology: TypedProperty[Ontology]      = keys.valueRangeOntology
 //    lazy val valueRangeProperty: TypedProperty[Property]      = keys.valueRangeProperty
 //    lazy val valueRangeDatatype: TypedProperty[DataType[Any]] = keys.valueRangeDatatype

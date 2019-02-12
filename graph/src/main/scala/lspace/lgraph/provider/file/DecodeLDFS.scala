@@ -1,30 +1,39 @@
 package lspace.lgraph.provider.file
 
-import argonaut.Json
 import lspace.NS.types
+import lspace.codec.NativeTypeDecoder
 import lspace.codec.exception.FromJsonException
 import lspace.librarian.structure._
 import monix.eval.Task
 
-case class DecodeLDFS(override val graph: Graph, idMaps: IdMaps = IdMaps())
-    extends lspace.codec.argonaut.Decoder(graph) {
+case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps())(
+    implicit val baseDecoder: NativeTypeDecoder.Aux[Json0])
+    extends lspace.codec.Decoder {
+  type Json = Json0
 
   override def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] = //need IdMaps here
     json.string
       .map(activeContext.expandIri)
       .map(s => Task(graph.nodes.upsert(s))) //TODO: add label if missing?
       .orElse(
-        json.number
-          .flatMap(n => n.toLong.orElse(n.toInt.map(_.toLong)))
-          .map(idMaps.nodeIds
-            .getOrElse(_, throw FromJsonException("unknown node id ref")))
+        json.long
+          .orElse(json.int.map(_.toLong))
+          .map(
+            id =>
+              idMaps.nodeIds
+                .getOrElse(
+                  id,
+                  throw FromJsonException(
+                    s"unknown node id ref $id in ${graph.iri} ${idMaps.nodeIds} ${graph.nodes().toList.map(_.id)}")))
           .map(id => Task(graph.getOrCreateNode(id))))
 
   override def toNode(expandedJson: Map[String, Json], label: Option[Ontology])(
       implicit activeContext: AC): Task[Node] = {
     expandedJson
       .get(types.`@id`)
-      .flatMap(_.number.flatMap(n => n.toLong.orElse(n.toInt.map(_.toLong))))
+      .flatMap(json =>
+        json.long
+          .orElse(json.int.map(_.toLong)))
       .map(idMaps.nodeIds
         .getOrElse(_, throw FromJsonException("unknown node id ref")))
       .map { id =>
@@ -48,8 +57,8 @@ case class DecodeLDFS(override val graph: Graph, idMaps: IdMaps = IdMaps())
       .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
       .map(Task.now)
       .orElse(
-        json.number
-          .flatMap(n => n.toLong.orElse(n.toInt.map(_.toLong)))
+        json.long
+          .orElse(json.int.map(_.toLong))
           .map(idMaps.nodeIds
             .getOrElse(_, throw FromJsonException("unknown edge id ref")))
           .flatMap(graph.edges.hasId(_).map(Task(_))))

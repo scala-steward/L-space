@@ -653,7 +653,7 @@ class DefaultStreamComputer() extends GraphComputer {
               traversers.filter(traverser => traverser.get.iris.intersect(step.iris).nonEmpty)
             case step: HasLabel =>
               val labelIris       = step.label.map(_.iri)
-              val labelClassTypes = labelIris.flatMap(graph.ns.classtypes.get(_))
+              val labelClassTypes = labelIris.flatMap(graph.ns.classtypes.cached(_))
               traversers.filter { traverser =>
 //                traversers.map(_.get.value)
                 traverser.get match {

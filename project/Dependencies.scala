@@ -4,7 +4,6 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 object Version {
   val scala     = "2.12.8"
   val finch     = "0.27.0"
-  val argonaut  = "6.2.2"
   val monix     = "3.0.0-RC2"
   val sttp      = "1.5.8"
   val elastic4s = "6.5.0"
@@ -41,10 +40,9 @@ object Dependencies {
 
   val parseJvmDeps = Seq("com.softwaremill.sttp" %% "okhttp-backend-monix" % Version.sttp)
 
-  val parseArgonautDeps = Def.setting(
-    Seq(
-      "io.argonaut" %%% "argonaut" % Version.argonaut
-    ))
+  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.2"))
+
+  val parseCirceDeps = Def.setting(Seq("io.circe" %% "circe-parser" % "0.11.1"))
 
   val clientDeps = Def.setting(Seq())
 

@@ -1,14 +1,12 @@
 package lspace.lgraph.provider.file
 
-import argonaut._
-import Argonaut._
 import lspace.NS.types
-import lspace.codec.exception.FromJsonException
 import lspace.librarian.structure._
-import lspace.codec.{ActiveContext, JsonInProgress}
-import monix.eval.Task
+import lspace.codec.{JsonInProgress, NativeTypeEncoder}
 
-case class EncodeLDFS(idMaps: IdMaps = IdMaps()) extends lspace.codec.argonaut.Encoder {
+case class EncodeLDFS[Json0](idMaps: IdMaps = IdMaps())(implicit val baseEncoder: NativeTypeEncoder.Aux[Json0])
+    extends lspace.codec.Encoder {
+  type Json = Json0
 
   override def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: AC): JIP = {
     value match {
@@ -19,11 +17,7 @@ case class EncodeLDFS(idMaps: IdMaps = IdMaps()) extends lspace.codec.argonaut.E
               fromData(value.value, value.label)
             } else {
               val jip = fromData(value.value, value.label)
-              JsonInProgress[Json](
-                Json.jObject(
-                  JsonObject
-                    .fromTraversableOnce(
-                      Map(types.`@value` -> jip.json, types.`@type` -> value.label.iri.compact.asJson))))(
+              JsonInProgress(Map(types.`@value` -> jip.json, types.`@type` -> value.label.iri.compact.asJson).asJson)(
                 jip.activeContext
               )
             }
@@ -37,9 +31,7 @@ case class EncodeLDFS(idMaps: IdMaps = IdMaps()) extends lspace.codec.argonaut.E
           fromData(value, label)
         } else {
           val jip = fromData(value, label)
-          JsonInProgress(
-            Json.jObject(JsonObject
-              .fromTraversableOnce(Map(types.`@value` -> jip.json, types.`@type` -> label.iri.compact.asJson))))(
+          JsonInProgress(Map(types.`@value` -> jip.json, types.`@type` -> label.iri.compact.asJson).asJson)(
             jip.activeContext)
         }
     }

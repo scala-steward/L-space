@@ -4,8 +4,10 @@ import argonaut.Parse
 import com.twitter.finagle
 import com.twitter.finagle.http.{Request, Response, Status}
 import io.finch.{Bootstrap, Input, Output}
+import lspace.codec.Decoder
 import lspace.librarian.process.traversal.{Collection, P}
-import lspace.librarian.provider.mem.{MemGraph, MemGraphDefault}
+import lspace.librarian.provider.detached.DetachedGraph
+import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure.{Graph, Node}
 import lspace.librarian.util.SampleGraph
 import lspace.services.SimpleGraphServer
@@ -19,13 +21,14 @@ import scala.concurrent.Future
 
 class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
+  import lspace.codec.argonaut._
   implicit val graph   = MemGraph("SimpleGraphServerSpec")
-  implicit val encoder = lspace.codec.argonaut.Encoder
-  def decoder          = lspace.codec.argonaut.Decoder(graph)
+  implicit val encoder = lspace.codec.Encoder(nativeEncoder)
+  implicit val decoder = Decoder(DetachedGraph)(nativeDecoder)
 
-  val server = new SimpleGraphServer(graph)
+  import lspace.encode.EncodeJsonLD._
 
-  //  val remoteGraph = RemoteGraph("SimpleGraphServerSpec")(server)
+  val server: SimpleGraphServer = SimpleGraphServer(graph)
 
   override def beforeAll(): Unit = {
     SampleGraph.loadSocial(graph)
@@ -40,7 +43,7 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
   "a graph-server" should {
     "execute a traversal only on a POST request" in {
 
-      val traversal = MemGraphDefault.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
+      val traversal = graph.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       import lspace.encode.EncodeJson._
       import lspace.encode.EncodeJsonLD._
       import lspace.services.codecs
@@ -56,11 +59,15 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
         response.status shouldBe Status.Ok
         response.contentType shouldBe Some("application/ld+json")
         decoder
-          .toNode(Parse.parse(response.getContentString()).right.get)
-          .runToFuture(monix.execution.Scheduler.global)
-          .map { node =>
-            Collection.wrap(node).item shouldBe List(2)
+          .parse(response.getContentString())
+          .flatMap { json =>
+            decoder
+              .toNode(json)
+              .map { node =>
+                Collection.wrap(node).item shouldBe List(2)
+              }
           }
+          .runToFuture(monix.execution.Scheduler.global)
       }
     }
     "get all labels" in {

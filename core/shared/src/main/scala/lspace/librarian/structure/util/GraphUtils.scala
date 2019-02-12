@@ -10,7 +10,7 @@ import scala.collection.mutable
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
-object GraphUtils {
+trait GraphUtils {
 
   private val nodeMergeTasks: concurrent.Map[String, Task[Node]] =
     new ConcurrentHashMap[String, Task[Node]]().asScala
@@ -84,17 +84,20 @@ object GraphUtils {
               case list       => mergeNodes(list.toSet)
             }
           }
-          .doOnFinish(f => Task(nodeMergeTasks.remove(iri)))
+          .doOnFinish(f =>
+            Task {
+              nodeMergeTasks.remove(iri)
+          })
       )
     }
   }
 
-  private val valueMergeTasks: concurrent.Map[Any, Task[Any]] =
-    new ConcurrentHashMap[Any, Task[Any]]().asScala
-  private def getOrAddValueMergeTask(v: Any)(mergeTask: Task[Any]): Task[Any] =
-    valueMergeTasks.getOrElseUpdate(v, mergeTask.memoize)
+  private val valueMergeTasks: concurrent.Map[Any, Task[Value[Any]]] =
+    new ConcurrentHashMap[Any, Task[Value[Any]]]().asScala
+  private def getOrAddValueMergeTask[V](v: V)(mergeTask: Task[Value[V]]): Task[Value[V]] =
+    valueMergeTasks.getOrElseUpdate(v, mergeTask.memoize).asInstanceOf[Task[Value[V]]]
 
-  def mergeValues[V](values: Set[Value[V]]): Task[Any] = {
+  def mergeValues[V](values: Set[Value[V]]): Task[Value[V]] = {
     if (values.isEmpty) Task.raiseError(new Exception("cannot merge empty set of values"))
     else if (values.map(_.value).size > 1) Task.raiseError(new Exception("cannot merge set of unequal values"))
     else {
@@ -139,12 +142,15 @@ object GraphUtils {
             }
             //    transcended.foreach(_.remove())
             unmerged.head.graph.values.byValue(List(unmerged.head.value -> unmerged.head.label)) match {
-              case List(value) => Task(value)
-              case List()      => Task.raiseError(new Exception(s"after merging no value ${unmerged.head.value} left?"))
+              case List(value) => Task(unmerged.head)
+              case List()      => Task(unmerged.head)
               case list        => mergeValues(list.toSet)
             }
           }
-          .doOnFinish(f => Task(valueMergeTasks.remove(values.head)))
+          .onErrorHandle { f =>
+            f.printStackTrace(); throw f
+          }
+          .doOnFinish(f => Task(valueMergeTasks.remove(values.head.value)))
       )
     }
   }

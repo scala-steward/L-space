@@ -17,8 +17,15 @@ object DecodeJsonLD {
   case class InvalidJsonLD(message: String)       extends DecodeException(message)
   case class NotAcceptableJsonLD(message: String) extends NotAcceptable(message)
 
+  /**
+    *
+    * @param label a label which is added to the resulting node
+    * @param allowedProperties a whitelist for properties which are accepted
+    * @param decoder
+    * @return
+    */
   def jsonldToLabeledNode(label: Ontology, allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder[Any]): DecodeJson[Node] = new DecodeJson[Node] {
+      implicit decoder: lspace.codec.Decoder): DecodeJson[Node] = new DecodeJson[Node] {
     def decode =
       (json: String) =>
         decoder
@@ -33,14 +40,29 @@ object DecodeJsonLD {
         }
   }
 
-  def bodyJsonTyped[T](label: Ontology, nodeToT: Node => T, allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder[Any]): DecodeJson[T] =
+  /**
+    *
+    * @param label a label which is added to the resulting node
+    * @param nodeToT a function to transform the parsed result to object T
+    * @param allowedProperties a whitelist for properties which are accepted
+    * @param decoder
+    * @tparam T
+    * @return
+    */
+  def bodyJsonldTyped[T](label: Ontology, nodeToT: Node => T, allowedProperties: List[Property] = List())(
+      implicit decoder: lspace.codec.Decoder): DecodeJson[T] =
     new DecodeJson[T] {
       def decode = (json: String) => jsonldToLabeledNode(label).decode(json).map(nodeToT(_))
     }
 
+  /**
+    *
+    * @param allowedProperties a whitelist for properties which are accepted
+    * @param decoder
+    * @return
+    */
   def jsonldToNode(allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder[Any]): DecodeJson[Node] = new DecodeJson[Node] {
+      implicit decoder: lspace.codec.Decoder): DecodeJson[Node] = new DecodeJson[Node] {
     def decode = { (json: String) =>
       decoder
         .stringToNode(json)
@@ -55,7 +77,7 @@ object DecodeJsonLD {
     }
   }
 
-  def jsonldToTraversal(implicit decoder: lspace.codec.Decoder[Any],
+  def jsonldToTraversal(implicit decoder: lspace.codec.Decoder,
                         graph: Graph): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =
     new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] {
       def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], HList]] =

@@ -12,12 +12,11 @@ import scala.collection.immutable.ListMap
 //  def `@language`: Option[String]
 //  def `@base`: Option[String]
 //  def properties: Map[Property, ActiveProperty[Json]]
-case class ActiveContext[Json](
-    `@prefix`: ListMap[String, String] = ListMap[String, String](),
-    `@vocab`: Option[String] = None,
-    `@language`: Option[String] = None,
-    `@base`: Option[String] = None,
-    properties: Map[Property, ActiveProperty[Json]] = Map[Property, ActiveProperty[Json]]()) {
+case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, String](),
+                         `@vocab`: Option[String] = None,
+                         `@language`: Option[String] = None,
+                         `@base`: Option[String] = None,
+                         properties: Map[Property, ActiveProperty] = Map[Property, ActiveProperty]()) {
 
 //  def copy(`@prefix`: ListMap[String, String] = `@prefix`,
 //           `@vocab`: Option[String] = `@vocab`,
@@ -27,14 +26,14 @@ case class ActiveContext[Json](
 
   //TODO: map of expanded prefix map values (values can be compacted with leading prefixes)
 
-  def asJson(implicit encoder: Encoder[Json]): Option[Json] = ActiveContext.toJson(this)
+  def asJson[Json](implicit encoder: NativeTypeEncoder.Aux[Json]): Option[Json] = ActiveContext.toJson(this)
 
   /**
     *
     * @param key
     * @return the compacted iri and a new context with possible additional prefixes
     */
-  def compactIri(key: ClassType[_]): (String, ActiveContext[Json]) = {
+  def compactIri(key: ClassType[_]): (String, ActiveContext) = {
     key.label.get(`@language`.getOrElse("en")) match {
       case Some(label) if label.nonEmpty =>
         val uriBase = key.iri.stripSuffix(label)
@@ -82,7 +81,9 @@ case class ActiveContext[Json](
     //    else context.get(term).flatMap(_.get(types.id)).getOrElse(term)
   }
 
-  def expandKeys(obj: Map[String, Json]): Map[String, Json] = obj.map { case (key, value) => expandIri(key) -> value }
+  def expandKeys[Json](obj: Map[String, Json]): Map[String, Json] = obj.map {
+    case (key, value) => expandIri(key) -> value
+  }
 
   def expectedType(property: Property) =
     properties
@@ -94,10 +95,10 @@ case class ActiveContext[Json](
 //  def jsonToArray(json: Json): Option[List[Json]]
 //  def jsonToMap(json: Json): Option[Map[String, Json]]
 
-  def extractId(obj: Map[String, Json])(implicit decoder: Decoder[Json]) =
-    obj.get(types.`@id`).flatMap(decoder.jsonToString).map(expandIri)
+  def extractId[Json](obj: Map[String, Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
+    obj.get(types.`@id`).flatMap(decoder.jsonToString(_)).map(expandIri)
 
-  def extractIds(obj: Map[String, Json])(implicit decoder: Decoder[Json]) =
+  def extractIds[Json](obj: Map[String, Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
     obj
       .get(types.`@ids`)
       .flatMap(
@@ -109,7 +110,7 @@ case class ActiveContext[Json](
       .getOrElse(List())
       .map(expandIri)
 
-  def extractLabels(obj: Map[String, Json])(implicit decoder: Decoder[Json]): Map[String, String] =
+  def extractLabels[Json](obj: Map[String, Json])(implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] =
     obj
       .get(types.`@label`)
       .flatMap(
@@ -123,7 +124,8 @@ case class ActiveContext[Json](
             .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
       .getOrElse(Map())
 
-  def extractComments(obj: Map[String, Json])(implicit decoder: Decoder[Json]): Map[String, String] =
+  def extractComments[Json](obj: Map[String, Json])(
+      implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] = {
     obj
       .get(types.`@comment`)
       .flatMap(
@@ -136,23 +138,24 @@ case class ActiveContext[Json](
             })
             .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
       .getOrElse(Map())
+  }
 
-  def extractContainer(obj: Map[String, Json]): Option[Json] =
+  def extractContainer[Json](obj: Map[String, Json]): Option[Json] =
     obj.get(types.`@container`)
 
-  def extractValue[T](obj: Map[String, Json])(cb: Json => T): Option[T] =
+  def extractValue[Json, T](obj: Map[String, Json])(cb: Json => T): Option[T] =
     obj.get(types.`@value`).map(cb)
 
-  def extractFrom(obj: Map[String, Json]): Option[Json] =
+  def extractFrom[Json](obj: Map[String, Json]): Option[Json] =
     obj.get(types.`@from`)
 
-  def extractTo(obj: Map[String, Json]): Option[Json] =
+  def extractTo[Json](obj: Map[String, Json]): Option[Json] =
     obj.get(types.`@to`)
 }
 
 object ActiveContext {
 
-  def toJson[Json](context: ActiveContext[Json])(implicit encoder: Encoder[Json]): Option[Json] = {
+  def toJson[Json](context: ActiveContext)(implicit encoder: NativeTypeEncoder.Aux[Json]): Option[Json] = {
     val (newActiveContext, result) = context.properties.foldLeft((context, ListMap[String, Json]())) {
       case ((activeContext, result), (key, activeProperty)) =>
         val (keyIri, newActiveContext) = activeContext.compactIri(key)
@@ -162,43 +165,45 @@ object ActiveContext {
           _types(activeProperty).map(types.`@type`               -> _)
         ).flatten match {
           case kv if kv.nonEmpty =>
-            newActiveContext -> (result ++ ListMap(keyIri -> encoder.listmapToJson(ListMap(kv: _*))))
+            newActiveContext -> (result ++ ListMap(keyIri -> encoder.encode(ListMap(kv: _*))))
           case kv =>
             newActiveContext -> result
         }
     }
     ListMap(newActiveContext.`@prefix`.map {
-      case (prefix, iri) => prefix -> encoder.textToJson(iri)
+      case (prefix, iri) => prefix -> encoder.encode(iri)
     }.toList ++ result.toList: _*) match {
-      case kv if kv.nonEmpty => Some(encoder.listmapToJson(kv))
+      case kv if kv.nonEmpty => Some(encoder.encode(kv))
       case kv                => None
     }
   }
 
-  implicit class WithIriString(iri: String)(implicit activeContext: ActiveContext[_]) {
+  implicit class WithIriString(iri: String)(implicit activeContext: ActiveContext) {
     lazy val compact: String = activeContext.compactIri(iri)
   }
 
-  private def _containers[Json](activeProperty: ActiveProperty[Json])(implicit encoder: Encoder[Json]): Option[Json] = {
+  private def _containers[Json](activeProperty: ActiveProperty)(
+      implicit encoder: NativeTypeEncoder.Aux[Json]): Option[Json] = {
     implicit val activeContext = activeProperty.`@context`
     activeProperty.`@container` match {
       case Nil             => None
-      case List(container) => Some(encoder.textToJson(activeContext.compactIri(container.iri)))
+      case List(container) => Some(encoder.encode(activeContext.compactIri(container.iri)))
       case containers =>
-        Some(encoder.listToJson(activeProperty.`@container`.foldLeft(List[Json]()) {
-          case (result, container) => result :+ encoder.textToJson(activeContext.compactIri(container.iri))
+        Some(encoder.encode(activeProperty.`@container`.foldLeft(List[encoder.Json]()) {
+          case (result, container) => result :+ encoder.encode(activeContext.compactIri(container.iri))
         }))
     }
   }
 
-  private def _types[Json](activeProperty: ActiveProperty[Json])(implicit encoder: Encoder[Json]): Option[Json] = {
+  private def _types[Json](activeProperty: ActiveProperty)(
+      implicit encoder: NativeTypeEncoder.Aux[Json]): Option[Json] = {
     implicit val activeContext = activeProperty.`@context`
     activeProperty.`@type` match {
       case Nil       => None
-      case List(tpe) => Some(encoder.textToJson(activeContext.compactIri(tpe.iri)))
+      case List(tpe) => Some(encoder.encode(activeContext.compactIri(tpe.iri)))
       case tpes =>
-        Some(encoder.listToJson(activeProperty.`@type`.foldLeft(List[Json]()) {
-          case (result, tpe) => result :+ encoder.textToJson(activeContext.compactIri(tpe.iri))
+        Some(encoder.encode(activeProperty.`@type`.foldLeft(List[encoder.Json]()) {
+          case (result, tpe) => result :+ encoder.encode(activeContext.compactIri(tpe.iri))
         }))
     }
   }

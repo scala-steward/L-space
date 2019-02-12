@@ -6,10 +6,11 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.NS
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import monix.eval.{Coeval, Task}
 
-import scala.collection.immutable.ListSet
+import scala.collection.concurrent
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 
 object Property {
   lazy val ontology: Ontology =
@@ -26,60 +27,132 @@ object Property {
       def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
     }
 
-  def apply(node: Node): Property = {
+  def build(node: Node): Task[Coeval[Property]] = {
     if (node.hasLabel(urlType).nonEmpty) {
-      _Property(node.iri)(
-        iris = node.iris,
-        _range = () =>
+      for {
+        range <- Task.gather(
           node
             .out(default.`@range`)
             .collect {
               case nodes: List[_] =>
                 nodes.map {
-                  case node: Node => node.graph.ns.classtypes.get(node)
+                  case node: Node => ClassType.classtypes.get(node.iri).getOrElse(ClassType.build(node)) //orElse???
                   case iri: String =>
-                    node.graph.ns.classtypes
+                    ClassType.classtypes
                       .get(iri)
                       .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
                 }
-              case node: Node => List(node.graph.ns.classtypes.get(node))
+              case node: Node => List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.build(node)))
             }
-            .flatten,
-        containers = node.out(default.typed.containerString),
-        label = node
-          .outE(default.typed.labelString)
-          .flatMap { edge =>
-            edge.out(default.typed.languageString).map(_ -> edge.to.value)
-          }
-          .toMap,
-        comment = node
-          .outE(default.typed.commentString)
-          .flatMap { edge =>
-            edge.out(default.typed.languageString).map(_ -> edge.to.value)
-          }
-          .toMap,
-        _extendedClasses = () =>
-          node.out(default.`@extends`).collect {
-            case node: Node =>
-              node.graph.ns.properties
-                .cached(node.iri)
-                .getOrElse {
-                  MemGraphDefault.ns.properties.cached(node.iri).getOrElse(Property(node))
-                }
-        },
-        _properties = () =>
-          node.out(default.typed.propertyProperty).map { node =>
-            node.graph.ns.properties
-              .cached(node.iri)
-              .getOrElse {
-                MemGraphDefault.ns.properties.cached(node.iri).getOrElse(Property(node))
+            .flatten)
+        properties <- Task.gather(node.out(default.typed.propertyProperty).map(Property.build))
+        extended <- Task.gather(node.out(default.`@extends`).collect {
+          case node: Node =>
+            Property.properties.getOrConstruct(node.iri)(build(node))
+        })
+      } yield {
+        Coeval(
+          _Property(node.iri)(
+            iris = node.iris,
+            _range = () => range.map(_.value()),
+            containers = node.out(default.typed.containerString),
+            label = node
+              .outE(default.typed.labelString)
+              .flatMap { edge =>
+                edge.out(default.typed.languageString).map(_ -> edge.to.value)
               }
-        },
-        node.out(default.typed.baseString).headOption
-      )
+              .toMap,
+            comment = node
+              .outE(default.typed.commentString)
+              .flatMap { edge =>
+                edge.out(default.typed.languageString).map(_ -> edge.to.value)
+              }
+              .toMap,
+            _extendedClasses = () => extended.map(_.value()),
+            _properties = () => properties.map(_.value()),
+            node.out(default.typed.baseString).headOption
+          ))
+      }
     } else {
-      throw new Exception(s"${node.iri} is not a property")
+      Task.raiseError(new Exception(s"${node.iri} is not a property"))
     }
+  }
+
+  object properties {
+    object default {
+      import Property.default._
+      val properties = List(
+        `@id`,
+        `@ids`,
+        `@container`, /*entry.iri -> entry, */
+        `@range`,
+        `@type`,
+        `@extends`,
+        `@properties`,
+        `@language`,
+        `@index`,
+        `@label`,
+        `@comment`,
+        `@base`,
+        `@value`,
+        `@pvalue`,
+        `@graph`,
+        `@start`,
+        `@end`,
+        `@createdon`,
+        `@modifiedon`,
+        `@deletedon`,
+        `@transcendedon`,
+        `@valueRange`,
+        `@keyRange`,
+        `@ARange`,
+        `@BRange`,
+        `@CRange`,
+        `@DRange`
+      )
+
+      if (properties.size > 99) throw new Exception("extend default-property-id range!")
+      val byId    = (100l to 100l + properties.size - 1 toList).zip(properties).toMap
+      val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
+      val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+    }
+    private[lspace] val byIri: concurrent.Map[String, Property] =
+      new ConcurrentHashMap[String, Property]().asScala
+    private[lspace] val constructing: concurrent.Map[String, Task[Coeval[Property]]] =
+      new ConcurrentHashMap[String, Task[Coeval[Property]]]().asScala
+
+    def get(iri: String): Option[Task[Coeval[Property]]] =
+      default.byIri
+        .get(iri)
+        .orElse(byIri.get(iri))
+        .map(p => Task.now(Coeval.now(p)))
+        .orElse(constructing.get(iri))
+    def getOrConstruct(iri: String)(constructTask: Task[Coeval[Property]]): Task[Coeval[Property]] =
+      default.byIri
+        .get(iri)
+        .map(p => Task.now(Coeval.now(p)))
+        .getOrElse(constructing.getOrElseUpdate(
+          iri,
+          constructTask
+            .map(_.memoize)
+            .map { p =>
+              Task {
+                byIri += p.value().iri -> p.value()
+                p.value().iris.foreach { iri =>
+                  properties.byIri += iri -> p.value()
+                }
+                constructing.remove(iri)
+              }.delayExecution(FiniteDuration(1, "s"))
+                .runAsyncAndForget(monix.execution.Scheduler.global)
+              p
+            }
+            .memoize
+        ))
+
+    def cached(long: Long): Option[Property]  = default.byId.get(long)
+    def cached(iri: String): Option[Property] = default.byIri.get(iri).orElse(byIri.get(iri))
+
+    def remove(iri: String): Unit = byIri.remove(iri)
   }
 
   object default {
@@ -186,44 +259,6 @@ object Property {
     }
   }
 
-  import default._
-  object allProperties {
-    val properties = List(
-      `@id`,
-      `@ids`,
-      `@container`, /*entry.iri -> entry, */
-      `@range`,
-      `@type`,
-      `@extends`,
-      `@properties`,
-      `@language`,
-      `@index`,
-      `@label`,
-      `@comment`,
-      `@base`,
-      `@value`,
-      `@pvalue`,
-      `@graph`,
-      `@start`,
-      `@end`,
-      `@createdon`,
-      `@modifiedon`,
-      `@deletedon`,
-      `@transcendedon`,
-      `@valueRange`,
-      `@keyRange`,
-      `@ARange`,
-      `@BRange`,
-      `@CRange`,
-      `@DRange`
-    )
-
-    if (properties.size > 99) throw new Exception("extend default-property-id range!")
-    val byId    = (100l to 100l + properties.size - 1 toList).zip(properties).toMap
-    val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
-    val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
-  }
-
   import default.typed._
   lazy val allTypedProperties: Map[String, TypedProperty[_]] = Map(
     iriUrlString.iri          -> iriUrlString,
@@ -279,21 +314,21 @@ object Property {
             properties: List[Property] = List()): Property =
     new Property(iri, iris, () => range, containers, label, comment, () => extendedClasses, () => properties) {}
 
-  import scala.collection.JavaConverters._
-  import scala.collection.concurrent
-  private val constructing: concurrent.Map[String, Task[Property]] =
-    new ConcurrentHashMap[String, Task[Property]]().asScala
-  def getOrConstructing(iri: String)(constructTask: Task[Property]): Task[Property] =
-    constructing.getOrElseUpdate(iri, constructTask.memoize)
-  def getConstructing(iri: String): Option[Task[Property]] =
-    constructing.get(iri)
-
-  private val constructed: concurrent.Map[String, Coeval[Property]] =
-    new ConcurrentHashMap[String, Coeval[Property]]().asScala
-  def getOrConstructed(iri: String)(constructTask: Coeval[Property]): Coeval[Property] =
-    constructed.getOrElseUpdate(iri, constructTask.memoize)
-  def getConstructed(iri: String): Option[Coeval[Property]] =
-    constructed.get(iri)
+//  import scala.collection.JavaConverters._
+//  import scala.collection.concurrent
+//  private val constructing: concurrent.Map[String, Task[Property]] =
+//    new ConcurrentHashMap[String, Task[Property]]().asScala
+//  def getOrConstructing(iri: String)(constructTask: Task[Property]): Task[Property] =
+//    constructing.getOrElseUpdate(iri, constructTask.memoize)
+//  def getConstructing(iri: String): Option[Task[Property]] =
+//    constructing.get(iri)
+//
+//  private val constructed: concurrent.Map[String, Coeval[Property]] =
+//    new ConcurrentHashMap[String, Coeval[Property]]().asScala
+//  def getOrConstructed(iri: String)(constructTask: Coeval[Property]): Coeval[Property] =
+//    constructed.getOrElseUpdate(iri, constructTask.memoize)
+//  def getConstructed(iri: String): Option[Coeval[Property]] =
+//    constructed.get(iri)
 }
 
 /**

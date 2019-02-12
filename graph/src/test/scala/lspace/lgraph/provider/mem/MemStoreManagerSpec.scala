@@ -2,27 +2,22 @@ package lspace.lgraph.provider.mem
 
 import lspace.lgraph.LGraph
 import lspace.librarian.process.computer.GraphComputerSpec
-import lspace.librarian.structure.{Graph, GraphSpec, NodeSpec}
+import lspace.librarian.structure.{Graph, GraphSpec, NodeSpec, SampledGraph}
 
 class MemStoreManagerSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
 
-  val store       = MemStoreProvider("MemStoreManagerSpec")
-  val sampleStore = MemStoreProvider("MemStoreManagerSpec-sample")
-
-  val graph: LGraph =
-    LGraph(store, new MemIndexProvider)
-  val sampleGraph: LGraph =
-    LGraph(sampleStore, new MemIndexProvider)
   def createGraph(iri: String): Graph = {
     val storage = MemStoreProvider(iri)
     LGraph(storage, new MemIndexProvider)
   }
 
-  override def beforeAll: Unit = {
-    super.beforeAll
-  }
+  lazy val graph: Graph = createGraph("MemStoreManagerSpec")
+  lazy val sampleGraph  = SampledGraph(createGraph("MemStoreManagerSpec-sample"))
+  sampleGraph.load
 
-  override def afterAll(): Unit = {
-    super.afterAll()
-  }
+  graphTests(graph)
+  sampledGraphTests(sampleGraph)
+  nodeTests(graph)
+  sampledNodeTests(sampleGraph)
+  sampledGraphComputerTests(sampleGraph)
 }

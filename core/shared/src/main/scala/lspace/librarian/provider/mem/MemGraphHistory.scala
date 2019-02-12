@@ -6,7 +6,6 @@ import monix.execution.atomic.Atomic
 
 object MemGraphHistory {
   def apply(_iri: String): MemGraph = {
-    MemGraphDefault.iri
     val graph = new MemGraphHistory {
       val iri: String = _iri
 

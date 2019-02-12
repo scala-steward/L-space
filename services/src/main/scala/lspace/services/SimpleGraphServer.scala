@@ -7,6 +7,7 @@ import com.twitter.io.Buf
 import com.twitter.util.Promise
 import io.finch.Bootstrap
 import io.finch.sse.ServerSentEvent
+import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.encode.EncodeJsonLD
 import lspace.encode.EncodeJson
 import lspace.librarian.structure.Graph
@@ -14,7 +15,23 @@ import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
 import lspace.services.rest.security.WithSse
 import shapeless._
 
-class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
+object SimpleGraphServer {
+  def apply[Json0](graph0: Graph, port0: Int = 8080)(implicit baseDecoder0: NativeTypeDecoder.Aux[Json0],
+                                                     baseEncoder0: NativeTypeEncoder.Aux[Json0]): SimpleGraphServer =
+    new SimpleGraphServer {
+      override val graph: Graph = graph0
+      override val port: Int    = port0
+      type Json = Json0
+      implicit override def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
+      implicit override def baseEncoder: NativeTypeEncoder.Aux[Json] = baseEncoder0
+    }
+}
+trait SimpleGraphServer extends LService {
+  def graph: Graph
+  def port: Int
+  type Json
+  implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
+  implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
 
   lazy val graphService = TraversalService(graph)
 
@@ -22,13 +39,14 @@ class SimpleGraphServer(graph: Graph, port: Int = 8080) extends LService {
 //                                        allowsMethods = _ => Some(Seq("GET", "POST")),
 //                                        allowsHeaders = _ => Some(Seq("Accept")))
 
-  implicit val encoder = lspace.codec.argonaut.Encoder
   import lspace.services.codecs
   import lspace.services.codecs.Encode._
   import lspace.encode.EncodeJson._
   import lspace.encode.EncodeJsonLD._
 
-  implicit val _graph = graph
+  implicit lazy val encoder: Encoder = Encoder(baseEncoder)
+
+//  implicit val _graph = graph
 //  implicit val labeledNodeToJson: EncodeJsonLD[String] =
 //    EncodeJson { string: String =>
 //      string

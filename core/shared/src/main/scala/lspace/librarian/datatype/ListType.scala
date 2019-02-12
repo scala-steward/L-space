@@ -18,13 +18,13 @@ object ListType extends DataTypeDef[ListType[Any]] {
   override lazy val properties: List[Property] = CollectionType.properties
   trait Properties extends CollectionType.Properties
 
-  def wrap(node: Node): ListType[Any] = {
-    ListType(
-      node
-        .out(CollectionType.keys.valueRange)
-        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-        .flatten)
-  }
+//  def wrap(node: Node): ListType[Any] = {
+//    ListType(
+//      node
+//        .out(CollectionType.keys.valueRangeClassType)
+//        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//        .flatten)
+//  }
 
 //  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =

@@ -15,10 +15,10 @@ import shapeless.{::, HList}
 
 object MemGraph {
 
-  lazy val default: MemGraph = {
-    //    Graph.graphs += "default" -> MemGraphDefault
-    MemGraphDefault
-  }
+//  lazy val default: MemGraph = {
+//    //    Graph.graphs += "default" -> MemGraphDefault
+//
+//  }
 
   def apply(_iri: String): MemGraph = {
     val graph = new MemDataGraph {

@@ -1,13 +1,15 @@
 package lspace.librarian.structure
 
 import java.time.{Instant, LocalDate, LocalTime}
+import java.util.concurrent.ConcurrentHashMap
 
 import lspace.librarian.datatype._
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.types.vector._
+import monix.eval.{Coeval, Task}
 
 import scala.collection.immutable.ListSet
+import scala.concurrent.duration.FiniteDuration
 
 object ClassType {
 
@@ -47,6 +49,25 @@ object ClassType {
       case _ =>
         throw new Exception(s"not a known range ${value.getClass}")
     }).asInstanceOf[DataType[T]]
+  }
+
+  def build(node: Node): Task[Coeval[ClassType[_]]] = {
+    if (node.hasLabel(Ontology.ontology).nonEmpty) {
+      if (node.hasLabel(DataType.ontology).nonEmpty) DataType.build(node)
+      else Ontology.build(node)
+    } else if (node.hasLabel(Property.ontology).nonEmpty) {
+      Property.build(node)
+    } else {
+      Task.raiseError(new Exception(s"${node.iri} is does not look like a classtype"))
+    }
+  }
+
+  object classtypes {
+    def get(iri: String): Option[Task[Coeval[ClassType[_]]]] =
+      Ontology.ontologies.get(iri).orElse(Property.properties.get(iri)).orElse(DataType.datatypes.get(iri))
+
+    def cached(iri: String): Option[ClassType[_]] =
+      Ontology.ontologies.cached(iri).orElse(Property.properties.cached(iri)).orElse(DataType.datatypes.cached(iri))
   }
 
   def default[T]: ClassType[T] = new ClassType[T] {

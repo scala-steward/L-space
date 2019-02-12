@@ -1,12 +1,8 @@
 package lspace.librarian.process.traversal.p
 
 import lspace.librarian.process.traversal.P.EqHelper
-import lspace.librarian.process.traversal.helper.ClassTypeable
 import lspace.librarian.process.traversal.{EqP, P, PredicateDef, PredicateWrapper}
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object Neqv extends PredicateDef("Neqv", `@extends` = () => EqP.ontology :: Nil) with PredicateWrapper[Neqv[_]] {

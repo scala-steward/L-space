@@ -28,14 +28,14 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
   //    }))
   //  }
 
-  def wrap(node: Node): ListSetType[Any] = {
-    ListSetType(
-      node
-        .out(CollectionType.keys.valueRange)
-        .collect { case node: Node => node }
-        .map(node.graph.ns.classtypes.get)
-    ).asInstanceOf[ListSetType[Any]]
-  }
+//  def wrap(node: Node): ListSetType[Any] = {
+//    ListSetType(
+//      node
+//        .out(CollectionType.keys.valueRange)
+//        .collect { case node: Node => node }
+//        .map(node.graph.ns.classtypes.get)
+//    ).asInstanceOf[ListSetType[Any]]
+//  }
 
 //  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListSetType[TOut] =

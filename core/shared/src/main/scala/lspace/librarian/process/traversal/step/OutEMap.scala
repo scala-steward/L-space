@@ -13,7 +13,7 @@ object OutEMap
     node
       .out(MoveStep.keys.labelUrl)
       .map(_.iri)
-      .map(iri => node.graph.ns.properties.get(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .map(iri => node.graph.ns.properties.cached(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
       .toSet
   )
 

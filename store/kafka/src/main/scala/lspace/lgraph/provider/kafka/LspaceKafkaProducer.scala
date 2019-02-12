@@ -1,8 +1,6 @@
 package lspace.lgraph.provider.kafka
 
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Node
-import lspace.parse.JsonLD
 
 case class LspaceKafkaProducer(topic: String) {
   import monix.kafka._
@@ -23,7 +21,7 @@ case class LspaceKafkaProducer(topic: String) {
   def apply(nodes: Stream[Node]) =
     Observable
       .fromIterable(nodes)
-      .map(JsonLD(MemGraphDefault).encode(_).toString())
+      .map(lspace.codec.argonaut.Encoder(_).toString())
       .map(new ProducerRecord[String, String](topic, _))
       .bufferIntrospective(1024)
       .consumeWith(producer)

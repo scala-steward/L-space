@@ -26,13 +26,13 @@ object SetType extends DataTypeDef[SetType[Any]] {
   //    }))
   //  }
 
-  def wrap(node: Node): SetType[Any] = {
-    SetType(
-      node
-        .out(CollectionType.keys.valueRange)
-        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-        .flatten)
-  }
+//  def wrap(node: Node): SetType[Any] = {
+//    SetType(
+//      node
+//        .out(CollectionType.keys.valueRange)
+//        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//        .flatten)
+//  }
 
 //  def apply[VT <: ClassType[_], TOut, CTOut <: ClassType[TOut]](valueRange: List[VT])(
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): SetType[TOut] =

@@ -18,8 +18,9 @@ object LabeledNodeApiSpec {}
 class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
-  implicit val encoder        = lspace.codec.argonaut.Encoder
-//  implicit val decoder        = lspace.codec.argonaut.Decode(sampleGraph)
+  implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder
+  implicit val encoder        = lspace.codec.Encoder(nencoder)
+  implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
 
   override def beforeAll(): Unit = {
     SampleGraph.loadSocial(sampleGraph)
@@ -34,7 +35,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
     casecodec2(Person.apply, Person.unapply)("name", "id")
   implicit val enc = PersonCodecJson.Encoder
 
-  lazy val personApiService = LabeledNodeApi(person)(sampleGraph)
+  lazy val personApiService = LabeledNodeApi(person)(sampleGraph, ndecoder)
   val toCC = { node: Node =>
     Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as TextType).headOption)
   }

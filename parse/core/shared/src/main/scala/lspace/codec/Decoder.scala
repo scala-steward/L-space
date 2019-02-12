@@ -8,29 +8,56 @@ import lspace.librarian.datatype._
 import lspace.librarian.structure._
 import lspace.parse.util.{HttpClient, HttpClientImpl}
 import lspace.types.vector.{Geometry, Point, Polygon}
-import monix.eval.Task
+import monix.eval.{Coeval, Task}
 
 import scala.collection.immutable.ListSet
 
-trait Decoder[Json] {
-  implicit def decoder: Decoder[Json] = this
-  type AC = ActiveContext[Json]
-  type AP = ActiveProperty[Json]
+object Decoder {
+  type Aux[Json0] = Decoder { type Json = Json0 }
+
+  def apply[Json0](graph0: Lspace)(implicit
+                                   baseDecoder0: NativeTypeDecoder.Aux[Json0]): Decoder.Aux[Json0] =
+    new Decoder {
+      type Json = Json0
+      val graph: Graph                                      = graph0
+      implicit def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
+    }
+}
+trait Decoder {
   def graph: Graph
-  def encoder: Encoder[Json]
-  def getNewActiveContext: AC
-  def getNewActiveProperty: AP
-  def parse(string: String): Task[Json]
-  implicit def jsonToList(json: Json): Option[List[Json]]
-  implicit def jsonToMap(json: Json): Option[Map[String, Json]]
-  implicit def jsonToString(json: Json): Option[String]
-  implicit def jsonToBoolean(json: Json): Option[Boolean]
-  implicit def jsonToInt(json: Json): Option[Int]
-  implicit def jsonToDouble(json: Json): Option[Double]
-  implicit def jsonToLong(json: Json): Option[Long]
-  implicit def jsonToDateTime(json: Json): Option[Instant] = (json: Option[String]).map(Instant.parse(_))
-  implicit def jsonToDate(json: Json): Option[LocalDate]   = (json: Option[String]).map(LocalDate.parse(_))
-  implicit def jsonToTime(json: Json): Option[LocalTime]   = (json: Option[String]).map(LocalTime.parse(_))
+  type Json
+  implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
+
+//  implicit def decoder: Decoder = this
+  type AC = ActiveContext
+  type AP = ActiveProperty
+  def getNewActiveContext: AC           = ActiveContext()
+  def getNewActiveProperty: AP          = ActiveProperty()
+  def parse(string: String): Task[Json] = baseDecoder.parse(string)
+
+  implicit def jsonToList(json: Json): Option[List[Json]]       = baseDecoder.jsonToList(json)
+  implicit def jsonToMap(json: Json): Option[Map[String, Json]] = baseDecoder.jsonToMap(json)
+  implicit def jsonToString(json: Json): Option[String]         = baseDecoder.jsonToString(json)
+  implicit def jsonToBoolean(json: Json): Option[Boolean]       = baseDecoder.jsonToBoolean(json)
+  implicit def jsonToInt(json: Json): Option[Int]               = baseDecoder.jsonToInt(json)
+  implicit def jsonToDouble(json: Json): Option[Double]         = baseDecoder.jsonToDouble(json)
+  implicit def jsonToLong(json: Json): Option[Long]             = baseDecoder.jsonToLong(json)
+  implicit def jsonToDateTime(json: Json): Option[Instant]      = (json: Option[String]).map(Instant.parse(_))
+  implicit def jsonToDate(json: Json): Option[LocalDate]        = (json: Option[String]).map(LocalDate.parse(_))
+  implicit def jsonToTime(json: Json): Option[LocalTime]        = (json: Option[String]).map(LocalTime.parse(_))
+
+  implicit class WithDJson(json: Json) {
+    def int: Option[Int]               = jsonToInt(json)
+    def double: Option[Double]         = jsonToDouble(json)
+    def long: Option[Long]             = jsonToLong(json)
+    def datetime: Option[Instant]      = jsonToDateTime(json)
+    def time: Option[LocalTime]        = jsonToTime(json)
+    def date: Option[LocalDate]        = jsonToDate(json)
+    def string: Option[String]         = jsonToString(json)
+    def list: Option[List[Json]]       = jsonToList(json)
+    def obj: Option[Map[String, Json]] = jsonToMap(json)
+    def boolean: Option[Boolean]       = jsonToBoolean(json)
+  }
 
   implicit def jsonToGeopoint(json: Json): Option[Point] =
     lspace.decode.fromGeoJson(json).toOption.collect { case point: Point => point }
@@ -97,10 +124,10 @@ trait Decoder[Json] {
           .orElse(toEdge(expandedJson, et.collectFirst { case property: Property => property }))
           .getOrElse {
             et match {
-              case (geo: GeometricType[_]) :: tail =>
-                toGeometric(encoder.mapToJson(obj), geo).map { v =>
-                  graph.values.create(v, geo)
-                }
+//              case (geo: GeometricType[_]) :: tail =>
+//                toGeometric(encoder.encode(obj), geo).map { v =>
+//                  graph.values.create(v, geo)
+//                }
               case _ =>
                 toNode(expandedJson, expectedType.collect { case ontology: Ontology => ontology })
             }
@@ -111,7 +138,12 @@ trait Decoder[Json] {
   def toResource(json: Json, expectedType: Option[ClassType[_]])(implicit activeContext: AC): Task[Resource[Any]] = {
     jsonToMap(json)
       .map { obj =>
-        toResource(obj, expectedType)
+        if (expectedType.exists(_.isInstanceOf[GeometricType[_]]))
+          toGeometric(json, expectedType.get.asInstanceOf[GeometricType[_]])
+            .map(geo => graph.values.upsert(geo, expectedType.get.asInstanceOf[DataType[Any]]))
+            .onErrorHandleWith { f =>
+              toResource(obj, expectedType)
+            } else toResource(obj, expectedType)
       }
       .getOrElse(toObject(json, expectedType.toList).map {
         case (classtype, resource: Resource[_]) => resource
@@ -434,11 +466,11 @@ trait Decoder[Json] {
       case label: StructuredType[Any] =>
         toStructured(json, label)
       case label: IriType[_] =>
-        (json: Option[String])
+        json.string
           .map(activeContext.expandIri)
           .map(graph.nodes.upsert(_))
           .map(Task(_))
-          .getOrElse(Task.raiseError(UnexpectedJsonException("unknown IriType, expected IRI/URL")))
+          .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown IriType, expected IRI/URL ${json}")))
       case _ =>
         Task.raiseError(UnexpectedJsonException(s"unknown DataType ${label.iri}"))
     }
@@ -498,42 +530,44 @@ trait Decoder[Json] {
     if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@class`))) {
       activeContext.extractId(expandedJson) match {
         case Some(iri) =>
-          graph.ns.ontologies.get(iri).map(Task.now).getOrElse {
-            Ontology.getOrConstructing(iri)(Task.evalOnce {
-              val iris          = activeContext.extractIds(expandedJson)
-              val labels        = activeContext.extractLabels(expandedJson)
-              val comments      = activeContext.extractComments(expandedJson)
-              val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubClassOf))
-              val `@properties` = expandedJson.get(types.`@properties`)
+          graph.ns.ontologies.get(iri).flatMap { oO =>
+            oO.map(Task.now).getOrElse {
+              Ontology.ontologies
+                .getOrConstruct(iri)({
+                  val iris          = activeContext.extractIds(expandedJson)
+                  val labels        = activeContext.extractLabels(expandedJson)
+                  val comments      = activeContext.extractComments(expandedJson)
+                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubClassOf))
+                  val `@properties` = expandedJson.get(types.`@properties`)
 
-              Task
-                .gatherUnordered(`@extends`.map(toOntologies).getOrElse(Task.now(List())) :: `@properties`.map(
-                  toProperties).getOrElse(Task.now(List())) :: Nil)
-                .map {
-                  l =>
+                  for {
+                    extended   <- `@extends`.map(toOntologies).getOrElse(Task.now(List()))
+                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
+                  } yield {
                     Ontology._Ontology(iri)(
                       iris.toSet,
                       label = labels,
                       comment = comments,
-                      _extendedClasses = () =>
-                        `@extends`.map(extractRefs)
-                          .getOrElse(List())
-                          .map(Ontology.getConstructed)
-                          .map(_.getOrElse(throw FromJsonException(s"constructed ontology not found")).value),
-                      _properties = () =>
-                        `@properties`.map(extractRefs)
-                          .getOrElse(List())
-                          .map(Property.getConstructed)
-                          .map(_.getOrElse(throw FromJsonException(s"constructed ontology not found")).value)
+                      _extendedClasses = () => extended,
+                      _properties = () => properties
                     )
-                }
-            }.flatten)
+                  }
+                }.map(Coeval.now))
+                .map(_.value())
+            }
           }
         case None =>
           Task.raiseError(FromJsonException("an ontology without @id is not valid"))
       }
     } else Task.raiseError(FromJsonException("ontology is not of type '@class'"))
   }
+
+  def toOntology(iri: String)(implicit activeContext: AC): Task[Ontology] =
+    graph.ns.ontologies
+      .get(iri)
+      .flatMap(_.map(Task.now)
+        .getOrElse(Ontology.ontologies.getOrConstruct(iri)(fetchOntology(iri).map(Coeval.now)).map(_.value())))
+
   def toOntologies(json: Json)(implicit activeContext: AC): Task[List[Ontology]] = {
     jsonToList(json)
       .map(
@@ -543,13 +577,12 @@ trait Decoder[Json] {
               .map(toOntology)
               .orElse((json: Option[String])
                 .map(activeContext.expandIri)
-                .map(iri => graph.ns.ontologies.get(iri).map(Task.now).getOrElse(fetchOntology(iri))))
+                .map(toOntology))
               .getOrElse(Task.raiseError(FromJsonException("nested arrays not allowed")))))
       .map(Task.gather(_))
       .orElse((json: Option[String])
         .map(activeContext.expandIri)
-        .map(iri =>
-          graph.ns.ontologies.get(iri).map(Task.now(_).map(List(_))).getOrElse(fetchOntology(iri).map(List(_)))))
+        .map(toOntology(_).map(List(_))))
       .getOrElse(Task.raiseError(FromJsonException("ontology should be a string or object")))
   }
 
@@ -558,47 +591,45 @@ trait Decoder[Json] {
     if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@property`))) {
       activeContext.extractId(expandedJson) match {
         case Some(iri) =>
-          graph.ns.properties.get(iri).map(Task.now).getOrElse {
-            Property.getOrConstructing(iri)(Task.evalOnce {
-              val iris          = activeContext.extractIds(expandedJson)
-              val labels        = activeContext.extractLabels(expandedJson)
-              val comments      = activeContext.extractComments(expandedJson)
-              val `@range`      = expandedJson.get(types.`@range`).orElse(expandedJson.get(types.schemaRange))
-              val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubPropertyOf))
-              val `@properties` = expandedJson.get(types.`@properties`)
+          graph.ns.properties
+            .get(iri)
+            .flatMap(_.map(Task.now).getOrElse {
+              Property.properties
+                .getOrConstruct(iri)({
+                  val iris          = activeContext.extractIds(expandedJson)
+                  val labels        = activeContext.extractLabels(expandedJson)
+                  val comments      = activeContext.extractComments(expandedJson)
+                  val `@range`      = expandedJson.get(types.`@range`).orElse(expandedJson.get(types.schemaRange))
+                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubPropertyOf))
+                  val `@properties` = expandedJson.get(types.`@properties`)
 
-              Task
-                .gatherUnordered(
-                  `@range`.map(toOntologies).getOrElse(Task.now(List())) ::
-                    `@extends`.map(toOntologies).getOrElse(Task.now(List())) ::
-                    `@properties`.map(toProperties).getOrElse(Task.now(List())) :: Nil)
-                .map {
-                  l =>
+                  for {
+                    range      <- `@range`.map(toOntologies).getOrElse(Task.now(List()))
+                    extended   <- `@extends`.map(toProperties).getOrElse(Task.now(List()))
+                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
+                  } yield {
                     Property._Property(iri)(
                       iris.toSet,
                       label = labels,
                       comment = comments,
-                      _extendedClasses = () =>
-                        `@extends`.map(extractRefs)
-                          .getOrElse(List())
-                          .map(Property.getConstructed)
-                          .map(_.getOrElse(throw FromJsonException(s"constructed property not found")).value),
-                      _properties = () =>
-                        `@properties`.map(extractRefs)
-                          .getOrElse(List())
-                          .map(Property.getConstructed)
-                          .map(_.getOrElse(throw FromJsonException(s"constructed property not found")).value)
+                      _range = () => range,
+                      _extendedClasses = () => extended,
+                      _properties = () => properties
                     )
-                }
-            }.flatten)
-          }
+                  }
+                }.map(Coeval.now))
+                .map(_.value())
+            })
         case None =>
           Task.raiseError(FromJsonException("a property without @id is not valid"))
       }
     } else Task.raiseError(FromJsonException("property is not of type '@class'"))
   }
   def toProperty(iri: String)(implicit activeContext: AC): Task[Property] =
-    graph.ns.properties.get(iri).map(Task.now).getOrElse(Property.getConstructing(iri).getOrElse(fetchProperty(iri)))
+    graph.ns.properties
+      .get(iri)
+      .flatMap(_.map(Task.now)
+        .getOrElse(Property.properties.getOrConstruct(iri)(fetchProperty(iri).map(Coeval.now)).map(_.value())))
 
   def toProperties(json: Json)(implicit activeContext: AC): Task[List[Property]] =
     jsonToList(json)
@@ -609,13 +640,12 @@ trait Decoder[Json] {
               .map(toProperty)
               .orElse((json: Option[String])
                 .map(activeContext.expandIri)
-                .map(iri => graph.ns.properties.get(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                .map(toProperty))
               .getOrElse(Task.raiseError(FromJsonException("nested arrays not allowed")))))
       .map(Task.gather(_))
       .orElse((json: Option[String])
         .map(activeContext.expandIri)
-        .map(iri =>
-          graph.ns.properties.get(iri).map(Task.now(_).map(List(_))).getOrElse(fetchProperty(iri).map(List(_)))))
+        .map(toProperty(_).map(List(_))))
       .getOrElse(Task.raiseError(FromJsonException("property should be a string or object")))
 
   def toListType(expandedJson: Map[String, Json])(implicit activeContext: AC): Task[ListType[Any]] = {
@@ -711,55 +741,60 @@ trait Decoder[Json] {
 
   def toDatatype(obj: Map[String, Json])(implicit activeContext: AC): Task[DataType[Any]] = {
     val expandedJson = activeContext.expandKeys(obj)
-    if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@datatype`))) {
+    if (expandedJson.get(types.`@type`).exists(json => json.string.exists(_ == types.`@datatype`))) {
       activeContext.extractId(expandedJson) match {
         case Some(iri) =>
-          graph.ns.datatypes.get(iri).orElse(collectionIri(iri)).map(Task.now).getOrElse {
-            DataType.getOrConstructing(iri)(Task.evalOnce {
-              val iris     = activeContext.extractIds(expandedJson)
-              val labels   = activeContext.extractLabels(expandedJson)
-              val comments = activeContext.extractComments(expandedJson)
-              val `@extends` = expandedJson
-                .get(types.`@extends`)
-                .orElse(expandedJson.get(types.rdfsSubClassOf))
-                .map(extractRefs)
-                .getOrElse(List())
-              if (`@extends`.lengthCompare(1) == 1)
-                Task.raiseError(FromJsonException("datatype cannot extend multiple datatypes"))
-              else if (`@extends`.isEmpty) {
-                if (iri.startsWith("@"))
-                  graph.ns.datatypes
-                    .get(iri)
-                    .orElse(collectionIri(iri))
-                    .map(Task.now)
-                    .getOrElse(Task.raiseError(FromJsonException("not a collection-iri")))
-                else Task.raiseError(FromJsonException("datatype should start with '@'"))
-              } else
-                `@extends`.head match {
-                  case types.`@list` =>
-                    toListType(expandedJson)
-                  case types.`@set` =>
-                    toSetType(expandedJson)
-                  case types.`@listset` =>
-                    toListSetType(expandedJson)
-                  case types.`@vector` =>
-                    toVectorType(expandedJson)
-                  case types.`@map` =>
-                    toMapType(expandedJson)
-                  case types.`@tuple2` =>
-                    toTuple2Type(expandedJson)
-                  case types.`@tuple3` =>
-                    toTuple3Type(expandedJson)
-                  case types.`@tuple4` =>
-                    toTuple4Type(expandedJson)
-                  case otherType =>
-                    graph.ns.datatypes
-                      .get(otherType)
-                      .map(Task.now)
-                      .getOrElse(Task.raiseError(FromJsonException("toDatatype error")))
-                }
-            }.flatten)
-          }
+          graph.ns.datatypes
+            .get(iri)
+            .map(_.orElse(collectionIri(iri)))
+            .flatMap(_.map(Task.now).getOrElse {
+              DataType.datatypes
+                .getOrConstruct(iri)({
+                  val iris     = activeContext.extractIds(expandedJson)
+                  val labels   = activeContext.extractLabels(expandedJson)
+                  val comments = activeContext.extractComments(expandedJson)
+                  val `@extends` = expandedJson
+                    .get(types.`@extends`)
+                    .orElse(expandedJson.get(types.rdfsSubClassOf))
+                    .map(extractRefs)
+                    .getOrElse(List())
+                  if (`@extends`.lengthCompare(1) == 1)
+                    Task.raiseError(FromJsonException("datatype cannot extend multiple datatypes"))
+                  else if (`@extends`.isEmpty) {
+                    if (iri.startsWith("@"))
+                      graph.ns.datatypes
+                        .get(iri)
+                        .flatMap(_.orElse(collectionIri(iri))
+                          .map(Task.now)
+                          .getOrElse(Task.raiseError(FromJsonException("not a collection-iri"))))
+                        .map(Coeval.now)
+                    else Task.raiseError(FromJsonException("datatype should start with '@'"))
+                  } else
+                    (`@extends`.head match {
+                      case types.`@list` =>
+                        toListType(expandedJson)
+                      case types.`@set` =>
+                        toSetType(expandedJson)
+                      case types.`@listset` =>
+                        toListSetType(expandedJson)
+                      case types.`@vector` =>
+                        toVectorType(expandedJson)
+                      case types.`@map` =>
+                        toMapType(expandedJson)
+                      case types.`@tuple2` =>
+                        toTuple2Type(expandedJson)
+                      case types.`@tuple3` =>
+                        toTuple3Type(expandedJson)
+                      case types.`@tuple4` =>
+                        toTuple4Type(expandedJson)
+                      case otherType =>
+                        graph.ns.datatypes
+                          .get(otherType)
+                          .flatMap(_.map(Task.now).getOrElse(Task.raiseError(FromJsonException("toDatatype error"))))
+                    }).map(Coeval.now)
+                })
+                .map(_.value())
+            })
         case None =>
           Task.raiseError(FromJsonException("an datatype without @id is not valid"))
       }
@@ -767,51 +802,56 @@ trait Decoder[Json] {
   }
 
   private def collectionIri(iri: String)(implicit activeContext: AC): Option[DataType[_]] = {
-    def iriToCollectionType(iri: String, tail: String): (StructuredType[Any], String) = iri match {
-      case types.`@list` =>
-        val (list, newTail) = getIris(tail, 1)
-        ListType(list.head) -> newTail
-      case types.`@listset` =>
-        val (list, newTail) = getIris(tail, 1)
-        ListSetType(list.head) -> newTail
-      case types.`@set` =>
-        val (list, newTail) = getIris(tail, 1)
-        ListType(list.head) -> newTail
-      case types.`@vector` =>
-        val (list, newTail) = getIris(tail, 1)
-        ListType(list.head) -> newTail
-      case types.`@map` =>
-        val (list, newTail) = getIris(tail, 2)
-        MapType(list.head, list(1)) -> newTail
-      case types.`@tuple2` =>
-        val (list, newTail) = getIris(tail, 2)
-        Tuple2Type(list.head, list(1)) -> newTail
-      case types.`@tuple3` =>
-        val (list, newTail) = getIris(tail, 3)
-        Tuple3Type(list.head, list(1), list(2)) -> newTail
-      case types.`@tuple4` =>
-        val (list, newTail) = getIris(tail, 4)
-        Tuple4Type(list.head, list(1), list(2), list(3)) -> newTail
-      //TODO: catch others
+    def iriToCollectionType(iri: String, tail: String): (ClassType[Any], String) = {
+      iri match {
+        case types.`@list` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListType(list.head) -> newTail
+        case types.`@listset` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListSetType(list.head) -> newTail
+        case types.`@set` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListType(list.head) -> newTail
+        case types.`@vector` =>
+          val (list, newTail) = getIris(tail, 1)
+          ListType(list.head) -> newTail
+        case types.`@map` =>
+          val (list, newTail) = getIris(tail, 2)
+          MapType(list.head, list(1)) -> newTail
+        case types.`@tuple2` =>
+          val (list, newTail) = getIris(tail, 2)
+          Tuple2Type(list.head, list(1)) -> newTail
+        case types.`@tuple3` =>
+          val (list, newTail) = getIris(tail, 3)
+          Tuple3Type(list.head, list(1), list(2)) -> newTail
+        case types.`@tuple4` =>
+          val (list, newTail) = getIris(tail, 4)
+          Tuple4Type(list.head, list(1), list(2), list(3)) -> newTail
+        case _ =>
+          graph.ns.classtypes.cached(iri).getOrElse(throw FromJsonException(s"cannot decode or find $iri")) -> tail
+        //TODO: catch others
+      }
     }
     def getIris(tail: String, parts: Int = 1): (List[List[ClassType[Any]]], String) = {
       val indexClosingParenthesis = tail.indexOf(')')
       val indexOpeningParenthesis = tail.indexOf('(')
-      if (indexClosingParenthesis < indexOpeningParenthesis) {
+      if (indexClosingParenthesis < indexOpeningParenthesis || indexOpeningParenthesis == -1) {
         val (tailClasstypes, tailIri) =
           if (parts > 1) getIris(tail.drop(indexClosingParenthesis + 1), parts - 1)
-          else List[List[ClassType[_]]]() -> tail //get other parts
+          else List[List[ClassType[_]]]() -> "" //get other parts
         (tail
           .take(indexClosingParenthesis)
           .split('+')
           .toList
+          .map(activeContext.expandIri)
           .map(iriToClassType(_).getOrElse(throw FromJsonException("unknown @type"))) :: tailClasstypes) -> tailIri //concat
       } else {
-
         tail
-          .take(indexOpeningParenthesis)
+          .take(indexClosingParenthesis)
           .split('+')
-          .toList match { //split types until nested type @int+@double+@list/(
+          .toList
+          .map(activeContext.expandIri) match { //split types until nested type @int+@double+@list/(
           case head :: Nil =>
             val (tpe, newTail) = iriToCollectionType(head.stripSuffix("/"), tail.drop(indexOpeningParenthesis + 1))
             val (tailTpes, newTail2) =
@@ -830,7 +870,8 @@ trait Decoder[Json] {
         }
       }
     }
-    iri.replaceAll("/", "").split("(", 2).toList match {
+
+    iri.replaceAll("\\/", "").split("\\(", 2).toList match {
       case List(iri, tail) =>
         Some(iri match {
           case types.`@list`    => iriToCollectionType(iri, tail)._1
@@ -841,15 +882,13 @@ trait Decoder[Json] {
           case types.`@tuple2`  => iriToCollectionType(iri, tail)._1
           case types.`@tuple3`  => iriToCollectionType(iri, tail)._1
           case types.`@tuple4`  => iriToCollectionType(iri, tail)._1
-        })
+        }).asInstanceOf[Option[DataType[Any]]]
     }
   }
 
-  def iriToClassType(iri: String)(implicit activeContext: AC): Option[ClassType[Any]] =
-    graph.ns.ontologies
-      .get(iri)
-      .orElse(graph.ns.properties.get(iri))
-      .orElse(graph.ns.datatypes.get(iri))
+  def iriToClassType(iri: String)(implicit activeContext: AC): Option[ClassType[Any]] = //TODO: .get (Task) instead of .cached
+    graph.ns.classtypes
+      .cached(iri)
       .orElse(collectionIri(iri))
 
   def toClasstype(obj: Map[String, Json])(implicit activeContext: AC): Task[ClassType[Any]] = {
@@ -873,23 +912,26 @@ trait Decoder[Json] {
             jsonToMap(json)
               .map(toClasstype)
               .orElse(
-                (json: Option[String])
+                json.string
                   .map(activeContext.expandIri)
                   .map(
                     iri =>
-                      graph.ns.ontologies
-                        .get(iri)
-                        .orElse(graph.ns.properties.get(iri))
-                        .orElse(graph.ns.datatypes.get(iri))
-                        .orElse(collectionIri(iri))
-                        .map(Task.now)
-                        .getOrElse(fetchProperty(iri))))
+                      graph.ns.classtypes.get(iri)
+                        flatMap (_.map(Task.now).getOrElse(
+                          collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                  ))
               .getOrElse(Task.raiseError(FromJsonException("nested arrays not allowed")))))
       .map(Task.gather(_))
-      .orElse((json: Option[String])
-        .map(activeContext.expandIri)
-        .map(iri =>
-          graph.ns.properties.get(iri).map(Task.now(_).map(List(_))).getOrElse(fetchProperty(iri).map(List(_)))))
+      .orElse(
+        (json: Option[String])
+          .map(activeContext.expandIri)
+          .map(
+            iri =>
+              graph.ns.classtypes.get(iri)
+                flatMap (_.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+          )
+          .map(List(_))
+          .map(Task.gather(_)))
       .getOrElse(Task.raiseError(FromJsonException("property should be a string or object")))
   }
 
@@ -981,7 +1023,7 @@ trait Decoder[Json] {
         json =>
           jsonToMap(json)
             .map(toDatatype(_).map(Option(_)))
-            .orElse((json: Option[String]).map(graph.ns.datatypes.get(_)).map(Task.now)))
+            .orElse((json: Option[String]).map(graph.ns.datatypes.get(_))))
       .getOrElse(Task.now(None))
 
   def extractType(obj: Map[String, Json])(implicit activeContext: AC): Task[List[ClassType[Any]]] = {
@@ -990,46 +1032,36 @@ trait Decoder[Json] {
       case Some(json) =>
         jsonToList(json) match {
           case Some(array) =>
-            Task.gather(
-              array.map(
-                json =>
-                  jsonToMap(json)
-                    .map { obj =>
-                      val expandedJson = activeContext.expandKeys(obj)
-                      if (expandedJson.size == 1)
-                        activeContext
-                          .extractId(expandedJson)
-                          .map { iri =>
-                            graph.ns.datatypes
-                              .get(iri)
-                              .orElse(graph.ns.ontologies.get(iri))
-                              .orElse(graph.ns.properties.get(iri))
-                              .map(Task.evalOnce(_))
-                              .getOrElse(fetchClassType(iri))
-                          }
-                          .getOrElse(throw FromJsonException("@type object without @id"))
-                      else toClasstype(obj)
-                    }
-                    .orElse((json: Option[String]).map(activeContext.expandIri).map { iri =>
-                      graph.ns.datatypes
-                        .get(iri)
-                        .orElse(graph.ns.ontologies.get(iri))
-                        .orElse(graph.ns.properties.get(iri))
-                        .map(Task.evalOnce(_))
-                        .getOrElse(fetchClassType(iri))
-                    })
-                    .getOrElse(Task.raiseError(FromJsonException("nested types not allowed")))))
+            Task.gather(array.map(json =>
+              jsonToMap(json)
+                .map { obj =>
+                  val expandedJson = activeContext.expandKeys(obj)
+                  if (expandedJson.size == 1)
+                    activeContext
+                      .extractId(expandedJson)
+                      .map { iri =>
+                        graph.ns.classtypes
+                          .get(iri)
+                          .flatMap(
+                            _.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                      }
+                      .getOrElse(throw FromJsonException("@type object without @id"))
+                  else toClasstype(obj)
+                }
+                .orElse((json: Option[String]).map(activeContext.expandIri).map { iri =>
+                  graph.ns.classtypes
+                    .get(iri)
+                    .flatMap(_.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                })
+                .getOrElse(Task.raiseError(FromJsonException("nested types not allowed")))))
           case None =>
             (json: Option[String])
               .map(activeContext.expandIri)
               .map(
                 iri =>
-                  graph.ns.datatypes
+                  graph.ns.classtypes
                     .get(iri)
-                    .orElse(graph.ns.ontologies.get(iri))
-                    .orElse(graph.ns.properties.get(iri))
-                    .map(Task.evalOnce(_))
-                    .getOrElse(fetchClassType(iri)))
+                    .flatMap(_.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri)))))
               .getOrElse(Task.raiseError(FromJsonException("nested types not allowed")))
               .map(List(_))
         }
@@ -1066,46 +1098,46 @@ trait Decoder[Json] {
       .map { values =>
         values.foldLeft(Task.now(activeContext)) {
           case (activeContext, json) =>
-            (json: Option[String])
-              .map(iri => throw FromJsonException("remote context not yet implemented"))
+            json.string
+              .filter(_.nonEmpty)
+              .map(iri => throw FromJsonException(s"remote context not yet implemented $iri"))
               .orElse {
-                jsonToMap(json).map(_.toList.foldLeft(activeContext) {
+                json.obj.map(_.toList.foldLeft(activeContext) {
                   case (activeContextTask, (key, json)) =>
                     activeContextTask.flatMap {
                       activeContext =>
                         activeContext.expandIri(key) match {
                           case types.`@base` =>
-                            (json: Option[String])
+                            json.string
                               .map(iri => activeContext.expandIri(iri))
                               .map(base => activeContext.copy(`@base` = Some(base)))
                               .map(Task.now)
                               .getOrElse(Task.raiseError(FromJsonException(s"@base is not a string")))
                           case types.`@vocab` =>
-                            (json: Option[String])
+                            json.string
                               .map(iri => activeContext.expandIri(iri))
                               .map(vocab => activeContext.copy(`@vocab` = Some(vocab)))
                               .map(Task.now)
                               .getOrElse(Task.raiseError(FromJsonException(s"@vocab is not a string")))
                           case types.`@language` | types.xsdLanguage =>
-                            (json: Option[String])
+                            json.string
                               .map(iri => activeContext.expandIri(iri))
                               .map(language => activeContext.copy(`@language` = Some(language)))
                               .map(Task.now)
                               .getOrElse(Task.raiseError(FromJsonException(s"@language is not a string")))
                           case expKey =>
-                            (json: Option[String])
+                            json.string
                               .map(activeContext.expandIri(_))
                               .map(value => activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> value)))
                               .map(Task.now)
                               .orElse {
-                                jsonToMap(json)
+                                json.obj
                                   .map { value =>
                                     graph.ns.properties
                                       .get(expKey)
-                                      .map(Task.now)
-                                      .getOrElse {
+                                      .flatMap(_.map(Task.now).getOrElse {
                                         fetchProperty(expKey)(activeContext)
-                                      }
+                                      })
                                       .flatMap { property =>
                                         val newactiveContext = activeContext.copy(
                                           properties = activeContext.properties + (property -> getNewActiveProperty))
@@ -1119,7 +1151,9 @@ trait Decoder[Json] {
                     }
                 })
               }
-              .get
+              .getOrElse {
+                activeContext
+              }
         }
       }
       .getOrElse(Task.now(activeContext))
@@ -1137,10 +1171,10 @@ trait Decoder[Json] {
             .map { expKey =>
               graph.ns.classtypes
                 .get(expKey)
-                .map(Task.now)
-                .getOrElse {
-                  fetchClassType(expKey)(activeContext)
-                }
+                .flatMap(_.map(Task.now)
+                  .getOrElse {
+                    fetchClassType(expKey)(activeContext)
+                  })
                 .map { ct =>
                   activeContext.copy(properties =
                     activeContext.properties + (property -> pMod.copy(`@type` = ct :: Nil)))

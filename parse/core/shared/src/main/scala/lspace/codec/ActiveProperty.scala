@@ -15,9 +15,9 @@ import lspace.librarian.structure.{ClassType, Property}
 //           `@container`: List[`@container`] = `@container`): ActiveProperty[Json]
 //}
 
-case class ActiveProperty[Json](`@context`: ActiveContext[Json] = ActiveContext[Json](),
-                                `@type`: List[ClassType[_]] = Nil,
-                                `@container`: List[`@container`] = Nil) {
+case class ActiveProperty(`@context`: ActiveContext = ActiveContext(),
+                          `@type`: List[ClassType[_]] = Nil,
+                          `@container`: List[`@container`] = Nil) {
 //  override def copy(`@context`: ActiveContext[Json],
 //                    `@type`: List[ClassType[_]],
 //                    `@container`: List[`@container`]): ActiveProperty[Json] =

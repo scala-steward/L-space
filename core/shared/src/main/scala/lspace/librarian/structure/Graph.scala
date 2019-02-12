@@ -57,7 +57,7 @@ object Graph {
     }
 }
 
-trait Graph extends IriResource {
+trait Graph extends IriResource with GraphUtils {
   trait _Resource[+T]        extends structure.Resource[T]
   abstract class _Node       extends _Resource[structure.Node] with structure.Node
   abstract class _Edge[S, E] extends _Resource[structure.Edge[S, E]] with structure.Edge[S, E]
@@ -324,7 +324,7 @@ trait Graph extends IriResource {
 //        println("added iri")
         node
       } else if (nodes.size > 1) {
-        GraphUtils.mergeNodes(nodes.toSet).runAsyncAndForget(monix.execution.Scheduler.global)
+        mergeNodes(nodes.toSet).runAsyncAndForget(monix.execution.Scheduler.global)
         nodes.minBy(_.id)
       } else {
 //        println(s"found existing $iri")
@@ -452,9 +452,9 @@ trait Graph extends IriResource {
       case (v1, v2, v3, v4) => (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
       case (v1, v2, v3, v4, v5) =>
         (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
-      case v: Ontology    => nodes.upsert(ns.ontologies.store(v))
-      case v: Property    => nodes.upsert(ns.properties.store(v))
-      case v: DataType[_] => nodes.upsert(ns.datatypes.store(v))
+      case v: Ontology    => nodes.upsert(v.iri, Ontology.ontology) //ns.ontologies.store(v))
+      case v: Property    => nodes.upsert(v.iri, Property.ontology) //(ns.properties.store(v))
+      case v: DataType[_] => nodes.upsert(v.iri, DataType.ontology) //ns.datatypes.store(v))
       case v: Node        => nodes.upsert(v)
       case v: Edge[_, _]  => edges.upsert(v)
       case v: Value[_]    => values.upsert(v)
@@ -484,7 +484,7 @@ trait Graph extends IriResource {
       val _value: Value[V] = if (values.isEmpty) {
         create(value)
       } else if (values.size > 1) {
-        Task(GraphUtils.mergeValues(values.toSet)).runAsyncAndForget(monix.execution.Scheduler.global)
+        mergeValues(values.toSet).runAsyncAndForget(monix.execution.Scheduler.global)
         values.minBy(_.id)
       } else values.head
       _value
@@ -571,7 +571,9 @@ trait Graph extends IriResource {
   protected def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E]
   protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any]
   protected def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
-    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+//    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+    if (Property.properties.default.byIri.get(key.iri).isEmpty)
+      ns.properties.store(key).runToFuture(monix.execution.Scheduler.global)
 
     val _from = resources
       .hasId(from)
@@ -591,7 +593,9 @@ trait Graph extends IriResource {
     edge
   }
   protected def createEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] = {
-    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+//    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+    if (Property.properties.default.byIri.get(key.iri).isEmpty)
+      ns.properties.store(key).runToFuture(monix.execution.Scheduler.global)
 
     val edge = newEdge(id, from, key, to)
     storeEdge(edge.asInstanceOf[GEdge[_, _]])
@@ -602,7 +606,8 @@ trait Graph extends IriResource {
 
   protected def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T]
   protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
-    if (ns.datatypes.get(dt.iri).isEmpty) ns.datatypes.store(dt)
+//    if (ns.datatypes.get(dt.iri).isEmpty) ns.datatypes.store(dt)
+//    ns.datatypes.store(dt).runToFuture(monix.execution.Scheduler.global)
     val _value = newValue(id, value, dt)
     storeValue(_value.asInstanceOf[GValue[_]])
     _value
@@ -648,8 +653,8 @@ trait Graph extends IriResource {
       addMeta(edge, edges.create[Any, Any](target, edge.key, edge.to))
     }
 
-  def add(graph: Graph): Unit = ++(graph)
-  def ++(graph: Graph): Unit = {
+  def add: Graph => Graph = (graph: Graph) => ++(graph)
+  val ++ : Graph => Graph = (graph: Graph) => {
     if (graph != this) {
       val oldIdNewNodeMap = graph
         .nodes()
@@ -690,7 +695,8 @@ trait Graph extends IriResource {
               }
             ))
         }
-    }
+      this
+    } else this
   }
 
   def g: Traversal[DataType[Graph], DataType[Graph], HNil] = g()

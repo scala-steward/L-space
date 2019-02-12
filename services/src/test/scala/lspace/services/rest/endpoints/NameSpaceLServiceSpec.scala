@@ -9,7 +9,9 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 class NameSpaceLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
-  implicit val encoder  = lspace.codec.argonaut.Encoder
+  implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
+  implicit val encoder  = lspace.codec.Encoder(nencoder)
+  implicit val ndecoder = lspace.codec.argonaut.NativeTypeDecoder
   lazy val nsService    = NameSpaceService(graph)
 
   P.predicates.map(_.ontology).foreach(graph.ns.ontologies.store)

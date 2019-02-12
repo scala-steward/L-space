@@ -6,26 +6,31 @@ import io.finch._
 import lspace.librarian.process.traversal.Traversal
 import lspace.librarian.structure._
 import lspace.librarian.structure.Property.default._
-import lspace.codec.argonaut.{Decoder, Encoder}
 import monix.eval.Task
 import shapeless.{:+:, CNil, HList, Poly1}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string._
 import eu.timepit.refined.numeric._
 import io.finch.refined._
+import lspace.codec.{Decoder, NativeTypeDecoder}
 import lspace.decode.{DecodeJson, DecodeJsonLD}
+import lspace.librarian.provider.detached.DetachedGraph
 
 case class PagedResult(result: List[Node])
 
-object LabeledNodeApi {
-  def apply(ontology: Ontology)(implicit graph: Lspace): LabeledNodeApi = new LabeledNodeApi(ontology)(graph)
-}
+//object LabeledNodeApi {
+//  def apply(ontology: Ontology)(implicit graph: Lspace, baseDecoder: NativeTypeDecoder): LabeledNodeApi =
+//    new LabeledNodeApi(ontology)
+//}
 
-class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api {
-  implicit val encoder = Encoder //todo Encode context per client-session
-  implicit val decoder
-    : lspace.codec.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.Decoder[Any]] //todo Decode context per client-session
+case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val baseDecoder: NativeTypeDecoder)
+    extends Api {
+//  implicit val encoder = Encoder //todo Encode context per client-session
+//  implicit val decoder
+//    : lspace.codec.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.Decoder[Any]] //todo Decode context per client-session
 
+  type Json = baseDecoder.Json
+  implicit val bd: NativeTypeDecoder.Aux[Json] = baseDecoder.asInstanceOf[NativeTypeDecoder.Aux[Json]]
   //  import monix.eval.Task.catsEffect
   //  import monix.execution.Scheduler.global
 
@@ -85,6 +90,7 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
 
   val create: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
+    implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
       Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
     }
@@ -108,6 +114,7 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
 
   val replaceById: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
+    implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
       Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
     }
@@ -138,6 +145,7 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
 
   val updateById: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
+    implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
       Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
     }
@@ -186,6 +194,7 @@ class LabeledNodeApi(val ontology: Ontology)(implicit graph: Graph) extends Api 
     */
   val getByLibrarian: Endpoint[IO, List[Node]] = {
     import io.finch.internal.HttpContent
+    implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode
       .instance[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD] {
         (b, cs) =>

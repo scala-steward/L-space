@@ -1,25 +1,24 @@
 package lspace.librarian.process.traversal
 
-import lspace.NS
 import java.time._
-
+import lspace.NS
 import lspace.librarian.datatype.DataType
-import lspace.librarian.process.traversal.step.N
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
+import lspace.librarian.provider.mem.MemGraph
 import lspace.librarian.structure._
 import org.scalatest.{Matchers, WordSpec}
 import shapeless._
 
 class TraversalSpec extends WordSpec with Matchers {
-  val g = DetachedGraph.g
+  val graph = MemGraph("TraversalSpec")
+  val g     = graph.g
 
   "A traversal" which {
     "starts empty" in {
       val graphName = "data.example.com/test"
       g.segmentList.flatMap(_.stepsList).size shouldBe 0
       g.toNode.graph shouldBe DetachedGraph
-      g.target shouldBe DetachedGraph
+      g.target shouldBe graph
     }
     "start with a ResourceStep" in {
       g.N.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 2
@@ -70,37 +69,37 @@ class TraversalSpec extends WordSpec with Matchers {
       }
     }
     "start with any step extending TraversalStep" in {
-      DetachedGraph.g.N().in().segmentList.flatMap(_.stepsList).size shouldBe 2
-      DetachedGraph.g.N().out().segmentList.flatMap(_.stepsList).size shouldBe 2
-      DetachedGraph.g.N().out().hasIri("abc").segmentList.flatMap(_.stepsList).size shouldBe 3
+      graph.g.N().in().segmentList.flatMap(_.stepsList).size shouldBe 2
+      graph.g.N().out().segmentList.flatMap(_.stepsList).size shouldBe 2
+      graph.g.N().out().hasIri("abc").segmentList.flatMap(_.stepsList).size shouldBe 3
       val pDouble =
         Property._Property("schema/x")(_range = () => List(DataType.default.`@double`),
                                        containers = List(NS.types.`@list`))
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
-      MemGraphDefault.ns.properties.store(pDouble)
+      graph.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
 
       //      println(Traversal.g("biggraph").V().has(pDouble, 0.5).toString)
       //      println(Traversal.g("biggraph").V().has(pDouble, P.eq(0.5).gt(0.4)).toString)
-      DetachedGraph.g.N().has(pDouble).segmentList.flatMap(_.stepsList).size shouldBe 2
-      val testNode = MemGraphDefault.nodes.create()
+      graph.g.N().has(pDouble).segmentList.flatMap(_.stepsList).size shouldBe 2
+      val testNode = graph.nodes.create()
       List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
       testNode.addOut(pDouble, 0.5)
       testNode.out(pDouble).size shouldBe 5
       //      testNode.property(pDouble, 1, 1.1, 0.5, 3l)
       //      Traversal[VStep, VStep]().has(NumericPropertyKey("", "")(TraversalSpec.DoubleType), 0L).steps.size shouldBe 1
       import P._
-      DetachedGraph.g.N().has(pDouble, P.eqv(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
-      DetachedGraph.g.N().has(pDouble, P.gte(1.0) && P.lt(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
+      graph.g.N().has(pDouble, P.eqv(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
+      graph.g.N().has(pDouble, P.gte(1.0) && P.lt(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
       //      DetachedGraph.g.N().has(pDouble, P.gte(1.0) lt (1.0)).steps.size shouldBe 3
-      DetachedGraph.g
+      graph.g
         .N()
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
         .segmentList
         .flatMap(_.stepsList)
         .last
         .isInstanceOf[step.Has] shouldBe true
-      DetachedGraph.g
+      graph.g
         .N()
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
         .segmentList
@@ -111,7 +110,7 @@ class TraversalSpec extends WordSpec with Matchers {
         .exists {
           case p: p.And => p.predicate.size == 2
         } shouldBe true
-      DetachedGraph.g
+      graph.g
         .N()
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
         .segmentList
@@ -122,7 +121,7 @@ class TraversalSpec extends WordSpec with Matchers {
         .exists {
           case p: p.And => p.predicate.head.assert(1.9)
         } shouldBe true
-      DetachedGraph.g
+      graph.g
         .N()
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
         .segmentList
@@ -133,22 +132,22 @@ class TraversalSpec extends WordSpec with Matchers {
         .exists {
           case p: p.And => p.predicate.last.assert(0.9)
         } shouldBe true
-      MemGraphDefault.g.N().out(pDouble).toList.size shouldBe 5
-      MemGraphDefault.g.N().has(pDouble, P.eqv(1.1)).toList.size shouldBe 1
+      graph.g.N().out(pDouble).toList.size shouldBe 5
+      graph.g.N().has(pDouble, P.eqv(1.1)).toList.size shouldBe 1
 
       val pString                             = Property._Property("aa")(_range = () => List(DataType.default.`@string`))
       val typedPString: TypedProperty[String] = pString + DataType.default.`@string`
-      MemGraphDefault.ns.properties.store(pString)
-      DetachedGraph.g.N().has(pDouble, P.startsWith("a")).segmentList.flatMap(_.stepsList).size shouldBe 2
+      graph.ns.properties.store(pString)
+      graph.g.N().has(pDouble, P.startsWith("a")).segmentList.flatMap(_.stepsList).size shouldBe 2
     }
     "consist of multiple steps" in {
-      val traversal = DetachedGraph.g.N().out().out().in()
+      val traversal = graph.g.N().out().out().in()
       traversal.segmentList.flatMap(_.stepsList).size shouldBe 4
       val pDouble                             = Property._Property("schema/x")(_range = () => List(DataType.default.`@double`))
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
-      val test                                = DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
+      val test                                = graph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
       test.sum
-      DetachedGraph.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
+      graph.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
     "contains labels (as-steps)" can {
       "be selected by valid name" ignore {

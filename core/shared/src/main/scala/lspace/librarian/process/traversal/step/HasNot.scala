@@ -18,7 +18,7 @@ object HasNot
     HasNot(node
              .outE(keys.key)
              .take(1)
-             .map(i => node.graph.ns.properties.get(i.inV.iri).get)
+             .map(i => node.graph.ns.properties.cached(i.inV.iri).get)
              .head,
            node
              .out(keys.predicateUrl)

@@ -2,7 +2,6 @@ package lspace.librarian.datatype
 
 import lspace.NS
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure._
 
 object DoubleType extends DataTypeDef[DoubleType[Double]] {

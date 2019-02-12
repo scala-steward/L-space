@@ -17,7 +17,7 @@ object HasLabel
         .collect {
           case node: Node => node
         }
-        .flatMap(node => node.graph.ns.classtypes.get(node.iri))
+        .flatMap(node => node.graph.ns.classtypes.cached(node.iri))
         .collect {
           case ct if ct == DataType.ontology => DataType.default.`@datatype`
           case ct if ct == Ontology.ontology => DataType.default.`@class`

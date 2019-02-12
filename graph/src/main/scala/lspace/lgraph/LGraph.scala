@@ -33,11 +33,11 @@ object LGraph {
 
       override lazy val init: CancelableFuture[Unit] =
         Task
-          .gatherUnordered(
+          .sequence(
             Seq(
-//              Task.fromFuture(ns.init),
-              Task.fromFuture(index.init),
-              Task.fromFuture(storeManager.init)
+              Task.fromFuture(ns.init),
+              Task.fromFuture(storeManager.init),
+              Task.fromFuture(index.init)
             ))
           .foreachL(f => Task.unit)
           .memoize
@@ -52,10 +52,10 @@ object LGraph {
 
         override lazy val init: CancelableFuture[Unit] =
           Task
-            .gatherUnordered(
+            .sequence(
               Seq(
-                Task.fromFuture(index.init),
-                Task.fromFuture(storeManager.init)
+                Task.fromFuture(storeManager.init),
+                Task.fromFuture(index.init)
               ))
             .foreachL(f => Task.unit)
             .memoize
@@ -67,7 +67,7 @@ object LGraph {
 
           override lazy val init: CancelableFuture[Unit] =
             Task
-              .gatherUnordered(
+              .sequence(
                 Seq(
                   Task.fromFuture(storeManager.init)
                 ))

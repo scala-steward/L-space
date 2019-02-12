@@ -2,6 +2,7 @@ package lspace.librarian.structure
 
 import lspace.librarian.datatype.NodeURLType
 import lspace.librarian.process.traversal.helper.ClassTypeable
+import monix.eval.Task
 
 object Node {
 
@@ -20,8 +21,13 @@ trait Node extends Resource[Node] {
   def labels: List[Ontology]
 
   protected def _addLabel(ontology: Ontology): Unit = {
-    if (!Ontology.allOntologies.byIri.contains(ontology.iri) && graph.ns.ontologies.get(ontology.iri).isEmpty)
-      graph.ns.ontologies.store(ontology)
+    graph.ns.ontologies
+      .get(ontology.iri)
+      .flatMap { ontologyOption =>
+        if (ontologyOption.isEmpty) graph.ns.ontologies.store(ontology)
+        else Task.unit
+      }
+      .runToFuture(monix.execution.Scheduler.global)
   }
   def addLabel(ontology: Ontology): Unit
 

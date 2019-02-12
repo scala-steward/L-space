@@ -13,7 +13,7 @@ import lspace.librarian.structure.PropertyDef
 import lspace.librarian.structure._
 import lspace.types.vector.Geometry
 import lspace.util.types.DefaultsToAny
-import monix.eval.Task
+import monix.eval.{Coeval, Task}
 import monix.reactive.Observable
 import shapeless.{::, <:!<, =:!=, HList, HNil, IsHCons1, LUBConstraint, Poly1, Witness, Id => _, Path => _, Select => _}
 import shapeless.ops.hlist.{Collect, IsHCons, Mapper, Prepend, Reverse, ToList, ToTraversable, Unifier}
@@ -68,7 +68,7 @@ object Traversal
           }
         case step :: steps =>
           step match {
-            case step: HasLabel => findNearestParent(step.label.map(_.iri).flatMap(target.ns.classtypes.get(_)))
+            case step: HasLabel => findNearestParent(step.label.map(_.iri).flatMap(target.ns.classtypes.cached(_)))
             case step: OutMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
             case step: OutEMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
             case step: InMap    => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
@@ -343,7 +343,7 @@ object Traversal
         case label: PropertyDef => label.property
         case label: String =>
           target.ns.properties
-            .get(label)
+            .cached(label)
             .getOrElse(Property(label)) //throw new Exception("unknown key"))
       }
 
@@ -460,9 +460,9 @@ object Traversal
 
     def hasLabel(label0: String,
                  labels0: String*): Traversal[ST[Start], ET[End], Segment[HasLabel :: Steps] :: Segments] = {
-      val labelKeys = (target.ns.classtypes.get(label0) ::
+      val labelKeys = (target.ns.classtypes.cached(label0) ::
         labels0
-        .map(label => target.ns.classtypes.get(label))
+        .map(label => target.ns.classtypes.cached(label))
         .toList).flatten
       add(HasLabel(labelKeys))
     }
@@ -480,7 +480,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -500,7 +500,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -519,7 +519,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -538,7 +538,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -562,7 +562,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -584,7 +584,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -600,7 +600,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -616,7 +616,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -986,7 +986,7 @@ object Traversal
 
     def label(key: String,
               keys: String*): Traversal[ST[Start], IriType[Ontology], Segment[Label :: HNil] :: Segments1] =
-      add(Label((key :: keys.toList).map(key => target.ns.ontologies.get(key).getOrElse(Ontology(key))).toSet),
+      add(Label((key :: keys.toList).map(key => target.ns.ontologies.cached(key).getOrElse(Ontology(key))).toSet),
           st,
           DataType.default.`@class`)
     def label(
@@ -1036,7 +1036,7 @@ object Traversal
               .map(
                 key =>
                   target.ns.properties
-                    .get(key)
+                    .cached(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -1425,7 +1425,20 @@ object Traversal
       lf: StructureCalculator.Aux[Containers, ET, Out, CT]): Option[CT] = {
     val ct =
       lf.convert(f(reverse(flat(traversal.segments))), traversal.et).headOption
-    ct.foreach(MemGraphDefault.ns.classtypes.store)
+    ct.foreach {
+      case ontology: Ontology =>
+        Ontology.ontologies
+          .getOrConstruct(ontology.iri) { Task(Coeval(ontology)) }
+          .runToFuture(monix.execution.Scheduler.global)
+      case property: Property =>
+        Property.properties
+          .getOrConstruct(ontology.iri) { Task(Coeval(property)) }
+          .runToFuture(monix.execution.Scheduler.global)
+      case datatype: DataType[_] =>
+        DataType.datatypes
+          .getOrConstruct(ontology.iri) { Task(Coeval(datatype)) }
+          .runToFuture(monix.execution.Scheduler.global)
+    }
     ct
   }
 

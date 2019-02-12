@@ -11,35 +11,52 @@ import squants.time.Time
 
 import scala.collection.immutable.{ListMap, ListSet}
 
-trait Encoder[Json] {
-  implicit def decoder: lspace.codec.Encoder[Json] = this
-  type J    = Json
-  type AC   = ActiveContext[Json]
-  type AP   = ActiveProperty[Json]
+object Encoder {
+//  type Aux[Out] = Encoder { type Json = Out }
+  def apply[Json0](implicit baseEncoder0: NativeTypeEncoder.Aux[Json0]): Encoder = new Encoder {
+    type Json = Json0
+    implicit val baseEncoder: NativeTypeEncoder.Aux[Json] = baseEncoder0
+  }
+}
+trait Encoder {
+  type Json
+  implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
+
+//  implicit def encoder: lspace.codec.Encoder = this
+  type AC   = ActiveContext
+  type AP   = ActiveProperty
   type JOIP = JsonObjectInProgress[Json]
   type JIP  = JsonInProgress[Json]
-  def getNewActiveContext: AC
-  def getNewActiveProperty: AP
-//  implicit def withJIP(json: Json)(implicit ac: AC): JIP
-//  implicit def withJOIP(json: Map[String, Json])(implicit ac: AC): JOIP
+  def getNewActiveContext: AC  = ActiveContext()
+  def getNewActiveProperty: AP = ActiveProperty()
 
-  implicit def nullToJson: Json
-  implicit def textToJson(text: String): Json
-  implicit def boolToJson(boolean: Boolean): Json
-  implicit def intToJson(int: Int): Json
-  implicit def doubleToJson(double: Double): Json
-  implicit def longToJson(long: Long): Json
-  implicit def geoToJson(geo: Geometry): Json
+  implicit def nullToJson: Json                   = baseEncoder.jNull
+  implicit def textToJson(text: String): Json     = baseEncoder.encode(text)
+  implicit def boolToJson(boolean: Boolean): Json = baseEncoder.encode(boolean)
+  implicit def intToJson(int: Int): Json          = baseEncoder.encode(int)
+  implicit def doubleToJson(double: Double): Json = baseEncoder.encode(double)
+  implicit def longToJson(long: Long): Json       = baseEncoder.encode(long)
+  implicit def geoToJson(geo: Geometry): Json     = baseEncoder.encode(geo)
 
-  implicit def mapToJson(map: Map[String, Json]): Json
-  implicit def listmapToJson(map: ListMap[String, Json]): Json
-  implicit def listToJson(list: List[Json]): Json
-  implicit def tuple2ToJson(tuples: (Json, Json)): Json
-  implicit def tuple3ToJson(tuples: (Json, Json, Json)): Json
-  implicit def tuple4ToJson(tuples: (Json, Json, Json, Json)): Json
-  implicit def tuple2ListToJson(tuples: List[(Json, Json)]): Json
+  implicit def mapToJson(map: Map[String, Json]): Json              = baseEncoder.encode(map)
+  implicit def listmapToJson(map: ListMap[String, Json]): Json      = baseEncoder.encode(map)
+  implicit def listToJson(list: List[Json]): Json                   = baseEncoder.encode(list)
+  implicit def tuple2ToJson(tuples: (Json, Json)): Json             = baseEncoder.encode(tuples)
+  implicit def tuple3ToJson(tuples: (Json, Json, Json)): Json       = baseEncoder.encode(tuples)
+  implicit def tuple4ToJson(tuples: (Json, Json, Json, Json)): Json = baseEncoder.encode(tuples)
+  implicit def tuple2ListToJson(tuples: List[(Json, Json)]): Json   = baseEncoder.encodeTupleList(tuples)
 
-  def apply[T <: Node](node: Node): String
+  def jsonToNoSpacesString(json: Json): String = baseEncoder.jsonToNoSpacesString(json)
+
+  implicit class WithT[T](v: T)(implicit f: T => Json) {
+    def asJson = f(v)
+  }
+
+  implicit class WithEJson(json: Json) {
+    def noSpaces: String = jsonToNoSpacesString(json)
+  }
+
+  def apply[T <: Node](node: Node): String = fromNode(node)(getNewActiveContext).withContext.noSpaces
 
   implicit class WithIriString(iri: String)(implicit activeContext: AC) {
     lazy val compact: String = activeContext.compactIri(iri)
@@ -48,11 +65,11 @@ trait Encoder[Json] {
   def fromNode(node: Node)(implicit activeContext: AC): JOIP = {
     node match {
       case node: Node if node.labels.contains(DataType.ontology) =>
-        fromDataType(DataType.apply(node))
+        fromDataType(DataType.datatypes.cached(node.iri).get) //(DataType.build(node))
       case node: Node if node.labels.contains(Property.ontology) =>
-        fromProperty(Property.apply(node))
+        fromProperty(Property.properties.cached(node.iri).get) //(Property.build(node))
       case node: Node if node.labels.contains(Ontology.ontology) =>
-        fromOntology(Ontology.apply(node))
+        fromOntology(Ontology.ontologies.cached(node.iri).get) //(Ontology.build(node))
       case nodeResource =>
         nodeResource.labels.foldLeft(List[Json]() -> activeContext) {
           case ((iris, activeContext), tpe) =>
@@ -111,7 +128,7 @@ trait Encoder[Json] {
             if (labelO.exists(l => key.range.headOption.contains(l))) false
             else edges.size / edges.size.toDouble > 0.8
           }) {
-        activeContext.copy[Json](
+        activeContext.copy(
           properties = activeContext.properties + activeContext.properties
             .get(key)
             .map(ap => key -> ap)

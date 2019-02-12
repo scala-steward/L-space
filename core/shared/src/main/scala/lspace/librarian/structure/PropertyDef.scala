@@ -25,8 +25,8 @@ abstract class PropertyDef(iri: String,
 
   def classtype = property
 
-  lazy val property: Property =
-    new Property(
+  lazy val property: Property = {
+    val property = new Property(
       iri,
       iris,
       _range = `@range`,
@@ -36,6 +36,9 @@ abstract class PropertyDef(iri: String,
       comment = Map("en" -> comment).filter(_._2.nonEmpty),
       _extendedClasses = `@extends`
     )
+    Property.properties.byIri.getOrElseUpdate(property.iri, property)
+    property
+  }
 
   object keys
   protected def properties: List[Property] = List()

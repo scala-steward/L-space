@@ -20,17 +20,18 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
           "@keyRange",
           "@keyRange",
           "A @keyRange",
-          `@extends` = () => Property.default.`@range` :: Nil
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )
-    lazy val keyRangeClassType: TypedProperty[List[ClassType[_]]] = keyRange + ListType(
-      DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil)
+    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
 //    lazy val keyRangeProperty: TypedProperty[Property]      = keyRange + DataType.default.`@property`
 //    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keyRange + DataType.default.`@datatype`
   }
   override lazy val properties: List[Property] = keys.keyRange :: CollectionType.properties
   trait Properties extends CollectionType.Properties {
-    lazy val keyRange: Property                                   = keys.keyRange
-    lazy val keyRangeClassType: TypedProperty[List[ClassType[_]]] = keys.keyRangeClassType
+    lazy val keyRange: Property                           = keys.keyRange
+    lazy val keyRangeClassType: TypedProperty[List[Node]] = keys.keyRangeClassType
 //    lazy val keyRangeProperty: TypedProperty[Property]      = keys.keyRangeProperty
 //    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keys.keyRangeDatatype
   }
@@ -50,15 +51,15 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
   //    }))
   //  }
 
-  def wrap(node: Node): MapType[Any, Any] = {
-    MapType(
-      node.out(keys.keyRange).collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }.flatten,
-      node
-        .out(CollectionType.keys.valueRange)
-        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-        .flatten
-    )
-  }
+//  def wrap(node: Node): MapType[Any, Any] = {
+//    MapType(
+//      node.out(keys.keyRange).collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }.flatten,
+//      node
+//        .out(CollectionType.keys.valueRange)
+//        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
+//        .flatten
+//    )
+//  }
 
 //  def apply[KT <: ClassType[_],
 //            KTOut,

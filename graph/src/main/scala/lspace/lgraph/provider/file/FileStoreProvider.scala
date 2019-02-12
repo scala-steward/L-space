@@ -1,15 +1,20 @@
 package lspace.lgraph.provider.file
 
+import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
 import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.lgraph.{GraphManager, LGraph}
 
 object FileStoreProvider {
-  def apply(iri: String, path: String): FileStoreProvider = new FileStoreProvider(
-    iri,
-    path
-  )
+  def apply[T](iri: String, path: String)(implicit encoder: NativeTypeEncoder.Aux[T],
+                                          decoder: NativeTypeDecoder.Aux[T]): FileStoreProvider[T] =
+    new FileStoreProvider[T](
+      iri,
+      path
+    )
 }
-class FileStoreProvider(val iri: String, path: String) extends StoreProvider {
+class FileStoreProvider[T](val iri: String, path: String)(implicit encoder: NativeTypeEncoder.Aux[T],
+                                                          decoder: NativeTypeDecoder.Aux[T])
+    extends StoreProvider {
   import FileStoreProvider._
 
   override def stateManager[G <: LGraph](graph: G): GraphManager[G] = FileGraphManager(graph, path + "/graph")

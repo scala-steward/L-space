@@ -2,9 +2,6 @@ package lspace.librarian.process.traversal.step
 
 import lspace.librarian.process.traversal._
 import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.mem.MemGraphDefault
-import lspace.librarian.provider.wrapped.WrappedNode
 import lspace.librarian.structure._
 
 object OutMap extends StepDef("OutMap", "An outMap-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[OutMap] {
@@ -14,7 +11,7 @@ object OutMap extends StepDef("OutMap", "An outMap-step ..", () => MoveStep.onto
       .outE(MoveStep.keys.label)
 //                   .flatMap(_.inV.hasLabel(Property.ontology).map(_.value))
       .map(_.iri)
-      .map(iri => node.graph.ns.properties.get(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
+      .map(iri => node.graph.ns.properties.cached(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
       .toSet
   )
 

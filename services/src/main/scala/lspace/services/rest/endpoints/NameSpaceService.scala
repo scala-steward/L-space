@@ -2,18 +2,32 @@ package lspace.services.rest.endpoints
 
 import argonaut.Json
 import cats.effect.IO
+import com.twitter.finagle.http.Response
 import io.finch._
 import io.finch.Endpoint
-import lspace.librarian.structure.Graph
+import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.librarian.structure.{Graph, Lspace}
 
 import scala.collection.mutable
 
-case class NameSpaceService(graph: Graph) extends Api {
-  implicit val _graph  = graph
-  implicit val encoder = lspace.codec.argonaut.Encoder
-  implicit val decoder: lspace.codec.Decoder[Any] = lspace.codec.argonaut
-    .Decoder(graph)
-    .asInstanceOf[lspace.codec.Decoder[Any]] //todo JsonLD context per client-session
+object NameSpaceService {
+  def apply[Json0](graph0: Graph)(implicit baseDecoder0: NativeTypeDecoder.Aux[Json0],
+                                  baseEncoder0: NativeTypeEncoder.Aux[Json0]): NameSpaceService =
+    new NameSpaceService {
+      val graph: Graph = graph0
+      type Json = Json0
+      implicit override def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
+      implicit override def baseEncoder: NativeTypeEncoder.Aux[Json] = baseEncoder0
+    }
+}
+
+trait NameSpaceService extends Api {
+  def graph: Graph
+  type Json
+  implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
+  implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
+
+  val encoder = Encoder(baseEncoder)
 
   val headersAll = root.map(_.headerMap.toMap)
   val cache      = mutable.HashMap[String, mutable.HashMap[String, String]]()
@@ -23,7 +37,7 @@ case class NameSpaceService(graph: Graph) extends Api {
     * @param uri
     * @return
     */
-  val getResource: Endpoint[IO, String] = get(paths[String]) { (paths: Seq[String]) =>
+  val getResource: Endpoint[IO, String] = get(paths[String]) { (paths: List[String]) =>
     val path = paths.mkString("/")
     cache
       .get(graph.iri + "/" + path)
@@ -38,7 +52,8 @@ case class NameSpaceService(graph: Graph) extends Api {
               .getOrElse(graph.iri + "/" + path, mutable.HashMap[String, String]()) += "application/ld+json" -> json)
             json
           })
-      .map(Ok) //.withHeader("Content-Type", "application/ld+json"))
+      .map(Ok)
+      .map(_.withHeader("Content-Type", "application/ld+json"))
       .getOrElse(io.finch.NotFound(new Exception("unknown path")))
   }
 
@@ -56,7 +71,8 @@ case class NameSpaceService(graph: Graph) extends Api {
               .getOrElse(iri, mutable.HashMap[String, String]()) += "application/ld+json" -> json)
             json
           })
-      .map(Ok) //.withHeader("Content-Type", "application/ld+json"))
+      .map(Ok)
+      .map(_.withHeader("Content-Type", "application/ld+json"))
       .getOrElse(io.finch.NotFound(new Exception("unknown iri")))
   }
 

@@ -9,6 +9,10 @@ import lspace.librarian.structure.OntologyDef
 import lspace.librarian.structure._
 import monix.eval.{Coeval, Task}
 
+import scala.collection.concurrent
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
+
 object DataType
     extends OntologyDef(NS.types.`@datatype`,
                         Set(NS.types.schemaDataType),
@@ -27,30 +31,248 @@ object DataType
     val iri: String = NS.types.`@datatype`
   }
 
-  def apply(node: Node): DataType[_] =
-    node.iri match {
-      case types.`@id` | types.schemaURL            => IriType.datatype
-      case types.`@nodeURL`                         => NodeURLType.datatype
-      case types.`@edgeURL`                         => EdgeURLType.datatype
-      case types.`@valueURL`                        => ValueURLType.datatype
-      case types.`@string` | types.schemaText       => TextType.datatype
-      case types.`@number` | types.schemaNumber     => IntType.datatype
-      case types.`@int` | types.schemaInteger       => IntType.datatype
-      case types.`@double` | types.schemaFloat      => DoubleType.datatype
-      case types.`@long`                            => LongType.datatype
-      case types.`@date` | types.schemaDate         => LocalDateType.datatype
-      case types.`@datetime` | types.schemaDateTime => DateTimeType.datatype
-      case types.`@time` | types.schemaTime         => LocalTimeType.datatype
-      case types.`@temporal`                        => CalendarType.datatype
-      case types.`@duration`                        => DurationType.datatype
-      case types.`@quantity`                        => QuantityType.datatype
-//        case types.`@epoch`                           => EpochType
-      case types.`@boolean` | types.schemaBoolean => BoolType.datatype
-      case types.`@geo`                           => GeometricType.datatype
-      case types.`@color`                         => TextType.datatype
-      case _ =>
-        throw new Exception(s"ontology/property ${node.iri} not known in graph ${node.graph.iri}")
+//  def apply(node: Node): DataType[_] =
+//    node.iri match {
+//      case types.`@id` | types.schemaURL            => IriType.datatype
+//      case types.`@nodeURL`                         => NodeURLType.datatype
+//      case types.`@edgeURL`                         => EdgeURLType.datatype
+//      case types.`@valueURL`                        => ValueURLType.datatype
+//      case types.`@string` | types.schemaText       => TextType.datatype
+//      case types.`@number` | types.schemaNumber     => IntType.datatype
+//      case types.`@int` | types.schemaInteger       => IntType.datatype
+//      case types.`@double` | types.schemaFloat      => DoubleType.datatype
+//      case types.`@long`                            => LongType.datatype
+//      case types.`@date` | types.schemaDate         => LocalDateType.datatype
+//      case types.`@datetime` | types.schemaDateTime => DateTimeType.datatype
+//      case types.`@time` | types.schemaTime         => LocalTimeType.datatype
+//      case types.`@temporal`                        => CalendarType.datatype
+//      case types.`@duration`                        => DurationType.datatype
+//      case types.`@quantity`                        => QuantityType.datatype
+////        case types.`@epoch`                           => EpochType
+//      case types.`@boolean` | types.schemaBoolean => BoolType.datatype
+//      case types.`@geo`                           => GeometricType.datatype
+//      case types.`@color`                         => TextType.datatype
+//      case _ =>
+//        throw new Exception(s"ontology/property ${node.iri} not known in graph ${node.graph.iri}")
+//    }
+
+  def build(node: Node): Task[Coeval[DataType[_]]] = {
+    datatypes.get(node.iri).getOrElse {
+      if (node.hasLabel(ontology).nonEmpty) {
+        Task
+          .gather(node.out(Property.default.`@extends`).collect {
+            case node: Node => datatypes.getOrConstruct(node.iri)(build(node))
+          })
+          .flatMap { extended =>
+            extended.map(_.value()).head match {
+              case dt: CollectionType[_] =>
+                dt match {
+                  case dt: ListType[_] =>
+                    Task
+                      .gather(
+                        node
+                          .out(ListType.keys.valueRangeClassType)
+                          .map(types => Task.gather(types.map(ClassType.build))))
+                      .map { types =>
+                        Coeval(ListType(types.flatten.map(_.value())))
+                      }
+                  case dt: ListSetType[_] =>
+                    Task
+                      .gather(
+                        node
+                          .out(ListSetType.keys.valueRangeClassType)
+                          .map(types => Task.gather(types.map(ClassType.build))))
+                      .map { types =>
+                        Coeval(ListSetType(types.flatten.map(_.value())))
+                      }
+                  case dt: SetType[_] =>
+                    Task
+                      .gather(
+                        node
+                          .out(SetType.keys.valueRangeClassType)
+                          .map(types => Task.gather(types.map(ClassType.build))))
+                      .map { types =>
+                        Coeval(SetType(types.flatten.map(_.value())))
+                      }
+                  case dt: VectorType[_] =>
+                    Task
+                      .gather(
+                        node
+                          .out(VectorType.keys.valueRangeClassType)
+                          .map(types => Task.gather(types.map(ClassType.build))))
+                      .map { types =>
+                        Coeval(VectorType(types.flatten.map(_.value())))
+                      }
+                  case dt: MapType[_, _] =>
+                    for {
+                      keyRange <- Task
+                        .gather(
+                          node
+                            .out(MapType.keys.keyRangeClassType)
+                            .map(types => Task.gather(types.map(ClassType.build))))
+                      valueRange <- Task
+                        .gather(
+                          node
+                            .out(MapType.keys.valueRangeClassType)
+                            .map(types => Task.gather(types.map(ClassType.build))))
+                    } yield {
+                      Coeval(MapType(keyRange.flatten.map(_.value()), keyRange.flatten.map(_.value())))
+                    }
+                  case dt: TupleType[_] =>
+                    dt match {
+                      case dt: Tuple2Type[_, _] =>
+                        for {
+                          a <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._1stRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                          b <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._2ndRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                        } yield {
+                          Coeval(MapType(a.flatten.map(_.value()), b.flatten.map(_.value())))
+                        }
+                      case dt: Tuple3Type[_, _, _] =>
+                        for {
+                          a <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._1stRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                          b <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._2ndRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                          c <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._2ndRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                        } yield {
+                          Coeval(
+                            Tuple3Type(a.flatten.map(_.value()), b.flatten.map(_.value()), c.flatten.map(_.value())))
+                        }
+                      case dt: Tuple4Type[_, _, _, _] =>
+                        for {
+                          a <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._1stRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                          b <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._2ndRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                          c <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._2ndRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                          d <- Task
+                            .gather(
+                              node
+                                .out(TupleType.keys._2ndRangeClassType)
+                                .map(types => Task.gather(types.map(ClassType.build))))
+                        } yield {
+                          Coeval(
+                            Tuple4Type(a.flatten.map(_.value()),
+                                       b.flatten.map(_.value()),
+                                       c.flatten.map(_.value()),
+                                       d.flatten.map(_.value())))
+                        }
+                    }
+                }
+              case _ => Task.raiseError(new Exception(""))
+            }
+          }
+      } else {
+        //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
+        //        .printStackTrace()
+        Task.raiseError(
+          new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
+            s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
+              .map(_.iri)}"))
+      }
     }
+  }
+
+  object datatypes {
+
+    /**
+      * imcomplete...
+      */
+    object default {
+      import DataType.default._
+      val datatypes = List(
+        `@literal`,
+        `@string`,
+        `@number`,
+        `@int`,
+        `@double`,
+        `@long`,
+        `@temporal`,
+        `@date`,
+        `@datetime`,
+        `@localdatetime`,
+        `@time`,
+        `@duration`,
+        `@boolean`,
+        `@geo`,
+        `@geopoint`,
+        `@graph`,
+        `@url`,
+        `@nodeURL`,
+        `@edgeURL`,
+        `@valueURL`
+        //      `@class`,
+        //      `@property`,
+        //      `@datatype`
+      )
+      if (datatypes.size > 99) throw new Exception("extend default-datatype-id range!")
+      val byId    = (0l to datatypes.size - 1 toList).zip(datatypes).toMap
+      val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
+      val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
+    }
+    private val byIri: concurrent.Map[String, DataType[_]] =
+      new ConcurrentHashMap[String, DataType[_]]().asScala
+    private val constructing: concurrent.Map[String, Task[Coeval[DataType[_]]]] =
+      new ConcurrentHashMap[String, Task[Coeval[DataType[_]]]]().asScala
+
+    def get(iri: String): Option[Task[Coeval[DataType[_]]]] =
+      default.byIri
+        .get(iri)
+        .orElse(byIri.get(iri))
+        .map(o => Task.now(Coeval.now(o)))
+        .orElse(constructing.get(iri))
+    def getOrConstruct(iri: String)(constructTask: Task[Coeval[DataType[_]]]): Task[Coeval[DataType[_]]] =
+      default.byIri
+        .get(iri)
+        .map(o => Task.now(Coeval.now(o)))
+        .getOrElse(constructing.getOrElseUpdate(
+          iri,
+          constructTask
+            .map(_.memoize)
+            .map { o =>
+              Task {
+                byIri += o.value().iri -> o.value()
+                constructing.remove(iri)
+              }.delayExecution(FiniteDuration(1, "s"))
+                .runAsyncAndForget(monix.execution.Scheduler.global)
+              o
+            }
+            .memoize
+        ))
+
+    def cached(long: Long): Option[DataType[_]]  = default.byId.get(long)
+    def cached(iri: String): Option[DataType[_]] = default.byIri.get(iri).orElse(byIri.get(iri))
+
+    def remove(iri: String): Unit = byIri.remove(iri)
+  }
 
   implicit def clsDatatype[T]: ClassTypeable.Aux[DataType[T], T, DataType[T]] = new ClassTypeable[DataType[T]] {
     type C  = T
@@ -175,55 +397,19 @@ object DataType
     }
   }
 
-  /**
-    * imcomplete...
-    */
-  object allDataTypes {
-    import default._
-    val datatypes = List(
-      `@literal`,
-      `@string`,
-      `@number`,
-      `@int`,
-      `@double`,
-      `@long`,
-      `@temporal`,
-      `@date`,
-      `@datetime`,
-      `@localdatetime`,
-      `@time`,
-      `@duration`,
-      `@boolean`,
-      `@geo`,
-      `@geopoint`,
-      `@graph`,
-      `@url`,
-      `@nodeURL`,
-      `@edgeURL`,
-      `@valueURL`
-//      `@class`,
-//      `@property`,
-//      `@datatype`
-    )
-    if (datatypes.size > 99) throw new Exception("extend default-datatype-id range!")
-    val byId    = (0l to datatypes.size - 1 toList).zip(datatypes).toMap
-    val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
-    val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
-  }
-
-  import scala.collection.JavaConverters._
-  import scala.collection.concurrent
-  private val constructing: concurrent.Map[String, Task[DataType[_]]] =
-    new ConcurrentHashMap[String, Task[DataType[_]]]().asScala
-  def getOrConstructing(iri: String)(constructTask: Task[DataType[_]]): Task[DataType[_]] =
-    constructing.getOrElseUpdate(iri, constructTask.memoize)
-
-  private val constructed: concurrent.Map[String, Coeval[DataType[_]]] =
-    new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
-  def getOrConstructed(iri: String)(constructTask: Coeval[DataType[_]]): Coeval[DataType[_]] =
-    constructed.getOrElseUpdate(iri, constructTask.memoize)
-  def getConstructed(iri: String): Option[Coeval[DataType[_]]] =
-    constructed.get(iri)
+//  import scala.collection.JavaConverters._
+//  import scala.collection.concurrent
+//  private val constructing: concurrent.Map[String, Task[DataType[_]]] =
+//    new ConcurrentHashMap[String, Task[DataType[_]]]().asScala
+//  def getOrConstructing(iri: String)(constructTask: Task[DataType[_]]): Task[DataType[_]] =
+//    constructing.getOrElseUpdate(iri, constructTask.memoize)
+//
+//  private val constructed: concurrent.Map[String, Coeval[DataType[_]]] =
+//    new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
+//  def getOrConstructed(iri: String)(constructTask: Coeval[DataType[_]]): Coeval[DataType[_]] =
+//    constructed.getOrElseUpdate(iri, constructTask.memoize)
+//  def getConstructed(iri: String): Option[Coeval[DataType[_]]] =
+//    constructed.get(iri)
 }
 
 /**

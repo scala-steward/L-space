@@ -2,7 +2,6 @@ package lspace.librarian.structure
 
 import lspace.librarian.datatype.{DataType, IriType}
 import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.provider.mem.MemGraphDefault
 import lspace.librarian.structure.Property.default
 import lspace.util.CacheStatus
 
@@ -116,7 +115,8 @@ trait Resource[+T] extends IriResource {
     else None
   }
 
-  implicit private def iriToPropertyKey(iri: String): Property = graph.ns.properties.get(iri).getOrElse(Property(iri))
+  implicit private def iriToPropertyKey(iri: String): Property =
+    graph.ns.properties.cached(iri).getOrElse(Property(iri))
   def out(key: String, keys: String*): List[Any] =
     out((key: Property) :: keys.toList.map(key => key: Property): _*)
   def out(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Any] =
@@ -223,7 +223,7 @@ trait Resource[+T] extends IriResource {
   def ---(key: String): PartialOutEdge[T] =
     ---(
       graph.ns.properties
-        .get(key)
+        .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ))
 
   /** Creates a partial edge
@@ -247,16 +247,14 @@ trait Resource[+T] extends IriResource {
                                                                 dt: ClassTypeable.Aux[V, V0, VT0]): Edge[T, V0] =
     addOut[V, V0, VT0](
       graph.ns.properties
-        .get(key)
-        .orElse(MemGraphDefault.ns.properties.get(key))
+        .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
     )
   def addOut[V <: ClassType[_]](key: String, value: V): Edge[T, Node] =
     addOut(
       graph.ns.properties
-        .get(key)
-        .orElse(MemGraphDefault.ns.properties.get(key))
+        .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
     )
@@ -287,8 +285,8 @@ trait Resource[+T] extends IriResource {
 
   def addOut[V <: ClassType[_]](key: Property, value: V): Edge[T, Node] = {
 //    val toResource = graph.ns.classtypes.store(value)
-    val toResource = graph.ns.classtypes.store(value)
-    graph.edges.create(this, key, graph.nodes.upsert(toResource))
+//    val toResource = graph.ns.classtypes.store(value)
+    graph.edges.create(this, key, graph.nodes.upsert(value.iri))
   }
 
   def addOut[V](key: TypedProperty[V], value: V): Edge[T, V] = {
@@ -302,24 +300,21 @@ trait Resource[+T] extends IriResource {
   def <--(key: String): PartialInEdge[T] =
     <--(
       graph.ns.properties
-        .get(key)
-        .orElse(MemGraphDefault.ns.properties.get(key))
+        .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ))
   def <--(key: Property): PartialInEdge[T] = PartialInEdge(this, key)
   def addIn[V, V0, VT0 <: ClassType[_]](key: String, value: V)(implicit ev1: V <:!< ClassType[_],
                                                                dt: ClassTypeable.Aux[V, V0, VT0]): Edge[V0, T] =
     addIn[V, V0, VT0](
       graph.ns.properties
-        .get(key)
-        .orElse(MemGraphDefault.ns.properties.get(key))
+        .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
     )
   def addIn[V <: ClassType[_]](key: String, value: V): Edge[Node, T] =
     addIn(
       graph.ns.properties
-        .get(key)
-        .orElse(MemGraphDefault.ns.properties.get(key))
+        .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
     )
@@ -349,8 +344,8 @@ trait Resource[+T] extends IriResource {
 
   def addIn[V <: ClassType[_]](key: Property, value: V): Edge[Node, T] = {
 //    val fromResource = graph.ns.classtypes.store(value)
-    val fromResource = graph.ns.classtypes.store(value)
-    graph.edges.create(graph.nodes.upsert(fromResource), key, this)
+//    val fromResource = graph.ns.classtypes.store(value)
+    graph.edges.create(graph.nodes.upsert(value.iri), key, this)
   }
 
   def addBoth[V, R[T] <: Resource[T]](key: Property, value: R[V]): (Edge[T, V], Edge[V, T]) = {

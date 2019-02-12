@@ -89,104 +89,94 @@ object SampleGraph {
     * @param graph
     * @return object of places and persons
     */
-  def loadSocial(graph: Graph): Unit = {
+  def loadSocial(graph: Graph) = new {
 
     val places = new {
-      val SanJosédeMaipo = {
+      val SanJosédeMaipo = new {
         val place = graph + ontologies.place
-        place --- Property.default.`@id` --> (graph.iri + "/place/123")
-        place --- "name" --> "San José de Maipo"
-        place --- properties.geo --> Point(72.0403, 60.90879)
-        place
+        val id    = place --- Property.default.`@id` --> (graph.iri + "/place/123")
+        val name  = place --- "name" --> "San José de Maipo"
+        val geo   = place --- properties.geo --> Point(72.0403, 60.90879)
       }
-      val CrystalSprings = {
+      val CrystalSprings = new {
         val place = graph + ontologies.place
         place --- Property.default.`@id` --> (graph.iri + "/place/12345")
-        place --- "name" --> "Crystal Springs"
-        place --- properties.geo --> Point(-48.4046, 175.87173)
-        place
+        val name = place --- "name" --> "Crystal Springs"
+        val geo  = place --- properties.geo --> Point(-48.4046, 175.87173)
       }
-      val Haridwar = {
+      val Haridwar = new {
         val place = graph + ontologies.place
-        place --- Property.default.`@id` --> (graph.iri + "/place/345")
-        place --- "name" --> "Haridwar"
-        place --- properties.geo --> Point(89.45136, 88.01204)
-        place
+        val id    = place --- Property.default.`@id` --> (graph.iri + "/place/345")
+        val name  = place --- "name" --> "Haridwar"
+        val geo   = place --- properties.geo --> Point(89.45136, 88.01204)
       }
-      val Talca = {
+      val Talca = new {
         val place = graph + ontologies.place
-        place --- Property.default.`@id` --> (graph.iri + "/place/34567")
-        place --- "name" --> "Talca"
-        place --- properties.geo --> Point(74.32746, -45.06438)
-        place
+        val id    = place --- Property.default.`@id` --> (graph.iri + "/place/34567")
+        val name  = place --- "name" --> "Talca"
+        val geo   = place --- properties.geo --> Point(74.32746, -45.06438)
       }
     }
 
     val persons = new {
-      val Yoshio = {
-        val person = graph + ontologies.person
-        person --- Property.default.`@id` --> (graph.iri + "/person/123")
-        person --- properties.name --> "Yoshio" //relation can be a string
-        person --- properties.birthDate --> LocalDate.parse("1996-08-18")
-        person --- properties.birthPlace --> places.CrystalSprings
-        person --- properties.balance --> 10.34
-        person --- properties.rate --> 4
-        person
+      val Yoshio = new {
+        val person     = graph + ontologies.person
+        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/123")
+        val name       = person --- properties.name --> "Yoshio" //relation can be a string
+        val birthdate  = person --- properties.birthDate --> LocalDate.parse("1996-08-18")
+        val birthPlace = person --- properties.birthPlace --> places.CrystalSprings.place
+        val balance    = person --- properties.balance --> 10.34
+        val rate       = person --- properties.rate --> 4
       }
-      val Levi = {
-        val person = graph + ontologies.person
-        person --- Property.default.`@id` --> (graph.iri + "/person/12345")
-        person --- "name" --> "Levi" //relation can be a Property-object
-        person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-12-20")
-        person --- namespaces.schema / "birthPlace" --> places.CrystalSprings
-        person --- properties.balance --> -245.05
-        person --- properties.rate --> 2
-        person
+      val Levi = new {
+        val person     = graph + ontologies.person
+        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/12345")
+        val name       = person --- "name" --> "Levi" //relation can be a Property-object
+        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-12-20")
+        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.CrystalSprings.place
+        val balance    = person --- properties.balance --> -245.05
+        val rate       = person --- properties.rate --> 2
       }
-      val Gray = {
-        val person = graph + ontologies.person
-        person --- Property.default.`@id` --> (graph.iri + "/person/345")
-        person --- "name" --> "Gray"
-        person --- namespaces.schema / "birthDate" --> LocalDate.parse("1997-04-10")
-        person --- namespaces.schema / "birthPlace" --> places.Haridwar
-        person --- properties.balance --> 2230.30
-        person --- properties.rate --> 1
-        person
+      val Gray = new {
+        val person     = graph + ontologies.person
+        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/345")
+        val name       = person --- "name" --> "Gray"
+        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("1997-04-10")
+        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.Haridwar.place
+        val balance    = person --- properties.balance --> 2230.30
+        val rate       = person --- properties.rate --> 1
       }
-      val Kevin = {
-        val person = graph + ontologies.person
-        person --- Property.default.`@id` --> (graph.iri + "/person/34567")
-        person --- "name" --> "Kevin"
-        person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-11-30")
-        person --- namespaces.schema / "birthPlace" --> places.SanJosédeMaipo
-        person --- properties.balance --> 500.50
-        person --- properties.rate --> 2
-        person
+      val Kevin = new {
+        val person     = graph + ontologies.person
+        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/34567")
+        val name       = person --- "name" --> "Kevin"
+        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-11-30")
+        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.SanJosédeMaipo.place
+        val balance    = person --- properties.balance --> 500.50
+        val rate       = person --- properties.rate --> 2
       }
-      val Stan = {
-        val person = graph + ontologies.person
-        person --- Property.default.`@id` --> (graph.iri + "/person/567")
-        person --- "name" --> "Stan"
-        person --- namespaces.schema / "birthDate" --> LocalDate.parse("2002-06-13")
-        person --- namespaces.schema / "birthPlace" --> places.SanJosédeMaipo
-        person --- properties.balance --> 300
-        person --- properties.rate --> 4
-        person
+      val Stan = new {
+        val person     = graph + ontologies.person
+        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/567")
+        val name       = person --- "name" --> "Stan"
+        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("2002-06-13")
+        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.SanJosédeMaipo.place
+        val balance    = person --- properties.balance --> 300
+        val rate       = person --- properties.rate --> 4
       }
-      val Garrison = {
-        val person = graph + ontologies.person
-        person --- Property.default.`@id` --> (graph.iri + "/person/56789")
-        person --- "name" --> "Garrison"
-        person --- namespaces.schema / "birthDate" --> LocalDate.parse("1994-06-18")
-        person --- namespaces.schema / "birthPlace" --> places.Talca
-        person
+      val Garrison = new {
+        val person     = graph + ontologies.person
+        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/56789")
+        val name       = person --- "name" --> "Garrison"
+        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("1994-06-18")
+        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.Talca.place
       }
-      Garrison --- properties.knows --- Stan
-      Garrison --- properties.knows --- Kevin
-      Kevin --- properties.knows --- Stan
-      Kevin --- properties.knows --- Gray
-      Gray --- properties.knows --- Levi
-      Levi --- properties.knows --- Yoshio
+      val GarrissonKnownStan  = Garrison.person --- properties.knows --- Stan.person
+      val GarrissonKnownKevin = Garrison.person --- properties.knows --- Kevin.person
+      val KevinKnownStan      = Kevin.person --- properties.knows --- Stan.person
+      val KevinKnownGray      = Kevin.person --- properties.knows --- Gray.person
+      val GrayKnowsLevi       = Gray.person --- properties.knows --- Levi.person
+      val LeviKnowsYoshio     = Levi.person --- properties.knows --- Yoshio.person
     }
   }
 }
