@@ -80,42 +80,42 @@ trait Encoder {
             val iri = nodeResource.iri
             //                if (nodeResource.iri.nonEmpty) nodeResource.iri
             //                else nodeResource.graph.iri + "/" + nodeResource.id
-            JsonObjectInProgress[Json](Seq(iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)).toMap ++ Map({
-              val iris = nodeResource.iris
-              if (iris.toList.lengthCompare(1) == 0) Seq(types.`@ids` -> textToJson(iris.head))
-              else if (iris.nonEmpty)
-                Seq(types.`@ids` -> (nodeResource.iris.toList.map(textToJson): Json))
-              else Seq()
-            }: _*) ++ {
-              if (typeIris.lengthCompare(1) == 0) Seq(types.`@type` -> typeIris.head)
-              else if (typeIris.nonEmpty) Seq(types.`@type` -> (typeIris: Json))
-              else Seq()
-            })(
-              activeContext
-            ).addEdges(nodeResource)
+            val (edges, newAc) = addEdges(nodeResource)(activeContext)
+            JsonObjectInProgress[Json](
+              List[(String, Json)]() ++ List(iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)) ++ List({
+                val iris = nodeResource.iris
+                if (iris.toList.lengthCompare(1) == 0) List(types.`@ids` -> textToJson(iris.head))
+                else if (iris.nonEmpty)
+                  List(types.`@ids` -> (nodeResource.iris.toList.map(textToJson): Json))
+                else List()
+              }: _*) ++ {
+                if (typeIris.lengthCompare(1) == 0) Seq(types.`@type` -> typeIris.head)
+                else if (typeIris.nonEmpty) Seq(types.`@type` -> (typeIris: Json))
+                else List()
+              } ++ edges)(newAc)
         }
     }
   }
 
-  implicit class WithDictionary(jsonIP: JOIP) {
-    implicit val activeContext = jsonIP.activeContext
-    def addEdges(resource: Resource[_]): JOIP = {
-      resource
-        .outEMap()
-        .filterNot { case (key, properties) => Graph.baseKeys.contains(key) }
-        .foldLeft((Map[String, Json](), activeContext)) {
-          case ((result, activeContext), (key, edges: List[Edge[_, _]])) if edges.nonEmpty =>
-            val (compactIri, newActiveContext) = activeContext.compactIri(key)
-            val jip                            = fromEdges(key, edges)(newActiveContext)
-            result + (compactIri -> jip.json) -> jip.activeContext
-          //TODO: add local @context if parent context already has other overrides
-          case ((result, activeContext), (key, edges: List[Edge[_, _]])) => result -> activeContext
-        } match {
-        case (result, activeContext) =>
-          JsonObjectInProgress[Json](jsonIP.json ++ result)(activeContext)
-      }
+//  implicit class WithDictionary(jsonIP: JOIP) {
+//    implicit val activeContext = jsonIP.activeContext
+  def addEdges(resource: Resource[_])(implicit activeContext: AC): (List[(String, Json)], AC) = {
+    resource
+      .outEMap()
+      .filterNot { case (key, properties) => Graph.baseKeys.contains(key) }
+      .foldLeft((Map[String, Json](), activeContext)) {
+        case ((result, activeContext), (key, edges: List[Edge[_, _]])) if edges.nonEmpty =>
+          val (compactIri, newActiveContext) = activeContext.compactIri(key)
+          val jip                            = fromEdges(key, edges)(newActiveContext)
+          result + (compactIri -> jip.json) -> jip.activeContext
+        //TODO: add local @context if parent context already has other overrides
+        case ((result, activeContext), (key, edges: List[Edge[_, _]])) => result -> activeContext
+      } match {
+      case (result, activeContext) =>
+        result.toList -> activeContext
     }
   }
+//  }
 
   def fromEdges(key: Property, edges: List[Edge[_, _]])(implicit activeContext: AC): JIP = {
 
@@ -164,15 +164,15 @@ trait Encoder {
 
   def fromEdge(edge: Edge[_, _])(implicit activeContext: AC): JOIP = {
     val (keyIri, newActiveContext) = activeContext.compactIri(edge.key)
-    JsonObjectInProgress[Json](Seq(edge.iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)).toMap ++ Map({
-      val iris = edge.iris
-      if (iris.toList.lengthCompare(1) == 0) Seq(types.`@ids` -> textToJson(iris.head))
-      else if (iris.nonEmpty)
-        Seq(types.`@ids` -> (edge.iris.toList.map(textToJson): Json))
-      else Seq()
-    }: _*) ++ Map(types.`@type` -> textToJson(keyIri)))(
-      activeContext
-    ).addEdges(edge)
+    val (edges, newAc)             = addEdges(edge)(newActiveContext)
+    JsonObjectInProgress[Json](
+      List[(String, Json)]() ++ List(edge.iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)) ++ List({
+        val iris = edge.iris
+        if (iris.toList.lengthCompare(1) == 0) List(types.`@ids` -> textToJson(iris.head))
+        else if (iris.nonEmpty)
+          List(types.`@ids` -> (edge.iris.toList.map(textToJson): Json))
+        else List()
+      }: _*) ++ List(types.`@type` -> textToJson(keyIri)))(newAc)
   }
 
   def fromData(value: Any, expectedType: DataType[_])(implicit activeContext: AC): JIP = {
@@ -383,13 +383,13 @@ trait Encoder {
             if (node.iri.nonEmpty) JsonInProgress(node.iri: Json)(activeContext)
             else {
               val joip = fromNode(node)
-              JsonInProgress(joip.json: Json)(joip.activeContext)
+              JsonInProgress(ListMap[String, Json]() ++ joip.json: Json)(joip.activeContext)
             }
           case edge: Edge[_, _] =>
             if (edge.iri.nonEmpty) JsonInProgress(edge.iri: Json)(activeContext)
             else {
               val joip = fromEdge(edge)
-              JsonInProgress(joip.json: Json)(joip.activeContext)
+              JsonInProgress(ListMap[String, Json]() ++ joip.json: Json)(joip.activeContext)
             }
           case iriResource: IriResource => JsonInProgress(iriResource.iri: Json)(activeContext)
         }
@@ -424,15 +424,15 @@ trait Encoder {
       if (ontology.extendedClasses.nonEmpty)
         Some(types.`@extends` -> (ontology.extendedClasses.map(o => o.iri.compact: Json): Json))
       else None
-    ).flatten.toMap ++
+    ).flatten ++
       (ontology.properties.toList match {
-        case List()         => Map[String, Json]()
-        case List(property) => Map(types.`@properties` -> (property.iri.compact: Json))
+        case List()         => List[(String, Json)]()
+        case List(property) => List(types.`@properties` -> (property.iri.compact: Json))
         case properties =>
-          Map(types.`@properties` -> (properties.map(key => key.iri.compact: Json): Json))
+          List(types.`@properties` -> (properties.map(key => key.iri.compact: Json): Json))
       })
 
-    new JOIP(jsProperties)(activeContext)
+    new JOIP(List[(String, Json)]() ++ jsProperties)(activeContext)
   }
 
   /**
@@ -455,21 +455,21 @@ trait Encoder {
       if (key.extendedClasses.nonEmpty)
         Some(types.`@extends` -> (key.extendedClasses.map(o => (o.iri.compact: Json)): Json))
       else None
-    ).flatten.toMap ++
+    ).flatten ++
       (key.range.toList match {
-        case List()         => Map[String, Json]()
-        case List(dataType) => Map(types.`@range` -> (dataType.iri.compact: Json))
+        case List()         => List[(String, Json)]()
+        case List(dataType) => List(types.`@range` -> (dataType.iri.compact: Json))
         case dataTypes =>
-          Map(types.`@range` -> (dataTypes.map(dataType => (dataType.iri.compact: Json)): Json))
+          List(types.`@range` -> (dataTypes.map(dataType => (dataType.iri.compact: Json)): Json))
       }) ++
       (key.properties.toList match {
-        case List()         => Map[String, Json]()
-        case List(property) => Map(types.`@property` -> (property.iri.compact: Json))
+        case List()         => List[(String, Json)]()
+        case List(property) => List(types.`@property` -> (property.iri.compact: Json))
         case properties =>
-          Map(types.`@property` -> (properties.map(key => key.iri.compact: Json): Json))
+          List(types.`@property` -> (properties.map(key => key.iri.compact: Json): Json))
       })
 
-    new JOIP(jsProperties)(activeContext)
+    new JOIP(List[(String, Json)]() ++ jsProperties)(activeContext)
   }
 
   def fromDataType(dataType: DataType[_])(implicit activeContext: AC): JOIP = {
@@ -485,12 +485,12 @@ trait Encoder {
       if (dataType.extendedClasses.nonEmpty)
         Some(types.`@extends` -> (dataType.extendedClasses.map[Json, List[Json]](o => o.iri: Json): Json))
       else None
-    ).flatten.toMap ++
+    ).flatten ++
       (dataType.properties.toList match {
-        case List() => Map[String, Json]()
+        case List() => List[(String, Json)]()
         //        case List(property) => Map(types.properties -> Json.jString(property.iri))
         case properties =>
-          Map(types.`@properties` -> (properties.map(key => key.iri: Json): Json))
+          List(types.`@properties` -> (properties.map(key => key.iri: Json): Json))
       })
 
     val (oProperty, newActiveContext) = dataType match {
@@ -526,7 +526,7 @@ trait Encoder {
         }
       case _ => Map() -> activeContext
     }
-    JsonObjectInProgress(jsProperties ++ oProperty)(newActiveContext)
+    JsonObjectInProgress[Json](List[(String, Json)]() ++ jsProperties ++ oProperty)(newActiveContext)
   }
 
   def ctListToJson(l: List[ClassType[_]])(implicit activeContext: AC): JIP = {
@@ -544,7 +544,7 @@ trait Encoder {
                 case d: CollectionType[_] =>
                   fromDataType(d)(activeContext) match {
                     case jip: JOIP =>
-                      (l :+ (jip.json: Json)) -> jip.activeContext
+                      (l :+ (ListMap[String, Json]() ++ jip.json: Json)) -> jip.activeContext
                   }
                 case _ =>
                   activeContext.compactIri(d) match {

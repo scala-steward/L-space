@@ -4,7 +4,7 @@ import lspace.NS.types
 
 import scala.collection.immutable.ListMap
 
-case class JsonObjectInProgress[Json](json: Map[String, Json])(implicit val activeContext: ActiveContext) {}
+case class JsonObjectInProgress[Json](json: List[(String, Json)])(implicit val activeContext: ActiveContext) {}
 
 object JsonObjectInProgress {
 
@@ -19,7 +19,7 @@ object JsonObjectInProgress {
 
       if (context.isDefined)
         encoder.encode(ListMap(types.`@context` -> context.get) ++ joip.json)
-      else encoder.encode(joip.json)
+      else encoder.encode(ListMap[String, Json]() ++ joip.json)
     }
   }
 }

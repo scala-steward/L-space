@@ -36,6 +36,7 @@ class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAl
         .withBody[Application.JsonLD](traversal.toNode)
         .withHeaders("Accept" -> "text/plain")
       graphService.traverse(input).awaitOutput().map { output =>
+        if (output.isLeft) println(output.left.get.getMessage)
         output.isRight shouldBe true
         val collection = output.right.get.value
         collection.item shouldBe List(2)
