@@ -16,7 +16,7 @@ jobs:
       scala: 2.11.12
       install:
         - npm install jsdom
-      script: sbt ++$TRAVIS_SCALA_VERSION test
+      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
       cache:
         directories:
           - $HOME/.ivy2/cache
@@ -26,7 +26,7 @@ jobs:
     - scala: 2.12.8
       install:
         - npm install jsdom
-      script: sbt ++$TRAVIS_SCALA_VERSION test
+      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
       cache:
         directories:
           - $HOME/.ivy2/cache
@@ -39,7 +39,7 @@ jobs:
       install:
         - npm install jsdom
       script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test client/test graph/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
         - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
       after_success:
         - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN

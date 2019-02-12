@@ -62,7 +62,7 @@ lazy val lspace = project
   .in(file("."))
   .settings(settings)
   .settings(skip in publish := true)
-  .aggregate(core.jvm, core.js, parse.jvm, parse.js, parseArgonaut.jvm, parseArgonaut.js, client.jvm, client.js, graph, services)
+  .aggregate(core.jvm, core.js, parse.jvm, parse.js, parseArgonaut.jvm, parseArgonaut.js, parseCirce.jvm, parseCirce.js, client.jvm, client.js, graph, services)
 
 lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
