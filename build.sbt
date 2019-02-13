@@ -146,7 +146,7 @@ lazy val client =
     )
 
 lazy val graph = (project in file("graph"))
-  .dependsOn(parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "compile->test")
+  .dependsOn(parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
   .settings(settings)
   .settings(
     name := "lspace-graph",
