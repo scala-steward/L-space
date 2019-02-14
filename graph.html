@@ -65,10 +65,10 @@ scala&gt;  SampleGraph.loadSocial(graph)
 res0: AnyRef{val places: AnyRef{val SanJosédeMaipo: AnyRef{val place: lspace.librarian.structure.Node; val id: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultString.C]; val name: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultString.C]; val geo: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultGeopoint.C]}; val CrystalSprings: AnyRef{val place: lspace.librarian.structure.Node; val name: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultString.C]; val geo: lspace.librarian.struc...
 
 scala&gt;  val labels = SampleGraph.ontologies
-labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@7525b1fa
+labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@2aca4956
 
 scala&gt;  val keys = SampleGraph.properties
-keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@3849de7a
+keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@27be9838
 </code></pre>
 
 <h2 id="resource-apis">Resource API’s</h2>
@@ -84,7 +84,7 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <span class="c1">// res1: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822)
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
-<span class="c1">// res2: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822, lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96869)
+<span class="c1">// res2: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822, lspace.librarian.provider.mem.MemGraph$$anon$7@b9f9686c)
 </span></code></pre></div></div>
 <p>hasId</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
@@ -95,13 +95,13 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 </span></code></pre></div></div>
 <p>upsert</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span>
-<span class="c1">// res4: Long = 1251
+<span class="c1">// res4: Long = 1245
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//should be equal because values are deduplicated
-// res5: Long = 1251
+// res5: Long = 1245
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal2"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//new value, hence new id
-// res6: Long = 1252
+// res6: Long = 1246
 </span></code></pre></div></div>
 <p>count:</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
@@ -119,7 +119,7 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <span class="c1">// res8: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822)
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
-<span class="c1">// res9: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822, lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96869)
+<span class="c1">// res9: List[lspace.librarian.structure.Resource[_]] = List(lspace.librarian.provider.mem.MemGraph$$anon$7@b9f96822, lspace.librarian.provider.mem.MemGraph$$anon$7@b9f9686c)
 </span></code></pre></div></div>
 
 <p>Retrieved by Id(s):</p>

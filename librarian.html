@@ -134,10 +134,10 @@ the end of the traversal he communicates back the result that was requested.</p>
 <span class="c1">// res0: AnyRef{val places: AnyRef{val SanJosédeMaipo: AnyRef{val place: lspace.librarian.structure.Node; val id: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultString.C]; val name: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultString.C]; val geo: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultGeopoint.C]}; val CrystalSprings: AnyRef{val place: lspace.librarian.structure.Node; val name: lspace.librarian.structure.Edge[lspace.librarian.structure.Node,lspace.librarian.process.traversal.helper.ClassTypeable.defaultString.C]; val geo: lspace.librarian.struc...
 </span>
 <span class="k">val</span> <span class="n">labels</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">ontologies</span>
-<span class="c1">// labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@7525b1fa
+<span class="c1">// labels: lspace.librarian.util.SampleGraph.ontologies.type = lspace.librarian.util.SampleGraph$ontologies$@2aca4956
 </span>
 <span class="k">val</span> <span class="n">keys</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">properties</span>
-<span class="c1">// keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@3849de7a
+<span class="c1">// keys: lspace.librarian.util.SampleGraph.properties.type = lspace.librarian.util.SampleGraph$properties$@27be9838
 </span></code></pre></div></div>
 <h3 id="resource-steps">Resource steps</h3>
 <p>Resource-step to start specify what type of resources the traversal should start in.</p>
@@ -162,7 +162,7 @@ the end of the traversal he communicates back the result that was requested.</p>
 // res2: List[Any] = List(Garrison)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">birthDate</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">gt</span><span class="o">(</span><span class="nc">LocalDate</span><span class="o">.</span><span class="n">parse</span><span class="o">(</span><span class="s">"2002-06-13"</span><span class="o">))).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span>
-<span class="c1">// res3: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1118, 1142)
+<span class="c1">// res3: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1119, 1144)
 </span></code></pre></div></div>
 <h5 id="hasnot">HasNot</h5>
 <p>HasNot-step is the inverse of a Has-step (this could also be written as <code class="highlighter-rouge">.not(_.has(..))</code>)</p>
@@ -199,10 +199,10 @@ the end of the traversal he communicates back the result that was requested.</p>
 // res10: lspace.librarian.datatype.LongType.defaultLongType.C = 10
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.2 (20%)
-// res11: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1034, 1042)
+// res11: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List()
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.8</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.8 (80%)
-// res12: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1153, 1164, 1042, 1049, 1118, 1001, 1130, 1142, 1018)
+// res12: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1155, 1035, 1166, 1044, 1051, 1119, 1001, 1144, 1019)
 </span></code></pre></div></div>
 <h4 id="where">Where</h4>
 <p>Where-step takes a traversal and filters on non-empty results</p>
@@ -225,7 +225,7 @@ the end of the traversal he communicates back the result that was requested.</p>
 <h4 id="not">Not</h4>
 <p>Not-step takes a traversal and filters on empty results</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">not</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/name"</span><span class="o">)).</span><span class="n">limit</span><span class="o">(</span><span class="mi">2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">toList</span>
-<span class="c1">// res17: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1153, 1034)
+<span class="c1">// res17: List[lspace.librarian.datatype.LongType.defaultLongType.C] = List(1155, 1035)
 </span></code></pre></div></div>
 <h4 id="is">Is</h4>
 <p>Is-step asserts a value against one or more predicates</p>
@@ -338,22 +338,22 @@ the traversal will continue to operate with a traverser for each Value.</p>
 // res39: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.structure.ClassType[Any],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.OutMap :: shapeless.HNil] :: lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(OutMap(Set()) :: HNil) :: Segment(N(List()) :: HNil) :: HNil)
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">outMap</span><span class="o">().</span><span class="n">head</span>
-<span class="c1">// res40: this.Out = Map(property:name -&gt; List(Garrison), property:https://schema.org/birthDate -&gt; List(1994-06-18), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e484, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e479), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e415), property:@id -&gt; List(librarian-doc/person/56789))
+<span class="c1">// res40: this.Out = Map(property:name -&gt; List(Garrison), property:https://schema.org/birthDate -&gt; List(1994-06-18), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e486, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e47b), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e417), property:@id -&gt; List(librarian-doc/person/56789))
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">outMap</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="s">"knows"</span><span class="o">)</span> <span class="c1">//returns a property-map for edges with label "name" or "knows"
 // res41: lspace.librarian.process.traversal.Traversal[lspace.librarian.datatype.DataType[lspace.librarian.structure.Graph],lspace.librarian.structure.ClassType[Any],lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.OutMap :: shapeless.HNil] :: lspace.librarian.process.traversal.Segment[lspace.librarian.process.traversal.step.N :: shapeless.HNil] :: shapeless.HNil] = Traversal(Segment(OutMap(Set(property:name, property:knows)) :: HNil) :: Segment(N(List()) :: HNil) :: HNil)
 </span></code></pre></div></div>
 <h4 id="outemap">OutEMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">outEMap</span><span class="o">().</span><span class="n">head</span> <span class="c1">//should return all out-going edges grouped by key
-// res42: this.Out = Map(property:name -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e493), property:https://schema.org/birthDate -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e495), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e497, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e4af), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e496), property:@id -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e491))
+// res42: this.Out = Map(property:name -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e495), property:https://schema.org/birthDate -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e497), property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e499, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e4b4), property:https://schema.org/birthPlace -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e498), property:@id -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e493))
 </span></code></pre></div></div>
 <h4 id="inmap">InMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">inMap</span><span class="o">().</span><span class="n">head</span> <span class="c1">//returns a property-map on all incoming connected resources
-// res43: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e484, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e479))
+// res43: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e486, lspace.librarian.provider.mem.MemGraph$$anon$7@5db0e47b))
 </span></code></pre></div></div>
 <h4 id="inemap">InEMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">inEMap</span><span class="o">().</span><span class="n">head</span> <span class="c1">//should return all in-coming edges grouped by key
-// res44: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e4ae, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e4b0))
+// res44: this.Out = Map(property:https://schema.org/knows -&gt; List(lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e4b3, lspace.librarian.provider.mem.MemGraph$$anon$8@5db0e4b5))
 </span></code></pre></div></div>
 <h3 id="barrier-steps">Barrier steps</h3>
 <p>Barrier steps can operate on the entire resultset of a traversal</p>
