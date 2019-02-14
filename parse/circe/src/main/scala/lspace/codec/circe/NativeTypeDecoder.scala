@@ -31,6 +31,9 @@ class NativeTypeDecoder extends lspace.codec.NativeTypeDecoder {
 
   def jsonToDouble(json: Json): Option[Double] = json.asNumber.map(_.toDouble)
 
-  def jsonToLong(json: Json): Option[Long] = json.asString.flatMap(s => Try(s.toLong).toOption)
+  def jsonToLong(json: Json): Option[Long] =
+    json.asNumber
+      .flatMap(n => n.toLong.orElse(n.toInt.map(_.toLong)))
+      .orElse(json.asString.flatMap(s => Try(s.toLong).toOption))
 
 }

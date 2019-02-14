@@ -15,7 +15,6 @@ object Ontology {
   lazy val ontology: Ontology =
     Ontology(NS.types.`@class`, iris = Set(NS.types.rdfsClass))
 
-  //  lazy val classType: ClassType[Ontology] = ClassType[Ontology](ldcontext.types.CLASS)
   implicit lazy val urlType: IriType[Ontology] = new IriType[Ontology] {
     val iri: String = NS.types.`@class`
   }
@@ -26,10 +25,6 @@ object Ontology {
       type CT = NodeURLType[Node]
       def ct: CT = NodeURLType.apply[Node]
     }
-
-//  implicit def iriToCachedOntology(iri: String): Ontology =
-//   ontologies.cached(iri).getOrElse(Ontology(iri)) //todo get from remote
-//  implicit def ontologyToString(ontology: Ontology): String = ontology.iri
 
   def build(node: Node): Task[Coeval[Ontology]] = {
     if (node.hasLabel(ontology).nonEmpty) {

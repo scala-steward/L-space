@@ -3,7 +3,7 @@ package lspace.lgraph.provider.file
 import java.io.PrintWriter
 import java.time.{Instant, LocalDate, LocalTime}
 
-import cats.effect.Resource
+import cats.effect.{Resource => CResource}
 import lspace.codec._
 import lspace.codec.exception.FromJsonException
 import lspace.lgraph._
@@ -43,9 +43,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
   directory.mkdirs
   if (!directory.isDirectory) throw new Exception(s"storage path ${directory.getAbsolutePath} is not a directory")
 
-  private def readFile(filename: String): Resource[Task, BufferedSource] = {
+  private def readFile(filename: String): CResource[Task, BufferedSource] = {
     import java.io._
-    Resource.make {
+    CResource.make {
       Task(try { scala.io.Source.fromFile(filename) } catch {
         case e: FileNotFoundException =>
           new BufferedSource(new InputStream {
@@ -58,9 +58,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
       Task(in.close())
     }
   }
-  private def writeFile(filename: String): Resource[Task, PrintWriter] = {
+  private def writeFile(filename: String): CResource[Task, PrintWriter] = {
     import java.io._
-    Resource.make {
+    CResource.make {
       Task {
 //        println(s"making file ${filename}")
         val file = new File(filename)
@@ -371,51 +371,51 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                           } yield {
                             (property, fromLabels, toLabels)
                             }).flatMap {
-                          case (property, List(dt1: LiteralType[_]), List(dt2: LiteralType[_])) =>
+                          case (property, List(dt1: DataType[_]), List(dt2: DataType[_])) =>
                             Observable
                               .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
                               .mapParallelUnordered(20)(_.list
                                 .map {
-                                  case List(from, to) =>
+                                  case List(from, id, to) =>
                                     for {
                                       fromResource <- decoder.toResource(from, Some(dt1))
                                       toResource <- decoder.toResource(to, Some(dt2))
                                     } yield {
-                                      fromResource --- property --> toResource
+                                      id.long.get -> (fromResource --- property --> toResource).id
                                     }
                                   case _ => throw FromJsonException(s"expected an array of size 2")
                                 }
                                 .getOrElse(throw FromJsonException("array expected")))
-                          case (property, fromLabels, List(dt2: LiteralType[_])) =>
+                          case (property, fromLabels, List(dt2: DataType[_])) =>
                             Observable
                               .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
                               .mapParallelUnordered(20)(_.list
                                 .map {
-                                  case List(from, to) =>
+                                  case List(from, id, to) =>
                                     for {
                                       fromResource <- decoder
                                         .tryNodeRef(from)
                                         .getOrElse(throw FromJsonException("cannot parse noderef"))
                                       toResource <- decoder.toResource(to, Some(dt2))
                                     } yield {
-                                      fromResource --- property --> toResource
+                                      id.long.get -> (fromResource --- property --> toResource).id
                                     }
                                   case _ => throw FromJsonException(s"expected an array of size 2")
                                 }
                                 .getOrElse(throw FromJsonException("array expected")))
-                          case (property, List(dt1: LiteralType[_]), toLabels) =>
+                          case (property, List(dt1: DataType[_]), toLabels) =>
                             Observable
                               .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
                               .mapParallelUnordered(20)(_.list
                                 .map {
-                                  case List(from, to) =>
+                                  case List(from, id, to) =>
                                     for {
                                       fromResource <- decoder.toResource(from, Some(dt1))
                                       toResource <- decoder
                                         .tryNodeRef(to)
                                         .getOrElse(throw FromJsonException("cannot parse noderef"))
                                     } yield {
-                                      fromResource --- property --> toResource
+                                      id.long.get -> (fromResource --- property --> toResource).id
                                     }
                                   case _ => throw FromJsonException(s"expected an array of size 2")
                                 }
@@ -425,7 +425,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                               .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
                               .mapParallelUnordered(20)(_.list
                                 .map {
-                                  case List(from, to) =>
+                                  case List(from, id, to) =>
                                     for {
                                       fromResource <- decoder
                                         .tryNodeRef(from)
@@ -434,7 +434,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                                         .tryNodeRef(to)
                                         .getOrElse(throw FromJsonException("cannot parse noderef"))
                                     } yield {
-                                      fromResource --- property --> toResource
+                                      id.long.get -> (fromResource --- property --> toResource).id
                                     }
                                   case _ => throw FromJsonException(s"expected an array of size 2")
                                 }
@@ -443,10 +443,15 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                   }
                   .getOrElse(Observable.raiseError(FromJsonException("line should be a json-object")))
               }
-              .completedL
-              .map { u =>
-                idMaps
-              }
+//              .append(List()) //TEMP-FIX: https://github.com/monix/monix/issues/832 reducing on an observable with only one item results in an empty stream
+//              .reduce(_ ++ _)
+              .toListL.map(_.toMap)
+              .map(idmap => idMaps.copy(edgeIds = idmap))
+//            .map(_.reduce(_ ++ _))
+//              .completedL
+//              .map { u =>
+//                idMaps
+//              }
           }
       }
   }
@@ -461,52 +466,108 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
           .use { buf =>
             parse(buf)
               .flatMap { json =>
-                json.obj
-                  .map { obj =>
-                    Observable.fromIterable(obj.toList).flatMap {
-                      case (key, value) =>
-                        graph.ns.properties
-                          .cached(context.expandIri(key))
-                          .map { property =>
-                            value.list
+                json.list
+                  .map {
+                    case List(keyJson, fromLabelsJson, toLabelsJson, value) =>
+                      Observable
+                        .fromTask(
+                          for {
+                            property <- graph.ns.properties
+                              .get(context.expandIri(keyJson.string.get))
+                              .flatMap(_.map(Task.now).getOrElse(
+                                Task.raiseError(FromJsonException(s"$keyJson property could not be build/fetched"))))
+                            fromLabels <- Task.gather(fromLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(iri =>graph.ns.classtypes
+                              .get(iri)
+                              .flatMap(_.map(Task.now).getOrElse(
+                                CollectionType.get(iri).map(Task.now).getOrElse(Task.raiseError(FromJsonException(s"$toLabelsJson classtypes could not be build/fetched")))
+                              )))))
+                            toLabels <- Task.gather(toLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(iri => graph.ns.classtypes
+                              .get(iri)
+                              .flatMap(_.map(Task.now).getOrElse(
+                                CollectionType.get(iri).map(Task.now).getOrElse(Task.raiseError(FromJsonException(s"$toLabelsJson classtypes could not be build/fetched")))
+                              )))))
+                          } yield {
+                            (property, fromLabels, toLabels)
+                          }).flatMap {
+                        case (property, List(dt1: DataType[_]), List(dt2: DataType[_])) =>
+                          Observable
+                            .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
+                            .mapParallelUnordered(20)(_.list
                               .map {
-                                case List(byNode, byEdge, byValue) =>
-                                  Observable
-                                    .fromIterable(byNode.list.getOrElse(throw FromJsonException("array expected")))
-                                    .mapParallelUnordered(20)(_.list
-                                      .map {
-                                        case List(from, to) =>
-                                          for {
-                                            fromNode <- decoder
-                                              .tryNodeRef(from)
-                                              .getOrElse(throw FromJsonException("cannot parse noderef"))
-                                            fromResource <- {
-                                              decoder.toResource(to.asInstanceOf[decoder.Json],
-                                                                 property.range.headOption)
-                                            }
-                                          } yield {
-                                            fromNode --- property --> fromResource
-                                          }
-                                        case _ => throw FromJsonException(s"expected an array of size 2")
-                                      }
-                                      .getOrElse(throw FromJsonException("array expected")))
-                                //                              byValue.array.map(_.map(
-                                //                                _.number.flatMap(_.toLong).getOrElse(throw FromJsonException("from node id expected"))))
+                                case List(from, id, to) =>
+                                  for {
+                                    fromResource <- decoder.toResource(from, Some(dt1))
+                                    toResource <- decoder.toResource(to, Some(dt2))
+                                  } yield {
+                                    id.long.get -> (fromResource --- property --> toResource).id
+                                  }
                                 case _ => throw FromJsonException(s"expected an array of size 2")
                               }
-                              .getOrElse(throw FromJsonException(s"expected an array"))
-
-                          }
-                          .getOrElse(throw FromJsonException(s"$key property could not be build/fetched"))
-                    }
+                              .getOrElse(throw FromJsonException("array expected")))
+                        case (property, fromLabels, List(dt2: DataType[_])) =>
+                          Observable
+                            .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
+                            .mapParallelUnordered(20)(_.list
+                              .map {
+                                case List(from, id, to) =>
+                                  for {
+                                    fromResource <- decoder
+                                      .tryNodeRef(from).orElse(decoder.tryEdgeRef(from, fromLabels.head.asInstanceOf[Property]))
+                                      .getOrElse(throw FromJsonException("cannot parse noderef"))
+                                    toResource <- decoder.toResource(to, Some(dt2))
+                                  } yield {
+                                    id.long.get -> (fromResource --- property --> toResource).id
+                                  }
+                                case _ => throw FromJsonException(s"expected an array of size 2")
+                              }
+                              .getOrElse(throw FromJsonException("array expected")))
+                        case (property, List(dt1: DataType[_]), toLabels) =>
+                          Observable
+                            .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
+                            .mapParallelUnordered(20)(_.list
+                              .map {
+                                case List(from, id, to) =>
+                                  for {
+                                    fromResource <- decoder.toResource(from, Some(dt1))
+                                    toResource <- decoder
+                                      .tryNodeRef(to).orElse(decoder.tryEdgeRef(to, toLabels.head.asInstanceOf[Property]))
+                                      .getOrElse(throw FromJsonException("cannot parse noderef")).asInstanceOf[Task[Resource[Any]]]
+                                  } yield {
+                                    id.long.get -> (fromResource --- property --> toResource).id
+                                  }
+                                case _ => throw FromJsonException(s"expected an array of size 2")
+                              }
+                              .getOrElse(throw FromJsonException("array expected")))
+                        case (property, fromLabels, toLabels) =>
+                          Observable
+                            .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
+                            .mapParallelUnordered(20)(_.list
+                              .map {
+                                case List(from, id, to) =>
+                                  for {
+                                    fromResource <- decoder
+                                      .tryNodeRef(from)
+                                      .getOrElse(throw FromJsonException("cannot parse noderef"))
+                                    toResource <- decoder
+                                      .tryNodeRef(to)
+                                      .getOrElse(throw FromJsonException("cannot parse noderef"))
+                                  } yield {
+                                    id.long.get -> (fromResource --- property --> toResource).id
+                                  }
+                                case _ => throw FromJsonException(s"expected an array of size 2")
+                              }
+                              .getOrElse(throw FromJsonException("array expected")))
+                      }
                   }
                   .getOrElse(Observable.raiseError(FromJsonException("line should be a json-object")))
               }
               .onErrorHandle { case e => scribe.error(e.getMessage); throw e }
-              .completedL
-              .map { u =>
-                idMaps
-              }
+//              .completedL
+//              .map { u =>
+//                idMaps
+//              }
+              .toListL.map(_.toMap)
+              .map(idmap => idMaps.copy(edgeIds = idmap))
           }
       }
   }
@@ -529,7 +590,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                         datatype <- label.string
                           .map(context.expandIri)
                           .flatMap { iri =>
-                            decoder.iriToClassType(iri)
+                            CollectionType.get(iri)
                           }
                           .collect { case dt: DataType[_] => dt }
                       } yield {
@@ -589,7 +650,6 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
               newAc -> (cIri :: labels)
           }
           val json = List(cLabels.map(_.asJson).asJson, nodes.map(_.id.asJson).toList.asJson).asJson
-          println(json.noSpaces)
           f.println(json.noSpaces)
           newAc
       }
@@ -600,103 +660,63 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
       .edges()
       .filter(
         e =>
-          (e.from.isInstanceOf[Node] || e.from.hasLabel(LiteralType.datatype).isDefined) && (e.to
-            .isInstanceOf[Node] || e.to
-            .hasLabel(LiteralType.datatype)
-            .isDefined))
+          (e.from.isInstanceOf[Node] || (!e.from.isInstanceOf[Edge[_,_]] && e.from.hasLabel(CollectionType.datatype).isEmpty)) && (e.to
+            .isInstanceOf[Node] || (!e.to.isInstanceOf[Edge[_,_]] && e.to.hasLabel(CollectionType.datatype).isEmpty)))
       .groupBy(_.key)
       .foldLeft(ActiveContext()) {
         case (ac, (key, edges)) =>
           val (cKeyIri, _ac) = ac.compactIri(key)
           val groupedEdges   = edges.groupBy(e => e.from.labels -> e.to.labels)
           groupedEdges.foldLeft(_ac) {
-            case (ac, ((List(dt1: LiteralType[_]), List(dt2: LiteralType[_])), edges)) =>
+            case (ac, ((List(dt1: DataType[_]), List(dt2: DataType[_])), edges)) =>
               val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
                 case ((ac, jsons), edge) =>
                   val jip  = encoder.fromAny(edge.to, Some(dt1))(ac)
                   val jip2 = encoder.fromAny(edge.from, Some(dt2))(jip.activeContext)
-                  jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
+                  jip2.activeContext -> (List(jip2.json, edge.id.asJson, jip.json).asJson :: jsons)
               }
               val fromTypes = List(dt1.iri.asJson).asJson
               val toTypes   = List(dt2.iri.asJson).asJson
               jsons.sliding(50, 50).foreach { jsons =>
-                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson)
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
               }
               newAc
-            case (ac, ((fromLabels, List(dt2: LiteralType[_])), edges)) =>
+            case (ac, ((fromLabels, List(dt2: DataType[_])), edges)) =>
               val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
                 case ((ac, jsons), edge) =>
                   val jip = encoder.fromAny(edge.to, Some(dt2))(ac)
-                  jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
+                  jip.activeContext -> (List(edge.from.id.asJson, edge.id.asJson, jip.json).asJson :: jsons)
               }
               val fromTypes = fromLabels.map(_.iri.asJson).asJson
               val toTypes   = List(dt2.iri.asJson).asJson
               jsons.sliding(50, 50).foreach { jsons =>
-                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson)
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
               }
               newAc
-            case (ac, ((List(dt1: LiteralType[_]), toLabels), edges)) =>
+            case (ac, ((List(dt1: DataType[_]), toLabels), edges)) =>
               val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
                 case ((ac, jsons), edge) =>
                   val jip = encoder.fromAny(edge.from, Some(dt1))(ac)
-                  jip.activeContext -> (List(jip.json, edge.to.id.asJson).asJson :: jsons)
+                  jip.activeContext -> (List(jip.json, edge.id.asJson, edge.to.id.asJson).asJson :: jsons)
               }
               val fromTypes = List(dt1.iri.asJson).asJson
               val toTypes   = toLabels.map(_.iri.asJson).asJson
               jsons.sliding(50, 50).foreach { jsons =>
-                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson)
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
               }
               newAc
             case (ac, ((fromLabels, toLabels), edges)) =>
               val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
                 case ((ac, jsons), edge) =>
-                  ac -> (List(edge.from.id.asJson, edge.to.id.asJson).asJson :: jsons)
+                  ac -> (List(edge.from.id.asJson, edge.id.asJson, edge.to.id.asJson).asJson :: jsons)
               }
               val fromTypes = fromLabels.map(_.iri.asJson).asJson
               val toTypes   = toLabels.map(_.iri.asJson).asJson
               jsons.sliding(50, 50).foreach { jsons =>
-                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson)
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
               }
               newAc
           }
-
-//          val (newAc, fromNodeJsons) = byFromNode.foldLeft(_ac -> List[Json]()) {
-//            case ((ac, jsons), edge) =>
-//              val jip = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
-//              jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
-//          }
-//          val (newAc2, fromLiteralJsons) = byValue.foldLeft(newAc -> List[Json]()) {
-//            case ((ac, jsons), edge) =>
-//              val jip  = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
-//              val jip2 = encoder.fromAny(edge.from)(jip.activeContext)
-//              jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
-//          }
-//          val fromToNodeJsons = byFromToNode.map { edge =>
-//            List(edge.from.id.asJson, edge.to.id.asJson).asJson
-//          }.toList
-//          val (newAc3, toNodeJsons) = byToNode.foldLeft(newAc2 -> List[Json]()) {
-//            case ((ac, jsons), edge) =>
-//              val jip = encoder.fromAny(edge.from, None)(ac)
-//              jip.activeContext -> (List(jip.json, edge.to.id.asJson).asJson :: jsons)
-//          }
-//          fromNodeJsons.sliding(50, 50).foreach { jsons =>
-//            f.println(Map(
-//              cKeyIri -> List(jsons.asJson, List[Json]().asJson, List[Json]().asJson, List[Json]().asJson).asJson).asJson.noSpaces)
-//          }
-//          toNodeJsons.sliding(50, 50).foreach { jsons =>
-//            f.println(Map(
-//              cKeyIri -> List(List[Json]().asJson, jsons.asJson, List[Json]().asJson, List[Json]().asJson).asJson).asJson.noSpaces)
-//          }
-//          fromToNodeJsons.sliding(50, 50).foreach { jsons =>
-//            f.println(Map(
-//              cKeyIri -> List(List[Json]().asJson, List[Json]().asJson, jsons.asJson, List[Json]().asJson).asJson).asJson.noSpaces)
-//          }
-//          fromLiteralJsons.sliding(50, 50).foreach { jsons =>
-//            f.println(Map(
-//              cKeyIri -> List(List[Json]().asJson, List[Json]().asJson, List[Json]().asJson, jsons.asJson).asJson).asJson.noSpaces)
-//          }
-
-//          newAc3
       }
   }
 
@@ -705,41 +725,63 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
       .edges()
       .filterNot(
         e =>
-          (e.from.isInstanceOf[Node] || e.from.hasLabel(LiteralType.datatype).isDefined) && (e.to
-            .isInstanceOf[Node] || e.to
-            .hasLabel(LiteralType.datatype)
-            .isDefined))
+          (e.from.isInstanceOf[Node] || (!e.from.isInstanceOf[Edge[_,_]] && e.from.hasLabel(CollectionType.datatype).isEmpty)) && (e.to
+            .isInstanceOf[Node] || (!e.to.isInstanceOf[Edge[_,_]] && e.to.hasLabel(CollectionType.datatype).isEmpty)))
       .groupBy(_.key)
       .foldLeft(ActiveContext()) {
         case (ac, (key, edges)) =>
-          val (cKeyIri, _ac)                  = ac.compactIri(key)
-          val (byFromNode, byFromEdgeOrValue) = edges.partition(_.from.isInstanceOf[Node])
-          val (newAc, fromNodeJsons) = byFromNode.foldLeft(_ac -> List[Json]()) {
-            case ((ac, jsons), edge) =>
-              val jip = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
-              jip.activeContext -> (List(edge.from.id.asJson, jip.json).asJson :: jsons)
+          val (cKeyIri, _ac) = ac.compactIri(key)
+          val groupedEdges   = edges.groupBy(e => e.from.labels -> e.to.labels)
+          groupedEdges.foldLeft(_ac) {
+            case (ac, ((List(dt1: DataType[_]), List(dt2: DataType[_])), edges)) =>
+              val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
+                case ((ac, jsons), edge) =>
+                  val jip  = encoder.fromAny(edge.to, Some(dt1))(ac)
+                  val jip2 = encoder.fromAny(edge.from, Some(dt2))(jip.activeContext)
+                  jip2.activeContext -> (List(jip2.json, edge.id.asJson, jip.json).asJson :: jsons)
+              }
+              val fromTypes = List(dt1.iri.asJson).asJson
+              val toTypes   = List(dt2.iri.asJson).asJson
+              jsons.sliding(50, 50).foreach { jsons =>
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
+              }
+              newAc
+            case (ac, ((fromLabels, List(dt2: DataType[_])), edges)) =>
+              val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
+                case ((ac, jsons), edge) =>
+                  val jip = encoder.fromAny(edge.to, Some(dt2))(ac)
+                  jip.activeContext -> (List(edge.from.id.asJson, edge.id.asJson, jip.json).asJson :: jsons)
+              }
+              val fromTypes = fromLabels.map(_.iri.asJson).asJson
+              val toTypes   = List(dt2.iri.asJson).asJson
+              jsons.sliding(50, 50).foreach { jsons =>
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
+              }
+              newAc
+            case (ac, ((List(dt1: DataType[_]), toLabels), edges)) =>
+              val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
+                case ((ac, jsons), edge) =>
+                  val jip = encoder.fromAny(edge.from, Some(dt1))(ac)
+                  jip.activeContext -> (List(jip.json, edge.id.asJson, edge.to.id.asJson).asJson :: jsons)
+              }
+              val fromTypes = List(dt1.iri.asJson).asJson
+              val toTypes   = toLabels.map(_.iri.asJson).asJson
+              jsons.sliding(50, 50).foreach { jsons =>
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
+              }
+              newAc
+            case (ac, ((fromLabels, toLabels), edges)) =>
+              val (newAc, jsons) = edges.foldLeft(ac -> List[Json]()) {
+                case ((ac, jsons), edge) =>
+                  ac -> (List(edge.from.id.asJson, edge.id.asJson, edge.to.id.asJson).asJson :: jsons)
+              }
+              val fromTypes = fromLabels.map(_.iri.asJson).asJson
+              val toTypes   = toLabels.map(_.iri.asJson).asJson
+              jsons.sliding(50, 50).foreach { jsons =>
+                f.println(List(cKeyIri.asJson, fromTypes, toTypes, jsons.asJson).asJson.noSpaces)
+              }
+              newAc
           }
-          val (byFromEdge, byFromValue) = byFromEdgeOrValue.partition(_.from.isInstanceOf[Edge[_, _]])
-          val (newAc2, fromEdgeJsons) = byFromEdge.foldLeft(newAc -> List[Json]()) {
-            case ((ac, jsons), edge) =>
-              val jip  = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
-              val jip2 = encoder.fromAny(edge.from)(jip.activeContext)
-              jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
-          }
-          val (newAc3, fromLiteralJsons) = byFromValue.foldLeft(newAc2 -> List[Json]()) {
-            case ((ac, jsons), edge) =>
-              val jip  = encoder.fromAny(edge.to, edge.key.range.headOption)(ac)
-              val jip2 = encoder.fromAny(edge.from)(jip.activeContext)
-              jip2.activeContext -> (List(jip2.json, jip.json).asJson :: jsons)
-          }
-
-          val json = Map(
-            cKeyIri ->
-              List(fromNodeJsons.asJson, fromEdgeJsons.asJson, fromLiteralJsons.asJson).asJson
-          ).asJson
-          f.println(json.noSpaces)
-
-          newAc3
       }
   }
 

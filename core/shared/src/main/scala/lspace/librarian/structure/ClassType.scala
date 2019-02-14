@@ -41,7 +41,7 @@ object ClassType {
           case v: MultiGeometry => DataType.default.`@geomultigeo`
           case _                => DataType.default.`@geo`
         }
-      case v: Map[_, _]  => DataType.default.mapType()
+      case v: Map[_, _]  => DataType.default.mapType() //TODO: recursively map nested values to map -> toList.distinct ?
       case v: ListSet[_] => DataType.default.listsetType()
       case v: List[_]    => DataType.default.listType()
       case v: Set[_]     => DataType.default.setType()
@@ -147,9 +147,4 @@ trait ClassType[+T] extends IriResource {
   def comment: Map[String, String]
 
   def base: Option[String]
-}
-
-object ClassTypeDef {}
-trait ClassTypeDef[T <: ClassType[_]] {
-  def classtype: T
 }

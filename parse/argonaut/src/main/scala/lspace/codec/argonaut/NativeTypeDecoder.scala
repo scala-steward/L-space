@@ -4,6 +4,8 @@ import argonaut.Parse
 import lspace.codec.exception.FromJsonException
 import monix.eval.Task
 
+import scala.util.Try
+
 object NativeTypeDecoder extends NativeTypeDecoder {
   type Aux[Json0] = NativeTypeDecoder { type Json = Json0 }
 }
@@ -30,6 +32,9 @@ class NativeTypeDecoder extends lspace.codec.NativeTypeDecoder {
 
   def jsonToDouble(json: Json): Option[Double] = json.number.flatMap(_.toDouble)
 
-  def jsonToLong(json: Json): Option[Long] = json.number.flatMap(_.toLong)
+  def jsonToLong(json: Json): Option[Long] =
+    json.number
+      .flatMap(n => n.toLong.orElse(n.toInt.map(_.toLong)))
+      .orElse(json.string.flatMap(s => Try(s.toLong).toOption))
 
 }

@@ -18,13 +18,9 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
       .orElse(
         json.long
           .orElse(json.int.map(_.toLong))
-          .map(
-            id =>
-              idMaps.nodeIds
-                .getOrElse(
-                  id,
-                  throw FromJsonException(
-                    s"unknown node id ref $id in ${graph.iri} ${idMaps.nodeIds} ${graph.nodes().toList.map(_.id)}")))
+          .flatMap(idMaps.nodeIds.get)
+//              .getOrElse(id, throw FromJsonException(s"unknown node id ref $id in ${graph.iri} ${idMaps.nodeIds.toList
+//                .sortBy(_._1)} ${graph.nodes().toList.map(_.id).sorted}")))
           .map(id => Task(graph.getOrCreateNode(id))))
 
   override def toNode(expandedJson: Map[String, Json], label: Option[Ontology])(
@@ -34,8 +30,8 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
       .flatMap(json =>
         json.long
           .orElse(json.int.map(_.toLong)))
-      .map(idMaps.nodeIds
-        .getOrElse(_, throw FromJsonException("unknown node id ref")))
+      .flatMap(idMaps.nodeIds.get)
+//        .getOrElse(_, throw FromJsonException("unknown node id ref")))
       .map { id =>
         extractOntologies(expandedJson).flatMap { ontologies =>
           Task(graph.getOrCreateNode(id)).map { node =>
@@ -59,8 +55,8 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
       .orElse(
         json.long
           .orElse(json.int.map(_.toLong))
-          .map(idMaps.nodeIds
-            .getOrElse(_, throw FromJsonException("unknown edge id ref")))
+          .flatMap(idMaps.edgeIds.get)
+//            .getOrElse(_, throw FromJsonException("unknown edge id ref")))
           .flatMap(graph.edges.hasId(_).map(Task(_))))
   //    override def toEdge(expandedJson: Map[String, Json], expectedTypes: List[Property])(
   //      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = {

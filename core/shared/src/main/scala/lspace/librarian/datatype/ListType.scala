@@ -40,7 +40,7 @@ object ListType extends DataTypeDef[ListType[Any]] {
 
   def apply[V](valueRange: List[ClassType[V]]): ListType[V] = new ListType[V](valueRange) {
     lazy val iri =
-      List(NS.types.`@list`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
+      List(NS.types.`@list`, "(", valueRange.map(_.iri).filter(_.nonEmpty).mkString("+"), ")")
         .filter(_.nonEmpty)
         .reduceLeft(_ + _)
 

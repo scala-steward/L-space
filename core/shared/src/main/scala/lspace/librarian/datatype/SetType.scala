@@ -48,7 +48,7 @@ object SetType extends DataTypeDef[SetType[Any]] {
 
   def apply[V](valueRange: List[ClassType[V]]): SetType[V] = new SetType[V](valueRange) {
     lazy val iri =
-      List(NS.types.`@set`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
+      List(NS.types.`@set`, "(", valueRange.map(_.iri).filter(_.nonEmpty).mkString("+"), ")")
         .filter(_.nonEmpty)
         .reduceLeft(_ + _)
 

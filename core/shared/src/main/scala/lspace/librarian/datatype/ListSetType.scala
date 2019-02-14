@@ -51,7 +51,7 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
 
   def apply[V](valueRange: List[ClassType[V]]): ListSetType[V] = new ListSetType[V](valueRange) {
     lazy val iri =
-      List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+"), ")")
+      List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).mkString("+"), ")")
         .filter(_.nonEmpty)
         .reduceLeft(_ + _)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil

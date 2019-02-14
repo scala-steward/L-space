@@ -31,31 +31,6 @@ object DataType
     val iri: String = NS.types.`@datatype`
   }
 
-//  def apply(node: Node): DataType[_] =
-//    node.iri match {
-//      case types.`@id` | types.schemaURL            => IriType.datatype
-//      case types.`@nodeURL`                         => NodeURLType.datatype
-//      case types.`@edgeURL`                         => EdgeURLType.datatype
-//      case types.`@valueURL`                        => ValueURLType.datatype
-//      case types.`@string` | types.schemaText       => TextType.datatype
-//      case types.`@number` | types.schemaNumber     => IntType.datatype
-//      case types.`@int` | types.schemaInteger       => IntType.datatype
-//      case types.`@double` | types.schemaFloat      => DoubleType.datatype
-//      case types.`@long`                            => LongType.datatype
-//      case types.`@date` | types.schemaDate         => LocalDateType.datatype
-//      case types.`@datetime` | types.schemaDateTime => DateTimeType.datatype
-//      case types.`@time` | types.schemaTime         => LocalTimeType.datatype
-//      case types.`@temporal`                        => CalendarType.datatype
-//      case types.`@duration`                        => DurationType.datatype
-//      case types.`@quantity`                        => QuantityType.datatype
-////        case types.`@epoch`                           => EpochType
-//      case types.`@boolean` | types.schemaBoolean => BoolType.datatype
-//      case types.`@geo`                           => GeometricType.datatype
-//      case types.`@color`                         => TextType.datatype
-//      case _ =>
-//        throw new Exception(s"ontology/property ${node.iri} not known in graph ${node.graph.iri}")
-//    }
-
   def build(node: Node): Task[Coeval[DataType[_]]] = {
     datatypes.get(node.iri).getOrElse {
       if (node.hasLabel(ontology).nonEmpty) {
@@ -396,20 +371,6 @@ object DataType
       val iri: String = ""
     }
   }
-
-//  import scala.collection.JavaConverters._
-//  import scala.collection.concurrent
-//  private val constructing: concurrent.Map[String, Task[DataType[_]]] =
-//    new ConcurrentHashMap[String, Task[DataType[_]]]().asScala
-//  def getOrConstructing(iri: String)(constructTask: Task[DataType[_]]): Task[DataType[_]] =
-//    constructing.getOrElseUpdate(iri, constructTask.memoize)
-//
-//  private val constructed: concurrent.Map[String, Coeval[DataType[_]]] =
-//    new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
-//  def getOrConstructed(iri: String)(constructTask: Coeval[DataType[_]]): Coeval[DataType[_]] =
-//    constructed.getOrElseUpdate(iri, constructTask.memoize)
-//  def getConstructed(iri: String): Option[Coeval[DataType[_]]] =
-//    constructed.get(iri)
 }
 
 /**

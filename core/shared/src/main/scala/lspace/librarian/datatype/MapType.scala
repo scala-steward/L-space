@@ -95,7 +95,7 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
       lazy val iri =
 //        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
 //        else
-        s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})(${valueRange.map(_.iri).filter(_.nonEmpty).sorted.mkString("+")})"
+        s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).mkString("+")})(${valueRange.map(_.iri).filter(_.nonEmpty).mkString("+")})"
 
       override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
     }

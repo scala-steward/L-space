@@ -746,7 +746,7 @@ trait Decoder {
         case Some(iri) =>
           graph.ns.datatypes
             .get(iri)
-            .map(_.orElse(collectionIri(iri)))
+            .map(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[_]])))
             .flatMap(_.map(Task.now).getOrElse {
               DataType.datatypes
                 .getOrConstruct(iri)({
@@ -764,10 +764,10 @@ trait Decoder {
                     if (iri.startsWith("@"))
                       graph.ns.datatypes
                         .get(iri)
-                        .flatMap(_.orElse(collectionIri(iri))
+                        .flatMap(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[Any]]))
                           .map(Task.now)
                           .getOrElse(Task.raiseError(FromJsonException("not a collection-iri"))))
-                        .map(Coeval.now)
+                        .map(Coeval.now(_))
                     else Task.raiseError(FromJsonException("datatype should start with '@'"))
                   } else
                     (`@extends`.head match {
@@ -801,96 +801,6 @@ trait Decoder {
     } else Task.raiseError(FromJsonException("datatype is not of type '@class'"))
   }
 
-  private def collectionIri(iri: String)(implicit activeContext: AC): Option[DataType[_]] = {
-    def iriToCollectionType(iri: String, tail: String): (ClassType[Any], String) = {
-      iri match {
-        case types.`@list` =>
-          val (list, newTail) = getIris(tail, 1)
-          ListType(list.head) -> newTail
-        case types.`@listset` =>
-          val (list, newTail) = getIris(tail, 1)
-          ListSetType(list.head) -> newTail
-        case types.`@set` =>
-          val (list, newTail) = getIris(tail, 1)
-          ListType(list.head) -> newTail
-        case types.`@vector` =>
-          val (list, newTail) = getIris(tail, 1)
-          ListType(list.head) -> newTail
-        case types.`@map` =>
-          val (list, newTail) = getIris(tail, 2)
-          MapType(list.head, list(1)) -> newTail
-        case types.`@tuple2` =>
-          val (list, newTail) = getIris(tail, 2)
-          Tuple2Type(list.head, list(1)) -> newTail
-        case types.`@tuple3` =>
-          val (list, newTail) = getIris(tail, 3)
-          Tuple3Type(list.head, list(1), list(2)) -> newTail
-        case types.`@tuple4` =>
-          val (list, newTail) = getIris(tail, 4)
-          Tuple4Type(list.head, list(1), list(2), list(3)) -> newTail
-        case _ =>
-          graph.ns.classtypes.cached(iri).getOrElse(throw FromJsonException(s"cannot decode or find $iri")) -> tail
-        //TODO: catch others
-      }
-    }
-    def getIris(tail: String, parts: Int = 1): (List[List[ClassType[Any]]], String) = {
-      val indexClosingParenthesis = tail.indexOf(')')
-      val indexOpeningParenthesis = tail.indexOf('(')
-      if (indexClosingParenthesis < indexOpeningParenthesis || indexOpeningParenthesis == -1) {
-        val (tailClasstypes, tailIri) =
-          if (parts > 1) getIris(tail.drop(indexClosingParenthesis + 1), parts - 1)
-          else List[List[ClassType[_]]]() -> "" //get other parts
-        (tail
-          .take(indexClosingParenthesis)
-          .split('+')
-          .toList
-          .map(activeContext.expandIri)
-          .map(iriToClassType(_).getOrElse(throw FromJsonException("unknown @type"))) :: tailClasstypes) -> tailIri //concat
-      } else {
-        tail
-          .take(indexClosingParenthesis)
-          .split('+')
-          .toList
-          .map(activeContext.expandIri) match { //split types until nested type @int+@double+@list/(
-          case head :: Nil =>
-            val (tpe, newTail) = iriToCollectionType(head.stripSuffix("/"), tail.drop(indexOpeningParenthesis + 1))
-            val (tailTpes, newTail2) =
-              if (parts > 2) getIris(newTail, parts - 2)
-              else List[List[ClassType[_]]]() -> tail
-            (List(tpe) :: tailTpes) -> newTail2
-          case list =>
-            val (tpe, newTail) =
-              iriToCollectionType(list.last.stripSuffix("/"), tail.drop(indexOpeningParenthesis + 1))
-            val (tailTpes, newTail2) =
-              if (parts > 1 + list.size) getIris(newTail, parts - (1 + list.size))
-              else List[List[ClassType[_]]]() -> tail
-            (List((list
-              .dropRight(1)
-              .map(iriToClassType(_).getOrElse(throw FromJsonException("unknown @type"))) :+ tpe) ::: tailTpes.head) ::: tailTpes.tail) -> newTail2
-        }
-      }
-    }
-
-    iri.replaceAll("\\/", "").split("\\(", 2).toList match {
-      case List(iri, tail) =>
-        Some(iri match {
-          case types.`@list`    => iriToCollectionType(iri, tail)._1
-          case types.`@listset` => iriToCollectionType(iri, tail)._1
-          case types.`@set`     => iriToCollectionType(iri, tail)._1
-          case types.`@vector`  => iriToCollectionType(iri, tail)._1
-          case types.`@map`     => iriToCollectionType(iri, tail)._1
-          case types.`@tuple2`  => iriToCollectionType(iri, tail)._1
-          case types.`@tuple3`  => iriToCollectionType(iri, tail)._1
-          case types.`@tuple4`  => iriToCollectionType(iri, tail)._1
-        }).asInstanceOf[Option[DataType[Any]]]
-    }
-  }
-
-  def iriToClassType(iri: String)(implicit activeContext: AC): Option[ClassType[Any]] = //TODO: .get (Task) instead of .cached
-    graph.ns.classtypes
-      .cached(iri)
-      .orElse(collectionIri(iri))
-
   def toClasstype(obj: Map[String, Json])(implicit activeContext: AC): Task[ClassType[Any]] = {
     val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@datatype`))) {
@@ -918,7 +828,7 @@ trait Decoder {
                     iri =>
                       graph.ns.classtypes.get(iri)
                         flatMap (_.map(Task.now).getOrElse(
-                          collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                          CollectionType.get(iri).map(Task.now).getOrElse(fetchProperty(iri))))
                   ))
               .getOrElse(Task.raiseError(FromJsonException("nested arrays not allowed")))))
       .map(Task.gather(_))
@@ -928,7 +838,7 @@ trait Decoder {
           .map(
             iri =>
               graph.ns.classtypes.get(iri)
-                flatMap (_.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                flatMap (_.map(Task.now).getOrElse(CollectionType.get(iri).map(Task.now).getOrElse(fetchProperty(iri))))
           )
           .map(List(_))
           .map(Task.gather(_)))
@@ -1032,28 +942,30 @@ trait Decoder {
       case Some(json) =>
         jsonToList(json) match {
           case Some(array) =>
-            Task.gather(array.map(json =>
-              jsonToMap(json)
-                .map { obj =>
-                  val expandedJson = activeContext.expandKeys(obj)
-                  if (expandedJson.size == 1)
-                    activeContext
-                      .extractId(expandedJson)
-                      .map { iri =>
-                        graph.ns.classtypes
-                          .get(iri)
-                          .flatMap(
-                            _.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
-                      }
-                      .getOrElse(throw FromJsonException("@type object without @id"))
-                  else toClasstype(obj)
-                }
-                .orElse((json: Option[String]).map(activeContext.expandIri).map { iri =>
-                  graph.ns.classtypes
-                    .get(iri)
-                    .flatMap(_.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri))))
-                })
-                .getOrElse(Task.raiseError(FromJsonException("nested types not allowed")))))
+            Task.gather(
+              array.map(json =>
+                jsonToMap(json)
+                  .map { obj =>
+                    val expandedJson = activeContext.expandKeys(obj)
+                    if (expandedJson.size == 1)
+                      activeContext
+                        .extractId(expandedJson)
+                        .map { iri =>
+                          graph.ns.classtypes
+                            .get(iri)
+                            .flatMap(_.map(Task.now).getOrElse(
+                              CollectionType.get(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                        }
+                        .getOrElse(throw FromJsonException("@type object without @id"))
+                    else toClasstype(obj)
+                  }
+                  .orElse((json: Option[String]).map(activeContext.expandIri).map { iri =>
+                    graph.ns.classtypes
+                      .get(iri)
+                      .flatMap(
+                        _.map(Task.now).getOrElse(CollectionType.get(iri).map(Task.now).getOrElse(fetchProperty(iri))))
+                  })
+                  .getOrElse(Task.raiseError(FromJsonException("nested types not allowed")))))
           case None =>
             (json: Option[String])
               .map(activeContext.expandIri)
@@ -1061,7 +973,8 @@ trait Decoder {
                 iri =>
                   graph.ns.classtypes
                     .get(iri)
-                    .flatMap(_.map(Task.now).getOrElse(collectionIri(iri).map(Task.now).getOrElse(fetchProperty(iri)))))
+                    .flatMap(
+                      _.map(Task.now).getOrElse(CollectionType.get(iri).map(Task.now).getOrElse(fetchProperty(iri)))))
               .getOrElse(Task.raiseError(FromJsonException("nested types not allowed")))
               .map(List(_))
         }

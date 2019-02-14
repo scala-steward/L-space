@@ -313,22 +313,6 @@ object Property {
             extendedClasses: List[Property] = List(),
             properties: List[Property] = List()): Property =
     new Property(iri, iris, () => range, containers, label, comment, () => extendedClasses, () => properties) {}
-
-//  import scala.collection.JavaConverters._
-//  import scala.collection.concurrent
-//  private val constructing: concurrent.Map[String, Task[Property]] =
-//    new ConcurrentHashMap[String, Task[Property]]().asScala
-//  def getOrConstructing(iri: String)(constructTask: Task[Property]): Task[Property] =
-//    constructing.getOrElseUpdate(iri, constructTask.memoize)
-//  def getConstructing(iri: String): Option[Task[Property]] =
-//    constructing.get(iri)
-//
-//  private val constructed: concurrent.Map[String, Coeval[Property]] =
-//    new ConcurrentHashMap[String, Coeval[Property]]().asScala
-//  def getOrConstructed(iri: String)(constructTask: Coeval[Property]): Coeval[Property] =
-//    constructed.getOrElseUpdate(iri, constructTask.memoize)
-//  def getConstructed(iri: String): Option[Coeval[Property]] =
-//    constructed.get(iri)
 }
 
 /**
