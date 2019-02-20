@@ -1,10 +1,10 @@
 package lspace.lgraph
 
 import lspace.lgraph.index.{IndexManager, LIndex}
-import lspace.librarian.process.traversal.UntypedTraversal
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.structure.index.Index
-import lspace.librarian.structure.{IndexGraph, Property}
+import lspace.librarian.traversal.UntypedTraversal
+import lspace.provider.mem.MemGraph
+import lspace.structure.index.Index
+import lspace.structure.{IndexGraph, Property}
 import monix.eval.Task
 import monix.execution.CancelableFuture
 

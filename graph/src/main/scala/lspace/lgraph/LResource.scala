@@ -3,7 +3,7 @@ package lspace.lgraph
 import java.time.Instant
 
 import lspace.lgraph.LResource.LinksSet
-import lspace.librarian.structure.{Edge, Property, Resource}
+import lspace.structure.{Edge, Property, Resource}
 import monix.execution.atomic.AtomicLong
 
 import scala.collection.mutable

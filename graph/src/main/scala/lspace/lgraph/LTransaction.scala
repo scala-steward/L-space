@@ -1,9 +1,9 @@
 package lspace.lgraph
 
-import lspace.librarian.datatype.{CollectionType, DataType}
-import lspace.librarian.provider.mem.{MemGraph, MemIndexGraph}
-import lspace.librarian.provider.transaction.Transaction
-import lspace.librarian.structure._
+import lspace.datatype.{CollectionType, DataType}
+import lspace.provider.mem.{MemGraph, MemIndexGraph}
+import lspace.provider.transaction.Transaction
+import lspace.structure._
 import monix.eval.Task
 
 import scala.collection.immutable.ListSet

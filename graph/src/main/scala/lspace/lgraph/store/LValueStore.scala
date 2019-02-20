@@ -4,10 +4,10 @@ import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.lgraph.LGraph
-import lspace.librarian.datatype._
-import lspace.librarian.process.traversal.helper.ClassTypeable
-import lspace.librarian.structure.ClassType
-import lspace.librarian.structure.store.ValueStore
+import lspace.datatype._
+import lspace.structure.ClassType
+import lspace.structure.util.ClassTypeable
+import lspace.structure.store.ValueStore
 import lspace.types.vector.Point
 
 import scala.collection.immutable.ListSet

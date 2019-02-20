@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.librarian.structure.NameSpaceGraph
+import lspace.structure.NameSpaceGraph
 import monix.eval.Task
 import monix.execution.CancelableFuture
 

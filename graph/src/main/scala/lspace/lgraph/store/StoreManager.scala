@@ -1,9 +1,9 @@
 package lspace.lgraph.store
 
 import lspace.lgraph.{LGraph, LGraphIdProvider}
-import lspace.librarian.datatype.DataType
-import lspace.librarian.structure._
-import lspace.librarian.structure.store.{EdgeStore, NodeStore, ValueStore}
+import lspace.datatype.DataType
+import lspace.structure._
+import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import monix.eval.Task
 import monix.execution.{Cancelable, CancelableFuture}
 

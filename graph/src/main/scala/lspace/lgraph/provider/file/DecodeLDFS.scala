@@ -3,7 +3,7 @@ package lspace.lgraph.provider.file
 import lspace.NS.types
 import lspace.codec.NativeTypeDecoder
 import lspace.codec.exception.FromJsonException
-import lspace.librarian.structure._
+import lspace.structure._
 import monix.eval.Task
 
 case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps())(

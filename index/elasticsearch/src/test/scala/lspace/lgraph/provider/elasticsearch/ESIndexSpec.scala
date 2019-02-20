@@ -3,7 +3,7 @@ package lspace.lgraph.provider.elasticsearch
 import lspace.lgraph.LGraph
 import lspace.lgraph.index.{LGraphIndexSpec, LIndex}
 import lspace.lgraph.provider.mem.MemStoreProvider
-import lspace.librarian.process.traversal.UntypedTraversal
+import lspace.librarian.traversal.UntypedTraversal
 
 class ESIndexSpec extends LGraphIndexSpec {
 

@@ -2,8 +2,8 @@ package lspace.lgraph
 
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store.{StoreManager, StoreProvider}
-import lspace.librarian.structure.util.IdProvider
-import lspace.librarian.structure.{DataGraph, History, NameSpaceGraph}
+import lspace.structure.util.IdProvider
+import lspace.structure.{DataGraph, History, NameSpaceGraph}
 import monix.execution.CancelableFuture
 
 object LHistory {

@@ -1,8 +1,8 @@
 package lspace.lgraph
 
 import lspace.lgraph.index.LIndex
-import lspace.librarian.structure._
-import lspace.librarian.structure.index.Index
+import lspace.structure._
+import lspace.structure.index.Index
 import monix.eval.Task
 import monix.execution.CancelableFuture
 

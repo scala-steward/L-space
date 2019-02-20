@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.lgraph.LGraph
-import lspace.librarian.structure.store.Store
+import lspace.structure.store.Store
 
 import scala.collection.concurrent
 import scala.collection.JavaConverters._

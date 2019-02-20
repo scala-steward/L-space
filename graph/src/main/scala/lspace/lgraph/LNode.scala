@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.librarian.structure.{Node, Ontology, Property}
+import lspace.structure.{Node, Ontology, Property}
 
 import scala.collection.mutable
 

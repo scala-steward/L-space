@@ -1,7 +1,7 @@
 package lspace.lgraph.provider.file
 
 import lspace.NS.types
-import lspace.librarian.structure._
+import lspace.structure._
 import lspace.codec.{JsonInProgress, NativeTypeEncoder}
 
 case class EncodeLDFS[Json0](idMaps: IdMaps = IdMaps())(implicit val baseEncoder: NativeTypeEncoder.Aux[Json0])

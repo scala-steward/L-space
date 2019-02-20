@@ -3,7 +3,7 @@ package lspace.lgraph.store
 import java.time.Instant
 
 import lspace.lgraph.LGraph
-import lspace.librarian.structure.store.NodeStore
+import lspace.structure.store.NodeStore
 import scala.concurrent.duration._
 
 object LNodeStore {

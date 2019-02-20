@@ -8,8 +8,8 @@ import lspace.codec._
 import lspace.codec.exception.FromJsonException
 import lspace.lgraph._
 import lspace.lgraph.store.StoreManager
-import lspace.librarian.datatype._
-import lspace.librarian.structure._
+import lspace.datatype._
+import lspace.structure._
 import monix.eval.Task
 import monix.execution.{Cancelable, CancelableFuture}
 import monix.reactive.Observable

@@ -3,13 +3,12 @@ package lspace.lgraph
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store._
 import lspace.lgraph.util.CacheReaper
-import lspace.librarian.datatype.DataType
-import lspace.librarian.process.computer.DefaultStreamComputer
+import lspace.datatype.DataType
 import monix.eval.Task
-import lspace.librarian.process.traversal.Traversal
-import lspace.librarian.provider.transaction.Transaction
-import lspace.librarian.structure._
-import lspace.librarian.structure.util.IdProvider
+import lspace.librarian.traversal.Traversal
+import lspace.provider.transaction.Transaction
+import lspace.structure._
+import lspace.structure.util.IdProvider
 import monix.execution.{Cancelable, CancelableFuture}
 import shapeless.HList
 
@@ -256,15 +255,6 @@ trait LGraph extends Graph {
   }
 
   override def transaction: Transaction = LTransaction(thisgraph)
-
-  val computer = DefaultStreamComputer()
-  def buildTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[Start, End, Steps]): Stream[Out] =
-    computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph)
-
-  def buildAsyncTraversersStream[Start <: ClassType[_], End <: ClassType[_], Steps <: HList, Out](
-      traversal: Traversal[Start, End, Steps]): Task[Stream[Out]] =
-    Task(computer.traverse[Start, End, Steps, Out, this.type](traversal)(thisgraph))
 
   override def persist: CancelableFuture[Unit] = storeManager.persist
 

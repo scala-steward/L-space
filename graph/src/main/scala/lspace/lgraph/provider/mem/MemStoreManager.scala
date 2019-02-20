@@ -2,8 +2,8 @@ package lspace.lgraph.provider.mem
 
 import lspace.lgraph._
 import lspace.lgraph.store.StoreManager
-import lspace.librarian.datatype._
-import lspace.librarian.structure.Property
+import lspace.datatype._
+import lspace.structure.Property
 import monix.eval.Task
 import monix.execution.CancelableFuture
 

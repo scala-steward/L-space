@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.librarian.structure.util.IdProvider
+import lspace.structure.util.IdProvider
 
 trait LGraphIdProvider extends IdProvider {
   protected def newIdRange: Vector[Long]

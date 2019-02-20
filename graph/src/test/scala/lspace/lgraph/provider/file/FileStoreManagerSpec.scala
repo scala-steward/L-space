@@ -2,12 +2,14 @@ package lspace.lgraph.provider.file
 
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.MemIndexProvider
-import lspace.librarian.process.computer.GraphComputerSpec
-import lspace.librarian.structure.{Graph, GraphSpec, NodeSpec, SampledGraph}
+import lspace.librarian.task.{Guide, StandardGuide, TaskSpec}
+import lspace.structure.{Graph, GraphSpec, NodeSpec, SampledGraph}
 
 import scala.concurrent.Await
 
-class FileStoreManagerSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
+class FileStoreManagerSpec extends GraphSpec with NodeSpec with TaskSpec {
+  import lspace.Implicits.DefaultAssistent.assistent
+  lazy val guide: Guide = StandardGuide()
 
   implicit val baseEncoder = lspace.codec.argonaut.nativeEncoder
   implicit val baseDecoder = lspace.codec.argonaut.nativeDecoder

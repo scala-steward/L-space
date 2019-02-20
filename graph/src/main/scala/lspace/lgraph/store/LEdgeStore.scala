@@ -3,8 +3,8 @@ package lspace.lgraph.store
 import java.time.Instant
 
 import lspace.lgraph.{LGraph, LResource}
-import lspace.librarian.structure.store.EdgeStore
-import lspace.librarian.structure.{Edge, Property}
+import lspace.structure.store.EdgeStore
+import lspace.structure.{Edge, Property}
 
 import scala.concurrent.duration._
 
