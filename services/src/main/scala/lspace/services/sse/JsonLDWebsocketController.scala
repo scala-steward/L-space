@@ -7,8 +7,8 @@
 //import akka.stream.Materializer
 //import lspace.client.session.Session
 //import lspace.client.io.{ ToServerProtocol, ToClientProtocol }
-//import lspace.librarian.provider.mem.MemGraphDefault
-//import lspace.librarian.structure.Node
+//import lspace.provider.mem.MemGraphDefault
+//import lspace.structure.Node
 //import lspace.services.play.security.{ ClientPlaySession, OpenPlaySession, UserPlaySession }
 //import lspace.util.parse.LDParser
 //import play.api.Logger

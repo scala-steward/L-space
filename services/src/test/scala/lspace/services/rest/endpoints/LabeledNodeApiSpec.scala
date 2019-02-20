@@ -5,12 +5,12 @@ import com.twitter.util.Await
 import io.finch.{Application, Bootstrap, Input}
 import lspace.encode.EncodeJsonLD
 import lspace.services.codecs.{Application => LApplication}
-import lspace.librarian.datatype.TextType
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.structure._
-import lspace.librarian.structure.Property.default.`@id`
-import lspace.librarian.util.SampleGraph
+import lspace.datatype.TextType
+import lspace.provider.detached.DetachedGraph
+import lspace.provider.mem.MemGraph
+import lspace.structure._
+import lspace.structure.Property.default.`@id`
+import lspace.util.SampleGraph
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import shapeless.{:+:, CNil}
 

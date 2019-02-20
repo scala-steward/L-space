@@ -2,14 +2,14 @@ package lspace.services.rest.endpoints
 
 import java.time.Instant
 
-import lspace.librarian.process.traversal.{Collection, Traversal}
-import lspace.librarian.structure._
+import lspace.librarian.traversal.Collection
+import lspace.structure._
 import cats.effect.IO
 import io.finch._
 import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
 import lspace.decode.DecodeJsonLD
-import lspace.librarian.datatype.DataType
-import lspace.librarian.provider.detached.DetachedGraph
+import lspace.datatype.DataType
+import lspace.provider.detached.DetachedGraph
 import monix.eval.Task
 import scribe._
 import shapeless.{CNil, HList}
@@ -43,6 +43,9 @@ trait TraversalService extends Api {
 
   implicit val ec = monix.execution.Scheduler.global
 
+  import lspace._
+  import Implicits.StandardGuide._
+
   /**
     * Traversal on this (multi-)graph
     *
@@ -62,13 +65,13 @@ trait TraversalService extends Api {
       "traverse" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
                          lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
-        traversalTask.map { traversal =>
-          val start                     = Instant.now()
-          val result                    = traversal.toUntypedStream.toList
-          val collection: Collection[_] = Collection(start, Instant.now(), result)
-
-          collection.logger.debug("result count: " + result.size.toString)
-          Ok(collection)
+        traversalTask.flatMap { traversal =>
+          val start = Instant.now()
+          traversal.untyped.toObservable(graph).toListL.map { values =>
+            val collection: Collection[_] = Collection(start, Instant.now(), values)
+            collection.logger.debug("result count: " + values.size.toString)
+            Ok(collection)
+          }
         }.toIO
     }
   }
@@ -82,11 +85,17 @@ trait TraversalService extends Api {
 
   lazy val getLabels: Endpoint[IO, Collection[Any]] = get("label") {
     val start = Instant.now()
-    val result = graph.ns.g.N
+    val traversal = g.N
       .union(_.hasLabel(Ontology.ontology), _.hasLabel(Property.ontology), _.hasLabel(DataType.ontology))
 
-    val collection: Collection[Any] = Collection(start, Instant.now(), result.toList, result.ct)
-    Ok(collection)
+    traversal
+      .toObservable(graph)
+      .toListL
+      .map { values =>
+        val collection: Collection[Any] = Collection(start, Instant.now(), values, traversal.ct)
+        Ok(collection)
+      }
+      .toIO
   }
 
   lazy val api = traverse :+: getLabels

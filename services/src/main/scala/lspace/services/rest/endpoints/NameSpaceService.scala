@@ -6,7 +6,7 @@ import com.twitter.finagle.http.Response
 import io.finch._
 import io.finch.Endpoint
 import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
-import lspace.librarian.structure.{Graph, Lspace}
+import lspace.structure.{Graph, Lspace}
 
 import scala.collection.mutable
 

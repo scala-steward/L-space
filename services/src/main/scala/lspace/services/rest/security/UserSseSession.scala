@@ -4,8 +4,8 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 
 import lspace.client.{Client, User}
 import lspace.client.session.{ClientSession, OpenSession, UserSession}
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.structure.Property
+import lspace.provider.detached.DetachedGraph
+import lspace.structure.Property
 
 object UserSseSession {
   def apply(

@@ -3,8 +3,8 @@ package lspace.services.rest.security
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 import lspace.client.session._
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.structure.Property
+import lspace.provider.detached.DetachedGraph
+import lspace.structure.Property
 
 object OpenSseSession {
   def apply(

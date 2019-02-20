@@ -1,11 +1,11 @@
 package lspace.services.rest.endpoints
 
 import io.finch.Input
+import lspace._
 import lspace.services.codecs.Application
-import lspace.librarian.process.traversal.P
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.util.SampleGraph
+import lspace.provider.mem.MemGraph
 import lspace.services.util
+import lspace.util.SampleGraph
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 class TraversalLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {

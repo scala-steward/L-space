@@ -5,13 +5,14 @@ import com.twitter.finagle
 import com.twitter.finagle.http.{Request, Response, Status}
 import io.finch.{Bootstrap, Input, Output}
 import lspace.codec.Decoder
-import lspace.librarian.process.traversal.{Collection, P}
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.structure.{Graph, Node}
-import lspace.librarian.util.SampleGraph
+import lspace._
+import lspace.librarian.traversal.Collection
+import lspace.provider.detached.DetachedGraph
+import lspace.provider.mem.MemGraph
+import lspace.structure.{Graph, Node}
 import lspace.services.SimpleGraphServer
 import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
+import lspace.util.SampleGraph
 import org.scalatest._
 import org.scalatest.Matchers
 import shapeless.{:+:, CNil}
@@ -43,7 +44,7 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
   "a graph-server" should {
     "execute a traversal only on a POST request" in {
 
-      val traversal = graph.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
+      val traversal = g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       import lspace.encode.EncodeJson._
       import lspace.encode.EncodeJsonLD._
       import lspace.services.codecs

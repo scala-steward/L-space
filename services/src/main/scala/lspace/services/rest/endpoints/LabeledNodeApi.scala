@@ -3,9 +3,8 @@ package lspace.services.rest.endpoints
 import cats.effect.IO
 import com.twitter.finagle.http.{Request, Response}
 import io.finch._
-import lspace.librarian.process.traversal.Traversal
-import lspace.librarian.structure._
-import lspace.librarian.structure.Property.default._
+import lspace.structure._
+import lspace.structure.Property.default._
 import monix.eval.Task
 import shapeless.{:+:, CNil, HList, Poly1}
 import eu.timepit.refined.api.Refined
@@ -14,9 +13,7 @@ import eu.timepit.refined.numeric._
 import io.finch.refined._
 import lspace.codec.{Decoder, NativeTypeDecoder}
 import lspace.decode.{DecodeJson, DecodeJsonLD}
-import lspace.librarian.provider.detached.DetachedGraph
-
-case class PagedResult(result: List[Node])
+import lspace.provider.detached.DetachedGraph
 
 //object LabeledNodeApi {
 //  def apply(ontology: Ontology)(implicit graph: Lspace, baseDecoder: NativeTypeDecoder): LabeledNodeApi =
@@ -37,18 +34,21 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
   implicit val ec = monix.execution.Scheduler.global
   val label       = ontology.label.getOrElse("en", throw new Exception("no label found")).toLowerCase()
 
+  import lspace._
+  import Implicits.StandardGuide._
+
   val idToNodeTask: Long => Task[Option[Node]] = (id: Long) =>
-    graph.g.N
+    g.N
       .hasIri(graph.iri + "/" + label + "/" + id)
       .hasLabel(ontology)
-      .toAsyncStream
-      .map(_.headOption)
+      .toObservable(graph)
+      .headOptionL
   val iriToNodeTask: String => Task[Option[Node]] = (iri: String) =>
-    graph.g.N
+    g.N
       .hasIri(iri)
       .hasLabel(ontology)
-      .toAsyncStream
-      .map(_.headOption)
+      .toObservable(graph)
+      .headOptionL
 
   val byIri: Endpoint[IO, Node] = get(path[String]).mapOutputAsync { (iri: String) =>
     iriToNodeTask(iri).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
@@ -69,7 +69,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     * GET /
     */
   val list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
-    graph.g.N.hasLabel(ontology).toObservable.toListL.map(Ok).toIO
+    g.N.hasLabel(ontology).toObservable(graph).toListL.map(Ok).toIO
   }
 
 //  val create2: Endpoint[IO, Node] =
@@ -205,7 +205,9 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     get(body[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
-          traversal.toUntypedStreamTask
+          traversal.untyped
+            .toObservable(graph)
+            .toListL
             .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
             .map(_.toList)
             .map(Ok)

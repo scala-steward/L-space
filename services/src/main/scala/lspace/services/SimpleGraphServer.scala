@@ -10,7 +10,7 @@ import io.finch.sse.ServerSentEvent
 import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.encode.EncodeJsonLD
 import lspace.encode.EncodeJson
-import lspace.librarian.structure.Graph
+import lspace.structure.Graph
 import lspace.services.rest.endpoints.{NameSpaceService, TraversalService}
 import lspace.services.rest.security.WithSse
 import shapeless._
