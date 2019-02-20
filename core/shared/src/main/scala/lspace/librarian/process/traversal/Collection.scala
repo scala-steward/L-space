@@ -1,12 +1,12 @@
-package lspace.librarian.process.traversal
+package lspace.librarian.traversal
 
 import java.time.Instant
 
-import lspace.librarian.datatype.{DataType, ListType}
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure.OntologyDef
-import lspace.librarian.structure._
+import lspace.datatype.{DataType, ListType}
+import lspace.provider.detached.DetachedGraph
+import lspace.provider.wrapped.WrappedNode
+import lspace.structure.OntologyDef
+import lspace.structure._
 
 object Collection
     extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Collection",
