@@ -6,9 +6,9 @@ import com.outworkers.phantom.builder.batch.BatchQuery
 import com.outworkers.phantom.dsl._
 import lspace.lgraph._
 import lspace.lgraph.store.{LEdgeStore, LNodeStore, LValueStore, StoreManager}
-import lspace.librarian.datatype.DataType
-import lspace.librarian.structure
-import lspace.librarian.structure.{Ontology, Property}
+import lspace.datatype.DataType
+import lspace.structure
+import lspace.structure.{Ontology, Property}
 import lspace.parse.{ActiveContext, JsonLD}
 import monix.eval.Task
 import monix.reactive._

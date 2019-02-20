@@ -1,6 +1,6 @@
 package lspace.lgraph.provider.kafka
 
-import lspace.librarian.structure.Node
+import lspace.structure.Node
 
 case class LspaceKafkaProducer(topic: String) {
   import monix.kafka._

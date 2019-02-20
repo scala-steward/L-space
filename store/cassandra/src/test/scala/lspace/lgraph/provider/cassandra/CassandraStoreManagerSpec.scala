@@ -2,11 +2,11 @@ package lspace.lgraph.provider.cassandra
 
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.MemIndexProvider
-import lspace.librarian.process.computer.GraphComputerSpec
-import lspace.librarian.structure.{Graph, GraphSpec, NodeSpec}
-import lspace.librarian.structure.Property.default._
+import lspace.librarian.process.computer.TaskSpec
+import lspace.structure.{Graph, GraphSpec, NodeSpec}
+import lspace.structure.Property.default._
 
-class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with GraphComputerSpec {
+class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with TaskSpec {
 
   val store = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", 9042)
   store.deleteAll()

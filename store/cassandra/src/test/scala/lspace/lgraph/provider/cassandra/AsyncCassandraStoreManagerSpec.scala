@@ -2,7 +2,7 @@ package lspace.lgraph.provider.cassandra
 
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.MemIndexProvider
-import lspace.librarian.structure.{AsyncGraphSpec, Graph}
+import lspace.structure.{AsyncGraphSpec, Graph}
 
 class AsyncCassandraStoreManagerSpec extends AsyncGraphSpec {
 

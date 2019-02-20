@@ -18,10 +18,10 @@ position: 2
 * [History](#history)
  
  ```tut:invisible
- import lspace.librarian.process.traversal.P
- import lspace.librarian.provider.mem.MemGraph
- import lspace.librarian.structure._
- import lspace.librarian.datatype.DataType.default._
+ import lspace.librarian.traversal.P
+ import lspace.provider.mem.MemGraph
+ import lspace.structure._
+ import lspace.datatype.DataType.default._
  import lspace.librarian.util.SampleGraph
  ```
  
