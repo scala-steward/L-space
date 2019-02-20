@@ -2,12 +2,12 @@ package lspace.client.session
 
 import java.time.Instant
 
-import lspace.librarian.datatype.DataType
-import lspace.librarian.process.traversal.TypedKey
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure.OntologyDef
-import lspace.librarian.structure._
+import lspace.datatype.DataType
+import lspace.librarian.traversal.TypedKey
+import lspace.provider.detached.DetachedGraph
+import lspace.provider.wrapped.WrappedNode
+import lspace.structure.OntologyDef
+import lspace.structure._
 
 object OpenSession
     extends OntologyDef(

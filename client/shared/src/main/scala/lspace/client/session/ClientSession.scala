@@ -3,11 +3,11 @@ package lspace.client.session
 import java.time.Instant
 
 import lspace.client.Client
-import lspace.librarian.datatype.DataType
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.structure.OntologyDef
-import lspace.librarian.structure._
-import lspace.librarian.structure.Property.default._
+import lspace.datatype.DataType
+import lspace.provider.detached.DetachedGraph
+import lspace.structure.OntologyDef
+import lspace.structure._
+import lspace.structure.Property.default._
 
 object ClientSession
     extends OntologyDef(

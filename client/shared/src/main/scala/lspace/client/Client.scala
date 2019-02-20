@@ -1,12 +1,12 @@
 package lspace.client
 
 import lspace.client.session.ClientSession
-import lspace.librarian.datatype.DataType
-import lspace.librarian.provider.detached.DetachedGraph
-import lspace.librarian.provider.wrapped.WrappedNode
-import lspace.librarian.structure._
-import lspace.librarian.structure.Property.default._
-import lspace.librarian.structure.OntologyDef
+import lspace.datatype.DataType
+import lspace.provider.detached.DetachedGraph
+import lspace.provider.wrapped.WrappedNode
+import lspace.structure._
+import lspace.structure.Property.default._
+import lspace.structure.OntologyDef
 
 object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Client", "A client ..") {
 
