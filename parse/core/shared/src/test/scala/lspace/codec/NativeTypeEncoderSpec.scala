@@ -1,11 +1,11 @@
 package lspace.codec
 
 import lspace.NS.types
-import lspace.librarian.datatype.{DataType, LongType}
-import lspace.librarian.process.traversal.Traversal
-import lspace.librarian.structure.{Ontology, Property}
-import lspace.librarian.util.SampleGraph
+import lspace.datatype.{DataType, LongType}
+import lspace.librarian.traversal.Traversal
+import lspace.structure.{Ontology, Property}
 import lspace.types.vector.Point
+import lspace.util.SampleGraph
 import org.scalatest.{Matchers, WordSpec}
 
 trait NativeTypeEncoderSpec extends WordSpec with Matchers {

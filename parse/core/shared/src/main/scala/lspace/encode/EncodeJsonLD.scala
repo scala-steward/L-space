@@ -1,7 +1,7 @@
 package lspace.encode
 
 import lspace.codec.NativeTypeEncoder
-import lspace.librarian.structure.Node
+import lspace.structure.Node
 
 trait EncodeJsonLD[A] extends Encode[A] {
   def encode: A => String

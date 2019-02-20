@@ -1,6 +1,6 @@
 package lspace.codec
 
-import lspace.librarian.structure.{ClassType, Property}
+import lspace.structure.{ClassType, Property}
 
 //trait ActiveProperty[Json] {
 //  def `@context`: ActiveContext[Json]

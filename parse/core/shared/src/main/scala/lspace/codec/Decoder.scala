@@ -4,8 +4,8 @@ import java.time.{Instant, LocalDate, LocalTime}
 
 import lspace.NS.types
 import lspace.codec.exception.{FromJsonException, NotAcceptableException, UnexpectedJsonException}
-import lspace.librarian.datatype._
-import lspace.librarian.structure._
+import lspace.datatype._
+import lspace.structure._
 import lspace.parse.util.{HttpClient, HttpClientImpl}
 import lspace.types.vector.{Geometry, Point, Polygon}
 import monix.eval.{Coeval, Task}

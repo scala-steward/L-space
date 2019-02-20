@@ -2,7 +2,7 @@ package lspace.codec
 
 import lspace.NS.types
 import lspace.codec.exception.FromJsonException
-import lspace.librarian.structure.{ClassType, Property}
+import lspace.structure.{ClassType, Property}
 
 import scala.collection.immutable.ListMap
 

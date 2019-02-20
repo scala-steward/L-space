@@ -1,6 +1,6 @@
 package lspace.encode
 
-import lspace.librarian.structure.Node
+import lspace.structure.Node
 
 trait EncodeJson[A] extends Encode[A] {
   def encode: A => String

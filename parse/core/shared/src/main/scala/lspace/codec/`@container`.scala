@@ -1,7 +1,7 @@
 package lspace.codec
 
 import lspace.NS.types
-import lspace.librarian.structure.IriResource
+import lspace.structure.IriResource
 
 sealed abstract class `@container`(val iri: String) extends IriResource {
   override def toString: String = "@id"

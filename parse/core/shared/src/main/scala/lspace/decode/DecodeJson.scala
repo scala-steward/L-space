@@ -2,8 +2,8 @@ package lspace.decode
 
 import java.util.UUID
 
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.structure.{Node, Ontology, Property}
+import lspace.provider.mem.MemGraph
+import lspace.structure.{Node, Ontology, Property}
 import monix.eval.Task
 
 trait DecodeJson[A] extends Decode[A] {

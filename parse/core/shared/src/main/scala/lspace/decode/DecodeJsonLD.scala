@@ -2,9 +2,9 @@ package lspace.decode
 
 import java.util.UUID
 
-import lspace.librarian.process.traversal.Traversal
-import lspace.librarian.provider.mem.MemGraph
-import lspace.librarian.structure._
+import lspace.librarian.traversal.Traversal
+import lspace.provider.mem.MemGraph
+import lspace.structure._
 import monix.eval.Task
 import shapeless.HList
 
@@ -77,15 +77,15 @@ object DecodeJsonLD {
     }
   }
 
-  def jsonldToTraversal(implicit decoder: lspace.codec.Decoder,
-                        graph: Graph): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =
+  def jsonldToTraversal(
+      implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =
     new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] {
       def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], HList]] =
         (string: String) =>
           decoder
             .stringToLabeledNode(string, Traversal.ontology)
             .map { node =>
-              Traversal.toTraversal(node)(graph)
+              Traversal.toTraversal(node)
           }
     }
 }
