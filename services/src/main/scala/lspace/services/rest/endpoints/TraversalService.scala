@@ -67,7 +67,7 @@ trait TraversalService extends Api {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
           val start = Instant.now()
-          traversal.untyped.toObservable(graph).toListL.map { values =>
+          traversal.untyped.withGraph(graph).toObservable.toListL.map { values =>
             val collection: Collection[_] = Collection(start, Instant.now(), values)
             collection.logger.debug("result count: " + values.size.toString)
             Ok(collection)
@@ -88,8 +88,9 @@ trait TraversalService extends Api {
     val traversal = g.N
       .union(_.hasLabel(Ontology.ontology), _.hasLabel(Property.ontology), _.hasLabel(DataType.ontology))
 
-    traversal
-      .toObservable(graph)
+    traversal.untyped
+      .withGraph(graph)
+      .toObservable
       .toListL
       .map { values =>
         val collection: Collection[Any] = Collection(start, Instant.now(), values, traversal.ct)

@@ -41,13 +41,15 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     g.N
       .hasIri(graph.iri + "/" + label + "/" + id)
       .hasLabel(ontology)
-      .toObservable(graph)
+      .withGraph(graph)
+      .toObservable
       .headOptionL
   val iriToNodeTask: String => Task[Option[Node]] = (iri: String) =>
     g.N
       .hasIri(iri)
       .hasLabel(ontology)
-      .toObservable(graph)
+      .withGraph(graph)
+      .toObservable
       .headOptionL
 
   val byIri: Endpoint[IO, Node] = get(path[String]).mapOutputAsync { (iri: String) =>
@@ -69,7 +71,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     * GET /
     */
   val list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
-    g.N.hasLabel(ontology).toObservable(graph).toListL.map(Ok).toIO
+    g.N.hasLabel(ontology).withGraph(graph).toObservable.toListL.map(Ok).toIO
   }
 
 //  val create2: Endpoint[IO, Node] =
@@ -206,7 +208,8 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
           traversal.untyped
-            .toObservable(graph)
+            .withGraph(graph)
+            .toObservable
             .toListL
             .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
             .map(_.toList)

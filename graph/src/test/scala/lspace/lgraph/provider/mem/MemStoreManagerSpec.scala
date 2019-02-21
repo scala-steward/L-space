@@ -1,12 +1,11 @@
 package lspace.lgraph.provider.mem
 
 import lspace.lgraph.LGraph
-import lspace.librarian.task.{Guide, StandardGuide, TaskSpec}
+import lspace.librarian.task.{Guide, GuideSpec, StandardGuide}
 import lspace.structure.{Graph, GraphSpec, NodeSpec, SampledGraph}
 
-class MemStoreManagerSpec extends GraphSpec with NodeSpec with TaskSpec {
-  import lspace.Implicits.DefaultAssistent.assistent
-  lazy val guide: Guide = StandardGuide()
+class MemStoreManagerSpec extends GraphSpec with NodeSpec with GuideSpec {
+  implicit val guide = lspace.Implicits.StandardGuide.guide
 
   def createGraph(iri: String): Graph = {
     val storage = MemStoreProvider(iri)
