@@ -18,11 +18,11 @@ position: 2
 * [History](#history)
  
  ```tut:invisible
- import lspace.librarian.traversal.P
+ import lspace._
  import lspace.provider.mem.MemGraph
  import lspace.structure._
- import lspace.datatype.DataType.default._
- import lspace.librarian.util.SampleGraph
+ import Label.D._
+ import lspace.util.SampleGraph
  ```
  
 ## What is a graph
