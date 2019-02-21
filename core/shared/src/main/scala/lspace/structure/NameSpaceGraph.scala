@@ -297,11 +297,12 @@ trait NameSpaceGraph extends DataGraph {
 
     /** Gets all properties which extend key */
     def extending(key: Property): Task[List[Property]] =
-      g.N
+      lspace.g.N
         .hasIri(key.iri)
-        .repeat(_.in(_.`@extends`), collect = true)
+        .repeat(_.in(_.`@extends`), collect = true)()
         .hasLabel(Property.ontology)
-        .toObservable(thisgraph)
+        .withGraph(thisgraph)
+        .toObservable
         .toListL
         .flatMap { nodes =>
           Task.gatherUnordered(nodes.distinct.map { node =>

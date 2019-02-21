@@ -1,6 +1,7 @@
 package lspace.librarian.traversal
 
-import lspace.librarian.traversal.Traversal.{keys, ontology, WithTraversalStream}
+import lspace.librarian.task.Guide
+import lspace.librarian.traversal.Traversal.{keys, ontology}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.{ClassType, Graph, Node}
 import monix.eval.Task
@@ -13,10 +14,10 @@ object UntypedTraversal {
   case class ValidationSuccessBuilder(optimizationSuggestion: Option[String])
   case class ValidationSuccess(optimizationSuggestion: String)
 
-  implicit class WithUnTypedTraversal(val untypedTraversal: UntypedTraversal)
-      extends WithTraversalStream[ClassType[Any], ClassType[Any], HList, Any] {
-    val traversal = untypedTraversal.toTyped
-  }
+//  implicit class WithUnTypedTraversal(val untypedTraversal: UntypedTraversal)
+//      extends WithTraversalStream[ClassType[Any], ClassType[Any], HList, Any] {
+//    val traversal = untypedTraversal.toTyped
+//  }
   implicit class WithTraversalStreamUntyped(val traversal: UntypedTraversal) {
 
     def validate(): Either[ValidationError, ValidationSuccess] =
@@ -72,6 +73,9 @@ case class UntypedTraversal(segments: Vector[Segment[HList]] = Vector()) {
 
   def steps: List[Step]                                         = segments.flatMap(_.stepsList).toList
   def toTyped: Traversal[ClassType[Any], ClassType[Any], HList] = Traversal[Any, Any](steps.toVector)
+
+  def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F], mapper: Mapper[F, Any]): mapper.F =
+    mapper(segments.toList, graph).asInstanceOf[mapper.F]
 
   lazy val toNode: Node = {
     val node0 = DetachedGraph.nodes.create(ontology)

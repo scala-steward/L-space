@@ -14,7 +14,7 @@ import shapeless._
 
 class TraversalSpec extends WordSpec with Matchers {
   val graph = MemGraph("TraversalSpec")
-  val g     = graph.g
+  val g     = lspace.g
 
   "A traversal" which {
     "starts empty" in {
@@ -31,6 +31,10 @@ class TraversalSpec extends WordSpec with Matchers {
       g.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 1
       g.hasLabel(Property.default.`@label`).segmentList.flatMap(_.stepsList).size shouldBe 1
       g.hasLabel(DataType.default.`@string`).segmentList.flatMap(_.stepsList).size shouldBe 1
+    }
+    "resolve a class-type for .hasLabel(name: String)" in {
+      g.N.hasLabel("Officer")
+//      g.N.repeat(_.out("knows"), _.hasLabel(Ontology("Officer")), 3, true)
     }
     "end-type is numeric" can {
       "be summed up" in {

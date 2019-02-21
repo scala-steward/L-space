@@ -1,10 +1,12 @@
 package lspace.librarian
 
 import lspace.datatype._
+import lspace.librarian.task.{Guide, TraversalAsyncTask, TraversalSyncTask, TraversalTask}
 import lspace.librarian.traversal.step._
 import lspace.structure._
 import lspace.structure.util._
-import shapeless.{Path => _, _}
+import monix.reactive.Observable
+import shapeless.{Path => _, Segment => _, _}
 import shapeless.{::, DepFn2, HList, HNil, Lazy, Poly2}
 
 package object traversal {

@@ -33,15 +33,15 @@ object E
 
   implicit def toNode(e: E): Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.edgeUrl, e.links)
+    node.addOut(keys.edgeUrl, e.edges)
 //    e.links.foreach(node.addOut(keys.edge, _))
     node
   }
 
 }
 
-case class E(links: List[Edge[Any, Any]] = List()) extends ResourceStep {
+case class E(edges: List[Edge[Any, Any]] = List()) extends ResourceStep {
 
   def toNode: Node                 = this
-  override def prettyPrint: String = "E(" + links.map(_.id).mkString(", ") + ")"
+  override def prettyPrint: String = "E(" + edges.map(_.id).mkString(", ") + ")"
 }

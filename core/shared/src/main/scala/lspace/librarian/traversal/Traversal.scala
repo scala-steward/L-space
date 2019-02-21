@@ -2,7 +2,7 @@ package lspace.librarian.traversal
 
 import lspace.datatype._
 import lspace.librarian.logic.predicate.P
-import lspace.librarian.task.{Guide, TraversalTask}
+import lspace.librarian.task._
 import lspace.librarian.traversal.Traversal.{keys, ontology}
 import lspace.structure.util.{ClassTypeable, Selector}
 import lspace.librarian.traversal.step.Order.Orderable
@@ -416,15 +416,17 @@ object Traversal
 //        implicit et: ClassTypeable.Aux[ET0, End1, ET1])
 //      : Traversal[ST[Start], ET1, Segment[HasLabel :: Steps] :: Segments] =
 //      add(HasLabel(label0 :: Nil), st, et.ct)
-    def hasLabel[ET0 <: ClassType[_], End1, ET1 <: ClassType[_]](label0: ET0, label1: ET0)(
+    def hasLabels[ET0 <: ClassType[_], End1, ET1 <: ClassType[_]](label0: ET0, label1: ET0)(
         implicit et: ClassTypeable.Aux[ET0, End1, ET1])
       : Traversal[ST[Start], ET1, Segment[HasLabel :: Steps] :: Segments] =
       add(HasLabel(label0 :: label1 :: Nil), st, et.ct)
-    def hasLabel[T, ET0[+Z] <: ClassType[Z], End1, ET1 <: ClassType[_]](label0: ET0[T], label1: ET0[T], label2: ET0[T])(
-        implicit et: ClassTypeable.Aux[ET0[T], End1, ET1])
+    def hasLabels[T, ET0[+Z] <: ClassType[Z], End1, ET1 <: ClassType[_]](
+        label0: ET0[T],
+        label1: ET0[T],
+        label2: ET0[T])(implicit et: ClassTypeable.Aux[ET0[T], End1, ET1])
       : Traversal[ST[Start], ET1, Segment[HasLabel :: Steps] :: Segments] =
       add(HasLabel(label0 :: label1 :: label2 :: Nil), st, et.ct)
-    def hasLabel[T, ET0[+Z] <: ClassType[Z], End1, ET1 <: ClassType[_]](
+    def hasLabels[T, ET0[+Z] <: ClassType[Z], End1, ET1 <: ClassType[_]](
         label0: ET0[T],
         label1: ET0[T],
         label2: ET0[T],
@@ -441,9 +443,11 @@ object Traversal
     //      Traversal[ST[Start], cls.CT, HasLabel :: Steps](HasLabel(cls.ct :: Nil) :: _traversal.steps)(target, st, cls.ct)
     //    }
 
+    //TODO: create IsNode step
 //    def isNode: Traversal[ST[Start], NodeURLType[Node], Segment[HasLabel :: Steps] :: Segments] =
 //      add(HasLabel())
 //
+    //TODO: create IsEdge step
 //    def isEdge: Traversal[ST[Start], EdgeURLType[Edge[Any, Any]], Segment[HasLabel :: Steps] :: Segments] =
 //      add(HasLabel())
 
@@ -466,15 +470,6 @@ object Traversal
 
     def isColor: Traversal[ST[Start], ColorType[Any], Segment[HasLabel :: Steps] :: Segments] =
       add(HasLabel(DataType.default.`@color` :: Nil), st, DataType.default.`@color`)
-
-    def hasLabel(label0: String,
-                 labels0: String*): Traversal[ST[Start], ET[End], Segment[HasLabel :: Steps] :: Segments] = {
-      val labelKeys = ClassType.classtypes.cached(label0).get ::
-        labels0
-        .map(label => ClassType.classtypes.cached(label).get)
-        .toList
-      add(HasLabel(labelKeys))
-    }
 
     def coin(p: Double): Traversal[ST[Start], ET[End], Segment[Coin :: Steps] :: Segments] = add(Coin(p))
   }
@@ -866,21 +861,23 @@ object Traversal
       * @param collect   result of each loop
       * @return
       */
-    def repeat[ET0 <: ClassType[_]](
-        traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, _ <: HList],
-        until: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList] = null,
-        max: Int = 0,
-        collect: Boolean = false): Traversal[ST[Start], ET0, Segment[Repeat[ET0] :: Steps] :: Segments] = {
+    def repeat[ET0 <: ClassType[_]](traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, _ <: HList],
+                                    max: Int = 0,
+                                    collect: Boolean = false)(
+        implicit until: Traversal[ET0, ET0, HNil] => Traversal[ET0, _ <: ClassType[_], _ <: HList] = null
+    ): Traversal[ST[Start], ET0, Segment[Repeat[ET0] :: Steps] :: Segments] = {
       val t = traversal(Traversal[ET[End], ET[End]](et, et))
-      add(Repeat(
-            t,
-            Option(until).map(_(Traversal[ET[End], ET[End]](et, et))),
-            if (max == 0) None else Some(max),
-            if (collect) Some(collect)
-            else None
-          ),
-          st,
-          t.et)
+      add(
+        Repeat(
+          t,
+          Option(until).map(_(Traversal[ET0, ET0](t.et, t.et))),
+          if (max == 0) None else Some(max),
+          if (collect) Some(collect)
+          else None
+        ),
+        st,
+        t.et
+      )
     }
 
     def coalesce[ET0 <: ClassType[_],
@@ -999,6 +996,19 @@ object Traversal
       Start, ST[+Z] <: ClassType[Z], ET[+Z] <: ClassType[Z], Steps <: HList, Segments <: HList, Segments1 <: HList]
       extends BaseMod[Start, ST, Node, ET, Steps, Segments, Segments1] {
 
+    /**
+      * this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in NodeStepsHelper overwrites all other definitions... :S
+      * @param label
+      * @return
+      */
+    def hasLabel(label: Ontology): Traversal[ST[Start], NodeURLType[Node], Segment[HasLabel :: Steps] :: Segments] =
+      add(HasLabel(label :: Nil), st, NodeURLType.datatype)
+    def hasLabel(label0: String,
+                 labels0: String*): Traversal[ST[Start], ET[Node], Segment[HasLabel :: Steps] :: Segments] = {
+      val labelKeys = (label0 :: labels0.toList).map(key => Ontology.ontologies.cached(key).getOrElse(Ontology(key)))
+      add(HasLabel(labelKeys))
+    }
+
     def label(key: String,
               keys: String*): Traversal[ST[Start], IriType[Ontology], Segment[Label :: HNil] :: Segments1] =
       add(Label((key :: keys.toList).map(key => Ontology.ontologies.cached(key).getOrElse(Ontology(key))).toSet),
@@ -1046,6 +1056,20 @@ object Traversal
     def to[OutC, OutCT <: ClassType[OutC]](implicit ct: ClassTypeable.Aux[Out, OutC, OutCT])
       : Traversal[ST[Start], OutCT, Segment[To :: HNil] :: Segments1] = {
       add(To: To, st, ct.ct)
+    }
+
+    /**
+      * this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in EdgeStepsHelper overwrites all other definitions... :S
+      * @param label
+      * @return
+      */
+    def hasLabel(
+        label: Property): Traversal[ST[Start], EdgeURLType[Edge[Any, Any]], Segment[HasLabel :: Steps] :: Segments] =
+      add(HasLabel(label :: Nil), st, EdgeURLType.datatype)
+    def hasLabel(label0: String,
+                 labels0: String*): Traversal[ST[Start], ET[Edge[In, Out]], Segment[HasLabel :: Steps] :: Segments] = {
+      val labelKeys = (label0 :: labels0.toList).map(key => Property.properties.cached(key).getOrElse(Property(key)))
+      add(HasLabel(labelKeys))
     }
 
     def label(key: String,
@@ -1365,7 +1389,7 @@ object Traversal
         implicit
         reverse: Reverse.Aux[Labels, RLabels],
         ev: ToList[RLabels, As[_, _]],
-        mapper: Mapper.Aux[LabelStepTypes.type, RLabels, Types],
+        mapper: shapeless.ops.hlist.Mapper.Aux[LabelStepTypes.type, RLabels, Types],
         tupler: Tupler.Aux[Types, End],
         et: ClassTypeable.Aux[End, End0, ET0]): Traversal[ST[Start], ET0, Segment[Select[End] :: Steps] :: Segments] =
       add(Select[End](ev(reverse(f(flat(_traversal.segments)))).map(_.label.toString)), st, et.ct)
@@ -1383,7 +1407,7 @@ object Traversal
     def select[A <: String, TypeA, OutA <: HList, End1, ET1 <: ClassType[_]](a: () => A)(
         implicit
         sel: CoFilter.Aux[Labels, As[_, A], OutA],
-        mapper: Mapper.Aux[LabelStepTypes.type, OutA, TypeA :: HNil],
+        mapper: shapeless.ops.hlist.Mapper.Aux[LabelStepTypes.type, OutA, TypeA :: HNil],
         et: ClassTypeable.Aux[TypeA, End1, ET1])
       : Traversal[ST[Start], ET1, Segment[Select[OutA] :: Steps] :: Segments] =
       add(Select[OutA](List(a())), st, et.ct)
@@ -1426,7 +1450,7 @@ object Traversal
         sela: CoFilter.Aux[Labels, As[_, A], OutA :: OutATail],
         selb: CoFilter.Aux[Labels, As[_, B], OutB :: OutBTail],
         ev: ToList[OutA :: OutB :: HNil, As[_, _]],
-        mapper: Mapper.Aux[LabelStepTypes.type, OutA :: OutB :: HNil, Types],
+        mapper: shapeless.ops.hlist.Mapper.Aux[LabelStepTypes.type, OutA :: OutB :: HNil, Types],
         tupler: Tupler.Aux[Types, End],
         et: ClassTypeable.Aux[End, End1, ET1]): Traversal[ST[Start], ET1, Segment[Select[End] :: Steps] :: Segments] =
       add(Select[End](List(a(), b())), st, et.ct)
@@ -1480,77 +1504,16 @@ object Traversal
                                           RSteps <: HList,
                                           Containers <: HList,
                                           Out,
-                                          CT <: ClassType[Out]](val traversal: Traversal[ST[Start], ET, Segments])(
+                                          CT <: ClassType[Out],
+                                          TT](val traversal: Traversal[ST[Start], ET, Segments])(
       implicit
       val flat: shapeless.ops.hlist.FlatMapper.Aux[SegmentMapper.type, Segments, Steps],
       val reverse: Reverse.Aux[Steps, RSteps],
       val f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-      val lf: StructureCalculator.Aux[Containers, ET, Out, CT])
-      extends WithTraversalStream[ST[Start], ET, Segments, Out] {
+      val lf: StructureCalculator.Aux[Containers, ET, Out, CT]) {
 
     lazy val ct =
       getCT[Start, ST, ET, Steps, Segments, RSteps, Containers, Out, CT](traversal)(flat, reverse, f, lf)
-  }
-
-  trait WithTraversalStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out] {
-    def traversal: Traversal[ST, ET, Segments]
-
-    import monix.execution.Scheduler.Implicits.global
-
-    def iterate(graph: Graph)(implicit guide: Guide): CancelableFuture[Unit] =
-      guide.buildTraveralObservable[Task[Unit]](traversal.segmentList)(graph).completedL.runToFuture
-    def iterate(implicit guide: Guide): TraversalTask[CancelableFuture[Unit]] =
-      TraversalTask(guide.buildTraveralObservable[Unit](traversal.segmentList) andThen (_.completedL.runToFuture))
-
-    def head(graph: Graph)(implicit guide: Guide): CancelableFuture[Out] =
-      guide.buildTraveralObservable[Out](traversal.segmentList)(graph).headL.runToFuture
-    def head(implicit guide: Guide): TraversalTask[CancelableFuture[Out]] =
-      TraversalTask(guide.buildTraveralObservable[Out](traversal.segmentList) andThen (_.headL.runToFuture))
-    def head[R](cb: Out => R)(implicit guide: Guide): TraversalTask[CancelableFuture[R]] =
-      TraversalTask(
-        guide.buildTraveralObservable[Out](traversal.segmentList) andThen (_.map(cb)) andThen (_.headL.runToFuture))
-
-    def headOption(graph: Graph)(implicit guide: Guide): CancelableFuture[Option[Out]] =
-      guide.buildTraveralObservable[Out](traversal.segmentList)(graph).headOptionL.runToFuture
-    def headOption(implicit guide: Guide): TraversalTask[CancelableFuture[Option[Out]]] =
-      TraversalTask(guide.buildTraveralObservable[Out](traversal.segmentList) andThen (_.headOptionL.runToFuture))
-
-    def toList(graph: Graph)(implicit guide: Guide): CancelableFuture[List[Out]] =
-      guide.buildTraveralObservable[Out](traversal.segmentList)(graph).toListL.runToFuture
-    def toList(implicit guide: Guide): TraversalTask[CancelableFuture[List[Out]]] =
-      TraversalTask(guide.buildTraveralObservable[Out](traversal.segmentList) andThen (_.toListL.runToFuture))
-
-    def toListSet(graph: Graph)(implicit guide: Guide): CancelableFuture[ListSet[Out]] =
-      guide
-        .buildTraveralObservable[Out](traversal.segmentList)(graph)
-        .toListL
-        .map(_.to[ListSet])
-        .runToFuture
-    def toListSet(implicit guide: Guide): TraversalTask[CancelableFuture[ListSet[Out]]] =
-      TraversalTask(
-        guide.buildTraveralObservable[Out](traversal.segmentList) andThen (_.toListL
-          .map(_.to[ListSet])
-          .runToFuture))
-
-    def toSet(graph: Graph)(implicit guide: Guide): CancelableFuture[Set[Out]] =
-      guide.buildTraveralObservable[Out](traversal.segmentList)(graph).toListL.map(_.toSet).runToFuture
-    def toSet(implicit guide: Guide): TraversalTask[CancelableFuture[Set[Out]]] =
-      TraversalTask(
-        guide
-          .buildTraveralObservable[Out](traversal.segmentList) andThen (_.toListL.map(_.toSet).runToFuture))
-
-    def toObservable(graph: Graph)(implicit guide: Guide): Observable[Out] =
-      guide.buildTraveralObservable[Out](traversal.segmentList)(graph)
-    def toObservable(implicit guide: Guide): TraversalTask[Observable[Out]] =
-      TraversalTask(guide.buildTraveralObservable[Out](traversal.segmentList))
-
-    def toVector(graph: Graph)(implicit guide: Guide): CancelableFuture[Vector[Out]] =
-      guide.buildTraveralObservable[Out](traversal.segmentList)(graph).toListL.map(_.toVector).runToFuture
-    def toVector(implicit guide: Guide): TraversalTask[CancelableFuture[Vector[Out]]] =
-      TraversalTask(
-        guide.buildTraveralObservable[Out](traversal.segmentList) andThen (_.toListL
-          .map(_.toVector)
-          .runToFuture))
   }
 
   def apply[Start: DefaultsToAny, End: DefaultsToAny](steps: Vector[Step])(
@@ -1573,6 +1536,25 @@ object Traversal
   }
 }
 
+sealed trait Mapper[G[_], Out] {
+  type F
+
+  def apply(segments: List[Segment[HList]], graph: Graph): TraversalTask[Out]
+}
+object Mapper {
+  type Aux[G[_], Out, F0] = Mapper[G, Out] { type F = F0 }
+  implicit def stream[T](implicit guide: Guide[Stream]) = new Mapper[Stream, T] {
+    type F = TraversalSyncTask[T]
+    def apply(segments: List[Segment[HList]], graph: Lspace): TraversalSyncTask[T] =
+      TraversalSyncTask[T](segments, graph)
+  }
+  implicit def observable[T](implicit guide: Guide[Observable]) = new Mapper[Observable, T] {
+    type F = TraversalAsyncTask[T]
+    def apply(segments: List[Segment[HList]], graph: Lspace): TraversalAsyncTask[T] =
+      TraversalAsyncTask[T](segments, graph)
+  }
+}
+
 /**
   * TODO: try to convert End to shapeless.Coproduct
   * @param segments
@@ -1590,19 +1572,23 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
     segments.runtimeList.asInstanceOf[List[Segment[HList]]].reverse
   lazy val steps: List[Step] = segmentList.flatMap(_.stepsList)
 
-  def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector)
-//  def toUntypedStream: Stream[Any] =
-//    target.buildTraversersStream[ST, DataType[Any], HNil, Any](this.asInstanceOf[Traversal[ST, DataType[Any], HNil]])
-//  def toUntypedObservable: Observable[Any] =
-//    Observable.fromIterable(toUntypedStream)
-//  def toUntypedStreamTask: Task[Stream[Any]] =
-//    target.buildAsyncTraversersStream[ST, DataType[Any], HNil, Any](
-//      this.asInstanceOf[Traversal[ST, DataType[Any], HNil]])
+  def withGraph[iET >: ET <: ClassType[_],
+                Steps <: HList,
+                RSteps <: HList,
+                Containers <: HList,
+                F[_],
+                Out,
+                CT <: ClassType[Out],
+                TT](graph: Graph)(
+      implicit flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+      reverse: Reverse.Aux[Steps, RSteps],
+      f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
+      lf: StructureCalculator.Aux[Containers, iET, Out, CT],
+      guide: Guide[F],
+      mapper: Mapper[F, Out]): mapper.F =
+    mapper.apply(segmentList, graph).asInstanceOf[mapper.F]
 
-//  def withGraph(graph: Graph): Traversal[ST, ET, Segments] = {
-//    //    implicit val _target = target
-//    Traversal[ST, ET, Segments](segments)(target, st, et)
-//  }
+  def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector)
 
   def ++[ST0 <: ClassType[_], ET0 <: ClassType[_], Segments0 <: HList, Out <: HList](
       traversal: Traversal[ST0, ET0, Segments0])(

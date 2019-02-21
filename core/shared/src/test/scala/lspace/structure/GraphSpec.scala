@@ -19,7 +19,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
   import SampleGraph.properties._
 
   import monix.execution.Scheduler.Implicits.global
-  implicit def guide: Guide
+  implicit def guide: Guide[Observable]
 
 //  def take = afterWord("take")
 
@@ -161,20 +161,20 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             a1 <- g.N
               .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 100)))
               .count
-              .toObservable(graph)
-              .headL
+              .withGraph(graph)
+              .head
               .map(_ shouldBe 1)
             a2 <- g.N
               .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000)))
               .count
-              .toObservable(graph)
-              .headL
+              .withGraph(graph)
+              .head
               .map(_ shouldBe 1)
             a3 <- g.N
               .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 100)))
               .count
-              .toObservable(graph)
-              .headL
+              .withGraph(graph)
+              .head
               .map(_ shouldBe 0)
             a4 <- g.N
               .has(
@@ -183,16 +183,16 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
                   P.lt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000))
               )
               .count
-              .toObservable(graph)
-              .headL
+              .withGraph(graph)
+              .head
               .map(_ shouldBe 1)
             a5 <- g.N
               .has(Label.P.`@modifiedon`,
                    P.between(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000),
                              Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000)))
               .count
-              .toObservable(graph)
-              .headL
+              .withGraph(graph)
+              .head
               .map(_ shouldBe 1)
           } yield {
             a1
@@ -362,11 +362,20 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               //            graph.nodes().flatMap(_.iris.headOption).count(_.startsWith("some-iri-1,000-2-")) shouldBe 5000
               //            println(s"empty iris ${graph.nodes().count(_.iri.isEmpty)}")
               graph.nodes().map(_.iri).count(_.startsWith("some-iri-1,000-2-")) shouldBe 5000
-              graph.g.N.has(`@id`, P.prefix("some-iri-1,000-2")).count().head shouldBe 5000l
-              graph *> g.N
+              g.N
+                .has(`@id`, P.prefix("some-iri-1,000-2"))
+                .count()
+                .withGraph(graph)
+                .head
+                .map(_ shouldBe 5000l)
+                .runToFuture
+              g.N
                 .has(`@id`, P.prefix("some-iri-1,000-1"))
                 .count()
-                .head map (_ should (be >= 1000l and be < 6000l))
+                .withGraph(graph)
+                .head
+                .map(_ should (be >= 1000l and be < 6000l))
+                .runToFuture
             }
         }
       }

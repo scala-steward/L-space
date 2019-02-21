@@ -15,6 +15,7 @@ import lspace.librarian.traversal.Traversal.SegmentMapper
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider}
 import monix.execution.{Cancelable, CancelableFuture}
+import monix.reactive.Observable
 import shapeless.ops.hlist.{Collect, Reverse}
 import shapeless.{::, HList, HNil}
 
@@ -75,8 +76,8 @@ trait Graph extends IriResource with GraphUtils {
 
   override lazy val hashCode: Int = iri.hashCode
 
-  implicit lazy val assistent: Assistent = DefaultAssistent()
-  implicit lazy val guide: Guide         = StandardGuide()
+  implicit lazy val assistent: Assistent     = DefaultAssistent()
+  implicit lazy val guide: Guide[Observable] = StandardGuide()
 
   lazy val thisgraph: this.type = this
   def ns: NameSpaceGraph
@@ -708,15 +709,36 @@ trait Graph extends IriResource with GraphUtils {
   }
 
 //  def g[Out](traversalObservable: TraversalTask[Out]): Out = traversalObservable.run(this)
-  def *>[Out](traversalObservable: TraversalTask[Out]): Out = traversalObservable.run(this)
-  def map[T](traversalTask: TraversalTask[T]): T            = traversalTask.run(this)
+//  def *>[Out](traversalObservable: TraversalTask[Out]): Out = traversalObservable.run(this)
+//  def map[T](traversalTask: TraversalTask[T]): T            = traversalTask.run(this)
+  import lspace.librarian.traversal._
+  def *>[ST <: ClassType[_],
+         ET <: ClassType[_],
+         Segments <: HList,
+         Steps <: HList,
+         RSteps <: HList,
+         Containers <: HList,
+         F[_],
+         Out,
+         CT <: ClassType[Out],
+         TT](traversal: Traversal[ST, ET, Segments])(
+      implicit flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+      reverse: Reverse.Aux[Steps, RSteps],
+      f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
+      lf: StructureCalculator.Aux[Containers, ET, Out, CT],
+      guide: Guide[F],
+      mapper: Mapper[F, Out]): mapper.F =
+    mapper.apply(traversal.segmentList, this).asInstanceOf[mapper.F]
+
   def __[Start, End](implicit cltblStart: ClassTypeable[Start],
                      cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HNil] =
     Traversal[cltblStart.CT, cltblEnd.CT](cltblStart.ct, cltblEnd.ct)
+
   @deprecated("instead import lspace.g")
   def g(): Traversal[DataType[Graph], DataType[Graph], HNil] =
     Traversal[DataType[Graph], DataType[Graph]](GraphType.datatype, GraphType.datatype)
 
+  @deprecated("instead import lspace.g")
   lazy val traversal: Traversal[DataType[Graph], DataType[Graph], HNil] = g
 
 //  def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](

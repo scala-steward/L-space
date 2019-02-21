@@ -69,7 +69,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   override lazy val properties
     : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
 
-  implicit def toNode(repeat: Repeat[_]): Node = {
+  implicit def toNode[CT0 <: ClassType[_]](repeat: Repeat[CT0]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
 
     node.addOut(keys.traversalTraversal, repeat.traversal.toNode)
@@ -80,10 +80,10 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   }
 }
 
-case class Repeat[E <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E, _ <: HList],
-                                     until: Option[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
-                                     max: Option[Int],
-                                     collect: Option[Boolean])
+case class Repeat[E0 <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],
+                                      until: Option[Traversal[E0, _ <: ClassType[_], _ <: HList]],
+                                      max: Option[Int],
+                                      collect: Option[Boolean])
     extends BranchStep {
 
   lazy val toNode: Node = this

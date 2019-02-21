@@ -1,8 +1,8 @@
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
 import lspace.librarian.task
-import lspace.librarian.task.{Guide, StandardGuide}
 import lspace.structure.ClassType
 import lspace.structure.util.ClassTypeable
+import monix.reactive.Observable
 import shapeless.HList
 
 package object lspace {
@@ -30,7 +30,10 @@ package object lspace {
       implicit val assistent: Assistent = librarian.logic.DefaultAssistent()
     }
     object StandardGuide {
-      implicit val guide: Guide = task.StandardGuide()(DefaultAssistent.assistent)
+      implicit val guide: task.Guide[Observable] = task.StandardGuide()(DefaultAssistent.assistent)
+    }
+    object SyncGuide {
+      implicit val guide: task.Guide[Stream] = task.SyncGuide()(DefaultAssistent.assistent)
     }
   }
 }
