@@ -24,6 +24,12 @@ data-models and traversal-engines) add the following to your `build.sbt`:
 libraryDependencies += "eu.l-space" %% "lspace-core" % "{version}"
 ```
 
+Basic minimal import:
+```
+import lspace._
+import lspace.Implicits.StandardGuide.guide
+```
+
 ## Modules
 
 L-space provides additional modules for remote traversals, parsing io, rest-api templates and tinkerpop-adapters.
