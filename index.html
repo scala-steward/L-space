@@ -16,13 +16,14 @@ Hence, steps are defined to instruct the Librarian how to travel.</p>
 
 <h1 id="getting-started">Getting started</h1>
 
-<p>L-space modules are available via jitpack.io. Add it in your <code class="highlighter-rouge">build.sbt</code> at the end of resolvers:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>resolvers += "jitpack" at "https://jitpack.io"
-</code></pre></div></div>
 <p>L-space is available for Scala 2.11.x and 2.12.x. 
 To include <code class="highlighter-rouge">lspace-core</code> (all core structures and basic implementations (in-memory) of the graph, 
 data-models and traversal-engines) add the following to your <code class="highlighter-rouge">build.sbt</code>:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>libraryDependencies += "eu.l-space" %% "lspace-core" % "0.4.0.5"
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>libraryDependencies += "eu.l-space" %% "lspace-core" % "0.5.0.0"
+</code></pre></div></div>
+<p>Basic minimal import:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>import lspace._
+import lspace.Implicits.StandardGuide.guide
 </code></pre></div></div>
 
 <h1 id="modules">Modules</h1>
@@ -36,8 +37,8 @@ data-models and traversal-engines) add the following to your <code class="highli
   <li><code class="highlighter-rouge">lspace-services</code>: basic implementation for a rest service which accepts Librarian queries in Json-LD and returns results in Json-LD</li>
 </ul>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "0.4.0.5"
-libraryDependencies += "eu.l-space" %% "{lspace-xxx-tests}" % "0.4.0.5"
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "0.5.0.0"
+libraryDependencies += "eu.l-space" %% "{lspace-xxx-tests}" % "0.5.0.0"
 </code></pre></div></div>
 
 <h2 id="examples">Examples</h2>
