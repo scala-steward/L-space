@@ -1,6 +1,7 @@
 package lspace.structure
 
-import lspace.datatype.NodeURLType
+import lspace.NS
+import lspace.datatype.{DataType, IriType, NodeURLType}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 
@@ -10,6 +11,12 @@ object Node {
     type C  = T
     type CT = NodeURLType[T]
     def ct: CT = NodeURLType.apply[T]
+  }
+
+  def nodeUrl: NodeURLType[Node] = new NodeURLType[Node] {
+    val iri: String                                             = NS.types.`@nodeURL`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@nodeURL`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 }
 

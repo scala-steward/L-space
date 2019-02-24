@@ -44,7 +44,7 @@ trait TraversalService extends Api {
   implicit val ec = monix.execution.Scheduler.global
 
   import lspace._
-  import Implicits.StandardGuide._
+  import Implicits.AsyncGuide._
 
   /**
     * Traversal on this (multi-)graph
@@ -67,7 +67,7 @@ trait TraversalService extends Api {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
           val start = Instant.now()
-          traversal.untyped.withGraph(graph).toObservable.toListL.map { values =>
+          traversal.untyped.withGraph(graph).toListF.map { values =>
             val collection: Collection[_] = Collection(start, Instant.now(), values)
             collection.logger.debug("result count: " + values.size.toString)
             Ok(collection)
@@ -90,8 +90,7 @@ trait TraversalService extends Api {
 
     traversal.untyped
       .withGraph(graph)
-      .toObservable
-      .toListL
+      .toListF
       .map { values =>
         val collection: Collection[Any] = Collection(start, Instant.now(), values, traversal.ct)
         Ok(collection)

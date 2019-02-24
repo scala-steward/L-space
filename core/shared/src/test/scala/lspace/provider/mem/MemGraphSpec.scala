@@ -1,12 +1,12 @@
 package lspace.provider.mem
 
-import lspace.librarian.task.GuideSpec
+import lspace.librarian.task.AsyncGuideSpec
 import lspace.structure._
 import lspace.structure.Property.default._
 
-class MemGraphSpec extends GraphSpec with NodeSpec with GuideSpec {
+class MemGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
 
-  implicit lazy val guide = lspace.Implicits.StandardGuide.guide
+  implicit lazy val guide = lspace.Implicits.AsyncGuide.guide
 
   val graph: Graph = MemGraph("memgraphspec")
   val sampleGraph  = SampledGraph(MemGraph("memgraphspec-sample"))

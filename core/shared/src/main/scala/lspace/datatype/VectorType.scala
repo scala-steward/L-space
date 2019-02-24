@@ -49,7 +49,7 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
         else VectorType.datatype.asInstanceOf[VectorType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]]): VectorType[V] = {
+  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): VectorType[V] = {
     if (valueRange.nonEmpty)
       new VectorType[V](valueRange) {
         lazy val iri =

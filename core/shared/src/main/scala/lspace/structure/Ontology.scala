@@ -19,11 +19,11 @@ object Ontology {
     val iri: String = NS.types.`@class`
   }
 
-  implicit val defaultOntology: ClassTypeable.Aux[Ontology, Node, NodeURLType[Node]] =
+  implicit val defaultOntology: ClassTypeable.Aux[Ontology, Ontology, IriType[Ontology]] =
     new ClassTypeable[Ontology] {
-      type C  = Node
-      type CT = NodeURLType[Node]
-      def ct: CT = NodeURLType.apply[Node]
+      type C  = Ontology
+      type CT = IriType[Ontology]
+      def ct: CT = urlType
     }
 
   def build(node: Node): Task[Coeval[Ontology]] = {

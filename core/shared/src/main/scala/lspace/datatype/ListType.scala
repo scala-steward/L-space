@@ -40,7 +40,7 @@ object ListType extends DataTypeDef[ListType[Any]] {
         if (clsTpbl.ct.iri.nonEmpty) ListType(List(clsTpbl.ct)) else ListType.datatype.asInstanceOf[ListType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]]): ListType[V] = {
+  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): ListType[V] = {
     if (valueRange.nonEmpty)
       new ListType[V](valueRange) {
         lazy val iri =

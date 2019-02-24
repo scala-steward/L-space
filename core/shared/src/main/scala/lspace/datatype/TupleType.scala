@@ -8,6 +8,26 @@ import lspace.structure._
 //TODO: type construction without nested types should default to @tuple, @tuple2, @tuple3 or @tuple4 (example at @list)
 object TupleType extends DataTypeDef[TupleType[Any]] {
 
+  def apply[T](rangeTypes: List[List[ClassType[Any]]] = List()): TupleType[T] = new TupleType[T] {
+    lazy val iri = {
+      //    if (_1stRange.filter(_.iri.nonEmpty).isEmpty && _2ndRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@tuple` + "2"
+      //    else
+      val iriTail = "(" + rangeTypes
+        .foldLeft(List[String]()) {
+          case (tail, rangeTypes) =>
+            tail :+ rangeTypes
+              .foldLeft(List[String]()) {
+                case (tail, rangeType) => tail :+ rangeType.iri
+              }
+              .mkString("+")
+        }
+        .mkString(")(") + ")"
+      s"${types.`@tuple`}N$iriTail"
+    }
+
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+  }
+
   lazy val datatype = new TupleType[Any] {
     val iri: String                                             = NS.types.`@tuple`
     override val label: Map[String, String]                     = Map("en" -> NS.types.`@tuple`)
@@ -15,6 +35,17 @@ object TupleType extends DataTypeDef[TupleType[Any]] {
   }
 
   object keys extends StructuredType.Properties { //TODO: change to PropertyDef
+    object range
+        extends PropertyDef(
+          "@tuplerange",
+          label = "@tuplerange",
+          comment = "@tuplerange",
+          `@extends` = () => Property.default.`@range` :: Nil,
+          `@range` =
+            () => ListType(ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil) :: Nil
+        )
+    lazy val _rangeClassType: TypedProperty[List[Node]] = _1stRange + ListType(
+      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
     object _1stRange
         extends PropertyDef(
           "@1stRange",

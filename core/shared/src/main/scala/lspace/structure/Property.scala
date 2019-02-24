@@ -20,12 +20,19 @@ object Property {
     val iri: String = NS.types.`@property`
   }
 
-  implicit val defaultString: ClassTypeable.Aux[Property, Edge[Any, Any], EdgeURLType[Edge[Any, Any]]] =
+  implicit val defaultProperty: ClassTypeable.Aux[Property, Property, IriType[Property]] =
     new ClassTypeable[Property] {
-      type C  = Edge[Any, Any]
-      type CT = EdgeURLType[Edge[Any, Any]]
-      def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
+      type C  = Property
+      type CT = IriType[Property]
+      def ct: CT = urlType
     }
+
+//  implicit val defaultString: ClassTypeable.Aux[Property, Edge[Any, Any], EdgeURLType[Edge[Any, Any]]] =
+//    new ClassTypeable[Property] {
+//      type C  = Edge[Any, Any]
+//      type CT = EdgeURLType[Edge[Any, Any]]
+//      def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
+//    }
 
   def build(node: Node): Task[Coeval[Property]] = {
     if (node.hasLabel(urlType).nonEmpty) {

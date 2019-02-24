@@ -37,42 +37,6 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
 //    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keys.keyRangeDatatype
   }
 
-  //  def apply[K](keyType: ClassType[K])(implicit graph: Graph)= {
-  //    val iri = s"${ldcontext.types.map}:[${keyType.iri}]"
-  //    new MapType[K, Any](keyType, valueType, graph.getDataType(iri).getOrElse(graph.nodes.upsert(iri)))
-  //  }
-  //  def apply[K, V](keyRange: List[ClassType[K]], valueRange: List[ClassType[V]])(implicit graph: Graph) = {
-  //    val iri = s"${ldcontext.types.map}:[${keyRange.map(_.iri).toList.sorted}],[${valueRange.map(_.iri).toList.sorted}]]"
-  //    graph.getDataType[Map[K, V]](iri).getOrElse(new MapType(keyRange, valueRange, graph.getDataType(iri).getOrElse {
-  //      val node = graph.newNode(graph.datatype)
-  //      node.addOut(graph.id, iri)
-  //      node.addOuts(keys.keyRange, keyRange.map(graph.nodeURLType -> _))
-  //      node.addOuts(CollectionType.keys.valueRange, valueRange.map(graph.nodeURLType -> _))
-  //      node
-  //    }))
-  //  }
-
-//  def wrap(node: Node): MapType[Any, Any] = {
-//    MapType(
-//      node.out(keys.keyRange).collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }.flatten,
-//      node
-//        .out(CollectionType.keys.valueRange)
-//        .collect { case nodes: List[Node] => nodes.map(node.graph.ns.classtypes.get) }
-//        .flatten
-//    )
-//  }
-
-//  def apply[KT <: ClassType[_],
-//            KTOut,
-//            CKTOut <: ClassType[KTOut],
-//            VT <: ClassType[_],
-//            VTOut,
-//            CVTOut <: ClassType[VTOut]](keyRange: List[KT], valueRange: List[VT])(
-//      implicit kclsTpbl: ClassTypeable.Aux[KT, KTOut, CKTOut],
-//      vclsTpbl: ClassTypeable.Aux[VT, VTOut, CVTOut]): MapType[KTOut, VTOut] =
-//    new MapType(keyRange.asInstanceOf[List[ClassType[KTOut]]], valueRange.asInstanceOf[List[ClassType[VTOut]]])
-//      .asInstanceOf[MapType[KTOut, VTOut]]
-
   implicit def defaultCls[
       K,
       KT[+Z] <: ClassType[Z],
@@ -93,8 +57,8 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
         else MapType.datatype.asInstanceOf[MapType[KOut, VOut]]
     }
 
-  def apply[K: DefaultsToAny, V: DefaultsToAny](keyRange: List[ClassType[K]],
-                                                valueRange: List[ClassType[V]]): MapType[K, V] = {
+  def apply[K: DefaultsToAny, V: DefaultsToAny](keyRange: List[ClassType[K]] = List(),
+                                                valueRange: List[ClassType[V]] = List()): MapType[K, V] = {
     if (keyRange.nonEmpty || valueRange.nonEmpty)
       new MapType[K, V](keyRange, valueRange) {
         lazy val iri =

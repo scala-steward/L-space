@@ -48,7 +48,7 @@ object SetType extends DataTypeDef[SetType[Any]] {
         if (clsTpbl.ct.iri.nonEmpty) SetType(List(clsTpbl.ct)) else SetType.datatype.asInstanceOf[SetType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]]): SetType[V] = {
+  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): SetType[V] = {
     if (valueRange.nonEmpty)
       new SetType[V](valueRange) {
         lazy val iri =

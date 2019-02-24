@@ -71,8 +71,7 @@ object ClassType {
       Ontology.ontologies.cached(iri).orElse(Property.properties.cached(iri)).orElse(DataType.datatypes.cached(iri))
   }
 
-  def default[T]: ClassType[T] = new ClassType[T] {
-    type CT = ClassType[_]
+  def makeT[T]: ClassType[T] = new ClassType[T] {
 
     val iri: String                                    = ""
     val iris: Set[String]                              = Set()
@@ -84,12 +83,17 @@ object ClassType {
 
     override def toString: String = s"classtype:$iri"
   }
+  //helper, empty iri is used to recognize and filter out this classtype
+  lazy val stubAny: ClassType[Any] = makeT[Any]
 
-  implicit def clsClasstype[T]: ClassTypeable.Aux[ClassType[T], T, ClassType[T]] = new ClassTypeable[ClassType[T]] {
-    type C  = T
-    type CT = ClassType[T]
-    def ct: CT = default[T]
-  }
+  //helper, empty iri is used to recognize and filter out this classtype
+  lazy val stubNothing: ClassType[Nothing] = makeT[Nothing]
+
+//  implicit def clsClasstype[T]: ClassTypeable.Aux[ClassType[T], T, ClassType[T]] = new ClassTypeable[ClassType[T]] {
+//    type C  = T
+//    type CT = ClassType[T]
+//    def ct: CT = default[T]
+//  }
 }
 
 /**

@@ -6,9 +6,11 @@ import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import shapeless.HList
 
-object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: Nil) with StepWrapper[Path] {
+object Path
+    extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: Nil)
+    with StepWrapper[Path[ClassType[Any], HList]] {
 
-  def toStep(node: Node): Path = Path(
+  def toStep(node: Node): Path[ClassType[Any], HList] = Path[ClassType[Any], HList](
     node
       .out(keys.byTraversal)
       .take(1)
@@ -35,7 +37,7 @@ object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: 
     val byTraversal = keys.byTraversal
   }
 
-  implicit def toNode(path: Path): Node = {
+  implicit def toNode[ET <: ClassType[_], Segments <: HList](path: Path[ET, Segments]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
     node.addOut(keys.by, path.by.toNode)
     node
@@ -43,7 +45,7 @@ object Path extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: 
 
 }
 
-case class Path(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends MapStep {
+case class Path[ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments]) extends MapStep {
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = if (by.segmentList.nonEmpty) "path(" + by.toString + ")" else "path"

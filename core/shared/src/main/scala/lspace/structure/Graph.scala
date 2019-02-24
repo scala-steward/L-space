@@ -7,11 +7,12 @@ import lspace.structure.Property.default
 import lspace.structure.util.ClassTypeable
 import lspace.datatype.{DataType, GraphType, TextType}
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
-import lspace.librarian.task.{Guide, StandardGuide, TraversalTask}
+import lspace.librarian.task.{AsyncGuide, FTraversal, Guide}
 import lspace.provider.transaction.Transaction
 import lspace.provider.wrapped.WrappedResource
 import lspace.librarian.traversal.Traversal
 import lspace.librarian.traversal.Traversal.SegmentMapper
+import lspace.provider.mem.MemGraph
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider}
 import monix.execution.{Cancelable, CancelableFuture}
@@ -23,6 +24,14 @@ import scala.collection.immutable.ListSet
 import scala.collection.mutable
 
 object Graph {
+
+  /**
+    * easy helper for creating simple in-memory graphs (graph can always be merged into other types of graphs, e.g. graphs which are persistent)
+    * @param iri
+    * @return
+    */
+  def apply(iri: String): Graph = MemGraph(iri)
+
   val graphs: mutable.HashMap[String, Graph] = mutable.HashMap[String, Graph]()
   lazy val baseKeys = Set(
     Property.default.`@id`,
@@ -77,7 +86,7 @@ trait Graph extends IriResource with GraphUtils {
   override lazy val hashCode: Int = iri.hashCode
 
   implicit lazy val assistent: Assistent     = DefaultAssistent()
-  implicit lazy val guide: Guide[Observable] = StandardGuide()
+  implicit lazy val guide: Guide[Observable] = AsyncGuide()
 
   lazy val thisgraph: this.type = this
   def ns: NameSpaceGraph
@@ -684,6 +693,7 @@ trait Graph extends IriResource with GraphUtils {
         .filterNot(e => e.key == Property.default.`@id` && e.to.hasLabel(TextType.datatype).isDefined)
         .foldLeft(Map[Long, Edge[_, _]]()) {
           case (oldIdNewEdgeMap, edge) =>
+//            if (edge.iri.nonEmpty) //TODO: find edge width
             oldIdNewEdgeMap + (edge.id -> edges.create(
               edge.from match {
                 case (resource: Node) =>
@@ -720,15 +730,14 @@ trait Graph extends IriResource with GraphUtils {
          Containers <: HList,
          F[_],
          Out,
-         CT <: ClassType[Out],
-         TT](traversal: Traversal[ST, ET, Segments])(
+         CT <: ClassType[Out]](traversal: Traversal[ST, ET, Segments])(
       implicit flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
       reverse: Reverse.Aux[Steps, RSteps],
       f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
       lf: StructureCalculator.Aux[Containers, ET, Out, CT],
       guide: Guide[F],
-      mapper: Mapper[F, Out]): mapper.F =
-    mapper.apply(traversal.segmentList, this).asInstanceOf[mapper.F]
+      mapper: Mapper[F, Out]): mapper.FT =
+    mapper.apply(traversal.segmentList, this).asInstanceOf[mapper.FT]
 
   def __[Start, End](implicit cltblStart: ClassTypeable[Start],
                      cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HNil] =

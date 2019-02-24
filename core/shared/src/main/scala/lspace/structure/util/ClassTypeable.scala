@@ -28,12 +28,12 @@ object ClassTypeable {
   implicit val default: ClassTypeable.Aux[Any, Any, ClassType[Any]] = new ClassTypeable[Any] {
     type C  = Any
     type CT = ClassType[Any]
-    def ct: CT = ClassType.default[Any]
+    def ct: CT = ClassType.stubAny
   }
   implicit val defaultCA: ClassTypeable.Aux[ClassType[Any], Any, ClassType[Any]] = new ClassTypeable[ClassType[Any]] {
     type C  = Any
     type CT = ClassType[Any]
-    def ct: CT = ClassType.default[Any]
+    def ct: CT = ClassType.stubAny
   }
 
   implicit val defaultInt: ClassTypeable.Aux[Int, Int, IntType[Int]] = new ClassTypeable[Int] {

@@ -1,6 +1,7 @@
 package lspace.structure
 
-import lspace.datatype.EdgeURLType
+import lspace.NS
+import lspace.datatype.{DataType, EdgeURLType, IriType}
 import lspace.structure.util.ClassTypeable
 
 object Edge {
@@ -9,6 +10,12 @@ object Edge {
     type C  = T
     type CT = EdgeURLType[T]
     def ct: CT = EdgeURLType.apply[T]
+  }
+
+  lazy val edgeUrl = new EdgeURLType[Edge[Any, Any]] {
+    val iri: String                                             = NS.types.`@edgeURL`
+    override val label: Map[String, String]                     = Map("en" -> NS.types.`@edgeURL`)
+    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 }
 

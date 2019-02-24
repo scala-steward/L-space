@@ -162,19 +162,19 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 100)))
               .count
               .withGraph(graph)
-              .head
+              .headF
               .map(_ shouldBe 1)
             a2 <- g.N
               .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000)))
               .count
               .withGraph(graph)
-              .head
+              .headF
               .map(_ shouldBe 1)
             a3 <- g.N
               .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 100)))
               .count
               .withGraph(graph)
-              .head
+              .headF
               .map(_ shouldBe 0)
             a4 <- g.N
               .has(
@@ -184,7 +184,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               )
               .count
               .withGraph(graph)
-              .head
+              .headF
               .map(_ shouldBe 1)
             a5 <- g.N
               .has(Label.P.`@modifiedon`,
@@ -192,7 +192,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
                              Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000)))
               .count
               .withGraph(graph)
-              .head
+              .headF
               .map(_ shouldBe 1)
           } yield {
             a1
@@ -366,14 +366,14 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
                 .has(`@id`, P.prefix("some-iri-1,000-2"))
                 .count()
                 .withGraph(graph)
-                .head
+                .headF
                 .map(_ shouldBe 5000l)
                 .runToFuture
               g.N
                 .has(`@id`, P.prefix("some-iri-1,000-1"))
                 .count()
                 .withGraph(graph)
-                .head
+                .headF
                 .map(_ should (be >= 1000l and be < 6000l))
                 .runToFuture
             }

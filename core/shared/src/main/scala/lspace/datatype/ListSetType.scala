@@ -52,7 +52,7 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
         else ListSetType.datatype.asInstanceOf[ListSetType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]]): ListSetType[V] = {
+  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): ListSetType[V] = {
     if (valueRange.nonEmpty)
       new ListSetType[V](valueRange) {
         lazy val iri =

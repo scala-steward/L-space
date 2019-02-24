@@ -20,6 +20,7 @@ import lspace.librarian.traversal.{
   TraversalPath
 }
 import lspace.structure.{Graph, Resource}
+import shapeless.HList
 
 trait Guide[F[_]] {
   def assistent: Assistent
@@ -88,6 +89,6 @@ trait Guide[F[_]] {
   def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def projectStep(step: Project, steps: List[Step], segments: List[Segment[_]])(
+  def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 }

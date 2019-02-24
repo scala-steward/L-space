@@ -2,10 +2,11 @@ package lspace.librarian.traversal
 
 import java.time._
 
-import lspace.{g, NS}
-import lspace.datatype.{DataType, IntType}
+import lspace._
+import Label.D._
+import lspace.datatype._
 import lspace.datatype.DataType.default.`@int`
-import lspace.librarian.logic.predicate._
+import lspace.librarian.logic.{predicate => p}
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure._
@@ -14,7 +15,6 @@ import shapeless._
 
 class TraversalSpec extends WordSpec with Matchers {
   val graph = MemGraph("TraversalSpec")
-  val g     = lspace.g
 
   "A traversal" which {
     "starts empty" in {
@@ -113,7 +113,7 @@ class TraversalSpec extends WordSpec with Matchers {
         .asInstanceOf[step.Has]
         .predicate
         .exists {
-          case p: And => p.predicate.size == 2
+          case p: p.And => p.predicate.size == 2
         } shouldBe true
       lspace.g
         .N()
@@ -124,7 +124,7 @@ class TraversalSpec extends WordSpec with Matchers {
         .asInstanceOf[step.Has]
         .predicate
         .exists {
-          case p: And => p.predicate.head == P.gte(1.2)
+          case p: p.And => p.predicate.head == P.gte(1.2)
         } shouldBe true
       lspace.g
         .N()
@@ -135,7 +135,7 @@ class TraversalSpec extends WordSpec with Matchers {
         .asInstanceOf[step.Has]
         .predicate
         .exists {
-          case p: And => p.predicate.head == P.gte(1.2)
+          case p: p.And => p.predicate.head == P.gte(1.2)
         } shouldBe true
 
       val pString                             = Property._Property("aa")(_range = () => List(DataType.default.`@string`))
@@ -164,6 +164,71 @@ class TraversalSpec extends WordSpec with Matchers {
     "have a defined end-type" in {
       import shapeless.::
       g.N.outMap().hasLabel(`@int`).et shouldBe `@int`
+    }
+  }
+  "A traversal has an expected result type" can {
+    """a Any""" in {
+      g.N.out().ct shouldBe None
+    }
+    """a Node""" in {
+      g.N.ct shouldBe Some(Node.nodeUrl)
+    }
+    """a Map[List[Any],Node]""" in {
+      g.N
+        .hasIri("/person/12345")
+        .group(_.out())
+        .head
+        .ct shouldBe Some(MapType(List(ListType(List())), List(Node.nodeUrl)))
+    }
+    """a Map[List[Any],List[Node]]""" in {
+      g.N
+        .hasIri("/person/12345")
+        .group(_.out())
+        .ct shouldBe Some(MapType(List(ListType(List())), List(ListType(List(Node.nodeUrl)))))
+    }
+    """a Map[List[Any],Edge[_,_]]""" in {
+      g.E
+        .hasIri("/person/12345")
+        .group(_.out())
+        .head
+        .ct shouldBe Some(MapType(List(ListType(List())), List(Edge.edgeUrl)))
+    }
+    """a Map[List[Any],List[Edge[_,_]]]""" in {
+      g.E
+        .hasIri("/person/12345")
+        .group(_.out())
+        .ct shouldBe Some(MapType(List(ListType(List())), List(ListType(List(Edge.edgeUrl)))))
+    }
+    """a Map[List[Any],Int]""" in {
+      g.V
+        .hasIri("/person/12345")
+        .group(_.out())
+        .hasLabel[Int]
+        .head
+        .ct shouldBe Some(MapType(List(ListType(List())), List(IntType.datatype)))
+    }
+    """a Map[List[Any],List[Int]]""" in {
+      g.V
+        .hasIri("/person/12345")
+        .group(_.out())
+        .hasLabel[Int]
+        .ct shouldBe Some(MapType(List(ListType(List())), List(ListType(List(IntType.datatype)))))
+    }
+    """a Map[List[Ontology],List[(List[Any],List[Double])]]""" in {
+      g.N
+        .hasIri("/person/12345")
+        .group(_.label())
+        .project(_.out("name"), _.out("balance").hasLabel[Double].is(P.gt(200.0)))
+        .ct shouldBe Some(
+        MapType(List(ListType(List(Ontology.urlType))),
+                List(TupleType(List(List(ListType(List())), List(ListType(List(`@double`))))))))
+    }
+    """a ([List[Any],List[Any])""" in {
+      g.N.project(_.out(), _.in()).ct shouldBe Some(TupleType(List(List(ListType()), List(ListType()))))
+    }
+    """a ([List[Any],Map[Property,List[Any]])""" in {
+      g.N.project(_.out(), _.inMap()).ct shouldBe Some(
+        TupleType(List(List(ListType()), List(MapType(List(Property.urlType), List(ListType()))))))
     }
   }
   "Traversals" can {

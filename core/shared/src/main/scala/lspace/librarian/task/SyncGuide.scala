@@ -90,7 +90,7 @@ trait SyncGuide extends Guide[Stream] {
             rearrangeBarrierStep(step, steps, nextSegments)
           case step: ReducingBarrierStep =>
             reducingBarrierStep(step, steps, nextSegments)
-          case step: Project =>
+          case step: Project[_] =>
             projectStep(step, steps, nextSegments)
         }
     }
@@ -251,7 +251,7 @@ trait SyncGuide extends Guide[Stream] {
                       }
                   case v => Map()
               })
-          case step: Path =>
+          case step: Path[_, _] =>
             val byObs = traversalToF(step.by.segmentList)
             obs: Stream[Librarian[Any]] =>
               obs.map { librarian =>
@@ -656,22 +656,57 @@ trait SyncGuide extends Guide[Stream] {
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
     val nextStep = buildNextStep(steps, segments)
     step match {
-      case step: Group[_] =>
+      case step: Group[_, _] =>
         val byObservable = traversalToF(step.by.segmentList)
-        obs: Stream[Librarian[Any]] =>
-          Stream(
-            obs
-              .map { librarian =>
-                librarian -> byObservable(librarian).toList
-              }
-              .groupBy(_._2
-                .collect { case librarian: Librarian[Any] => librarian }
-                .map(_.get match {
-                  case resource: Resource[Any] => resource.value
-                  case v: Any                  => v
-                }))
-              .mapValues(_.map(_._1))
-              .mapValues(nextStep(_).toList))
+        step.by.steps.lastOption match {
+          case Some(Head) =>
+            obs: Stream[Librarian[Any]] =>
+              Stream(
+                obs
+                  .map { librarian =>
+                    librarian -> byObservable(librarian).headOption
+                  }
+                  .groupBy(_._2
+                    .collect { case librarian: Librarian[Any] => librarian }
+                    .map(_.get match {
+                      case resource: Resource[Any] => resource.value
+                      case v: Any                  => v
+                    }))
+                  .mapValues(_.map(_._1))
+                  .mapValues(nextStep(_).toList))
+          case Some(Last) =>
+            obs: Stream[Librarian[Any]] =>
+              Stream(
+                obs
+                  .map { librarian =>
+                    librarian -> byObservable(librarian).lastOption
+                  }
+                  .groupBy(_._2
+                    .collect { case librarian: Librarian[Any] => librarian }
+                    .map(_.get match {
+                      case resource: Resource[Any] => resource.value
+                      case v: Any                  => v
+                    }))
+                  .mapValues(_.map(_._1))
+                  .mapValues(nextStep(_).toList))
+          case _ =>
+            obs: Stream[Librarian[Any]] =>
+              Stream(
+                obs
+                  .map { librarian =>
+                    librarian -> byObservable(librarian).toList
+                  }
+                  .groupBy(_._2
+                    .collect { case librarian: Librarian[Any] => librarian }
+                    .map(_.get match {
+                      case resource: Resource[Any] => resource.value
+                      case v: Any                  => v
+                    })
+                    .toSet)
+                  .map(t => t._1.toList -> t._2)
+                  .mapValues(_.map(_._1))
+                  .mapValues(nextStep(_).toList))
+        }
     }
   }
 
@@ -909,37 +944,62 @@ trait SyncGuide extends Guide[Stream] {
     f andThen nextStep
   }
 
-  def projectStep(step: Project, steps: List[Step], segments: List[Segment[_]])(
+  def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
     val nextStep = buildNextStep(steps, segments)
 
-    val f = step.by match {
-      case List(p1, p2) =>
-        val p1Obs = traversalToF(p1.segmentList)
-        val p2Obs = traversalToF(p2.segmentList)
-        obs: Stream[Librarian[Any]] =>
-          obs.map { librarian =>
-            librarian.copy((p1Obs(librarian).toList, p2Obs(librarian).toList))
-          }
-      case List(p1, p2, p3) =>
-        val p1Obs = traversalToF(p1.segmentList)
-        val p2Obs = traversalToF(p2.segmentList)
-        val p3Obs = traversalToF(p3.segmentList)
-        obs: Stream[Librarian[Any]] =>
-          obs.map { librarian =>
-            librarian.copy((p1Obs(librarian).toList, p2Obs(librarian).toList, p3Obs(librarian).toList))
-          }
-      case List(p1, p2, p3, p4) =>
-        val p1Obs = traversalToF(p1.segmentList)
-        val p2Obs = traversalToF(p2.segmentList)
-        val p3Obs = traversalToF(p3.segmentList)
-        val p4Obs = traversalToF(p4.segmentList)
-        obs: Stream[Librarian[Any]] =>
-          obs.map { librarian =>
-            librarian.copy(
-              (p1Obs(librarian).toList, p2Obs(librarian).toList, p3Obs(librarian).toList, p4Obs(librarian).toList))
-          }
+    val pObs = step.by.runtimeList.map {
+      case traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
+        traversalToF(traversal.segmentList) -> traversal.steps.lastOption
     }
+
+    val f = (obs: Stream[Librarian[Any]]) =>
+      obs
+        .map(librarian =>
+          librarian -> pObs.map {
+            case (pOb, Some(Head)) => pOb(librarian).headOption
+            case (pOb, Some(Last)) => pOb(librarian).lastOption
+            case (pOb, _)          => pOb(librarian).toList
+        })
+        .map {
+          case (librarian, tuple) =>
+            librarian.copy(tuple match {
+              case List(v1)                     => v1
+              case List(v1, v2)                 => (v1, v2)
+              case List(v1, v2, v3)             => (v1, v2, v3)
+              case List(v1, v2, v3, v4)         => (v1, v2, v3, v4)
+              case List(v1, v2, v3, v4, v5)     => (v1, v2, v3, v4, v5)
+              case List(v1, v2, v3, v4, v5, v6) => (v1, v2, v3, v4, v5, v6)
+            })
+      }
+
+//    val f2 = step.by match {
+//      case List(p1, p2) =>
+//        val p1Obs = traversalToF(p1.segmentList)
+//        val p2Obs = traversalToF(p2.segmentList)
+//        obs: Stream[Librarian[Any]] =>
+//          obs.map { librarian =>
+//            librarian.copy((p1Obs(librarian).toList, p2Obs(librarian).toList))
+//          }
+//      case List(p1, p2, p3) =>
+//        val p1Obs = traversalToF(p1.segmentList)
+//        val p2Obs = traversalToF(p2.segmentList)
+//        val p3Obs = traversalToF(p3.segmentList)
+//        obs: Stream[Librarian[Any]] =>
+//          obs.map { librarian =>
+//            librarian.copy((p1Obs(librarian).toList, p2Obs(librarian).toList, p3Obs(librarian).toList))
+//          }
+//      case List(p1, p2, p3, p4) =>
+//        val p1Obs = traversalToF(p1.segmentList)
+//        val p2Obs = traversalToF(p2.segmentList)
+//        val p3Obs = traversalToF(p3.segmentList)
+//        val p4Obs = traversalToF(p4.segmentList)
+//        obs: Stream[Librarian[Any]] =>
+//          obs.map { librarian =>
+//            librarian.copy(
+//              (p1Obs(librarian).toList, p2Obs(librarian).toList, p3Obs(librarian).toList, p4Obs(librarian).toList))
+//          }
+//    }
 
     f andThen nextStep
   }

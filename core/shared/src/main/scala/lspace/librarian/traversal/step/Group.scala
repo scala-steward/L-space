@@ -7,10 +7,10 @@ import shapeless.{HList, HNil}
 
 object Group
     extends StepDef("Group", "A group-step groups traversers.", () => CollectingBarrierStep.ontology :: Nil)
-    with StepWrapper[Group[ClassType[Any]]] {
+    with StepWrapper[Group[ClassType[Any], HList]] {
 
-  def toStep(node: Node): Group[ClassType[Any]] =
-    Group(
+  def toStep(node: Node): Group[ClassType[Any], HList] =
+    Group[ClassType[Any], HList](
       node
         .out(keys.byTraversal)
         .take(1)
@@ -34,7 +34,7 @@ object Group
     lazy val `ns.l-space.eu/librarian/step/Group/by @Traversal`: TypedKey[Node] = keys.byTraversal
   }
 
-  implicit def toNode[A <: ClassType[_]](group: Group[A]): Node = {
+  implicit def toNode[ET <: ClassType[_], Segments <: HList](group: Group[ET, Segments]): Node = {
     val node = DetachedGraph.nodes.create(ontology)
     node.addOut(keys.by, group.by.toNode)
     node
@@ -42,7 +42,8 @@ object Group
 
 }
 
-case class Group[A <: ClassType[_]](by: Traversal[_ <: ClassType[_], A, _ <: HList]) extends CollectingBarrierStep {
+case class Group[ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
+    extends CollectingBarrierStep {
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = "group(_." + by.toString + ")"

@@ -229,6 +229,7 @@ trait NameSpaceGraph extends DataGraph {
 
     def cached(iri: String): Option[Property] =
       Property.properties.cached(iri)
+
     //        .orElse(byIri.get(iri))
 
     def store(property: Property): Task[Node] = {
@@ -277,9 +278,9 @@ trait NameSpaceGraph extends DataGraph {
                     node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
                 }
                 properties.foreach(edges.create(node, Property.default.`@properties`, _))
-//                property.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
+                //                property.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
                 extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
-//                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
+                //                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
                 property.base.foreach { base =>
                   node.addOut(Property.default.`@base`, base)
                 }
@@ -302,8 +303,7 @@ trait NameSpaceGraph extends DataGraph {
         .repeat(_.in(_.`@extends`), collect = true)()
         .hasLabel(Property.ontology)
         .withGraph(thisgraph)
-        .toObservable
-        .toListL
+        .toListF
         .flatMap { nodes =>
           Task.gatherUnordered(nodes.distinct.map { node =>
             cached(node.iri).map(node => Task.now(node)).getOrElse(Property.build(node).map(_.value()))

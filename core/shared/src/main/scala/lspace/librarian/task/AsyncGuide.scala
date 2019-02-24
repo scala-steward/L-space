@@ -9,16 +9,17 @@ import lspace.librarian.traversal._
 import lspace.structure._
 import monix.eval.Task
 import monix.reactive.Observable
+import shapeless.HList
 
 import scala.collection.mutable
 
-object StandardGuide {
-  def apply()(implicit _assistent: Assistent): StandardGuide = new StandardGuide {
+object AsyncGuide {
+  def apply()(implicit _assistent: Assistent): AsyncGuide = new AsyncGuide {
     val assistent: Assistent = _assistent
   }
 }
 
-trait StandardGuide extends Guide[Observable] {
+trait AsyncGuide extends Guide[Observable] {
 
   def buildTraversal[Out](segments: List[Segment[_]]): Graph => Observable[Out] = { implicit graph: Graph =>
 
@@ -81,7 +82,7 @@ trait StandardGuide extends Guide[Observable] {
             rearrangeBarrierStep(step, steps, nextSegments)
           case step: ReducingBarrierStep =>
             reducingBarrierStep(step, steps, nextSegments)
-          case step: Project =>
+          case step: Project[_] =>
             projectStep(step, steps, nextSegments)
         }
     }
@@ -217,14 +218,41 @@ trait StandardGuide extends Guide[Observable] {
                       }).map(_.toMap)
                   case v => Task.now(Map())
                 }))
-          case step: Path    =>
+          case step: Path[_,_]    =>
             val byObs = traversalToF(step.by.segmentList)
-            obs: Observable[Librarian[Any]] =>
-              obs.flatMap(librarian =>
-                Observable.fromTask(Task.gather(librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).toListL)).map { v =>
-                  librarian.copy(v)
-                })
-              )
+            step.by.steps.lastOption match {
+              case Some(Head) =>
+                obs: Observable[Librarian[Any]] =>
+                  obs.flatMap(librarian =>
+                    Observable.fromTask(Task.gather(librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headOptionL)).map { v =>
+                      v.map {
+                        case Some(librarian: Librarian[Any]) => Some(librarian.get).map {
+                          case r: Resource[_] => r.value
+                          case v => v
+                        }
+                      }
+                    })
+                  )
+              case Some(Last) =>
+                obs: Observable[Librarian[Any]] =>
+                  obs.flatMap(librarian =>
+                    Observable.fromTask(Task.gather(librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).lastOptionL)).map { v =>
+                      v.map {
+                        case Some(librarian: Librarian[Any]) => Some(librarian.get).map {
+                          case r: Resource[_] => r.value
+                          case v => v
+                        }
+                      }
+                    })
+                  )
+              case _ =>
+                obs: Observable[Librarian[Any]] =>
+                  obs.flatMap(librarian =>
+                    Observable.fromTask(Task.gather(librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).toListL)).map { v =>
+                      v
+                    })
+                  )
+            }
         }
       case step: Out =>
         obs: Observable[Librarian[Any]] =>
@@ -451,6 +479,8 @@ trait StandardGuide extends Guide[Observable] {
     val nextStep = buildNextStep(steps, segments)
 
     val f = step match {
+      case step: Head => obs: Observable[Librarian[Any]] => obs.head
+      case step: Last => obs: Observable[Librarian[Any]] => obs.last
       case step: Limit => obs: Observable[Librarian[Any]] => obs.take(step.max)
       case step: Range => obs: Observable[Librarian[Any]] => obs.drop(step.low).take(step.high - step.low)
       case step: Tail => obs: Observable[Librarian[Any]] => obs.takeLast(step.max)
@@ -624,11 +654,15 @@ trait StandardGuide extends Guide[Observable] {
           }
         }
       case step: Union[_, _] =>
-        val unionObs = step.traversals.map(_.segmentList).map(traversalToF)
+        val unionObs = step.traversals.map(_.segmentList).map(traversalToF).zip(step.traversals.map(_.steps.lastOption))
         obs: Observable[Librarian[Any]] =>
         {
           obs.flatMap { librarian =>
-            unionObs.map(_ (librarian)).reduce(_ ++ _)
+            unionObs.map {
+              case (f, Some(Head)) => f(librarian).head
+              case (f, Some(Last)) => f(librarian).last
+              case (f, step) => f(librarian)
+            }.reduce(_ ++ _)
           }
         }
     }
@@ -641,21 +675,60 @@ trait StandardGuide extends Guide[Observable] {
 
     val nextStep = buildNextStep(steps, segments)
     step match {
-      case step: Group[_] =>
+      case step: Group[_,_] =>
         val byObservable = traversalToF(step.by.segmentList)
-        obs: Observable[Librarian[Any]] =>
-          obs
-            .flatMap { librarian =>
-              Observable
-                .from(byObservable(librarian).toListL.map(librarian -> _))
-            }
-            .groupBy(_._2.collect { case librarian: Librarian[Any] => librarian }.map(_.get match {
-              case resource: Resource[Any] => resource.value
-              case v: Any => v
-            }))
-            .flatMap{ group =>
-              nextStep(group.map(_._1)).map(group.key -> _)
-            }
+        step.by.steps.lastOption match {
+          case Some(Head) =>
+            obs: Observable[Librarian[Any]] =>
+              obs
+                .flatMap { librarian =>
+                  Observable
+                    .from(byObservable(librarian).headOptionL.map(librarian -> _))
+                }
+                .groupBy(_._2.collect { case librarian: Librarian[Any] => librarian }
+                  .map(_.get match {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any => v
+                }))
+                .flatMap{ group =>
+                  nextStep(group.map(_._1)).map(group.key -> _)
+                }
+          case Some(Last) =>
+            obs: Observable[Librarian[Any]] =>
+              obs
+                .flatMap { librarian =>
+                  Observable
+                    .from(byObservable(librarian).lastOptionL.map(librarian -> _))
+                }
+                .groupBy(_._2.collect { case librarian: Librarian[Any] => librarian }
+                  .map(_.get match {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any => v
+                }))
+                .flatMap{ group =>
+                  nextStep(group.map(_._1)).map(group.key -> _)
+                }
+          case _ =>
+            obs: Observable[Librarian[Any]] =>
+              Observable.fromTask(
+              obs
+                .flatMap { librarian =>
+                  Observable
+                    .from(byObservable(librarian).toListL.map(librarian -> _))
+                }
+                .groupBy(_._2.collect { case librarian: Librarian[Any] => librarian }.map(_.get match {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any => v
+                }).toSet)
+                .flatMap{ group =>
+                  Observable.fromTask(
+                  nextStep(group.map(_._1)).toListL.map(group.key.toList -> _)
+                  )
+                }.toListL.map(_.toMap))
+//                .map(t => t._1.toList -> t._2)
+//                .mapValues(_.map(_._1))
+//                .mapValues(nextStep(_).toList))
+        }
     }
   }
 
@@ -871,56 +944,75 @@ trait StandardGuide extends Guide[Observable] {
     f andThen nextStep
   }
 
-  def projectStep(step: Project,
-                  steps: List[Step],
-                  segments: List[Segment[_]])(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+  def projectStep[Traversals <: HList](step: Project[Traversals],
+                                       steps: List[Step],
+                                       segments: List[Segment[_]])(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
 
     val nextStep = buildNextStep(steps, segments)
-
-    val f = step.by match {
-      case List(p1, p2) =>
-        val p1Obs = traversalToF(p1.segmentList)
-        val p2Obs = traversalToF(p2.segmentList)
-        obs: Observable[Librarian[Any]] =>
-          obs.flatMap { librarian =>
-            Observable.fromTask(for {
-              v1 <- p1Obs(librarian).toListL
-              v2 <- p2Obs(librarian).toListL
-            } yield {
-              librarian.copy((v1, v2))
-            })
-          }
-      case List(p1, p2, p3) =>
-        val p1Obs = traversalToF(p1.segmentList)
-        val p2Obs = traversalToF(p2.segmentList)
-        val p3Obs = traversalToF(p3.segmentList)
-        obs: Observable[Librarian[Any]] =>
-          obs.flatMap { librarian =>
-            Observable.fromTask(for {
-              v1 <- p1Obs(librarian).toListL
-              v2 <- p2Obs(librarian).toListL
-              v3 <- p3Obs(librarian).toListL
-            } yield {
-              librarian.copy((v1, v2, v3))
-            })
-          }
-      case List(p1, p2, p3, p4) =>
-        val p1Obs = traversalToF(p1.segmentList)
-        val p2Obs = traversalToF(p2.segmentList)
-        val p3Obs = traversalToF(p3.segmentList)
-        val p4Obs = traversalToF(p4.segmentList)
-        obs: Observable[Librarian[Any]] =>
-          obs.flatMap { librarian =>
-            Observable.fromTask(for {
-              v1 <- p1Obs(librarian).toListL
-              v2 <- p2Obs(librarian).toListL
-              v3 <- p3Obs(librarian).toListL
-              v4 <- p4Obs(librarian).toListL
-            } yield {
-              librarian.copy((v1, v2, v3, v4))
-            })
-          }
+    val pObs = step.by.runtimeList.map {
+      case traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
+        traversalToF(traversal.segmentList) -> traversal.steps.lastOption
     }
+   val f =
+     (obs: Observable[Librarian[Any]]) =>
+      obs.flatMap { librarian =>
+        Observable.fromTask(Task.gather(pObs.map {
+          case (pOb, Some(Head)) => pOb(librarian).headL
+          case (pOb, Some(Last)) => pOb(librarian).lastL
+          case (pOb, _)          => pOb(librarian).toListL
+        })).map {
+          case List(v1) => v1
+          case List(v1, v2) => (v1, v2)
+          case List(v1, v2, v3) => (v1, v2, v3)
+          case List(v1, v2, v3, v4) => (v1, v2, v3, v4)
+          case List(v1, v2, v3, v4, v5) => (v1, v2, v3, v4, v5)
+          case List(v1, v2, v3, v4, v5, v6) => (v1, v2, v3, v4, v5, v6)
+        }.map(librarian.copy(_))
+      }
+//    val f = step.by match {
+//      case List(p1, p2) =>
+//        val p1Obs = traversalToF(p1.segmentList)
+//        val p2Obs = traversalToF(p2.segmentList)
+//        obs: Observable[Librarian[Any]] =>
+//          obs.flatMap { librarian =>
+//            Observable.fromTask(for {
+//              v1 <- p1Obs(librarian).toListL
+//              v2 <- p2Obs(librarian).toListL
+//            } yield {
+//              librarian.copy((v1, v2))
+//            })
+//          }
+//      case List(p1, p2, p3) =>
+//        val p1Obs = traversalToF(p1.segmentList)
+//        val p2Obs = traversalToF(p2.segmentList)
+//        val p3Obs = traversalToF(p3.segmentList)
+//        obs: Observable[Librarian[Any]] =>
+//          obs.flatMap { librarian =>
+//            Observable.fromTask(for {
+//              v1 <- p1Obs(librarian).toListL
+//              v2 <- p2Obs(librarian).toListL
+//              v3 <- p3Obs(librarian).toListL
+//            } yield {
+//              librarian.copy((v1, v2, v3))
+//            })
+//          }
+//      case List(p1, p2, p3, p4) =>
+//        val p1Obs = traversalToF(p1.segmentList)
+//        val p2Obs = traversalToF(p2.segmentList)
+//        val p3Obs = traversalToF(p3.segmentList)
+//        val p4Obs = traversalToF(p4.segmentList)
+//        obs: Observable[Librarian[Any]] =>
+//          obs.flatMap { librarian =>
+//            Observable.fromTask(for {
+//              v1 <- p1Obs(librarian).toListL
+//              v2 <- p2Obs(librarian).toListL
+//              v3 <- p3Obs(librarian).toListL
+//              v4 <- p4Obs(librarian).toListL
+//            } yield {
+//              librarian.copy((v1, v2, v3, v4))
+//            })
+//          }
+//    }
 
     f andThen nextStep
   }

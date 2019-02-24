@@ -5,17 +5,18 @@ import lspace.provider.detached.DetachedGraph
 import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.NS.types
-import shapeless.HList
+import shapeless.{HList, HNil, LUBConstraint}
 
 object Project
     extends StepDef("Project", "A project-step ..", () => TraverseStep.ontology :: Nil)
-    with StepWrapper[Project] {
+    with StepWrapper[Project[HList]] {
 
-  def toStep(node: Node): Project =
-    Project(
+  def toStep(node: Node): Project[HList] =
+    Project[HList](
       node
         .out(Project.keys.byTraversal)
-        .map(Traversal.toTraversal(_)))
+        .map(Traversal.toTraversal(_))
+        .foldLeft[HList](HNil) { case (hlist, traversal) => traversal :: hlist })
 
   object keys extends TraverseStep.Properties {
     object by
@@ -31,16 +32,32 @@ object Project
   override lazy val properties: List[Property] = keys.by :: TraverseStep.properties
   trait Properties extends TraverseStep.Properties
 
-  implicit def toNode(project: Project): Node = {
+  implicit def toNode[Traversals <: HList](project: Project[Traversals])
+//                                          (
+//      implicit
+//      lub: LUBConstraint[Traversals, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
+    : Node = {
     val node = DetachedGraph.nodes.create(ontology)
-    project.by.map(_.toNode).foreach(node.addOut(keys.by, _))
+    project.by.runtimeList
+      .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
+      .map(_.toNode)
+      .foreach(node.addOut(keys.by, _))
     node
   }
 
 }
 
-case class Project(by: List[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]) extends TraverseStep {
+case class Project[Traversals <: HList](by: Traversals)
+//                                       (
+//    implicit
+//    lub: LUBConstraint[Traversals, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
+    extends TraverseStep {
 
-  lazy val toNode: Node            = this
-  override def prettyPrint: String = "project(" + by.map(_.toString).map("_." + _).mkString(", ") + ")"
+  lazy val toNode: Node = this
+  override def prettyPrint: String =
+    "project(" + by.runtimeList
+      .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
+      .map(_.toString)
+      .map("_." + _)
+      .mkString(", ") + ")"
 }

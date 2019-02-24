@@ -2,7 +2,7 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.{IriResource, Property}
+import lspace.structure.{IriResource, Ontology, Property}
 
 trait IriType[+T] extends DataType[T]
 
@@ -21,9 +21,28 @@ object IriType extends DataTypeDef[IriType[IriResource]] {
 
   def apply[T]: IriType[T] = new IriType[T] { val iri: String = "" }
 
-  implicit def clsIri[T]: ClassTypeable.Aux[IriType[T], T, IriType[T]] = new ClassTypeable[IriType[T]] {
-    type C  = T
-    type CT = IriType[T]
-    def ct: CT = DataType.urlType[T]
-  }
+  import shapeless.=:!=
+  implicit def clsIri[T](implicit classtpbl: ClassTypeable.Aux[T, T, IriType[T]],
+                         ev1: T =:!= Ontology,
+                         ev2: T =:!= Property): ClassTypeable.Aux[IriType[T], T, IriType[T]] =
+    new ClassTypeable[IriType[T]] {
+      type C  = T
+      type CT = IriType[T]
+      def ct: CT = classtpbl.ct
+    }
+
+  implicit val defaultOntology: ClassTypeable.Aux[IriType[Ontology], Ontology, IriType[Ontology]] =
+    new ClassTypeable[IriType[Ontology]] {
+      type C  = Ontology
+      type CT = IriType[Ontology]
+      def ct: CT = Ontology.urlType
+    }
+
+  implicit val defaultProperty: ClassTypeable.Aux[IriType[Property], Property, IriType[Property]] =
+    new ClassTypeable[IriType[Property]] {
+      type C  = Property
+      type CT = IriType[Property]
+      def ct: CT = Property.urlType
+    }
+
 }

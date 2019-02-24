@@ -7,6 +7,8 @@ import shapeless.HList
 
 package object lspace {
 
+  type Graph = structure.Graph
+
   type P[Z] = lspace.librarian.logic.predicate.P[Z]
   val P = lspace.librarian.logic.predicate.P
 
@@ -15,7 +17,6 @@ package object lspace {
   implicit def tToT[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList](
       t: Traversal[ST, ET, Steps]): lspace.librarian.traversal.Traversal[ST, ET, Steps] = t
 
-//  type Traversal[Z] = lspace.librarian.traversal.Traversal[Z]
   val Traversal                                      = lspace.librarian.traversal.Traversal
   def g                                              = Traversal()
   def __[Start: ClassTypeable, End: ClassTypeable]() = Traversal[Start, End]
@@ -29,8 +30,8 @@ package object lspace {
     object DefaultAssistent {
       implicit val assistent: Assistent = librarian.logic.DefaultAssistent()
     }
-    object StandardGuide {
-      implicit val guide: task.Guide[Observable] = task.StandardGuide()(DefaultAssistent.assistent)
+    object AsyncGuide {
+      implicit val guide: task.Guide[Observable] = task.AsyncGuide()(DefaultAssistent.assistent)
     }
     object SyncGuide {
       implicit val guide: task.Guide[Stream] = task.SyncGuide()(DefaultAssistent.assistent)

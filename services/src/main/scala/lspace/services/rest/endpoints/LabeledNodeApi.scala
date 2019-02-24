@@ -35,22 +35,20 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
   val label       = ontology.label.getOrElse("en", throw new Exception("no label found")).toLowerCase()
 
   import lspace._
-  import Implicits.StandardGuide._
+  import Implicits.AsyncGuide._
 
   val idToNodeTask: Long => Task[Option[Node]] = (id: Long) =>
     g.N
       .hasIri(graph.iri + "/" + label + "/" + id)
       .hasLabel(ontology)
       .withGraph(graph)
-      .toObservable
-      .headOptionL
+      .headOptionF
   val iriToNodeTask: String => Task[Option[Node]] = (iri: String) =>
     g.N
       .hasIri(iri)
       .hasLabel(ontology)
       .withGraph(graph)
-      .toObservable
-      .headOptionL
+      .headOptionF
 
   val byIri: Endpoint[IO, Node] = get(path[String]).mapOutputAsync { (iri: String) =>
     iriToNodeTask(iri).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
@@ -71,7 +69,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     * GET /
     */
   val list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
-    g.N.hasLabel(ontology).withGraph(graph).toObservable.toListL.map(Ok).toIO
+    g.N.hasLabel(ontology).withGraph(graph).toListF.map(Ok).toIO
   }
 
 //  val create2: Endpoint[IO, Node] =
@@ -209,8 +207,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
         traversalTask.flatMap { traversal =>
           traversal.untyped
             .withGraph(graph)
-            .toObservable
-            .toListL
+            .toListF
             .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
             .map(_.toList)
             .map(Ok)
