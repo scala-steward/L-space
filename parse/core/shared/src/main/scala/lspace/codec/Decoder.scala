@@ -561,7 +561,8 @@ trait Decoder {
         case Some(iri) =>
           graph.ns.ontologies.get(iri).flatMap { oO =>
             oO.map(Task.now).getOrElse {
-              prepareOntology(expandedJson).flatMap(Ontology.ontologies.getOrBuild(_).task)
+              val nsDecoder = Decoder(graph.ns)
+              nsDecoder.prepareOntology(expandedJson).flatMap(Ontology.ontologies.getOrBuild(_).task)
 //              toNode(expandedJson, Ontology.ontology).flatMap { node =>
 //                Task.gatherUnordered()
 //                for {
@@ -737,7 +738,8 @@ trait Decoder {
           graph.ns.properties
             .get(iri)
             .flatMap(_.map(Task.now).getOrElse {
-              prepareProperty(expandedJson).flatMap(Property.properties.getOrBuild(_).task)
+              val nsDecoder = Decoder(graph.ns)
+              nsDecoder.prepareProperty(expandedJson).flatMap(Property.properties.getOrBuild(_).task)
 //              Property.properties
 //                .getOrConstruct(iri)({
 //                  val iris          = activeContext.extractIds(expandedJson)
@@ -920,7 +922,8 @@ trait Decoder {
             .get(iri)
             .map(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[_]])))
             .flatMap(_.map(Task.now).getOrElse {
-              prepareDatatype(expandedJson).flatMap(DataType.datatypes.getOrBuild(_).task)
+              val nsDecoder = Decoder(graph.ns)
+              nsDecoder.prepareDatatype(expandedJson).flatMap(DataType.datatypes.getOrBuild(_).task)
 
 //              val iris     = activeContext.extractIds(expandedJson)
 //              val labels   = activeContext.extractLabels(expandedJson)
