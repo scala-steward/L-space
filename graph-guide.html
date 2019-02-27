@@ -68,15 +68,14 @@ graph: lspace.structure.Graph = graph:graph-doc
 
 scala&gt;  SampleGraph.loadSocial(graph)
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-res0: AnyRef{val places: AnyRef{val SanJosédeMaipo: AnyRef{val place: lspace.structure.Node; val id: lspace.structure.Edge[lspace.structure.Node,lspace.structure.util.ClassTypeable.defaultString.C]; val name: lspace.structure.Edge[lspace.structure.Node,lspace.structure.util.ClassTypeable.defaultString.C]; val geo: lspace.structure.Edge[lspace.structure.Node,lspace.structure.util.ClassTypeable.defaultGeopoint.C]}; val CrystalSprings: AnyRef{val place: lspace.structure.Node; val name: lspace.structure.Edge[lspace.structure.Node,lspace.structure.util.ClassTypeable.defaultString.C]; val geo: lspace.structure.Edge[lspace.structure.Node,lspace.structure.util.ClassTypeable.defaultGeopoint.C]}; val Haridwar: AnyRef{val place: lspace.structure.Node; val id: lspace.structure.Edge[lspace.structure...
 
 scala&gt;  val labels = SampleGraph.ontologies
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-labels: lspace.util.SampleGraph.ontologies.type = lspace.util.SampleGraph$ontologies$@6d32609d
+labels: lspace.util.SampleGraph.ontologies.type = lspace.util.SampleGraph$ontologies$@195707cd
 
 scala&gt;  val keys = SampleGraph.properties
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-keys: lspace.util.SampleGraph.properties.type = lspace.util.SampleGraph$properties$@59155574
+keys: lspace.util.SampleGraph.properties.type = lspace.util.SampleGraph$properties$@19f2de03
 </code></pre>
 
 <h2 id="how-to-use">How to use</h2>
@@ -112,7 +111,7 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res2: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822, lspace.provider.mem.MemGraph$$anon$7@b9f96854)
+// res2: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822, lspace.provider.mem.MemGraph$$anon$7@b9f9684f)
 </span></code></pre></div></div>
 <p>hasId</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
@@ -126,15 +125,15 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>upsert</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res4: Long = 1211
+// res4: Long = 1201
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//should be equal because values are deduplicated
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res5: Long = 1211
+// res5: Long = 1201
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal2"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//new value, hence new id
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res6: Long = 1212
+// res6: Long = 1202
 </span></code></pre></div></div>
 <p>count:</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
@@ -155,7 +154,7 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res9: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822, lspace.provider.mem.MemGraph$$anon$7@b9f96854)
+// res9: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822, lspace.provider.mem.MemGraph$$anon$7@b9f9684f)
 </span></code></pre></div></div>
 
 <p>Retrieved by Id(s):</p>
