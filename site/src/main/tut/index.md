@@ -48,5 +48,5 @@ libraryDependencies += "eu.l-space" %% "{lspace-xxx-tests}" % "{{ site.data.sett
 ```
 
 ## Examples
-`examples` on how to use the project modules in various environments and 
-sample-environments (e.g. Jupyter-notebook with samples [https://hub.docker.com/u/lspace/](https://hub.docker.com/u/lspace/))
+[L-space-examples](https://github.com/ThijsBroersen/L-space-examples) on how to use the project modules in various environments and 
+sample-environments (e.g. Jupyter-notebook with samples)

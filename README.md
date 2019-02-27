@@ -43,12 +43,16 @@ libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "{version}"
 ```
 
 ## Examples
-`examples` on how to use the project modules in various environments and 
+[L-space-examples](https://github.com/ThijsBroersen/L-space-examples) on how to use the project modules in various environments and 
 sample-environments (e.g. Jupyter-notebook with samples)
 
 ## Acknowledgments
-* This project uses as few libraries as possible, the main libraries for core, parse, client and services are:
-  * [Shapeless](https://github.com/milessabin/shapeless/wiki)
-  * [Monix](https://monix.io/)
-  * [Finch](https://finagle.github.io/finch/)
-  * [Argonaut](http://argonaut.io/)
+* This project uses as few libraries as possible, the main dependencies for:
+  * `lspace-core` are
+    * [Shapeless](https://github.com/milessabin/shapeless/wiki)
+    * [Monix](https://monix.io/)
+  * `lspace-parse` are
+    * [sttp](https://github.com/softwaremill/sttp)
+  * `lspace-services` are
+    * [Finch](https://finagle.github.io/finch/)
+  
