@@ -59,13 +59,14 @@ object LHistory {
       val stateManager: GraphManager[this.type] = storeProvider.stateManager(this)
       override def idProvider: IdProvider       = stateManager.idProvider
 
-      override def close(): CancelableFuture[Unit] = {
-        super
-          .close()
-          .flatMap { u =>
-            storeManager.close()
-          }(monix.execution.Scheduler.global)
-      }
+      override def close(): CancelableFuture[Unit] = CancelableFuture.unit
+//      {
+//        super
+//          .close()
+//          .flatMap { u =>
+//            storeManager.close()
+//          }(monix.execution.Scheduler.global)
+//      }
     }
     graph.init
     graph

@@ -94,12 +94,12 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   override def valueCount(): Long = graph.values().size
 
-  lazy val init: CancelableFuture[Unit] = CancelableFuture.unit
+  lazy val init: Task[Unit] = Task.unit
 
-  def persist: CancelableFuture[Unit] = CancelableFuture.unit
+  def persist: Task[Unit] = Task.unit
 
   /**
     * finishes write-queue(s) and closes connection
     */
-  override def close(): CancelableFuture[Unit] = CancelableFuture.unit
+  override def close(): Task[Unit] = Task.unit
 }

@@ -8,14 +8,15 @@ import shapeless.HList
 package object lspace {
 
   type Graph = structure.Graph
+  val Graph = structure.Graph
 
   type P[Z] = lspace.librarian.logic.predicate.P[Z]
   val P = lspace.librarian.logic.predicate.P
 
   type Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Steps <: HList] =
     lspace.librarian.traversal.Traversal[ST, ET, Steps]
-  implicit def tToT[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList](
-      t: Traversal[ST, ET, Steps]): lspace.librarian.traversal.Traversal[ST, ET, Steps] = t
+//  implicit def tToT[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList](
+//      t: Traversal[ST, ET, Steps]): lspace.librarian.traversal.Traversal[ST, ET, Steps] = t
 
   val Traversal                                      = lspace.librarian.traversal.Traversal
   def g                                              = Traversal()

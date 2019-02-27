@@ -20,9 +20,9 @@ trait LDataGraph extends LGraph with DataGraph {
     Task
       .gatherUnordered(
         Seq(
-          Task.fromFuture(storeManager.persist),
-          Task.fromFuture(ns.persist),
-          Task.fromFuture(index.persist)
+          storeManager.persist,
+          ns.storeManager.persist,
+          index.storeManager.persist
         ))
       .foreachL(f => Task.unit)
       .runToFuture(monix.execution.Scheduler.global)

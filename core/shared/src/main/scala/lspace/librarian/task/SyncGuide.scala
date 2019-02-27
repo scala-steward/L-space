@@ -92,6 +92,12 @@ trait SyncGuide extends Guide[Stream] {
             reducingBarrierStep(step, steps, nextSegments)
           case step: Project[_] =>
             projectStep(step, steps, nextSegments)
+          case step: EnvironmentStep =>
+            step match {
+              case step: TimeLimit =>
+                val nextStep = buildNextStep(steps, nextSegments)
+                ((obs: Stream[Librarian[Any]]) => obs) andThen nextStep
+            }
         }
     }
   }
@@ -497,9 +503,9 @@ trait SyncGuide extends Guide[Stream] {
           obs.flatMap { librarian =>
             traveralObservable(librarian)
           }
-      case step: Repeat[_] =>
+      case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
         val repeatObs = traversalToF(step.traversal.segmentList)
-        if (step.collect.contains(true)) {
+        if (step.collect) {
           step.max match {
             case Some(max) =>
               step.until

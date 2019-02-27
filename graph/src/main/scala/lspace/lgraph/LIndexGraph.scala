@@ -43,5 +43,5 @@ trait LIndexGraph extends LGraph with IndexGraph {
   }
 //  override def _storeEdge[S, E](edge: _Edge[S, E]): Unit = super._storeEdge(edge)
 
-  override def persist: CancelableFuture[Unit] = storeManager.persist
+//  override def persist: CancelableFuture[Unit] = CancelableFuture.unit //storeManager.persist
 }

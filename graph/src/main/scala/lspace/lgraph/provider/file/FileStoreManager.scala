@@ -212,25 +212,25 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
     else Task(decoder.getNewActiveContext)
   }
 
-  lazy val init: CancelableFuture[Unit] = {
-    scribe.info(s"reading from files ${graph.iri}")
-    readLiterals
-      .flatMap { u =>
-        readNodes
-          .flatMap(readLiteralEdges)
-          .flatMap(readStructures)
-          .flatMap(readStructuredEdges)
-      }
-      .onErrorHandle { f =>
-        f.printStackTrace(); throw f
-      }
-      .foreachL { f =>
-        Unit
-      }
-      .runToFuture(monix.execution.Scheduler.global)
+  lazy val init: Task[Unit] = {
+    Task.delay(scribe.info(s"reading from files ${graph.iri}")).flatMap { f =>
+      readLiterals
+        .flatMap { u =>
+          readNodes
+            .flatMap(readLiteralEdges)
+            .flatMap(readStructures)
+            .flatMap(readStructuredEdges)
+        }
+        .onErrorHandle { f =>
+          f.printStackTrace(); throw f
+        }
+        .foreachL { f =>
+          Unit
+        }
+    }
   }
 
-  private def readLiterals: Task[Unit] = {
+  private def readLiterals: Task[Unit] = { scribe.info(s"read literals ${graph.iri}")
     graphfiles.read.context.literals
       .use(parseContext)
       .flatMap { implicit context =>
@@ -293,7 +293,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
         }
       }
   }
-  private def readNodes: Task[IdMaps] = {
+  private def readNodes: Task[IdMaps] = { scribe.info(s"read nodes ${graph.iri}")
 //    println(s"nodes ${graph.iri}")
     graphfiles.read.context.nodes
       .use(parseContext)
@@ -341,7 +341,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
   }
 
   private def readLiteralEdges(idMaps: IdMaps): Task[IdMaps] = {
-//    println(s"ledges ${graph.iri}")
+    scribe.info(s"read literals edges ${graph.iri}")
     val decoder = DecodeLDFS(graph, idMaps)
     graphfiles.read.context.literalEdges
       .use(parseContext)
@@ -457,7 +457,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
   }
 
   private def readStructuredEdges(idMaps: IdMaps): Task[IdMaps] = {
-//    println("sedges")
+    scribe.info(s"read structures edges ${graph.iri}")
     val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)
     graphfiles.read.context.structuredEdges
       .use(parseContext)
@@ -573,7 +573,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
   }
 
   private def readStructures(idMaps: IdMaps): Task[IdMaps] = {
-//    println("s")
+    scribe.info(s"read structures ${graph.iri}")
     val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)
     graphfiles.read.context.structures
       .use(parseContext)
@@ -798,7 +798,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
       }
   }
 
-  override def persist: CancelableFuture[Unit] = {
+  override def persist: Task[Unit] = {
     val encoder = EncodeLDFS()
     scribe.info(s"persisting ${graph.iri} to $path")
 
@@ -862,11 +862,10 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
         println(f.getMessage); throw f
       }
       .foreachL(f => {})
-      .runToFuture(monix.execution.Scheduler.global)
   }
 
   /**
     * finishes write-queue(s) and closes connection
     */
-  override def close(): CancelableFuture[Unit] = CancelableFuture.unit //persist
+  override def close(): Task[Unit] = Task.unit//CancelableFuture.unit //persist
 }

@@ -31,144 +31,139 @@ object DataType
     val iri: String = NS.types.`@datatype`
   }
 
-  def build(node: Node): Task[Coeval[DataType[_]]] = {
+  def build(node: Node): Coeval[DataType[_]] = {
     datatypes.get(node.iri).getOrElse {
       if (node.hasLabel(ontology).nonEmpty) {
-        Task
-          .gather(node.out(Property.default.`@extends`).collect {
-            case node: Node => datatypes.getOrConstruct(node.iri)(build(node))
+        Coeval
+          .sequence(node.out(Property.default.`@extends`).collect {
+            case node: Node => datatypes.getOrBuild(node)
           })
           .flatMap { extended =>
-            extended.map(_.value()).head match {
+            extended.head match {
               case dt: CollectionType[_] =>
                 dt match {
                   case dt: ListType[_] =>
-                    Task
-                      .gather(
+                    Coeval
+                      .sequence(
                         node
                           .out(ListType.keys.valueRangeClassType)
-                          .map(types => Task.gather(types.map(ClassType.build))))
+                          .map(types => Coeval.sequence(types.map(ClassType.build))))
                       .map { types =>
-                        Coeval(ListType(types.flatten.map(_.value())))
+                        ListType(types.flatten)
                       }
                   case dt: ListSetType[_] =>
-                    Task
-                      .gather(
+                    Coeval
+                      .sequence(
                         node
                           .out(ListSetType.keys.valueRangeClassType)
-                          .map(types => Task.gather(types.map(ClassType.build))))
+                          .map(types => Coeval.sequence(types.map(ClassType.build))))
                       .map { types =>
-                        Coeval(ListSetType(types.flatten.map(_.value())))
+                        ListSetType(types.flatten)
                       }
                   case dt: SetType[_] =>
-                    Task
-                      .gather(
+                    Coeval
+                      .sequence(
                         node
                           .out(SetType.keys.valueRangeClassType)
-                          .map(types => Task.gather(types.map(ClassType.build))))
+                          .map(types => Coeval.sequence(types.map(ClassType.build))))
                       .map { types =>
-                        Coeval(SetType(types.flatten.map(_.value())))
+                        SetType(types.flatten)
                       }
                   case dt: VectorType[_] =>
-                    Task
-                      .gather(
+                    Coeval
+                      .sequence(
                         node
                           .out(VectorType.keys.valueRangeClassType)
-                          .map(types => Task.gather(types.map(ClassType.build))))
+                          .map(types => Coeval.sequence(types.map(ClassType.build))))
                       .map { types =>
-                        Coeval(VectorType(types.flatten.map(_.value())))
+                        VectorType(types.flatten)
                       }
                   case dt: MapType[_, _] =>
                     for {
-                      keyRange <- Task
-                        .gather(
+                      keyRange <- Coeval
+                        .sequence(
                           node
                             .out(MapType.keys.keyRangeClassType)
-                            .map(types => Task.gather(types.map(ClassType.build))))
-                      valueRange <- Task
-                        .gather(
+                            .map(types => Coeval.sequence(types.map(ClassType.build))))
+                      valueRange <- Coeval
+                        .sequence(
                           node
                             .out(MapType.keys.valueRangeClassType)
-                            .map(types => Task.gather(types.map(ClassType.build))))
+                            .map(types => Coeval.sequence(types.map(ClassType.build))))
                     } yield {
-                      Coeval(MapType(keyRange.flatten.map(_.value()), keyRange.flatten.map(_.value())))
+                      MapType(keyRange.flatten, keyRange.flatten)
                     }
                   case dt: TupleType[_] =>
                     dt match {
                       case dt: Tuple2Type[_, _] =>
                         for {
-                          a <- Task
-                            .gather(
+                          a <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._1stRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
-                          b <- Task
-                            .gather(
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+                          b <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
                         } yield {
-                          Coeval(MapType(a.flatten.map(_.value()), b.flatten.map(_.value())))
+                          MapType(a.flatten, b.flatten)
                         }
                       case dt: Tuple3Type[_, _, _] =>
                         for {
-                          a <- Task
-                            .gather(
+                          a <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._1stRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
-                          b <- Task
-                            .gather(
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+                          b <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
-                          c <- Task
-                            .gather(
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+                          c <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
                         } yield {
-                          Coeval(
-                            Tuple3Type(a.flatten.map(_.value()), b.flatten.map(_.value()), c.flatten.map(_.value())))
+                          Tuple3Type(a.flatten, b.flatten, c.flatten)
                         }
                       case dt: Tuple4Type[_, _, _, _] =>
                         for {
-                          a <- Task
-                            .gather(
+                          a <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._1stRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
-                          b <- Task
-                            .gather(
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+                          b <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
-                          c <- Task
-                            .gather(
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+                          c <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
-                          d <- Task
-                            .gather(
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+                          d <- Coeval
+                            .sequence(
                               node
                                 .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Task.gather(types.map(ClassType.build))))
+                                .map(types => Coeval.sequence(types.map(ClassType.build))))
                         } yield {
-                          Coeval(
-                            Tuple4Type(a.flatten.map(_.value()),
-                                       b.flatten.map(_.value()),
-                                       c.flatten.map(_.value()),
-                                       d.flatten.map(_.value())))
+                          Tuple4Type(a.flatten, b.flatten, c.flatten, d.flatten)
                         }
                     }
                 }
-              case _ => Task.raiseError(new Exception(""))
+              case _ => Coeval.raiseError(new Exception(""))
             }
           }
       } else {
         //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
         //        .printStackTrace()
-        Task.raiseError(
+        Coeval.raiseError(
           new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
             s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
               .map(_.iri)}"))
@@ -222,36 +217,58 @@ object DataType
       val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
       val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
     }
-    private val byIri: concurrent.Map[String, DataType[_]] =
+    private[lspace] val byIri: concurrent.Map[String, DataType[_]] =
       new ConcurrentHashMap[String, DataType[_]]().asScala
-    private val constructing: concurrent.Map[String, Task[Coeval[DataType[_]]]] =
-      new ConcurrentHashMap[String, Task[Coeval[DataType[_]]]]().asScala
+    private[lspace] val building: concurrent.Map[String, Coeval[DataType[_]]] =
+      new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
+//    private[lspace] val constructing: concurrent.Map[String, Task[Coeval[DataType[_]]]] =
+//      new ConcurrentHashMap[String, Task[Coeval[DataType[_]]]]().asScala
 
-    def get(iri: String): Option[Task[Coeval[DataType[_]]]] =
+    def all: List[DataType[_]] = byIri.values.toList.distinct
+    def get(iri: String): Option[Coeval[DataType[_]]] =
       default.byIri
         .get(iri)
         .orElse(byIri.get(iri))
-        .map(o => Task.now(Coeval.now(o)))
-        .orElse(constructing.get(iri))
-    def getOrConstruct(iri: String)(constructTask: Task[Coeval[DataType[_]]]): Task[Coeval[DataType[_]]] =
+        .map(o => Coeval.now(o))
+        .orElse(building.get(iri))
+    def getOrBuild(node: Node): Coeval[DataType[_]] =
       default.byIri
-        .get(iri)
-        .map(o => Task.now(Coeval.now(o)))
-        .getOrElse(constructing.getOrElseUpdate(
-          iri,
-          constructTask
-            .map(_.memoize)
-            .map { o =>
-              Task {
-                byIri += o.value().iri -> o.value()
-                constructing.remove(iri)
-              }.delayExecution(FiniteDuration(1, "s"))
-                .runAsyncAndForget(monix.execution.Scheduler.global)
-              o
-            }
-            .memoize
-        ))
+        .get(node.iri)
+        .map(Coeval.now(_))
+        .getOrElse(building.getOrElseUpdate(node.iri, build(node).map { d =>
+          byIri += d.iri -> d
+          building.remove(node.iri)
+          d.iris.foreach { iri =>
+            datatypes.byIri += iri -> d
+          }
+          d
+        }.memoizeOnSuccess))
+//    def getOrConstruct(iri: String)(constructTask: Task[Coeval[DataType[_]]]): Task[Coeval[DataType[_]]] =
+//      default.byIri
+//        .get(iri)
+//        .map(o => Task.now(Coeval.now(o)))
+//        .getOrElse(constructing.getOrElseUpdate(
+//          iri,
+//          constructTask
+//            .map(_.memoize)
+//            .flatMap { o =>
+//              Task {
+//                byIri += o.value().iri -> o.value()
+//                constructing.remove(iri)
+//                o
+//              }
+////                .delayExecution(FiniteDuration(1, "s"))
+////                .runAsyncAndForget(monix.execution.Scheduler.global)
+//            }
+//            .memoize
+//        ))
 
+    def cache(datatype: DataType[_]): Unit = {
+      byIri += datatype.iri -> datatype
+      datatype.iris.foreach { iri =>
+        datatypes.byIri += iri -> datatype
+      }
+    }
     def cached(long: Long): Option[DataType[_]]  = default.byId.get(long)
     def cached(iri: String): Option[DataType[_]] = default.byIri.get(iri).orElse(byIri.get(iri))
 

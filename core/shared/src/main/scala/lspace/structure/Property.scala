@@ -33,55 +33,68 @@ object Property {
 //      type CT = EdgeURLType[Edge[Any, Any]]
 //      def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
 //    }
-
-  def build(node: Node): Task[Coeval[Property]] = {
+  import scala.concurrent.duration._
+  def build(node: Node): Coeval[Property] = {
     if (node.hasLabel(urlType).nonEmpty) {
-      for {
-        range <- Task.gather(
-          node
-            .out(default.`@range`)
-            .collect {
-              case nodes: List[_] =>
-                nodes.map {
-                  case node: Node => ClassType.classtypes.get(node.iri).getOrElse(ClassType.build(node)) //orElse???
-                  case iri: String =>
-                    ClassType.classtypes
-                      .get(iri)
-                      .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
-                }
-              case node: Node => List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.build(node)))
+      Coeval.delay {
+        val range = Coeval.defer(
+          Coeval
+            .sequence(node
+              .out(default.`@range`)
+              .collect {
+                case nodes: List[_] =>
+                  nodes.map {
+                    case node: Node =>
+                      ClassType.classtypes
+                        .get(node.iri)
+                        .getOrElse {
+                          ClassType.build(node)
+                        } //orElse???
+                    case iri: String =>
+                      ClassType.classtypes
+                        .get(iri)
+                        .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+                  }
+                case node: Node =>
+                  List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.build(node)))
+              }
+              .flatten))
+        val properties = Coeval.defer(
+          Coeval
+            .sequence(
+              node
+                .out(default.typed.propertyProperty)
+                .map(p => Property.properties.getOrBuild(p))))
+        val extended = Coeval.defer(
+          Coeval
+            .sequence(node.out(default.`@extends`).collect {
+              case node: Node =>
+                Property.properties.getOrBuild(node)
+            }))
+
+        _Property(node.iri)(
+          iris = node.iris,
+          _range = () => range.value(),
+          containers = node.out(default.typed.containerString),
+          label = node
+            .outE(default.typed.labelString)
+            .flatMap { edge =>
+              edge.out(default.typed.languageString).map(_ -> edge.to.value)
             }
-            .flatten)
-        properties <- Task.gather(node.out(default.typed.propertyProperty).map(Property.build))
-        extended <- Task.gather(node.out(default.`@extends`).collect {
-          case node: Node =>
-            Property.properties.getOrConstruct(node.iri)(build(node))
-        })
-      } yield {
-        Coeval(
-          _Property(node.iri)(
-            iris = node.iris,
-            _range = () => range.map(_.value()),
-            containers = node.out(default.typed.containerString),
-            label = node
-              .outE(default.typed.labelString)
-              .flatMap { edge =>
-                edge.out(default.typed.languageString).map(_ -> edge.to.value)
-              }
-              .toMap,
-            comment = node
-              .outE(default.typed.commentString)
-              .flatMap { edge =>
-                edge.out(default.typed.languageString).map(_ -> edge.to.value)
-              }
-              .toMap,
-            _extendedClasses = () => extended.map(_.value()),
-            _properties = () => properties.map(_.value()),
-            node.out(default.typed.baseString).headOption
-          ))
-      }
+            .toMap,
+          comment = node
+            .outE(default.typed.commentString)
+            .flatMap { edge =>
+              edge.out(default.typed.languageString).map(_ -> edge.to.value)
+            }
+            .toMap,
+          _extendedClasses = () => extended.value(),
+          _properties = () => properties.value(),
+          node.out(default.typed.baseString).headOption
+        )
+      }.memoizeOnSuccess
     } else {
-      Task.raiseError(new Exception(s"${node.iri} is not a property"))
+      Coeval.raiseError(new Exception(s"${node.iri} is not a property"))
     }
   }
 
@@ -125,37 +138,67 @@ object Property {
     }
     private[lspace] val byIri: concurrent.Map[String, Property] =
       new ConcurrentHashMap[String, Property]().asScala
-    private[lspace] val constructing: concurrent.Map[String, Task[Coeval[Property]]] =
-      new ConcurrentHashMap[String, Task[Coeval[Property]]]().asScala
+    private[lspace] val building: concurrent.Map[String, Coeval[Property]] =
+      new ConcurrentHashMap[String, Coeval[Property]]().asScala
+//    private[lspace] val preparing: concurrent.Map[String, Task[Coeval[Property]]] =
+//      new ConcurrentHashMap[String, Task[Coeval[Property]]]().asScala
 
-    def get(iri: String): Option[Task[Coeval[Property]]] =
+    def all: List[Property] = byIri.values.toList.distinct
+    def get(iri: String): Option[Coeval[Property]] =
       default.byIri
         .get(iri)
         .orElse(byIri.get(iri))
-        .map(p => Task.now(Coeval.now(p)))
-        .orElse(constructing.get(iri))
-    def getOrConstruct(iri: String)(constructTask: Task[Coeval[Property]]): Task[Coeval[Property]] =
+        .map(p => Coeval.now(p))
+        .orElse(building.get(iri))
+    def getOrBuild(node: Node): Coeval[Property] =
       default.byIri
-        .get(iri)
-        .map(p => Task.now(Coeval.now(p)))
-        .getOrElse(constructing.getOrElseUpdate(
-          iri,
-          constructTask
-            .map(_.memoize)
-            .map { p =>
-              Task {
-                byIri += p.value().iri -> p.value()
-                p.value().iris.foreach { iri =>
-                  properties.byIri += iri -> p.value()
-                }
-                constructing.remove(iri)
-              }.delayExecution(FiniteDuration(1, "s"))
-                .runAsyncAndForget(monix.execution.Scheduler.global)
-              p
-            }
-            .memoize
-        ))
+        .get(node.iri)
+        .map(Coeval.now(_))
+        .getOrElse(building.getOrElseUpdate(node.iri, build(node).map { p =>
+          byIri += p.iri -> p
+          p.iris.foreach { iri =>
+            properties.byIri += iri -> p
+          }
+          building.remove(node.iri)
+          p
+        }.memoizeOnSuccess))
+//    def getOrConstruct(iri: String)(constructTask: Task[Coeval[Property]]): Task[Coeval[Property]] = {
+//      println(s"getorconstruct ${iri}")
+//      default.byIri
+//        .get(iri)
+//        .map(p => Task.now(Coeval.now(p)))
+//        .getOrElse(preparing.getOrElseUpdate(
+//          iri,
+//          constructTask
+//            .map { f =>
+//              println(s"constructed ${f.value().iri}"); f
+//            }
+//            .flatMap { p =>
+//              Task {
+//                byIri += p.value().iri -> p.value()
+//                p.value().iris.foreach { iri =>
+//                  properties.byIri += iri -> p.value()
+//                }
+//                preparing.remove(iri)
+//                p
+//              }
+//            //                .delayExecution(FiniteDuration(1, "s"))
+//            //                .runAsyncAndForget(monix.execution.Scheduler.global)
+//            }
+//            .memoizeOnSuccess
+////            .delayExecution(100 millis)
+////            .map { f =>
+////              println(s"constructed2 ${f.value().iri}"); f
+////            }
+//        ))
+//    }
 
+    def cache(property: Property): Unit = {
+      byIri += property.iri -> property
+      property.iris.foreach { iri =>
+        properties.byIri += iri -> property
+      }
+    }
     def cached(long: Long): Option[Property]  = default.byId.get(long)
     def cached(iri: String): Option[Property] = default.byIri.get(iri).orElse(byIri.get(iri))
 
@@ -176,12 +219,12 @@ object Property {
       containers = NS.types.`@listset` :: Nil
     )
     val `@type`: Property = _Property(NS.types.`@type`)(
-      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
+//      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
     val `@extends`: Property = _Property(NS.types.`@extends`)(
       iris = Set(NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf),
-      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
+//      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
       containers = NS.types.`@listset` :: Nil
     )
     val `@properties`: Property = _Property(NS.types.`@properties`)(_range = () => DataType.default.`@property` :: Nil,

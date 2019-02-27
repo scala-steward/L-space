@@ -16,7 +16,7 @@ case object From
   trait Properties extends MoveStep.Properties
 
   lazy val toNode: Node            = DetachedGraph.nodes.create(ontology)
-  override def prettyPrint: String = "outV"
+  override def prettyPrint: String = "from"
 }
 
 trait From extends MoveStep

@@ -23,6 +23,7 @@ trait NameSpaceGraph extends DataGraph {
 
   trait Classtypes {
     def get(iri: String): Task[Option[ClassType[_]]] =
+//      Task.eval(println(s"get classtype ${iri}")).flatMap { f =>
       datatypes
         .get(iri)
         .flatMap { dt =>
@@ -32,20 +33,21 @@ trait NameSpaceGraph extends DataGraph {
               if (pt.isDefined) Task.now(pt)
               else ontologies.get(iri)
             }
+//          }
         }
 
     def get(node: Node): Task[ClassType[_]] = node.labels match {
       case l if l.contains(DataType.ontology) =>
         datatypes.cached(iri).map(Task.now).getOrElse {
-          DataType.build(node).map(_.value())
+          DataType.build(node).task
         }
       case l if l.contains(Property.ontology) =>
         properties.cached(iri).map(Task.now).getOrElse {
-          Property.build(node).map(_.value())
+          Property.build(node).task
         }
       case l if l.contains(Ontology.ontology) =>
         ontologies.cached(iri).map(Task.now).getOrElse {
-          Ontology.build(node).map(_.value())
+          Ontology.build(node).task
         }
       case _ =>
         Task.raiseError(new Exception(s"could not find class-type ${node.iri}"))
@@ -71,10 +73,15 @@ trait NameSpaceGraph extends DataGraph {
     protected[lspace] val byIri: concurrent.Map[String, Node] =
       new ConcurrentHashMap[String, Node]().asScala
 
-    def get(iri: String): Task[Option[Ontology]] =
+    def get(iri: String): Task[Option[Ontology]] = {
+//      Task.delay(println(s"get ontology ${iri}")).flatMap { f =>
+      //      println(
+      //        Ontology.ontologies
+      //          .get(iri)
+      //          .isDefined)
       Ontology.ontologies
         .get(iri)
-        .map(_.map(_.value()).map(Some(_)))
+        .map(_.map(Some(_)))
         .getOrElse(
           nodeStore
             .hasIri(iri)
@@ -82,13 +89,23 @@ trait NameSpaceGraph extends DataGraph {
             .find(_.hasLabel(DataType.ontology).isEmpty)
             .map { node =>
               Ontology.ontologies
-                .getOrConstruct(node.iri)(
-                  Ontology.build(node)
-                )
-                .map(_.value())
+                .getOrBuild(node)
+                .map { ontology =>
+                  byId += node.id   -> ontology
+                  byIri += node.iri -> node
+                  ontology.iris.foreach { iri =>
+                    byIri += iri -> node
+                  }
+                  ontology
+                }
                 .map(Some(_))
             }
-            .getOrElse(Task.now(None)))
+            .getOrElse {
+              Coeval.now(None)
+            })
+        .task
+    }
+//    }
 
     def get(id: Long): Task[Option[Ontology]] =
       cached(id)
@@ -100,13 +117,19 @@ trait NameSpaceGraph extends DataGraph {
             .find(_.hasLabel(DataType.ontology).isEmpty)
             .map { node =>
               Ontology.ontologies
-                .getOrConstruct(node.iri)(
-                  Ontology.build(node)
-                )
-                .map(_.value())
+                .getOrBuild(node)
+                .map { ontology =>
+                  byId += node.id   -> ontology
+                  byIri += node.iri -> node
+                  ontology.iris.foreach { iri =>
+                    byIri += iri -> node
+                  }
+                  ontology
+                }
                 .map(Some(_))
             }
-            .getOrElse(Task.now(None)))
+            .getOrElse(Coeval.now(None))
+            .task)
 
     def all: List[Ontology] = byId.values.toList
 
@@ -185,23 +208,36 @@ trait NameSpaceGraph extends DataGraph {
     protected[lspace] val byIri: mutable.HashMap[String, Node] =
       mutable.HashMap[String, Node]()
 
-    def get(iri: String): Task[Option[Property]] =
+    def get(iri: String): Task[Option[Property]] = {
+//      Task.delay(println(s"get property ${iri}")).flatMap { f =>
+      //      println(
+      //        Property.properties
+      //          .get(iri)
+      //          .isDefined)
       Property.properties
         .get(iri)
-        .map(_.map(_.value()).map(Some(_)))
+        .map(_.map(Some(_)))
         .getOrElse(
           nodeStore
             .hasIri(iri)
             .find(_.hasLabel(Property.ontology).isDefined)
             .map { node =>
               Property.properties
-                .getOrConstruct(node.iri)(
-                  Property.build(node)
-                )
-                .map(_.value())
+                .getOrBuild(node)
+                .map { property =>
+                  byId += node.id   -> property
+                  byIri += node.iri -> node
+                  property.iris.foreach { iri =>
+                    byIri += iri -> node
+                  }
+                  property
+                }
                 .map(Some(_))
             }
-            .getOrElse(Task.now(None)))
+            .getOrElse(Coeval.now(None)))
+        .task
+//      }
+    }
 
     def get(id: Long): Task[Option[Property]] =
       cached(id)
@@ -212,13 +248,19 @@ trait NameSpaceGraph extends DataGraph {
             .filter(_.hasLabel(Property.ontology).isDefined)
             .map { node =>
               Property.properties
-                .getOrConstruct(node.iri)(
-                  Property.build(node)
-                )
-                .map(_.value())
+                .getOrBuild(node)
+                .map { property =>
+                  byId += node.id   -> property
+                  byIri += node.iri -> node
+                  property.iris.foreach { iri =>
+                    byIri += iri -> node
+                  }
+                  property
+                }
                 .map(Some(_))
             }
-            .getOrElse(Task.now(None)))
+            .getOrElse(Coeval.now(None))
+            .task)
 
     def all: List[Property] = properties.byId.values.toList
 
@@ -236,7 +278,7 @@ trait NameSpaceGraph extends DataGraph {
       byIri.get(property.iri).map(Task.now).getOrElse {
         if (Property.properties.default.byIri.get(property.iri).isDefined) {
           val node = nodes.upsert(property.iri, property.iris)
-          node.addLabel(Ontology.ontology)
+          node.addLabel(Property.ontology)
           Task.now(node)
         } else {
           nodes
@@ -254,7 +296,7 @@ trait NameSpaceGraph extends DataGraph {
                   node.addLabel(Property.ontology)
                   node
                 }
-                .getOrElse(nodes.create(Ontology.ontology))
+                .getOrElse(nodes.create(Property.ontology))
 
               node.addOut(default.typed.iriUrlString, property.iri)
               property.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
@@ -305,9 +347,11 @@ trait NameSpaceGraph extends DataGraph {
         .withGraph(thisgraph)
         .toListF
         .flatMap { nodes =>
-          Task.gatherUnordered(nodes.distinct.map { node =>
-            cached(node.iri).map(node => Task.now(node)).getOrElse(Property.build(node).map(_.value()))
-          })
+          Coeval
+            .sequence(nodes.distinct.map { node =>
+              cached(node.iri).map(node => Coeval.now(node)).getOrElse(Property.build(node))
+            })
+            .task
         }
   }
   val properties = new Properties {}
@@ -321,20 +365,19 @@ trait NameSpaceGraph extends DataGraph {
     def get[T: DefaultsToAny](iri: String): Task[Option[DataType[T]]] =
       DataType.datatypes
         .get(iri)
-        .map(_.map(_.value().asInstanceOf[DataType[T]]).map(Some(_)))
+        .map(_.map(_.asInstanceOf[DataType[T]]).map(Some(_)))
         .getOrElse(
           nodeStore
             .hasIri(iri)
             .find(_.hasLabel(DataType.ontology).isDefined)
             .map { node =>
               DataType.datatypes
-                .getOrConstruct(node.iri)(
-                  DataType.build(node)
-                )
-                .map(_.value().asInstanceOf[DataType[T]])
+                .getOrBuild(node)
+                .map(_.asInstanceOf[DataType[T]])
                 .map(Some(_))
             }
-            .getOrElse(Task.now(None)))
+            .getOrElse(Coeval.now(None)))
+        .task
 
     def get[T: DefaultsToAny](id: Long): Task[Option[DataType[T]]] =
       cached(id)
@@ -345,13 +388,12 @@ trait NameSpaceGraph extends DataGraph {
             .filter(_.hasLabel(DataType.ontology).isDefined)
             .map { node =>
               DataType.datatypes
-                .getOrConstruct(node.iri)(
-                  DataType.build(node)
-                )
-                .map(_.value().asInstanceOf[DataType[T]])
+                .getOrBuild(node)
+                .map(_.asInstanceOf[DataType[T]])
                 .map(Some(_))
             }
-            .getOrElse(Task.now(None)))
+            .getOrElse(Coeval.now(None))
+            .task)
 
     def all: List[DataType[Any]] = datatypes.byId.values.toList
 
@@ -379,7 +421,7 @@ trait NameSpaceGraph extends DataGraph {
       byIri.get(datatype.iri).map(Task.now).getOrElse {
         if (DataType.datatypes.default.byIri.get(datatype.iri).isDefined) {
           val node = nodes.upsert(datatype.iri, datatype.iris)
-          node.addLabel(Ontology.ontology)
+          node.addLabel(DataType.ontology)
           Task.now(node)
         } else {
           nodes

@@ -34,9 +34,10 @@ object LGraph {
         Task
           .sequence(
             Seq(
-              Task.fromFuture(ns.init),
-              Task.fromFuture(storeManager.init),
-              Task.fromFuture(index.init)
+              ns.storeManager.init,
+              ns.index.storeManager.init,
+              storeManager.init,
+              index.storeManager.init
             ))
           .foreachL(f => Task.unit)
           .memoize
@@ -49,36 +50,36 @@ object LGraph {
 
         lazy val graph: LGraph = self
 
-        override lazy val init: CancelableFuture[Unit] =
-          Task
-            .sequence(
-              Seq(
-                Task.fromFuture(storeManager.init),
-                Task.fromFuture(index.init)
-              ))
-            .foreachL(f => Task.unit)
-            .memoize
-            .runToFuture(monix.execution.Scheduler.global)
+//        override lazy val init: CancelableFuture[Unit] =
+//          Task
+//            .sequence(
+//              Seq(
+//                Task.fromFuture(storeManager.init),
+//                Task.fromFuture(index.init)
+//              ))
+//            .foreachL(f => Task.unit)
+//            .memoize
+//            .runToFuture(monix.execution.Scheduler.global)
 
         private lazy val _thisgraph = thisgraph
         lazy val index: LIndexGraph = new LIndexGraph {
           val iri: String = _iri + ".ns" + ".index"
 
-          override lazy val init: CancelableFuture[Unit] =
-            Task
-              .sequence(
-                Seq(
-                  Task.fromFuture(storeManager.init)
-                ))
-              .foreachL(f => Task.unit)
-              .memoize
-              .runToFuture(monix.execution.Scheduler.global)
+//          override lazy val init: CancelableFuture[Unit] =
+//            Task
+//              .sequence(
+//                Seq(
+//                  Task.fromFuture(storeManager.init)
+//                ))
+//              .foreachL(f => Task.unit)
+//              .memoize
+//              .runToFuture(monix.execution.Scheduler.global)
 
           lazy val graph: LGraph      = _thisgraph
-          lazy val index: LIndexGraph = this
+          lazy val index: LIndexGraph = thisgraph
 
-          lazy val storeManager: StoreManager[this.type] = storeProvider.nsIndexManager(this)
-          lazy val indexManager: IndexManager[this.type] = indexProvider.nsIndexManager(this)
+          lazy val storeManager: StoreManager[this.type] = storeProvider.nsIndexManager(thisgraph)
+          lazy val indexManager: IndexManager[this.type] = indexProvider.nsIndexManager(thisgraph)
         }
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.nsManager(this)
@@ -256,13 +257,13 @@ trait LGraph extends Graph {
 
   override def transaction: Transaction = LTransaction(thisgraph)
 
-  override def persist: CancelableFuture[Unit] = storeManager.persist
+//  override def persist: CancelableFuture[Unit] = storeManager.persist.runToFuture(monix.execution.Scheduler.global)
 
   override def close(): CancelableFuture[Unit] = {
     super
       .close()
       .flatMap { u =>
-        storeManager.close()
+        storeManager.close().runToFuture(monix.execution.Scheduler.global)
       }(monix.execution.Scheduler.global)
   }
 }

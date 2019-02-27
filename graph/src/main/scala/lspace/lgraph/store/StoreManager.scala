@@ -51,13 +51,13 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
   def edgeCount(): Long
   def valueCount(): Long
 
-  def init: CancelableFuture[Unit]
+  def init: Task[Unit]
 
-  def persist: CancelableFuture[Unit]
+  def persist: Task[Unit]
 
   /**
     * finishes write-queue(s) and closes connection
     */
-  def close(): CancelableFuture[Unit]
+  def close(): Task[Unit]
 
 }

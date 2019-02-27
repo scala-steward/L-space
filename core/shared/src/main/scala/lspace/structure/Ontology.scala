@@ -25,41 +25,53 @@ object Ontology {
       type CT = IriType[Ontology]
       def ct: CT = urlType
     }
-
-  def build(node: Node): Task[Coeval[Ontology]] = {
+  import scala.concurrent.duration._
+  def build(node: Node): Coeval[Ontology] = {
     if (node.hasLabel(ontology).nonEmpty) {
-      for {
-        properties <- Task.gather(node.out(Property.default.typed.propertyProperty).map(Property.build))
-        extended <- Task.gather(node.out(Property.default.`@extends`).collect {
-          case node: Node => ontologies.getOrConstruct(node.iri)(build(node))
-        })
-      } yield {
-        Coeval(
-          _Ontology(node.iri)(
-            iris = node.iris,
-            _properties = () => properties.map(_.value()),
-            label = node
-              .outE(Property.default.typed.labelString)
-              .flatMap { edge =>
-                edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
-              }
-              .toMap,
-            comment = node
-              .outE(Property.default.typed.commentString)
-              .flatMap { edge =>
-                edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
-              }
-              .toMap,
-            _extendedClasses = () => extended.map(_.value()),
-            base = node.out(Property.default.typed.baseString).headOption
-          ))
-      }
+      Coeval.delay {
+//        println(s"build ${node.iri}")
+//        println(node.out(Property.default.typed.propertyProperty).map(_.iri))
+//        println(node.out(Property.default.`@extends`).map(_.asInstanceOf[Node].iri))
+        val properties = Coeval.defer(
+          Coeval
+            .sequence(
+              node
+                .out(Property.default.typed.propertyProperty)
+                .map(p => Property.properties.getOrBuild(p))))
+        val extended = Coeval.defer(
+          Coeval
+            .sequence(node.out(Property.default.`@extends`).collect {
+              case node: Node =>
+                ontologies.getOrBuild(node)
+            }))
+
+//        println(s"got properties and range for ${node.iri}")
+        _Ontology(node.iri)(
+          iris = node.iris,
+          _properties = () => properties.value(),
+          label = node
+            .outE(Property.default.typed.labelString)
+            .flatMap { edge =>
+              edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
+            }
+            .toMap,
+          comment = node
+            .outE(Property.default.typed.commentString)
+            .flatMap { edge =>
+              edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
+            }
+            .toMap,
+          _extendedClasses = () => extended.value(),
+          base = node.out(Property.default.typed.baseString).headOption
+        )
+      }.memoizeOnSuccess
     } else {
       //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
       //        .printStackTrace()
-      Task.raiseError(new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
-        s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
-          .map(_.iri)}"))
+      Coeval.raiseError(
+        new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
+          s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
+            .map(_.iri)}"))
     }
   }
 
@@ -73,37 +85,53 @@ object Ontology {
     }
     private[lspace] val byIri: concurrent.Map[String, Ontology] =
       new ConcurrentHashMap[String, Ontology]().asScala
-    private[lspace] val constructing: concurrent.Map[String, Task[Coeval[Ontology]]] =
-      new ConcurrentHashMap[String, Task[Coeval[Ontology]]]().asScala
+    private[lspace] val building: concurrent.Map[String, Coeval[Ontology]] =
+      new ConcurrentHashMap[String, Coeval[Ontology]]().asScala
+//    private[lspace] val preparing: concurrent.Map[String, Task[Node]] =
+//      new ConcurrentHashMap[String, Task[Node]]().asScala
 
-    def get(iri: String): Option[Task[Coeval[Ontology]]] =
+    def all: List[Ontology] = byIri.values.toList.distinct
+    def get(iri: String): Option[Coeval[Ontology]] =
       default.byIri
         .get(iri)
         .orElse(byIri.get(iri))
-        .map(o => Task.now(Coeval.now(o)))
-        .orElse(constructing.get(iri))
-    def getOrConstruct(iri: String)(constructTask: Task[Coeval[Ontology]]): Task[Coeval[Ontology]] =
+        .map(o => Coeval.now(o))
+        .orElse(building.get(iri))
+    def getOrBuild(node: Node): Coeval[Ontology] =
       default.byIri
-        .get(iri)
-        .map(o => Task.now(Coeval.now(o)))
-        .getOrElse(constructing.getOrElseUpdate(
-          iri,
-          constructTask
-            .map(_.memoize)
-            .map { o =>
-              Task {
-                byIri += o.value().iri -> o.value()
-                o.value().iris.foreach { iri =>
-                  ontologies.byIri += iri -> o.value()
-                }
-                constructing.remove(iri)
-              }.delayExecution(FiniteDuration(1, "s"))
-                .runAsyncAndForget(monix.execution.Scheduler.global)
+        .get(node.iri)
+        .map(Coeval.now(_))
+        .getOrElse(
+          building.getOrElseUpdate(
+            node.iri,
+            build(node).map { o =>
+              byIri += o.iri -> o
+              o.iris.foreach { iri =>
+                ontologies.byIri += iri -> o
+              }
+              building.remove(node.iri)
               o
-            }
-            .memoize
-        ))
+            }.memoizeOnSuccess
+          ))
+//    def getOrPrepare(iri: String)(prepareTask: Task[Node]): Task[Node] = {
+//      default.byIri
+//        .get(iri)
+//        .map(o => Task.now(o))
+//        .getOrElse {
+//          preparing.getOrElseUpdate(
+//            iri,
+//            prepareTask.memoizeOnSuccess
+////              .delayExecution(100 millis)
+//          )
+//        }
+//    }
 
+    def cache(ontology: Ontology): Unit = {
+      byIri += ontology.iri -> ontology
+      ontology.iris.foreach { iri =>
+        ontologies.byIri += iri -> ontology
+      }
+    }
     def cached(long: Long): Option[Ontology]  = default.byId.get(long)
     def cached(iri: String): Option[Ontology] = default.byIri.get(iri).orElse(byIri.get(iri))
 

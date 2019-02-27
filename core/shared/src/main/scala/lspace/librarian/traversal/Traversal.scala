@@ -897,7 +897,8 @@ object Traversal
       */
     def repeat[ET0 <: ClassType[_]](traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, _ <: HList],
                                     max: Int = 0,
-                                    collect: Boolean = false)(
+                                    collect: Boolean = false,
+                                    noloop: Boolean = false)(
         implicit until: Traversal[ET0, ET0, HNil] => Traversal[ET0, _ <: ClassType[_], _ <: HList] = null
     ): Traversal[ST[Start], ET0, Segment[Repeat[ET0] :: Steps] :: Segments] = {
       val t = traversal(Traversal[ET[End], ET[End]](et, et))
@@ -906,8 +907,8 @@ object Traversal
           t,
           Option(until).map(_(Traversal[ET0, ET0](t.et, t.et))),
           if (max == 0) None else Some(max),
-          if (collect) Some(collect)
-          else None
+          collect,
+          noloop
         ),
         st,
         t.et
@@ -1521,17 +1522,11 @@ object Traversal
         .filter(_.iri.nonEmpty)
     ct.foreach {
       case ontology: Ontology =>
-        Ontology.ontologies
-          .getOrConstruct(ontology.iri) { Task(Coeval(ontology)) }
-          .runToFuture(monix.execution.Scheduler.global)
+        if (Ontology.ontologies.get(ontology.iri).isEmpty) Ontology.ontologies.cache(ontology)
       case property: Property =>
-        Property.properties
-          .getOrConstruct(ontology.iri) { Task(Coeval(property)) }
-          .runToFuture(monix.execution.Scheduler.global)
+        if (Property.properties.get(property.iri).isEmpty) Property.properties.cache(property)
       case datatype: DataType[_] =>
-        DataType.datatypes
-          .getOrConstruct(ontology.iri) { Task(Coeval(datatype)) }
-          .runToFuture(monix.execution.Scheduler.global)
+        if (DataType.datatypes.get(datatype.iri).isEmpty) DataType.datatypes.cache(datatype)
     }
     ct
   }

@@ -87,7 +87,7 @@ object SampleGraph {
     * @param graph
     * @return object of places and persons
     */
-  def loadSocial(graph: Graph) = new {
+  def loadSocial(graph: Graph): Unit = {
 
     val places = new {
       val SanJosédeMaipo = new {

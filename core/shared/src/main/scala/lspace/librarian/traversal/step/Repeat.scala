@@ -26,7 +26,8 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
       .headOption,
     node.out(keys.maxInt).headOption,
-    node.out(keys.collectBoolean).headOption
+    node.out(keys.collectBoolean).headOption.getOrElse(false),
+    node.out(keys.noloopBoolean).headOption.getOrElse(false)
   )
 
   object keys {
@@ -65,6 +66,15 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           `@range` = () => DataType.default.`@string` :: Nil
         )
     val collectBoolean: TypedProperty[Boolean] = collect.property + DataType.default.`@boolean`
+
+    object noloop
+        extends PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Repeat/noloop",
+          "noloop",
+          "Set to true to prevent running into loops/cycles",
+          `@range` = () => DataType.default.`@string` :: Nil
+        )
+    val noloopBoolean: TypedProperty[Boolean] = collect.property + DataType.default.`@boolean`
   }
   override lazy val properties
     : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
@@ -75,7 +85,8 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
     node.addOut(keys.traversalTraversal, repeat.traversal.toNode)
     repeat.until.foreach(until => node.addOut(keys.untilTraversal, until.toNode))
     repeat.max.foreach(max => node.addOut(keys.maxInt, max))
-    repeat.collect.foreach(collect => node.addOut(keys.collectBoolean, collect))
+    if (repeat.collect) node.addOut(keys.collectBoolean, repeat.collect)
+    if (repeat.noloop) node.addOut(keys.noloopBoolean, repeat.noloop)
     node
   }
 }
@@ -83,7 +94,8 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
 case class Repeat[E0 <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],
                                       until: Option[Traversal[E0, _ <: ClassType[_], _ <: HList]],
                                       max: Option[Int],
-                                      collect: Option[Boolean])
+                                      collect: Boolean,
+                                      noloop: Boolean)
     extends BranchStep {
 
   lazy val toNode: Node = this
@@ -93,26 +105,26 @@ case class Repeat[E0 <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E0
         ", " + until + (max match {
           case Some(max) =>
             ", " + max + (collect match {
-              case Some(collect) => ", collect = " + collect
-              case None          => ""
+              case true  => ", collect = " + collect
+              case false => ""
             })
           case None =>
             collect match {
-              case Some(collect) => ", collect = " + collect
-              case None          => ""
+              case true  => ", collect = " + collect
+              case false => ""
             }
         })
       case None =>
         max match {
           case Some(max) =>
             ", max = " + max + (collect match {
-              case Some(collect) => ", collect = " + collect
-              case None          => ""
+              case true  => ", collect = " + collect
+              case false => ""
             })
           case None =>
             collect match {
-              case Some(collect) => ", collect = " + collect
-              case None          => ""
+              case true  => ", collect = " + collect
+              case false => ""
             }
         }
     }) + ")"

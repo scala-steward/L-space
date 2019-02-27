@@ -1,9 +1,12 @@
 package lspace.lgraph.provider.file
 
+import lspace.datatype.{DataType, ListType}
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.MemIndexProvider
 import lspace.librarian.task.{AsyncGuide, AsyncGuideSpec, Guide}
-import lspace.structure.{Graph, GraphSpec, NodeSpec, SampledGraph}
+import lspace.structure._
+import lspace.util.SampleGraph
+import monix.eval.Task
 
 import scala.concurrent.Await
 
@@ -44,6 +47,14 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
   lazy val graphToPersist = SampledGraph(createGraph("FileStoreManagerSpec-persisted-sample"))
   graphToPersist.load
   Await.ready(graphToPersist.graph.persist, 10 seconds)
+  Await.ready(graphToPersist.graph.close(), 10 seconds)
+
+  lspace.structure.Ontology.ontologies.byIri.clear()
+  lspace.structure.Ontology.ontologies.building.clear()
+  lspace.structure.Property.properties.byIri.clear()
+  lspace.structure.Property.properties.building.clear()
+  lspace.datatype.DataType.datatypes.byIri.clear()
+  lspace.datatype.DataType.datatypes.building.clear()
   lazy val samplePersistedGraph = SampledGraph(createGraph("FileStoreManagerSpec-persisted-sample"))
   Await.ready(samplePersistedGraph.graph.init, 10 seconds)
 

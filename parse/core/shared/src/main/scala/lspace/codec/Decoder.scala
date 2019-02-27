@@ -2,6 +2,7 @@ package lspace.codec
 
 import java.time.{Instant, LocalDate, LocalTime}
 
+import lspace.Label
 import lspace.NS.types
 import lspace.codec.exception.{FromJsonException, NotAcceptableException, UnexpectedJsonException}
 import lspace.datatype._
@@ -525,6 +526,34 @@ trait Decoder {
       .getOrElse(List())
       .map(activeContext.expandIri)
 
+  def prepareOntology(obj: Map[String, Json])(implicit activeContext: AC): Task[Node] = {
+    val expandedJson = activeContext.expandKeys(obj)
+    if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@class`))) {
+      for {
+        node <- toNode(expandedJson, Some(Ontology.ontology))
+        properties <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@properties`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              Property.properties.get(iri).map(_.task).getOrElse(fetch(iri)(obj => prepareProperty(obj)))
+            })
+        extended <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@extends`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              Ontology.ontologies.get(iri).map(_.task).getOrElse(fetch(iri)(obj => prepareOntology(obj)))
+            })
+      } yield {
+        node
+      }
+    } else Task.raiseError(FromJsonException("ontology is not of type '@class'"))
+  }
   def toOntology(obj: Map[String, Json])(implicit activeContext: AC): Task[Ontology] = {
     val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@class`))) {
@@ -532,28 +561,35 @@ trait Decoder {
         case Some(iri) =>
           graph.ns.ontologies.get(iri).flatMap { oO =>
             oO.map(Task.now).getOrElse {
-              Ontology.ontologies
-                .getOrConstruct(iri)({
-                  val iris          = activeContext.extractIds(expandedJson)
-                  val labels        = activeContext.extractLabels(expandedJson)
-                  val comments      = activeContext.extractComments(expandedJson)
-                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubClassOf))
-                  val `@properties` = expandedJson.get(types.`@properties`)
-
-                  for {
-                    extended   <- `@extends`.map(toOntologies).getOrElse(Task.now(List()))
-                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
-                  } yield {
-                    Ontology._Ontology(iri)(
-                      iris.toSet,
-                      label = labels,
-                      comment = comments,
-                      _extendedClasses = () => extended,
-                      _properties = () => properties
-                    )
-                  }
-                }.map(Coeval.now))
-                .map(_.value())
+              prepareOntology(expandedJson).flatMap(Ontology.ontologies.getOrBuild(_).task)
+//              toNode(expandedJson, Ontology.ontology).flatMap { node =>
+//                Task.gatherUnordered()
+//                for {
+//                  extended   <- node.out(`@extends`).map(toOntologies).getOrElse(Task.now(List()))
+//                  properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
+//                } yield {}
+//              }
+//              Ontology.ontologies
+//                .getOrBuild(iri)({
+//                  val iris          = activeContext.extractIds(expandedJson)
+//                  val labels        = activeContext.extractLabels(expandedJson)
+//                  val comments      = activeContext.extractComments(expandedJson)
+//                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubClassOf))
+//                  val `@properties` = expandedJson.get(types.`@properties`)
+//
+//                  for {
+//                    extended   <- `@extends`.map(toOntologies).getOrElse(Task.now(List()))
+//                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
+//                  } yield {
+//                    Ontology._Ontology(iri)(
+//                      iris.toSet,
+//                      label = labels,
+//                      comment = comments,
+//                      _extendedClasses = () => extended,
+//                      _properties = () => properties
+//                    )
+//                  }
+//                })
             }
           }
         case None =>
@@ -566,7 +602,7 @@ trait Decoder {
     graph.ns.ontologies
       .get(iri)
       .flatMap(_.map(Task.now)
-        .getOrElse(Ontology.ontologies.getOrConstruct(iri)(fetchOntology(iri).map(Coeval.now)).map(_.value())))
+        .getOrElse(Ontology.ontologies.get(iri).map(_.task).getOrElse(fetchOntology(iri))))
 
   def toOntologies(json: Json)(implicit activeContext: AC): Task[List[Ontology]] = {
     jsonToList(json)
@@ -586,6 +622,113 @@ trait Decoder {
       .getOrElse(Task.raiseError(FromJsonException("ontology should be a string or object")))
   }
 
+  private val separators = Set('(', ')', '+')
+
+  private def getTypes(iri: String): (List[String], String) = {
+    iri.splitAt(iri.indexWhere(separators.contains)) match {
+      case ("", iri) if iri.startsWith(")") => List()    -> iri.drop(1)
+      case ("", iri)                        => List(iri) -> ""
+      case (iri, tail) if tail.startsWith("(") =>
+        iri match {
+          case types.`@list` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@listset` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@set` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@vector` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@map` =>
+            val (keyTypes, newTail) = getTypes(tail.drop(1))
+            if (!newTail.startsWith("(")) throw new Exception("map without second block")
+            val (valueTypes, newTail2) = getTypes(newTail.drop(1))
+            (keyTypes ++ valueTypes) -> newTail2
+          case types.`@tuple2` =>
+            val (t1Types, newTail) = getTypes(tail.drop(1))
+            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
+            val (t2Types, newTail2) = getTypes(newTail.drop(1))
+            (t1Types ++ t2Types) -> newTail2
+          case types.`@tuple3` =>
+            val (t1Types, newTail) = getTypes(tail.drop(1))
+            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
+            val (t2Types, newTail2) = getTypes(newTail.drop(1))
+            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
+            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
+            (t1Types ++ t2Types ++ t3Types) -> newTail3
+          case types.`@tuple4` =>
+            val (t1Types, newTail) = getTypes(tail.drop(1))
+            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
+            val (t2Types, newTail2) = getTypes(newTail.drop(1))
+            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
+            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
+            if (!newTail3.startsWith("(")) throw new Exception("tuple4 without fourth block")
+            val (t4Types, newTail4) = getTypes(newTail3.drop(1))
+            (t1Types ++ t2Types ++ t3Types ++ t4Types) -> newTail4
+          case _ =>
+            scribe.error("cannot parse : " + iri)
+            throw new Exception("cannot parse : " + iri)
+        }
+      case (iri, tail) if tail.startsWith(")") => List(iri) -> tail.dropWhile(_ == ')')
+      case (iri, tail) if tail.startsWith("+") =>
+        val (tailTypes, newTail) = getTypes(tail.drop(1))
+        (List(iri) ++ tailTypes) -> newTail
+    }
+  }
+
+  def prepareProperty(obj: Map[String, Json])(implicit activeContext: AC): Task[Node] = {
+    val expandedJson = activeContext.expandKeys(obj)
+    if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@property`))) {
+      for {
+        node <- toNode(expandedJson, Some(Property.ontology))
+        range <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@range`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              ClassType.classtypes
+                .get(iri)
+                .map(_.task)
+                .getOrElse(
+                  if (iri.startsWith("@"))
+                    Task.gatherUnordered(
+                      getTypes(iri)._1.map(iri =>
+                        ClassType.classtypes
+                          .get(iri)
+                          .map(_.task)
+                          .getOrElse(fetch(iri) { json =>
+                            prepareClassType(json)
+                          })))
+                  else fetch(iri)(obj => prepareClassType(obj)))
+            })
+        properties <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@properties`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              Property.properties.get(iri).map(_.task).getOrElse(fetch(iri)(obj => prepareProperty(obj)))
+            })
+        extended <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@extends`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              Property.properties.get(iri).map(_.task).getOrElse(fetch(iri)(obj => prepareProperty(obj)))
+            })
+      } yield {
+        node
+      }
+    } else Task.raiseError(FromJsonException("ontology is not of type '@class'"))
+  }
   def toProperty(obj: Map[String, Json])(implicit activeContext: AC): Task[Property] = {
     val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@property`))) {
@@ -594,31 +737,32 @@ trait Decoder {
           graph.ns.properties
             .get(iri)
             .flatMap(_.map(Task.now).getOrElse {
-              Property.properties
-                .getOrConstruct(iri)({
-                  val iris          = activeContext.extractIds(expandedJson)
-                  val labels        = activeContext.extractLabels(expandedJson)
-                  val comments      = activeContext.extractComments(expandedJson)
-                  val `@range`      = expandedJson.get(types.`@range`).orElse(expandedJson.get(types.schemaRange))
-                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubPropertyOf))
-                  val `@properties` = expandedJson.get(types.`@properties`)
-
-                  for {
-                    range      <- `@range`.map(toOntologies).getOrElse(Task.now(List()))
-                    extended   <- `@extends`.map(toProperties).getOrElse(Task.now(List()))
-                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
-                  } yield {
-                    Property._Property(iri)(
-                      iris.toSet,
-                      label = labels,
-                      comment = comments,
-                      _range = () => range,
-                      _extendedClasses = () => extended,
-                      _properties = () => properties
-                    )
-                  }
-                }.map(Coeval.now))
-                .map(_.value())
+              prepareProperty(expandedJson).flatMap(Property.properties.getOrBuild(_).task)
+//              Property.properties
+//                .getOrConstruct(iri)({
+//                  val iris          = activeContext.extractIds(expandedJson)
+//                  val labels        = activeContext.extractLabels(expandedJson)
+//                  val comments      = activeContext.extractComments(expandedJson)
+//                  val `@range`      = expandedJson.get(types.`@range`).orElse(expandedJson.get(types.schemaRange))
+//                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubPropertyOf))
+//                  val `@properties` = expandedJson.get(types.`@properties`)
+//
+//                  for {
+//                    range      <- `@range`.map(toOntologies).getOrElse(Task.now(List()))
+//                    extended   <- `@extends`.map(toProperties).getOrElse(Task.now(List()))
+//                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
+//                  } yield {
+//                    Property._Property(iri)(
+//                      iris.toSet,
+//                      label = labels,
+//                      comment = comments,
+//                      _range = () => range,
+//                      _extendedClasses = () => extended,
+//                      _properties = () => properties
+//                    )
+//                  }
+//                }.map(Coeval.now))
+//                .map(_.value())
             })
         case None =>
           Task.raiseError(FromJsonException("a property without @id is not valid"))
@@ -629,7 +773,7 @@ trait Decoder {
     graph.ns.properties
       .get(iri)
       .flatMap(_.map(Task.now)
-        .getOrElse(Property.properties.getOrConstruct(iri)(fetchProperty(iri).map(Coeval.now)).map(_.value())))
+        .getOrElse(Property.properties.get(iri).map(_.task).getOrElse(fetchProperty(iri))))
 
   def toProperties(json: Json)(implicit activeContext: AC): Task[List[Property]] =
     jsonToList(json)
@@ -739,6 +883,34 @@ trait Decoder {
       }
   }
 
+  def prepareDatatype(obj: Map[String, Json])(implicit activeContext: AC): Task[Node] = {
+    val expandedJson = activeContext.expandKeys(obj)
+    if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@datatype`))) {
+      for {
+        node <- toNode(expandedJson, Some(DataType.ontology))
+        properties <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@properties`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              Property.properties.get(iri).map(_.task).getOrElse(fetch(iri)(obj => prepareProperty(obj)))
+            })
+        extended <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@extends`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map { iri =>
+              DataType.datatypes.get(iri).map(_.task).getOrElse(fetch(iri)(obj => prepareDatatype(obj)))
+            })
+      } yield {
+        node
+      }
+    } else Task.raiseError(FromJsonException("ontology is not of type '@class'"))
+  }
   def toDatatype(obj: Map[String, Json])(implicit activeContext: AC): Task[DataType[Any]] = {
     val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson.get(types.`@type`).exists(json => json.string.exists(_ == types.`@datatype`))) {
@@ -748,52 +920,58 @@ trait Decoder {
             .get(iri)
             .map(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[_]])))
             .flatMap(_.map(Task.now).getOrElse {
-              DataType.datatypes
-                .getOrConstruct(iri)({
-                  val iris     = activeContext.extractIds(expandedJson)
-                  val labels   = activeContext.extractLabels(expandedJson)
-                  val comments = activeContext.extractComments(expandedJson)
-                  val `@extends` = expandedJson
-                    .get(types.`@extends`)
-                    .orElse(expandedJson.get(types.rdfsSubClassOf))
-                    .map(extractRefs)
-                    .getOrElse(List())
-                  if (`@extends`.lengthCompare(1) == 1)
-                    Task.raiseError(FromJsonException("datatype cannot extend multiple datatypes"))
-                  else if (`@extends`.isEmpty) {
-                    if (iri.startsWith("@"))
-                      graph.ns.datatypes
-                        .get(iri)
-                        .flatMap(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[Any]]))
-                          .map(Task.now)
-                          .getOrElse(Task.raiseError(FromJsonException("not a collection-iri"))))
-                        .map(Coeval.now(_))
-                    else Task.raiseError(FromJsonException("datatype should start with '@'"))
-                  } else
-                    (`@extends`.head match {
-                      case types.`@list` =>
-                        toListType(expandedJson)
-                      case types.`@set` =>
-                        toSetType(expandedJson)
-                      case types.`@listset` =>
-                        toListSetType(expandedJson)
-                      case types.`@vector` =>
-                        toVectorType(expandedJson)
-                      case types.`@map` =>
-                        toMapType(expandedJson)
-                      case types.`@tuple2` =>
-                        toTuple2Type(expandedJson)
-                      case types.`@tuple3` =>
-                        toTuple3Type(expandedJson)
-                      case types.`@tuple4` =>
-                        toTuple4Type(expandedJson)
-                      case otherType =>
-                        graph.ns.datatypes
-                          .get(otherType)
-                          .flatMap(_.map(Task.now).getOrElse(Task.raiseError(FromJsonException("toDatatype error"))))
-                    }).map(Coeval.now)
-                })
-                .map(_.value())
+              prepareDatatype(expandedJson).flatMap(DataType.datatypes.getOrBuild(_).task)
+
+//              val iris     = activeContext.extractIds(expandedJson)
+//              val labels   = activeContext.extractLabels(expandedJson)
+//              val comments = activeContext.extractComments(expandedJson)
+//              val `@extends` = expandedJson
+//                .get(types.`@extends`)
+//                .orElse(expandedJson.get(types.rdfsSubClassOf))
+//                .map(extractRefs)
+//                .getOrElse(List())
+//
+//              val dtTask = {
+//                if (`@extends`.lengthCompare(1) == 1)
+//                  Task.raiseError(FromJsonException("datatype cannot extend multiple datatypes"))
+//                else if (`@extends`.isEmpty) {
+//                  if (iri.startsWith("@"))
+//                    graph.ns.datatypes
+//                      .get(iri)
+//                      .flatMap(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[Any]]))
+//                        .map(Task.now)
+//                        .getOrElse(Task.raiseError(FromJsonException("not a collection-iri"))))
+//                      .map(Coeval.now(_))
+//                  else Task.raiseError(FromJsonException("datatype should start with '@'"))
+//                } else
+//                  (`@extends`.head match {
+//                    case types.`@list` =>
+//                      toListType(expandedJson)
+//                    case types.`@set` =>
+//                      toSetType(expandedJson)
+//                    case types.`@listset` =>
+//                      toListSetType(expandedJson)
+//                    case types.`@vector` =>
+//                      toVectorType(expandedJson)
+//                    case types.`@map` =>
+//                      toMapType(expandedJson)
+//                    case types.`@tuple2` =>
+//                      toTuple2Type(expandedJson)
+//                    case types.`@tuple3` =>
+//                      toTuple3Type(expandedJson)
+//                    case types.`@tuple4` =>
+//                      toTuple4Type(expandedJson)
+//                    case otherType =>
+//                      graph.ns.datatypes
+//                        .get(otherType)
+//                        .flatMap(_.map(Task.now).getOrElse(Task.raiseError(FromJsonException("toDatatype error"))))
+//                  }).map(Coeval.now)
+//              }
+//
+//              DataType.datatypes
+//                .get(iri)
+//                .map(_.task)
+//                .getOrElse(DataType.datatypes.getOrBuild)
             })
         case None =>
           Task.raiseError(FromJsonException("an datatype without @id is not valid"))
@@ -801,6 +979,30 @@ trait Decoder {
     } else Task.raiseError(FromJsonException("datatype is not of type '@class'"))
   }
 
+  def prepareClassType(obj: Map[String, Json])(implicit activeContext: AC): Task[Node] = {
+    val expandedJson = activeContext.expandKeys(obj)
+    if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@datatype`))) {
+      for {
+        node <- toNode(expandedJson, Some(Ontology.ontology))
+        properties <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@properties`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map(fetch(_)(obj => prepareProperty(obj))))
+        extended <- Task.gatherUnordered(
+          node
+            .out(Label.P.`@extends`)
+            .collect { case node: Node => node }
+            .filter(_.out(Label.P.`@label`).nonEmpty)
+            .map(_.iri)
+            .map(fetch(_)(obj => prepareProperty(obj))))
+      } yield {
+        node
+      }
+    } else Task.raiseError(FromJsonException("ontology is not of type '@class'"))
+  }
   def toClasstype(obj: Map[String, Json])(implicit activeContext: AC): Task[ClassType[Any]] = {
     val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson.get(types.`@type`).exists(json => (json: Option[String]).exists(_ == types.`@datatype`))) {

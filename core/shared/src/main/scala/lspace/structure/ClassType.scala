@@ -52,20 +52,22 @@ object ClassType {
     }).asInstanceOf[DataType[T]]
   }
 
-  def build(node: Node): Task[Coeval[ClassType[_]]] = {
+  def build(node: Node): Coeval[ClassType[Any]] = {
     if (node.hasLabel(Ontology.ontology).nonEmpty) {
-      if (node.hasLabel(DataType.ontology).nonEmpty) DataType.build(node)
-      else Ontology.build(node)
+      if (node.hasLabel(DataType.ontology).nonEmpty) DataType.datatypes.getOrBuild(node)
+      else Ontology.ontologies.getOrBuild(node)
     } else if (node.hasLabel(Property.ontology).nonEmpty) {
-      Property.build(node)
+      Property.properties.getOrBuild(node)
     } else {
-      Task.raiseError(new Exception(s"${node.iri} is does not look like a classtype"))
+      Coeval.raiseError(new Exception(s"${node.iri} is does not look like a classtype"))
     }
   }
 
   object classtypes {
-    def get(iri: String): Option[Task[Coeval[ClassType[_]]]] =
+    def all: List[ClassType[_]] = Ontology.ontologies.all ++ Property.properties.all ++ DataType.datatypes.all
+    def get(iri: String): Option[Coeval[ClassType[_]]] = {
       Ontology.ontologies.get(iri).orElse(Property.properties.get(iri)).orElse(DataType.datatypes.get(iri))
+    }
 
     def cached(iri: String): Option[ClassType[_]] =
       Ontology.ontologies.cached(iri).orElse(Property.properties.cached(iri)).orElse(DataType.datatypes.cached(iri))

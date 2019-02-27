@@ -72,7 +72,7 @@ object Graph {
     }
 }
 
-trait Graph extends IriResource with GraphUtils {
+trait Graph extends IriResource with GraphUtils { self =>
   trait _Resource[+T]        extends structure.Resource[T]
   abstract class _Node       extends _Resource[structure.Node] with structure.Node
   abstract class _Edge[S, E] extends _Resource[structure.Edge[S, E]] with structure.Edge[S, E]
@@ -744,11 +744,11 @@ trait Graph extends IriResource with GraphUtils {
     Traversal[cltblStart.CT, cltblEnd.CT](cltblStart.ct, cltblEnd.ct)
 
   @deprecated("instead import lspace.g")
-  def g(): Traversal[DataType[Graph], DataType[Graph], HNil] =
-    Traversal[DataType[Graph], DataType[Graph]](GraphType.datatype, GraphType.datatype)
+  def g(): Traversal[ClassType[Any], ClassType[Any], HNil] =
+    Traversal[ClassType[Any], ClassType[Any]](ClassType.stubAny, ClassType.stubAny)
 
   @deprecated("instead import lspace.g")
-  lazy val traversal: Traversal[DataType[Graph], DataType[Graph], HNil] = g
+  lazy val traversal: Traversal[ClassType[Any], ClassType[Any], HNil] = g
 
 //  def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
 //      traversal: Traversal[ST, ET, Segments]): Stream[Out]

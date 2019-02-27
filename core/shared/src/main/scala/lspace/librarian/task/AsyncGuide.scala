@@ -84,6 +84,17 @@ trait AsyncGuide extends Guide[Observable] {
             reducingBarrierStep(step, steps, nextSegments)
           case step: Project[_] =>
             projectStep(step, steps, nextSegments)
+          case step: EnvironmentStep => step match {
+            case step: TimeLimit =>
+              val nextStep = buildNextStep(steps, nextSegments)
+              import scala.concurrent.duration._
+              val f = (obs: Observable[Librarian[Any]]) =>
+                step.time match {
+                  case Some(time) => obs.takeByTimespan(time.millis millis)
+                  case None => obs
+                }
+              f andThen nextStep
+          }
         }
     }
   }
@@ -512,9 +523,9 @@ trait AsyncGuide extends Guide[Observable] {
           obs.flatMap { librarian =>
             traveralObservable(librarian)
           }
-      case step: Repeat[_] =>
+      case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
         val repeatObs = traversalToF(step.traversal.segmentList)
-        if (step.collect.contains(true)) {
+        if (step.collect) {
           step.max match {
             case Some(max) =>
               step.until.map(_.segmentList).filter(_.nonEmpty)

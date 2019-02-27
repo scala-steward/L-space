@@ -17,7 +17,7 @@ case object To
 
   lazy val toNode: Node = DetachedGraph.nodes.create(ontology)
 
-  override def prettyPrint: String = "inV"
+  override def prettyPrint: String = "to"
 }
 
 trait To extends MoveStep
