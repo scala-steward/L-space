@@ -10,7 +10,7 @@ import monix.eval.Task
 
 import scala.concurrent.Await
 
-class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
+class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec {
   implicit val guide = lspace.Implicits.AsyncGuide.guide
 
   implicit val baseEncoder = lspace.codec.argonaut.nativeEncoder
@@ -60,6 +60,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
 
   "FileStoreManager" when {
     "new" should {
+      nameSpaceGraphTests(graph)
       graphTests(graph)
       sampledGraphTests(sampleGraph)
       nodeTests(graph)

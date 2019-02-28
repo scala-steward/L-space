@@ -125,10 +125,7 @@ object Property {
         `@transcendedon`,
         `@valueRange`,
         `@keyRange`,
-        `@ARange`,
-        `@BRange`,
-        `@CRange`,
-        `@DRange`
+        `@ranges`
       )
 
       if (properties.size > 99) throw new Exception("extend default-property-id range!")
@@ -223,10 +220,7 @@ object Property {
       _Property(NS.types.`@transcendedon`)(_range = () => `@datetime` :: Nil)
     lazy val `@valueRange`: Property = CollectionType.keys.valueRange
     lazy val `@keyRange`: Property   = MapType.keys.keyRange
-    lazy val `@ARange`: Property     = TupleType.keys._1stRange
-    lazy val `@BRange`: Property     = TupleType.keys._2ndRange
-    lazy val `@CRange`: Property     = TupleType.keys._3rdRange
-    lazy val `@DRange`: Property     = TupleType.keys._4rdRange
+    lazy val `@ranges`: Property     = TupleType.keys.range
 
     object typed {
       lazy val iriUrlString: TypedProperty[String]    = `@id` as `@string`
@@ -266,14 +260,8 @@ object Property {
         Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
       lazy val keyListClassType: TypedProperty[List[Node]] = `@keyRange` as ListType(
         Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-      lazy val AListClassType: TypedProperty[List[Node]] = `@ARange` as ListType(
-        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-      lazy val BListClassType: TypedProperty[List[Node]] = `@BRange` as ListType(
-        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-      lazy val CListClassType: TypedProperty[List[Node]] = `@CRange` as ListType(
-        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-      lazy val DListClassType: TypedProperty[List[Node]] = `@DRange` as ListType(
-        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val rangesClasstype: TypedProperty[List[List[Node]]] = `@ranges` as ListType(
+        List(ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)))
     }
   }
 
@@ -305,10 +293,7 @@ object Property {
     transcendedOnDateTime.iri -> transcendedOnDateTime,
     valueListClassType.iri    -> valueListClassType,
     keyListClassType.iri      -> keyListClassType,
-    AListClassType.iri        -> AListClassType,
-    BListClassType.iri        -> BListClassType,
-    CListClassType.iri        -> CListClassType,
-    DListClassType.iri        -> DListClassType
+    rangesClasstype.iri       -> rangesClasstype
   )
 
   def _Property(iri: String)(implicit

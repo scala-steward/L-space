@@ -138,6 +138,11 @@ trait NameSpaceGraph extends DataGraph {
       byIri.get(ontology.iri).map(Task.now).getOrElse {
         if (Ontology.ontologies.default.byIri.get(ontology.iri).isDefined) {
           val node = nodes.upsert(ontology.iri, ontology.iris)
+          byId += node.id   -> ontology
+          byIri += node.iri -> node
+          ontology.iris.foreach { iri =>
+            byIri += iri -> node
+          }
           node.addLabel(Ontology.ontology)
           Task.now(node)
         } else {
@@ -156,7 +161,10 @@ trait NameSpaceGraph extends DataGraph {
                   node.addLabel(Ontology.ontology)
                   node
                 }
-                .getOrElse(nodes.create(Ontology.ontology))
+                .getOrElse {
+                  Ontology.ontologies.cache(ontology)
+                  nodes.create(Ontology.ontology)
+                }
 
               node.addOut(default.typed.iriUrlString, ontology.iri)
               ontology.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
@@ -262,6 +270,11 @@ trait NameSpaceGraph extends DataGraph {
       byIri.get(property.iri).map(Task.now).getOrElse {
         if (Property.properties.default.byIri.get(property.iri).isDefined) {
           val node = nodes.upsert(property.iri, property.iris)
+          byId += node.id   -> property
+          byIri += node.iri -> node
+          property.iris.foreach { iri =>
+            byIri += iri -> node
+          }
           node.addLabel(Property.ontology)
           Task.now(node)
         } else {
@@ -280,7 +293,10 @@ trait NameSpaceGraph extends DataGraph {
                   node.addLabel(Property.ontology)
                   node
                 }
-                .getOrElse(nodes.create(Property.ontology))
+                .getOrElse {
+                  Property.properties.cache(property)
+                  nodes.create(Property.ontology)
+                }
 
               node.addOut(default.typed.iriUrlString, property.iri)
               property.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
@@ -394,6 +410,11 @@ trait NameSpaceGraph extends DataGraph {
       byIri.get(datatype.iri).map(Task.now).getOrElse {
         if (DataType.datatypes.default.byIri.get(datatype.iri).isDefined) {
           val node = nodes.upsert(datatype.iri, datatype.iris)
+          byId += node.id   -> datatype
+          byIri += node.iri -> node
+          datatype.iris.foreach { iri =>
+            byIri += iri -> node
+          }
           node.addLabel(DataType.ontology)
           Task.now(node)
         } else {
@@ -412,7 +433,10 @@ trait NameSpaceGraph extends DataGraph {
                   node.addLabel(DataType.ontology)
                   node
                 }
-                .getOrElse(nodes.create(DataType.ontology))
+                .getOrElse {
+                  DataType.datatypes.cache(datatype)
+                  nodes.create(DataType.ontology)
+                }
 
               node.addOut(default.typed.iriUrlString, datatype.iri)
               datatype.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))

@@ -23,7 +23,7 @@ trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         graph.ns.properties.cached(types.`@label`).isDefined shouldBe true
 
         graph.ns.datatypes.cached(types.`@string`).isDefined shouldBe true
-        graph.ns.datatypes.cached(types.xsdDateTime).isDefined shouldBe true
+        graph.ns.datatypes.cached(types.xsdDateTimeStamp).isDefined shouldBe true
 
         graph.ns.classtypes.cached(types.xsdDateTimeStamp).isDefined shouldBe true
         graph.ns.classtypes.cached(types.`@comment`).isDefined shouldBe true
@@ -41,6 +41,22 @@ trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             node.iri shouldBe unknownOntology.iri
 
             graph.ns.ontologies.cached(unknownOntology.iri).isDefined shouldBe true
+            graph.ns.ontologies.all.contains(unknownOntology) shouldBe true
+            graph.ns.nodes.hasIri(unknownOntology.iri).contains(node) shouldBe true
+          }
+          .runToFuture
+      }
+      "store and retrieve a property" in {
+        val unknownProperty = Property("new_property")
+        graph.ns.properties
+          .store(unknownProperty)
+          .map { node =>
+            node.labels.size shouldBe 1
+            node.iri shouldBe unknownProperty.iri
+
+            graph.ns.properties.cached(unknownProperty.iri).isDefined shouldBe true
+            graph.ns.properties.all.contains(unknownProperty) shouldBe true
+            graph.ns.nodes.hasIri(unknownProperty.iri).contains(node) shouldBe true
           }
           .runToFuture
       }

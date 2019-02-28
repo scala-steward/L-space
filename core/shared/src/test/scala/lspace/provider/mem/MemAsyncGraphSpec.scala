@@ -4,7 +4,7 @@ import lspace.librarian.task.AsyncGuideSpec
 import lspace.structure._
 import lspace.structure.Property.default._
 
-class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
+class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec {
 
   implicit lazy val guide = lspace.Implicits.AsyncGuide.guide
 
@@ -13,6 +13,7 @@ class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
   sampleGraph.load
   def createGraph(iri: String): Graph = MemGraph("memgraphspec-" + iri)
 
+  nameSpaceGraphTests(graph)
   graphTests(graph)
   sampledGraphTests(sampleGraph)
   nodeTests(graph)

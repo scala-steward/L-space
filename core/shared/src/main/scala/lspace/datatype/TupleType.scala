@@ -45,51 +45,50 @@ object TupleType extends DataTypeDef[TupleType[Any]] {
           `@range` =
             () => ListType(ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil) :: Nil
         )
-    lazy val _rangeClassType: TypedProperty[List[List[Node]]] = _1stRange + ListType(
+    lazy val _rangeClassType: TypedProperty[List[List[Node]]] = range + ListType(
       List(ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)))
-    object _1stRange
-        extends PropertyDef(
-          "@1stRange",
-          label = "@1stRange",
-          comment = "@1stRange",
-          `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-        )
-    lazy val _1stRangeClassType: TypedProperty[List[Node]] = _1stRange + ListType(
-      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-    object _2ndRange
-        extends PropertyDef(
-          "@2ndRange",
-          label = "@2ndRange",
-          comment = "@2ndRange",
-          `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-        )
-    lazy val _2ndRangeClassType: TypedProperty[List[Node]] = _2ndRange + ListType(
-      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-    object _3rdRange
-        extends PropertyDef(
-          "@3rdRange",
-          label = "@3rdRange",
-          comment = "@3rdRange",
-          `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-        )
-    lazy val _3rdRangeClassType: TypedProperty[List[Node]] = _3rdRange + ListType(
-      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
-    object _4rdRange
-        extends PropertyDef(
-          "@4rdRange",
-          label = "@4rdRange",
-          comment = "@4rdRange",
-          `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-        )
-    lazy val _4rdRangeClassType: TypedProperty[List[Node]] = _4rdRange + ListType(
-      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+//    object _1stRange
+//        extends PropertyDef(
+//          "@1stRange",
+//          label = "@1stRange",
+//          comment = "@1stRange",
+//          `@extends` = () => Property.default.`@range` :: Nil,
+//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//        )
+//    lazy val _1stRangeClassType: TypedProperty[List[Node]] = _1stRange + ListType(
+//      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+//    object _2ndRange
+//        extends PropertyDef(
+//          "@2ndRange",
+//          label = "@2ndRange",
+//          comment = "@2ndRange",
+//          `@extends` = () => Property.default.`@range` :: Nil,
+//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//        )
+//    lazy val _2ndRangeClassType: TypedProperty[List[Node]] = _2ndRange + ListType(
+//      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+//    object _3rdRange
+//        extends PropertyDef(
+//          "@3rdRange",
+//          label = "@3rdRange",
+//          comment = "@3rdRange",
+//          `@extends` = () => Property.default.`@range` :: Nil,
+//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//        )
+//    lazy val _3rdRangeClassType: TypedProperty[List[Node]] = _3rdRange + ListType(
+//      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+//    object _4rdRange
+//        extends PropertyDef(
+//          "@4rdRange",
+//          label = "@4rdRange",
+//          comment = "@4rdRange",
+//          `@extends` = () => Property.default.`@range` :: Nil,
+//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//        )
+//    lazy val _4rdRangeClassType: TypedProperty[List[Node]] = _4rdRange + ListType(
+//      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
   }
-  override lazy val properties
-    : List[Property] = keys._1stRange.property :: keys._2ndRange.property :: keys._3rdRange.property :: keys._4rdRange.property :: StructuredType.properties
+  override lazy val properties: List[Property] = keys.range.property :: StructuredType.properties
   trait Properties extends StructuredType.Properties {}
 }
 

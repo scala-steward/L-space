@@ -28,13 +28,15 @@ trait Node extends Resource[Node] {
   def labels: List[Ontology]
 
   protected def _addLabel(ontology: Ontology): Unit = {
-    graph.ns.ontologies
-      .get(ontology.iri)
-      .flatMap { ontologyOption =>
-        if (ontologyOption.isEmpty) graph.ns.ontologies.store(ontology)
-        else Task.unit
-      }
-      .runToFuture(monix.execution.Scheduler.global)
+    graph.ns.ontologies.store(ontology).runToFuture(monix.execution.Scheduler.global)
+//    graph.ns.ontologies
+//      .get(ontology.iri)
+//      .flatMap { ontologyOption =>
+//        if (ontologyOption.isEmpty || !graph.ns.ontologies.byIri.contains(ontology.iri))
+//          graph.ns.ontologies.store(ontology)
+//        else Task.unit
+//      }
+//      .runToFuture(monix.execution.Scheduler.global)
   }
   def addLabel(ontology: Ontology): Unit
 
