@@ -151,11 +151,11 @@ depending on the nature of the traversal, guide and the result-type the user can
 </span>
 <span class="k">val</span> <span class="n">labels</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">ontologies</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// labels: lspace.util.SampleGraph.ontologies.type = lspace.util.SampleGraph$ontologies$@40aeba8d
+// labels: lspace.util.SampleGraph.ontologies.type = lspace.util.SampleGraph$ontologies$@159a04f6
 </span>
 <span class="k">val</span> <span class="n">keys</span> <span class="k">=</span> <span class="nc">SampleGraph</span><span class="o">.</span><span class="n">properties</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// keys: lspace.util.SampleGraph.properties.type = lspace.util.SampleGraph$properties$@1efacfa6
+// keys: lspace.util.SampleGraph.properties.type = lspace.util.SampleGraph$properties$@646f4d00
 </span></code></pre></div></div>
 <h3 id="resource-steps">Resource steps</h3>
 <p>Resource-step to start specify what type of resources the traversal should start in.</p>
@@ -175,7 +175,7 @@ depending on the nature of the traversal, guide and the result-type the user can
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//filters on nodes which have an edge with property "https://schema.org/name"
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res1: List[Any] = List(Crystal Springs, Stan, Haridwar, Garrison, List(Talca, Tal Ca), Yoshio, Levi, San José de Maipo, Gray, Kevin)
+// res1: List[Any] = List(Levi, Crystal Springs, Gray, Haridwar, Kevin, San José de Maipo, Stan, List(Talca, Tal Ca), Yoshio, Garrison)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//adds an equality constraint with value "Alice"
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
@@ -183,7 +183,7 @@ depending on the nature of the traversal, guide and the result-type the user can
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">birthDate</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">gt</span><span class="o">(</span><span class="nc">LocalDate</span><span class="o">.</span><span class="n">parse</span><span class="o">(</span><span class="s">"2002-06-13"</span><span class="o">))).</span><span class="n">id</span><span class="o">.</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res3: List[Long] = List(1124, 1148)
+// res3: List[Long] = List(1159, 1183)
 </span></code></pre></div></div>
 <h5 id="hasnot">HasNot</h5>
 <p>HasNot-step is the inverse of a Has-step (this could also be written as <code class="highlighter-rouge">.not(_.has(..))</code>)</p>
@@ -191,11 +191,11 @@ depending on the nature of the traversal, guide and the result-type the user can
 <p>HasLabel-step validates the precence of one or more labels (ontology, property or datatype)</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">labels</span><span class="o">.</span><span class="n">person</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//filters all persons
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res4: List[Any] = List(Stan, Garrison, Yoshio, Levi, Gray, Kevin)
+// res4: List[Any] = List(Levi, Gray, Kevin, Stan, Yoshio, Garrison)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">hasLabel</span><span class="o">(</span><span class="n">labels</span><span class="o">.</span><span class="n">place</span><span class="o">).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//filters all places
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res5: List[Any] = List(Crystal Springs, Haridwar, List(Talca, Tal Ca), San José de Maipo)
+// res5: List[Any] = List(Crystal Springs, Haridwar, San José de Maipo, List(Talca, Tal Ca))
 </span></code></pre></div></div>
 <h5 id="hasid">HasId</h5>
 <p>HasId-step validates if the id is within a certain set.</p>
@@ -228,11 +228,11 @@ depending on the nature of the traversal, guide and the result-type the user can
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.2 (20%)
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res11: List[Long] = List(1170, 1148)
+// res11: List[Long] = List(1042, 1183)
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">coin</span><span class="o">(</span><span class="mf">0.8</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//random selection of nodes with p = 0.8 (80%)
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res12: List[Long] = List(1029, 1159, 1036, 1170, 1048, 1055, 1124, 1001, 1148)
+// res12: List[Long] = List(1042, 1049, 1001, 1194, 1068, 1205)
 </span></code></pre></div></div>
 <h4 id="where">Where</h4>
 <p>Where-step takes a traversal and filters on non-empty results</p>
@@ -254,13 +254,13 @@ depending on the nature of the traversal, guide and the result-type the user can
 <p>Or-step takes one or more traversals and filters only those which have non-empty results for at least one traversal</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">or</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/name"</span><span class="o">),</span> <span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/birthDate"</span><span class="o">)).</span><span class="n">out</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">name</span><span class="o">,</span> <span class="n">keys</span><span class="o">.</span><span class="n">birthDate</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res16: List[Any] = List(Stan, 2002-06-13, Garrison, 1994-06-18, Yoshio, 1996-08-18, Levi, 2008-12-20, Gray, 1997-04-10, Kevin, 2008-11-30)
+// res16: List[Any] = List(Levi, 2008-12-20, Gray, 1997-04-10, Kevin, 2008-11-30, Stan, 2002-06-13, Yoshio, 1996-08-18, Garrison, 1994-06-18)
 </span></code></pre></div></div>
 <h4 id="not">Not</h4>
 <p>Not-step takes a traversal and filters on empty results</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">not</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"https://schema.org/name"</span><span class="o">)).</span><span class="n">limit</span><span class="o">(</span><span class="mi">2</span><span class="o">).</span><span class="n">id</span><span class="o">.</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res17: List[Long] = List(1029, 1159)
+// res17: List[Long] = List(1159, 1042)
 </span></code></pre></div></div>
 <h4 id="is">Is</h4>
 <p>Is-step asserts a value against one or more predicates</p>
@@ -274,19 +274,19 @@ depending on the nature of the traversal, guide and the result-type the user can
 <p>Range-step filters by a low-end and high-end index</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">range</span><span class="o">(</span><span class="mi">4</span><span class="o">,</span> <span class="mi">16</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//takes only node 4 until 16
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res19: List[lspace.structure.Node] = List(lspace.provider.mem.MemGraph$$anon$7@5db0e41b, lspace.provider.mem.MemGraph$$anon$7@5db0e422, lspace.provider.mem.MemGraph$$anon$7@5db0e467, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, lspace.provider.mem.MemGraph$$anon$7@5db0e473, lspace.provider.mem.MemGraph$$anon$7@5db0e47f)
+// res19: List[lspace.structure.Node] = List(lspace.provider.mem.MemGraph$$anon$7@5db0e4a2, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, lspace.provider.mem.MemGraph$$anon$7@5db0e4ad, lspace.provider.mem.MemGraph$$anon$7@5db0e42f, lspace.provider.mem.MemGraph$$anon$7@5db0e436, lspace.provider.mem.MemGraph$$anon$7@5db0e4b8)
 </span></code></pre></div></div>
 <h4 id="limit">Limit</h4>
 <p>Limit-step takes the first x-number of traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">limit</span><span class="o">(</span><span class="mi">12</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//takes only the first 12 nodes
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res20: List[lspace.structure.Node] = List(lspace.provider.mem.MemGraph$$anon$7@5db0e408, lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e40f, lspace.provider.mem.MemGraph$$anon$7@5db0e495, lspace.provider.mem.MemGraph$$anon$7@5db0e41b, lspace.provider.mem.MemGraph$$anon$7@5db0e422, lspace.provider.mem.MemGraph$$anon$7@5db0e467, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, lspace.provider.mem.MemGraph$$anon$7@5db0e473, lspace.provider.mem.MemGraph$$anon$7@5db0e47f)
+// res20: List[lspace.structure.Node] = List(lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e415, lspace.provider.mem.MemGraph$$anon$7@5db0e496, lspace.provider.mem.MemGraph$$anon$7@5db0e41c, lspace.provider.mem.MemGraph$$anon$7@5db0e4a2, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, lspace.provider.mem.MemGraph$$anon$7@5db0e4ad, lspace.provider.mem.MemGraph$$anon$7@5db0e42f, lspace.provider.mem.MemGraph$$anon$7@5db0e436, lspace.provider.mem.MemGraph$$anon$7@5db0e4b8)
 </span></code></pre></div></div>
 <h4 id="tail">Tail</h4>
 <p>Tail-step takes the last x-number of traversers</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">tail</span><span class="o">(</span><span class="mi">12</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//takes only the last 12 nodes
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res21: List[lspace.structure.Node] = List(lspace.provider.mem.MemGraph$$anon$7@5db0e408, lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e40f, lspace.provider.mem.MemGraph$$anon$7@5db0e495, lspace.provider.mem.MemGraph$$anon$7@5db0e41b, lspace.provider.mem.MemGraph$$anon$7@5db0e422, lspace.provider.mem.MemGraph$$anon$7@5db0e467, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, lspace.provider.mem.MemGraph$$anon$7@5db0e473, lspace.provider.mem.MemGraph$$anon$7@5db0e47f)
+// res21: List[lspace.structure.Node] = List(lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e415, lspace.provider.mem.MemGraph$$anon$7@5db0e496, lspace.provider.mem.MemGraph$$anon$7@5db0e41c, lspace.provider.mem.MemGraph$$anon$7@5db0e4a2, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, lspace.provider.mem.MemGraph$$anon$7@5db0e4ad, lspace.provider.mem.MemGraph$$anon$7@5db0e42f, lspace.provider.mem.MemGraph$$anon$7@5db0e436, lspace.provider.mem.MemGraph$$anon$7@5db0e4b8)
 </span></code></pre></div></div>
 <h3 id="move-steps">Move steps</h3>
 <p>Move steps lets the traverser move through the graph. The path can be stored within the traverer</p>
@@ -318,13 +318,13 @@ depending on the nature of the traversal, guide and the result-type the user can
 <p>Label-step traverses to the label-nodes if any</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">label</span><span class="o">().</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res26: List[lspace.structure.Ontology] = List(ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Person)
+// res26: List[lspace.structure.Ontology] = List(ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Place, ontology:https://schema.org/Person, ontology:https://schema.org/Person)
 </span></code></pre></div></div>
 <h4 id="id">Id</h4>
 <p>Id-step returns the resource-id (long)</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res27: List[Long] = List(1029, 1159, 1036, 1170, 1048, 1055, 1124, 1001, 1136, 1148)
+// res27: List[Long] = List(1159, 1042, 1171, 1049, 1183, 1001, 1194, 1068, 1075, 1205)
 </span></code></pre></div></div>
 <h3 id="branche-steps">Branche steps</h3>
 <p>Branche steps can execute one or more separate traversals, execute those in a specific way and merges any results back into the original traversal</p>
@@ -332,7 +332,7 @@ depending on the nature of the traversal, guide and the result-type the user can
 <p>Union-step takes one or more traversals and merges the results into a single traversal</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">union</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(),</span> <span class="k">_</span><span class="o">.</span><span class="n">in</span><span class="o">()).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//all incoming and outgoing edges
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res28: List[Any] = List(Point(-48.4046,175.87173), librarian-doc/place/12345, Crystal Springs, lspace.provider.mem.MemGraph$$anon$7@5db0e422, lspace.provider.mem.MemGraph$$anon$7@5db0e467, 2002-06-13, 300, lspace.provider.mem.MemGraph$$anon$7@5db0e495, lspace.provider.mem.MemGraph$$anon$7@5db0e47f, 4, Stan, lspace.provider.mem.MemGraph$$anon$7@5db0e3ec, librarian-doc/person/567, lspace.provider.mem.MemGraph$$anon$7@5db0e495, lspace.provider.mem.MemGraph$$anon$7@5db0e47f, Point(89.45136,88.01204), librarian-doc/place/345, Haridwar, lspace.provider.mem.MemGraph$$anon$7@5db0e473, 1994-06-18, lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e47f, Garrison, lspace.provider.mem.MemGraph$$anon$7@5db0e41b, librarian-doc/person/56789, lspace.provider.mem.Me...
+// res28: List[Any] = List(2008-12-20, -245.05, lspace.provider.mem.MemGraph$$anon$7@5db0e496, lspace.provider.mem.MemGraph$$anon$7@5db0e436, 2, Levi, lspace.provider.mem.MemGraph$$anon$7@5db0e415, librarian-doc/person/12345, lspace.provider.mem.MemGraph$$anon$7@5db0e496, lspace.provider.mem.MemGraph$$anon$7@5db0e436, Point(-48.4046,175.87173), librarian-doc/place/12345, Crystal Springs, lspace.provider.mem.MemGraph$$anon$7@5db0e436, lspace.provider.mem.MemGraph$$anon$7@5db0e48a, 1997-04-10, 2230.3, lspace.provider.mem.MemGraph$$anon$7@5db0e4a2, lspace.provider.mem.MemGraph$$anon$7@5db0e48a, 1, Gray, lspace.provider.mem.MemGraph$$anon$7@5db0e41c, librarian-doc/person/345, lspace.provider.mem.MemGraph$$anon$7@5db0e4a2, lspace.provider.mem.MemGraph$$anon$7@5db0e48a, Point(89.45136,88.01204),...
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">union</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">balance</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">gt</span><span class="o">(</span><span class="mi">300</span><span class="o">)),</span> <span class="k">_</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="n">keys</span><span class="o">.</span><span class="n">balance</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">lt</span><span class="o">(-</span><span class="mi">200</span><span class="o">))).</span><span class="n">count</span><span class="o">.</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should be 3
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
@@ -343,7 +343,7 @@ depending on the nature of the traversal, guide and the result-type the user can
 upto the traverser at the root the local-traversal</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">local</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">().</span><span class="n">hasLabel</span><span class="o">[</span><span class="kt">Int</span><span class="o">].</span><span class="n">sum</span><span class="o">).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">toList</span> <span class="c1">//sums all outgoing edges to integers for each node in the graph
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res30: List[Int] = List(0.0, 304.0, 0.0, 0.0, 0.0, 4.0, 2.0, 0.0, 1.0, 2.0)
+// res30: List[Int] = List(2.0, 0.0, 1.0, 0.0, 2.0, 0.0, 304.0, 0.0, 4.0, 0.0)
 </span></code></pre></div></div>
 <h4 id="repeat">Repeat</h4>
 <p>Repeat-step takes a traversal and keeps repeating it until a certain requirement is met, 
@@ -397,7 +397,7 @@ the traversal will continue to operate with a traverser for each Value.</p>
 <span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">outMap</span><span class="o">().</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span>
 <span class="c1">// warning: there was one deprecation warning; for details, enable `:setting -deprecation' or `:replay -deprecation'
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res40: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:name -&gt; List(Garrison), property:https://schema.org/birthDate -&gt; List(1994-06-18), property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e47f), property:https://schema.org/birthPlace -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e41b), property:@id -&gt; List(librarian-doc/person/56789))
+// res40: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:name -&gt; List(Garrison), property:https://schema.org/birthDate -&gt; List(1994-06-18), property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e4ad, lspace.provider.mem.MemGraph$$anon$7@5db0e4a2), property:https://schema.org/birthPlace -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e42f), property:@id -&gt; List(librarian-doc/person/56789))
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">outMap</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="s">"knows"</span><span class="o">)</span> <span class="c1">//returns a property-map for edges with label "name" or "knows"
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
@@ -407,19 +407,19 @@ the traversal will continue to operate with a traverser for each Value.</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">outEMap</span><span class="o">().</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should return all out-going edges grouped by key
 // warning: there was one deprecation warning; for details, enable `:setting -deprecation' or `:replay -deprecation'
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res42: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:name -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e499), property:https://schema.org/birthDate -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e49b), property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e49d, lspace.provider.mem.MemGraph$$anon$8@5db0e4a5), property:https://schema.org/birthPlace -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e49c), property:@id -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e497))
+// res42: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:name -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4bc), property:https://schema.org/birthDate -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4be), property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4c0, lspace.provider.mem.MemGraph$$anon$8@5db0e4c2), property:https://schema.org/birthPlace -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4bf), property:@id -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4ba))
 </span></code></pre></div></div>
 <h4 id="inmap">InMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">inMap</span><span class="o">().</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span> <span class="c1">//returns a property-map on all incoming connected resources
 // warning: there was one deprecation warning; for details, enable `:setting -deprecation' or `:replay -deprecation'
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res43: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e48a, lspace.provider.mem.MemGraph$$anon$7@5db0e47f))
+// res43: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e4ad, lspace.provider.mem.MemGraph$$anon$7@5db0e4a2))
 </span></code></pre></div></div>
 <h4 id="inemap">InEMap</h4>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">has</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="n">P</span><span class="o">.</span><span class="n">eqv</span><span class="o">(</span><span class="s">"Garrison"</span><span class="o">)).</span><span class="n">inEMap</span><span class="o">().</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span> <span class="c1">//should return all in-coming edges grouped by key
 // warning: there was one deprecation warning; for details, enable `:setting -deprecation' or `:replay -deprecation'
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res44: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4a4, lspace.provider.mem.MemGraph$$anon$8@5db0e4a6))
+// res44: scala.collection.immutable.Map[lspace.structure.Property,List[Any]] = Map(property:https://schema.org/knows -&gt; List(lspace.provider.mem.MemGraph$$anon$8@5db0e4c1, lspace.provider.mem.MemGraph$$anon$8@5db0e4c3))
 </span></code></pre></div></div>
 <h3 id="barrier-steps">Barrier steps</h3>
 <p>Barrier steps can operate on the entire resultset of a traversal</p>
@@ -431,11 +431,11 @@ the traversal will continue to operate with a traverser for each Value.</p>
 the traversal will continue to operate with a traverser for each Value.</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">group</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">)).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span> <span class="c1">//groups only on nodes with a "name" and only takes the first result (head)
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res45: (List[Any], List[lspace.structure.Node]) = (List(Garrison),List(lspace.provider.mem.MemGraph$$anon$7@5db0e495))
+// res45: (List[Any], List[lspace.structure.Node]) = (List(Garrison),List(lspace.provider.mem.MemGraph$$anon$7@5db0e4b8))
 </span>
 <span class="n">g</span><span class="o">.</span><span class="n">N</span><span class="o">.</span><span class="n">group</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"name"</span><span class="o">)).</span><span class="n">group</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">out</span><span class="o">(</span><span class="s">"age"</span><span class="o">)).</span><span class="n">withGraph</span><span class="o">(</span><span class="n">graph</span><span class="o">).</span><span class="n">head</span> <span class="c1">//can e.g. be a Map[String, List[Map[Int,List[Node]]]]
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res46: (List[Any], scala.collection.immutable.Map[List[Any],List[lspace.structure.Node]]) = (List(Garrison),List(Map(List() -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e495))))
+// res46: (List[Any], scala.collection.immutable.Map[List[Any],List[lspace.structure.Node]]) = (List(Garrison),List(Map(List() -&gt; List(lspace.provider.mem.MemGraph$$anon$7@5db0e4b8))))
 </span></code></pre></div></div>
 <h4 id="reducing-barrier-steps">Reducing barrier steps</h4>
 <p>Reducing barrier steps perform a fold task on all traverers in the stream resulting in a single traverser 
