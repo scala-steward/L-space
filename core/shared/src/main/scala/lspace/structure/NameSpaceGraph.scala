@@ -169,6 +169,12 @@ trait NameSpaceGraph extends DataGraph {
               node.addOut(default.typed.iriUrlString, ontology.iri)
               ontology.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
 
+              byId += node.id   -> ontology
+              byIri += node.iri -> node
+              ontology.iris.foreach { iri =>
+                byIri += iri -> node
+              }
+
               for {
                 properties      <- Task.gather(ontology.properties.map(ns.properties.store))
                 extendedClasses <- Task.gather(ontology.extendedClasses.map(ns.ontologies.store))
@@ -188,11 +194,7 @@ trait NameSpaceGraph extends DataGraph {
                 ontology.base.foreach { base =>
                   node.addOut(Property.default.`@base`, base)
                 }
-                byId += node.id   -> ontology
-                byIri += node.iri -> node
-                ontology.iris.foreach { iri =>
-                  byIri += iri -> node
-                }
+
                 node
               }
             }
@@ -301,6 +303,12 @@ trait NameSpaceGraph extends DataGraph {
               node.addOut(default.typed.iriUrlString, property.iri)
               property.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
 
+              byId += node.id   -> property
+              byIri += node.iri -> node
+              property.iris.foreach { iri =>
+                byIri += iri -> node
+              }
+
               for {
                 range           <- Task.gather(property.range.map(classtypes.store))
                 properties      <- Task.gather(property.properties.map(ns.properties.store))
@@ -325,11 +333,6 @@ trait NameSpaceGraph extends DataGraph {
                 //                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
                 property.base.foreach { base =>
                   node.addOut(Property.default.`@base`, base)
-                }
-                byId += node.id   -> property
-                byIri += node.iri -> node
-                property.iris.foreach { iri =>
-                  byIri += iri -> node
                 }
                 node
               }
@@ -441,6 +444,12 @@ trait NameSpaceGraph extends DataGraph {
               node.addOut(default.typed.iriUrlString, datatype.iri)
               datatype.iris.foreach(iri => node.addOut(default.typed.irisUrlString, iri))
 
+              byId += node.id   -> datatype
+              byIri += node.iri -> node
+              datatype.iris.foreach { iri =>
+                byIri += iri -> node
+              }
+
               val datatypeTasks = datatype match {
                 case dataType: CollectionType[_] =>
                   dataType match {
@@ -503,12 +512,6 @@ trait NameSpaceGraph extends DataGraph {
               datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
 
               datatype.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
-
-              byId += node.id   -> datatype
-              byIri += node.iri -> node
-              datatype.iris.foreach { iri =>
-                byIri += iri -> node
-              }
 
               Task.gather(datatypeTasks).map { edges =>
                 node
