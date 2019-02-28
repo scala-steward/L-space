@@ -12,6 +12,8 @@ trait FTraversal[+F[_], O[_], Out] {
 
   def headF: F[Out]
   def headOptionF: F[Option[Out]]
+  def lastF: F[Out]
+  def lastOptionF: F[Option[Out]]
   def toListF: F[List[Out]]
   def toSetF: F[Set[Out]]
   def map[T](f: Out => T): O[T]
@@ -50,6 +52,10 @@ class AsyncTraversal[Out](val segments: List[Segment[HList]], val graph: Graph)(
     guide.buildTraversal[Out](segments)(graph).headL
   def headOptionF: Task[Option[Out]] =
     guide.buildTraversal[Out](segments)(graph).headOptionL
+  def lastF: Task[Out] =
+    guide.buildTraversal[Out](segments)(graph).lastL
+  def lastOptionF: Task[Option[Out]] =
+    guide.buildTraversal[Out](segments)(graph).lastOptionL
   def toListF: Task[List[Out]] =
     guide.buildTraversal[Out](segments)(graph).toListL
   def toSetF: Task[Set[Out]]                             = guide.buildTraversal[Out](segments)(graph).toListL.map(_.toSet)
@@ -86,6 +92,12 @@ class SyncTraversal[Out](val segments: List[Segment[HList]], val graph: Graph)(i
   def headOptionF: Coeval[Option[Out]] =
     Coeval(guide.buildTraversal[Out](segments)(graph).headOption)
   def headOption: Option[Out] = headOptionF.value()
+  def lastF: Coeval[Out] =
+    Coeval(guide.buildTraversal[Out](segments)(graph).last)
+  def last: Out = lastF.value()
+  def lastOptionF: Coeval[Option[Out]] =
+    Coeval(guide.buildTraversal[Out](segments)(graph).lastOption)
+  def lastOption: Option[Out] = lastOptionF.value()
   def toListF: Coeval[List[Out]] =
     Coeval(guide.buildTraversal[Out](segments)(graph).toList)
   def toList: List[Out] = toListF.value()
