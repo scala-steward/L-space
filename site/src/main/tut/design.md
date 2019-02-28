@@ -41,6 +41,7 @@ Supported types are:
       * Geo: L-space geometric types (work-in-progress, open-for-suggestions)
       * Collection
         * List, Vector, Set, Map, ListSet
+      * Tuple(N)
       * [Squants DSL (WIP)](https://github.com/typelevel/squants)
 
 A note on collection types: 

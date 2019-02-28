@@ -7,6 +7,7 @@ position: 3
 # Traversal Guide
 * [Overview](#overview)
 * [The traverser](#the-traverser)
+* [The traversal](#the-traversal)
 * [Steps](#steps)
   * [Graph](#graph)
   * [Resource steps](#resource-steps)
@@ -83,6 +84,21 @@ reasoning on a graph.
 When a librarian is sent on his way to gather knowledge as instructed with a traversal, the librarian (aka traverser) 
 moves through L-space (aka graph(s)) and keeps track of his whereabouts and the encountered resources. When he reaches 
 the end of the traversal he communicates back the result that was requested. 
+## The traversal
+A traversal is an ADT structure which can be compared, concatenated, serialized/deserialized etc.
+A traversal exists of steps which are grouped into segments (rules on segmentation: ...). 
+A segments starts with a move or transform step (new librarian with new information).
+To make a traversal ready for execution add ```.withGraph(graph)``` after the execution. This action will analyse the traversal, 
+depending on the nature of the traversal, guide and the result-type the user can do one of the following monadic operations:
+* ```.headF```
+* ```.headOptionF```
+* ```.lastF```
+* ```.lastOptionF```
+* ```.toListF```
+* ```.toSetF```
+* ```.toMapF``` this one is only available when there is a Group-step at the root of all container-typed steps
+
+when synchronous operations are available each of these methods has a synchronous counterpart without the 'F'-suffix
 ## Steps
 The librarian is able to execute the following steps.
 ### Graph
