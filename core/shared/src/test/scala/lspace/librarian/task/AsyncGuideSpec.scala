@@ -352,7 +352,9 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
           .withGraph(sampleGraph)
           .headF
-          .map(_ shouldBe Map((List(ontologies.person) -> List((List("Levi"), List())))))
+          .map(r =>
+            (r: (List[Ontology], List[(List[Any], List[Double])])) shouldBe ((List(ontologies.person),
+                                                                              List((List("Levi"), List())))))
           .runToFuture
       }
       """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {

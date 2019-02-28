@@ -42,7 +42,7 @@ object Group
 
 }
 
-case class Group[ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
+case class Group[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
     extends CollectingBarrierStep {
 
   lazy val toNode: Node            = this

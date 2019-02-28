@@ -3,9 +3,9 @@ package lspace.librarian.task
 import java.time.LocalDate
 
 import lspace.datatype.DataType
-import lspace.datatype.DataType.default.{`@double`, `@string`}
+import lspace.datatype.DataType.default.{`@double`, `@int`, `@string`}
 import lspace.{g, P}
-import lspace.structure.{GraphFixtures, Node, Property, SampledGraph}
+import lspace.structure._
 import lspace.util.SampleGraph
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
@@ -44,7 +44,16 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
 
 //    "N.out()" in {
 //      g.N.out().withGraph(sampleGraph)
-//    }
+
+    """N.outMap()""" in {
+      g.N.outMap().withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
+    }
+    """N.outMap().hasLabel(`@int`)""" in {
+      g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
+    }
+    """N.has("name", P.eqv("Garrison")).outMap()""" in {
+      g.N.has("name", P.eqv("Garrison")).outMap().withGraph(sampleGraph).headF.map(_.size shouldBe 5).value
+    }
     "N.out().hasLabel(ontologies.person)" in {
       g.N.out().hasLabel(ontologies.person).withGraph(sampleGraph).toListF
       val nodes = g.N.withGraph(sampleGraph).toListF.value
@@ -182,27 +191,27 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .toListF
         .value
         .nonEmpty shouldBe true
-
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
-      g.N
+      val x = g.N
         .hasIri(sampleGraph.iri + "/person/12345")
         .group(_.label())
         .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
         .withGraph(sampleGraph)
-        .headF
-        .value shouldBe Map((List(ontologies.person) -> List((List("Levi"), List()))))
+        .toMap
+
+      x shouldBe Map((List(ontologies.person) -> List((List("Levi"), List()))))
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
-      g.N
+      val x: List[(List[Any], List[Double])] = g.N
         .hasIri(sampleGraph.iri + "/person/12345")
         .out(properties.knows)
         .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(2000.0)))
         .withGraph(sampleGraph)
-        .toListF
-        .value
-        .toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List()))
+        .toList
+
+      x.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List()))
 
     }
     "N.union(_.has(properties.balance, P.lt(0.0)), _.has(properties.balance, P.gt(2000.0)))" in {

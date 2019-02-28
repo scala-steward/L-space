@@ -730,13 +730,15 @@ trait Graph extends IriResource with GraphUtils { self =>
          Containers <: HList,
          F[_],
          Out,
-         CT <: ClassType[Out]](traversal: Traversal[ST, ET, Segments])(
+         CT <: ClassType[Out],
+         Out2](traversal: Traversal[ST, ET, Segments])(
       implicit flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
       reverse: Reverse.Aux[Steps, RSteps],
       f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
       lf: StructureCalculator.Aux[Containers, ET, Out, CT],
+      tw: OutTweaker.Aux[ET, Out, Containers, Out2],
       guide: Guide[F],
-      mapper: Mapper[F, Out]): mapper.FT =
+      mapper: Mapper[F, Containers, Out]): mapper.FT =
     mapper.apply(traversal.segmentList, this).asInstanceOf[mapper.FT]
 
   def __[Start, End](implicit cltblStart: ClassTypeable[Start],

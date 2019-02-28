@@ -140,8 +140,6 @@ object Property {
       new ConcurrentHashMap[String, Property]().asScala
     private[lspace] val building: concurrent.Map[String, Coeval[Property]] =
       new ConcurrentHashMap[String, Coeval[Property]]().asScala
-//    private[lspace] val preparing: concurrent.Map[String, Task[Coeval[Property]]] =
-//      new ConcurrentHashMap[String, Task[Coeval[Property]]]().asScala
 
     def all: List[Property] = byIri.values.toList.distinct
     def get(iri: String): Option[Coeval[Property]] =
@@ -162,36 +160,6 @@ object Property {
           building.remove(node.iri)
           p
         }.memoizeOnSuccess))
-//    def getOrConstruct(iri: String)(constructTask: Task[Coeval[Property]]): Task[Coeval[Property]] = {
-//      println(s"getorconstruct ${iri}")
-//      default.byIri
-//        .get(iri)
-//        .map(p => Task.now(Coeval.now(p)))
-//        .getOrElse(preparing.getOrElseUpdate(
-//          iri,
-//          constructTask
-//            .map { f =>
-//              println(s"constructed ${f.value().iri}"); f
-//            }
-//            .flatMap { p =>
-//              Task {
-//                byIri += p.value().iri -> p.value()
-//                p.value().iris.foreach { iri =>
-//                  properties.byIri += iri -> p.value()
-//                }
-//                preparing.remove(iri)
-//                p
-//              }
-//            //                .delayExecution(FiniteDuration(1, "s"))
-//            //                .runAsyncAndForget(monix.execution.Scheduler.global)
-//            }
-//            .memoizeOnSuccess
-////            .delayExecution(100 millis)
-////            .map { f =>
-////              println(s"constructed2 ${f.value().iri}"); f
-////            }
-//        ))
-//    }
 
     def cache(property: Property): Unit = {
       byIri += property.iri -> property

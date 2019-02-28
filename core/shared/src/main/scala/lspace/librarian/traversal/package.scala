@@ -221,30 +221,31 @@ package object traversal {
         at[ET :: Containers](s => s.asInstanceOf[inner.Out]) //this cast is never executed runtime but only used for type-calculation
     }
 
-    implicit def projectStep[L <: HList,
+    implicit def projectStep[
 //                             CT <: ClassType[_],
                              Traversals <: HList,
                              Containers <: HList,
                              CTout <: HList,
                              Tout <: HList,
-                             Out](
+                             Out2](
         implicit
         mapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper.type, Traversals, Containers],
         outCtMapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper2.type, Traversals, CTout],
         outMapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper3.type, Traversals, Tout],
 //        lub: shapeless.LUBConstraint[OutH, _ <: ClassType[_]],
-        tupler: shapeless.ops.hlist.Tupler.Aux[Tout, Out])
-      : Aux[Project[Traversals] :: HNil, ClassType[Nothing], Out, TupleType[Out]] =
-      new Impl[Project[Traversals] :: HNil, ClassType[Nothing], Out, TupleType[Out]] {
-        override def convert(hlist: Project[Traversals] :: HNil, value: ClassType[Nothing]): List[TupleType[Out]] = {
+        tupler: shapeless.ops.hlist.Tupler.Aux[Tout, Out2])
+      : Aux[Project[Traversals] :: HNil, ClassType[Nothing], List[Out2], ListType[Out2]] =
+      new Impl[Project[Traversals] :: HNil, ClassType[Nothing], List[Out2], ListType[Out2]] {
+        override def convert(hlist: Project[Traversals] :: HNil, value: ClassType[Nothing]): List[OutCT] = {
 //          val (et :: containers) = mapper(hlist.head.by)
 //          val outCt              = outCtMapper(et.asInstanceOf[ClassType[Any]] :: containers)
 
           List(
-            TupleType[Out](outCtMapper(hlist.head.by).runtimeList
-              .map(_.asInstanceOf[List[ClassType[Any]]].filter(_.iri.nonEmpty))))
+            ListType(
+              List(TupleType[Out2](outCtMapper(hlist.head.by).runtimeList
+                .map(_.asInstanceOf[List[ClassType[Any]]].filter(_.iri.nonEmpty))))))
 //              .asInstanceOf[List[ClassType[innerKey.Out]]]
-          //.asInstanceOf[TupleType[Out]])
+//            .asInstanceOf[List[ListType[Out]]]
         }
       }
 

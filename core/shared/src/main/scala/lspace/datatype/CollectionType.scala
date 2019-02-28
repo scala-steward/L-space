@@ -5,6 +5,8 @@ import lspace.NS.types
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
 
+import scala.annotation.tailrec
+
 //TODO: a note on collections: auto-merging resources by their iri can result in obsolete references from within collection structures.
 //TODO: create a RefNode, RefEdge and RefValue to mitigate?
 object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
@@ -70,31 +72,18 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
             val (valueTypes, newTail2) = getTypes(newTail.drop(1))
             (if (keyTypes.nonEmpty || valueTypes.nonEmpty) List(MapType(keyTypes, valueTypes))
              else List(MapType.datatype)) -> newTail2
-          case types.`@tuple2` =>
-            val (t1Types, newTail) = getTypes(tail.drop(1))
-            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
-            val (t2Types, newTail2) = getTypes(newTail.drop(1))
-            (if (t1Types.nonEmpty || t2Types.nonEmpty) List(Tuple2Type(t1Types, t2Types))
-             else List(Tuple2Type.datatype)) -> newTail2
-          case types.`@tuple3` =>
-            val (t1Types, newTail) = getTypes(tail.drop(1))
-            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
-            val (t2Types, newTail2) = getTypes(newTail.drop(1))
-            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
-            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
-            (if (t1Types.nonEmpty || t2Types.nonEmpty || t3Types.nonEmpty) List(Tuple3Type(t1Types, t2Types, t3Types))
-             else List(Tuple3Type.datatype)) -> newTail3
-          case types.`@tuple4` =>
-            val (t1Types, newTail) = getTypes(tail.drop(1))
-            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
-            val (t2Types, newTail2) = getTypes(newTail.drop(1))
-            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
-            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
-            if (!newTail3.startsWith("(")) throw new Exception("tuple4 without fourth block")
-            val (t4Types, newTail4) = getTypes(newTail3.drop(1))
-            (if (t1Types.nonEmpty || t2Types.nonEmpty || t3Types.nonEmpty || t4Types.nonEmpty)
-               List(Tuple4Type(t1Types, t2Types, t3Types, t4Types))
-             else List(Tuple4Type.datatype)) -> newTail4
+          case types.`@tuple` =>
+            @tailrec
+            def getT(tail: String, types: List[List[ClassType[Any]]]): (List[List[ClassType[Any]]], String) = {
+              val (valueTypes, newTail) = getTypes(tail.drop(1))
+              if (!newTail.startsWith("("))
+                getT(newTail,
+                     types :+ (if (valueTypes.nonEmpty) List(ListType(valueTypes)) else List(ListType.datatype)))
+              else
+                (types :+ (if (valueTypes.nonEmpty) List(ListType(valueTypes)) else List(ListType.datatype))) -> newTail
+            }
+            val (rangeTypes, newTail) = getT(tail, List())
+            List(TupleType(rangeTypes)) -> newTail
           case _ =>
             scribe.error("cannot parse : " + iri)
             throw new Exception("cannot parse : " + iri)

@@ -11,6 +11,7 @@ import lspace.parse.util.{HttpClient, HttpClientImpl}
 import lspace.types.vector.{Geometry, Point, Polygon}
 import monix.eval.{Coeval, Task}
 
+import scala.annotation.tailrec
 import scala.collection.immutable.ListSet
 
 object Decoder {
@@ -371,11 +372,26 @@ trait Decoder {
 
   def toTuple[T](json: List[Json], label: TupleType[T])(implicit activeContext: AC): Task[T] =
     label match {
-      case dt: Tuple2Type[_, _] => toTuple2(json, dt._1stRange, dt._2ndRange).map(label -> _).map(_.asInstanceOf[T])
-      case dt: Tuple3Type[_, _, _] =>
-        toTuple3(json, dt._1stRange, dt._2ndRange, dt._3rdRange).map(label -> _).map(_.asInstanceOf[T])
-      case dt: Tuple4Type[_, _, _, _] =>
-        toTuple4(json, dt._1stRange, dt._2ndRange, dt._3rdRange, dt._4rdRange).map(label -> _).map(_.asInstanceOf[T])
+      case dt: TupleType[_] =>
+        if (json.size != dt.rangeTypes.size)
+          Task.raiseError(UnexpectedJsonException("tuple range is not equal to tuple size"))
+        else
+          Task
+            .gather(json.zip(dt.rangeTypes).map { case (json, types) => toObject(json, types) })
+            .map(_.map(_._2))
+            .map {
+              case List(a, b)             => (a, b)
+              case List(a, b, c)          => (a, b, c)
+              case List(a, b, c, d)       => (a, b, c, d)
+              case List(a, b, c, d, e)    => (a, b, c, d, e)
+              case List(a, b, c, d, e, f) => (a, b, c, d, e, f)
+            }
+            .map(_.asInstanceOf[T])
+//      case dt: Tuple2Type[_, _] => toTuple2(json, dt._1stRange, dt._2ndRange).map(label -> _).map(_.asInstanceOf[T])
+//      case dt: Tuple3Type[_, _, _] =>
+//        toTuple3(json, dt._1stRange, dt._2ndRange, dt._3rdRange).map(label -> _).map(_.asInstanceOf[T])
+//      case dt: Tuple4Type[_, _, _, _] =>
+//        toTuple4(json, dt._1stRange, dt._2ndRange, dt._3rdRange, dt._4rdRange).map(label -> _).map(_.asInstanceOf[T])
       case _ => Task.raiseError(UnexpectedJsonException(s"unknown TupleType ${label.iri}"))
     }
 
@@ -563,34 +579,6 @@ trait Decoder {
             oO.map(Task.now).getOrElse {
               val nsDecoder = Decoder(graph.ns)
               nsDecoder.prepareOntology(expandedJson).flatMap(Ontology.ontologies.getOrBuild(_).task)
-//              toNode(expandedJson, Ontology.ontology).flatMap { node =>
-//                Task.gatherUnordered()
-//                for {
-//                  extended   <- node.out(`@extends`).map(toOntologies).getOrElse(Task.now(List()))
-//                  properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
-//                } yield {}
-//              }
-//              Ontology.ontologies
-//                .getOrBuild(iri)({
-//                  val iris          = activeContext.extractIds(expandedJson)
-//                  val labels        = activeContext.extractLabels(expandedJson)
-//                  val comments      = activeContext.extractComments(expandedJson)
-//                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubClassOf))
-//                  val `@properties` = expandedJson.get(types.`@properties`)
-//
-//                  for {
-//                    extended   <- `@extends`.map(toOntologies).getOrElse(Task.now(List()))
-//                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
-//                  } yield {
-//                    Ontology._Ontology(iri)(
-//                      iris.toSet,
-//                      label = labels,
-//                      comment = comments,
-//                      _extendedClasses = () => extended,
-//                      _properties = () => properties
-//                    )
-//                  }
-//                })
             }
           }
         case None =>
@@ -648,27 +636,38 @@ trait Decoder {
             if (!newTail.startsWith("(")) throw new Exception("map without second block")
             val (valueTypes, newTail2) = getTypes(newTail.drop(1))
             (keyTypes ++ valueTypes) -> newTail2
-          case types.`@tuple2` =>
-            val (t1Types, newTail) = getTypes(tail.drop(1))
-            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
-            val (t2Types, newTail2) = getTypes(newTail.drop(1))
-            (t1Types ++ t2Types) -> newTail2
-          case types.`@tuple3` =>
-            val (t1Types, newTail) = getTypes(tail.drop(1))
-            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
-            val (t2Types, newTail2) = getTypes(newTail.drop(1))
-            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
-            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
-            (t1Types ++ t2Types ++ t3Types) -> newTail3
-          case types.`@tuple4` =>
-            val (t1Types, newTail) = getTypes(tail.drop(1))
-            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
-            val (t2Types, newTail2) = getTypes(newTail.drop(1))
-            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
-            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
-            if (!newTail3.startsWith("(")) throw new Exception("tuple4 without fourth block")
-            val (t4Types, newTail4) = getTypes(newTail3.drop(1))
-            (t1Types ++ t2Types ++ t3Types ++ t4Types) -> newTail4
+          case types.`@tuple` =>
+            @tailrec
+            def getT(tail: String, types: List[List[String]]): (List[List[String]], String) = {
+              val (valueTypes, newTail) = getTypes(tail.drop(1))
+              if (!newTail.startsWith("("))
+                getT(newTail, types :+ (if (valueTypes.nonEmpty) valueTypes else List[String]()))
+              else
+                (types :+ (if (valueTypes.nonEmpty) valueTypes else List())) -> newTail
+            }
+            val (rangeTypes, newTail) = getT(tail, List())
+            rangeTypes.flatten -> newTail
+//          case types.`@tuple2` =>
+//            val (t1Types, newTail) = getTypes(tail.drop(1))
+//            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
+//            val (t2Types, newTail2) = getTypes(newTail.drop(1))
+//            (t1Types ++ t2Types) -> newTail2
+//          case types.`@tuple3` =>
+//            val (t1Types, newTail) = getTypes(tail.drop(1))
+//            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
+//            val (t2Types, newTail2) = getTypes(newTail.drop(1))
+//            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
+//            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
+//            (t1Types ++ t2Types ++ t3Types) -> newTail3
+//          case types.`@tuple4` =>
+//            val (t1Types, newTail) = getTypes(tail.drop(1))
+//            if (!newTail.startsWith("(")) throw new Exception("tuple2 without second block")
+//            val (t2Types, newTail2) = getTypes(newTail.drop(1))
+//            if (!newTail2.startsWith("(")) throw new Exception("tuple3 without third block")
+//            val (t3Types, newTail3) = getTypes(newTail2.drop(1))
+//            if (!newTail3.startsWith("(")) throw new Exception("tuple4 without fourth block")
+//            val (t4Types, newTail4) = getTypes(newTail3.drop(1))
+//            (t1Types ++ t2Types ++ t3Types ++ t4Types) -> newTail4
           case _ =>
             scribe.error("cannot parse : " + iri)
             throw new Exception("cannot parse : " + iri)
@@ -740,31 +739,6 @@ trait Decoder {
             .flatMap(_.map(Task.now).getOrElse {
               val nsDecoder = Decoder(graph.ns)
               nsDecoder.prepareProperty(expandedJson).flatMap(Property.properties.getOrBuild(_).task)
-//              Property.properties
-//                .getOrConstruct(iri)({
-//                  val iris          = activeContext.extractIds(expandedJson)
-//                  val labels        = activeContext.extractLabels(expandedJson)
-//                  val comments      = activeContext.extractComments(expandedJson)
-//                  val `@range`      = expandedJson.get(types.`@range`).orElse(expandedJson.get(types.schemaRange))
-//                  val `@extends`    = expandedJson.get(types.`@extends`).orElse(expandedJson.get(types.rdfsSubPropertyOf))
-//                  val `@properties` = expandedJson.get(types.`@properties`)
-//
-//                  for {
-//                    range      <- `@range`.map(toOntologies).getOrElse(Task.now(List()))
-//                    extended   <- `@extends`.map(toProperties).getOrElse(Task.now(List()))
-//                    properties <- `@properties`.map(toProperties).getOrElse(Task.now(List()))
-//                  } yield {
-//                    Property._Property(iri)(
-//                      iris.toSet,
-//                      label = labels,
-//                      comment = comments,
-//                      _range = () => range,
-//                      _extendedClasses = () => extended,
-//                      _properties = () => properties
-//                    )
-//                  }
-//                }.map(Coeval.now))
-//                .map(_.value())
             })
         case None =>
           Task.raiseError(FromJsonException("a property without @id is not valid"))
@@ -842,48 +816,48 @@ trait Decoder {
       }
   }
 
-  def toTuple2Type(expandedJson: Map[String, Json])(implicit activeContext: AC): Task[Tuple2Type[Any, Any]] = {
-    val _1stRange = expandedJson.get(TupleType.keys._1stRange.iri)
-    val _2ndRange = expandedJson.get(TupleType.keys._2ndRange.iri)
-    Task
-      .gatherUnordered(
-        _1stRange.map(toClasstypes).getOrElse(Task.now(List())) ::
-          _2ndRange.map(toClasstypes).getOrElse(Task.now(List())) :: Nil)
-      .map { l =>
-        Tuple2Type(l(0), l(1))
-      }
-  }
+//  def toTuple2Type(expandedJson: Map[String, Json])(implicit activeContext: AC): Task[Tuple2Type[Any, Any]] = {
+//    val _1stRange = expandedJson.get(TupleType.keys._1stRange.iri)
+//    val _2ndRange = expandedJson.get(TupleType.keys._2ndRange.iri)
+//    Task
+//      .gatherUnordered(
+//        _1stRange.map(toClasstypes).getOrElse(Task.now(List())) ::
+//          _2ndRange.map(toClasstypes).getOrElse(Task.now(List())) :: Nil)
+//      .map { l =>
+//        Tuple2Type(l(0), l(1))
+//      }
+//  }
 
-  def toTuple3Type(expandedJson: Map[String, Json])(implicit activeContext: AC): Task[Tuple3Type[Any, Any, Any]] = {
-    val _1stRange = expandedJson.get(TupleType.keys._1stRange.iri)
-    val _2ndRange = expandedJson.get(TupleType.keys._2ndRange.iri)
-    val _3rdRange = expandedJson.get(TupleType.keys._3rdRange.iri)
-    Task
-      .gatherUnordered(
-        _1stRange.map(toClasstypes).getOrElse(Task.now(List())) ::
-          _2ndRange.map(toClasstypes).getOrElse(Task.now(List())) ::
-          _3rdRange.map(toClasstypes).getOrElse(Task.now(List())) :: Nil)
-      .map { l =>
-        Tuple3Type(l(0), l(1), l(2))
-      }
-  }
+//  def toTuple3Type(expandedJson: Map[String, Json])(implicit activeContext: AC): Task[Tuple3Type[Any, Any, Any]] = {
+//    val _1stRange = expandedJson.get(TupleType.keys._1stRange.iri)
+//    val _2ndRange = expandedJson.get(TupleType.keys._2ndRange.iri)
+//    val _3rdRange = expandedJson.get(TupleType.keys._3rdRange.iri)
+//    Task
+//      .gatherUnordered(
+//        _1stRange.map(toClasstypes).getOrElse(Task.now(List())) ::
+//          _2ndRange.map(toClasstypes).getOrElse(Task.now(List())) ::
+//          _3rdRange.map(toClasstypes).getOrElse(Task.now(List())) :: Nil)
+//      .map { l =>
+//        Tuple3Type(l(0), l(1), l(2))
+//      }
+//  }
 
-  def toTuple4Type(expandedJson: Map[String, Json])(
-      implicit activeContext: AC): Task[Tuple4Type[Any, Any, Any, Any]] = {
-    val _1stRange = expandedJson.get(TupleType.keys._1stRange.iri)
-    val _2ndRange = expandedJson.get(TupleType.keys._2ndRange.iri)
-    val _3rdRange = expandedJson.get(TupleType.keys._3rdRange.iri)
-    val _4rdRange = expandedJson.get(TupleType.keys._4rdRange.iri)
-    Task
-      .gatherUnordered(
-        _1stRange.map(toClasstypes).getOrElse(Task.now(List())) ::
-          _2ndRange.map(toClasstypes).getOrElse(Task.now(List())) ::
-          _3rdRange.map(toClasstypes).getOrElse(Task.now(List())) ::
-          _4rdRange.map(toClasstypes).getOrElse(Task.now(List())) :: Nil)
-      .map { l =>
-        Tuple4Type(l(0), l(1), l(2), l(3))
-      }
-  }
+//  def toTuple4Type(expandedJson: Map[String, Json])(
+//      implicit activeContext: AC): Task[Tuple4Type[Any, Any, Any, Any]] = {
+//    val _1stRange = expandedJson.get(TupleType.keys._1stRange.iri)
+//    val _2ndRange = expandedJson.get(TupleType.keys._2ndRange.iri)
+//    val _3rdRange = expandedJson.get(TupleType.keys._3rdRange.iri)
+//    val _4rdRange = expandedJson.get(TupleType.keys._4rdRange.iri)
+//    Task
+//      .gatherUnordered(
+//        _1stRange.map(toClasstypes).getOrElse(Task.now(List())) ::
+//          _2ndRange.map(toClasstypes).getOrElse(Task.now(List())) ::
+//          _3rdRange.map(toClasstypes).getOrElse(Task.now(List())) ::
+//          _4rdRange.map(toClasstypes).getOrElse(Task.now(List())) :: Nil)
+//      .map { l =>
+//        Tuple4Type(l(0), l(1), l(2), l(3))
+//      }
+//  }
 
   def prepareDatatype(obj: Map[String, Json])(implicit activeContext: AC): Task[Node] = {
     val expandedJson = activeContext.expandKeys(obj)
@@ -924,57 +898,6 @@ trait Decoder {
             .flatMap(_.map(Task.now).getOrElse {
               val nsDecoder = Decoder(graph.ns)
               nsDecoder.prepareDatatype(expandedJson).flatMap(DataType.datatypes.getOrBuild(_).task)
-
-//              val iris     = activeContext.extractIds(expandedJson)
-//              val labels   = activeContext.extractLabels(expandedJson)
-//              val comments = activeContext.extractComments(expandedJson)
-//              val `@extends` = expandedJson
-//                .get(types.`@extends`)
-//                .orElse(expandedJson.get(types.rdfsSubClassOf))
-//                .map(extractRefs)
-//                .getOrElse(List())
-//
-//              val dtTask = {
-//                if (`@extends`.lengthCompare(1) == 1)
-//                  Task.raiseError(FromJsonException("datatype cannot extend multiple datatypes"))
-//                else if (`@extends`.isEmpty) {
-//                  if (iri.startsWith("@"))
-//                    graph.ns.datatypes
-//                      .get(iri)
-//                      .flatMap(_.orElse(CollectionType.get(iri).map(_.asInstanceOf[DataType[Any]]))
-//                        .map(Task.now)
-//                        .getOrElse(Task.raiseError(FromJsonException("not a collection-iri"))))
-//                      .map(Coeval.now(_))
-//                  else Task.raiseError(FromJsonException("datatype should start with '@'"))
-//                } else
-//                  (`@extends`.head match {
-//                    case types.`@list` =>
-//                      toListType(expandedJson)
-//                    case types.`@set` =>
-//                      toSetType(expandedJson)
-//                    case types.`@listset` =>
-//                      toListSetType(expandedJson)
-//                    case types.`@vector` =>
-//                      toVectorType(expandedJson)
-//                    case types.`@map` =>
-//                      toMapType(expandedJson)
-//                    case types.`@tuple2` =>
-//                      toTuple2Type(expandedJson)
-//                    case types.`@tuple3` =>
-//                      toTuple3Type(expandedJson)
-//                    case types.`@tuple4` =>
-//                      toTuple4Type(expandedJson)
-//                    case otherType =>
-//                      graph.ns.datatypes
-//                        .get(otherType)
-//                        .flatMap(_.map(Task.now).getOrElse(Task.raiseError(FromJsonException("toDatatype error"))))
-//                  }).map(Coeval.now)
-//              }
-//
-//              DataType.datatypes
-//                .get(iri)
-//                .map(_.task)
-//                .getOrElse(DataType.datatypes.getOrBuild)
             })
         case None =>
           Task.raiseError(FromJsonException("an datatype without @id is not valid"))
@@ -1096,36 +1019,36 @@ trait Decoder {
       }
       .map(_.toMap)
 
-  def toTuple2(json: List[Json], label1: List[ClassType[_]], label2: List[ClassType[_]])(
-      implicit activeContext: AC): Task[(Any, Any)] =
-    json match {
-      case List(v1, v2) =>
-        Task.parMap2(toObject(v1, label1).map(_._2), toObject(v2, label2).map(_._2))(_ -> _)
-      case _ => Task.raiseError(UnexpectedJsonException("not a tuple2 structure"))
-    }
-
-  def toTuple3(json: List[Json], label1: List[ClassType[_]], label2: List[ClassType[_]], label3: List[ClassType[_]])(
-      implicit activeContext: AC): Task[(Any, Any, Any)] =
-    json match {
-      case List(v1, v2, v3) =>
-        Task.parMap3(toObject(v1, label1).map(_._2), toObject(v2, label2).map(_._2), toObject(v3, label3).map(_._2))(
-          (_, _, _))
-      case _ => Task.raiseError(UnexpectedJsonException("not a tuple3 structure"))
-    }
-
-  def toTuple4(json: List[Json],
-               label1: List[ClassType[_]],
-               label2: List[ClassType[_]],
-               label3: List[ClassType[_]],
-               label4: List[ClassType[_]])(implicit activeContext: AC): Task[(Any, Any, Any, Any)] =
-    json match {
-      case List(v1, v2, v3, v4) =>
-        Task.parMap4(toObject(v1, label1).map(_._2),
-                     toObject(v2, label2).map(_._2),
-                     toObject(v3, label3).map(_._2),
-                     toObject(v4, label4).map(_._2))((_, _, _, _))
-      case _ => Task.raiseError(UnexpectedJsonException("not a tuple4 structure"))
-    }
+//  def toTuple2(json: List[Json], label1: List[ClassType[_]], label2: List[ClassType[_]])(
+//      implicit activeContext: AC): Task[(Any, Any)] =
+//    json match {
+//      case List(v1, v2) =>
+//        Task.parMap2(toObject(v1, label1).map(_._2), toObject(v2, label2).map(_._2))(_ -> _)
+//      case _ => Task.raiseError(UnexpectedJsonException("not a tuple2 structure"))
+//    }
+//
+//  def toTuple3(json: List[Json], label1: List[ClassType[_]], label2: List[ClassType[_]], label3: List[ClassType[_]])(
+//      implicit activeContext: AC): Task[(Any, Any, Any)] =
+//    json match {
+//      case List(v1, v2, v3) =>
+//        Task.parMap3(toObject(v1, label1).map(_._2), toObject(v2, label2).map(_._2), toObject(v3, label3).map(_._2))(
+//          (_, _, _))
+//      case _ => Task.raiseError(UnexpectedJsonException("not a tuple3 structure"))
+//    }
+//
+//  def toTuple4(json: List[Json],
+//               label1: List[ClassType[_]],
+//               label2: List[ClassType[_]],
+//               label3: List[ClassType[_]],
+//               label4: List[ClassType[_]])(implicit activeContext: AC): Task[(Any, Any, Any, Any)] =
+//    json match {
+//      case List(v1, v2, v3, v4) =>
+//        Task.parMap4(toObject(v1, label1).map(_._2),
+//                     toObject(v2, label2).map(_._2),
+//                     toObject(v3, label3).map(_._2),
+//                     toObject(v4, label4).map(_._2))((_, _, _, _))
+//      case _ => Task.raiseError(UnexpectedJsonException("not a tuple4 structure"))
+//    }
 
   def extractOntologies(obj: Map[String, Json])(implicit activeContext: AC): Task[List[Ontology]] =
     obj.get(types.`@type`).map(toOntologies(_)).getOrElse(Task.now(List()))

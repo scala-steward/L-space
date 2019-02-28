@@ -29,8 +29,16 @@ trait AsyncGuide extends Guide[Observable] {
         segment.stepsList match {
           case Nil => Observable.empty[Out]
           case step :: steps =>
-            val nextStep = buildNextStep(segment.stepsList, segments)
-            nextStep(Observable(createLibrarian[Any](null)))
+            findFirstContainer((segment :: segments).flatMap(_.stepsList)) match {
+              case Some(step: Group[_, _]) =>
+                val (until, from) = (segment :: segments).flatMap(_.stepsList).span(_ != step)
+                val nextStep = buildNextStep(until, Nil) andThen
+                  collectingBarrierStep(step, from.tail, Nil, true).asInstanceOf[Observable[Any] => Observable[Any]]
+                nextStep(Observable(createLibrarian[Any](null)))
+              case _ =>
+                val nextStep = buildNextStep(segment.stepsList, segments)
+                nextStep(Observable(createLibrarian[Any](null)))
+            }
         }
     }
   }.andThen(_.map {
@@ -682,10 +690,10 @@ trait AsyncGuide extends Guide[Observable] {
 
   def collectingBarrierStep(step: CollectingBarrierStep,
                             steps: List[Step],
-                            segments: List[Segment[_]])(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+                            segments: List[Segment[_]], isRootGroup: Boolean = false)(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
 
     val nextStep = buildNextStep(steps, segments)
-    step match {
+   val f = step match {
       case step: Group[_,_] =>
         val byObservable = traversalToF(step.by.segmentList)
         step.by.steps.lastOption match {
@@ -721,7 +729,7 @@ trait AsyncGuide extends Guide[Observable] {
                 }
           case _ =>
             obs: Observable[Librarian[Any]] =>
-              Observable.fromTask(
+//              Observable.fromTask(
               obs
                 .flatMap { librarian =>
                   Observable
@@ -735,12 +743,15 @@ trait AsyncGuide extends Guide[Observable] {
                   Observable.fromTask(
                   nextStep(group.map(_._1)).toListL.map(group.key.toList -> _)
                   )
-                }.toListL.map(_.toMap))
+                }//.toListL.map(_.toMap))
 //                .map(t => t._1.toList -> t._2)
 //                .mapValues(_.map(_._1))
 //                .mapValues(nextStep(_).toList))
         }
     }
+    if (isRootGroup)
+      f
+    else f andThen (obs => Observable.fromTask(obs.toListL.map(_.toMap)))
   }
 
   def reducingBarrierStep(step: ReducingBarrierStep,

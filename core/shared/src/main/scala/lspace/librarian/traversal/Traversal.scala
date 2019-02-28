@@ -32,6 +32,7 @@ import shapeless.{
 }
 import shapeless.ops.hlist.{Collect, IsHCons, Mapper, Prepend, Reverse, ToList, ToTraversable, Unifier}
 
+import scala.annotation.implicitNotFound
 import scala.collection.immutable.ListSet
 
 object Traversal
@@ -1572,22 +1573,65 @@ object Traversal
   }
 }
 
-sealed trait Mapper[G[_], Out] {
+sealed trait Mapper[G[_], Containers <: HList, T] {
   type F[_]
+  type Out
   type FT <: FTraversal[F, G, Out]
 
   def apply(segments: List[Segment[HList]], graph: Graph): FT
 }
 object Mapper {
 //  type Aux[G[_], Out, F0] = Mapper[G, Out] { type F = F0 }
-  implicit def stream[T](implicit guide: Guide[Stream]) = new Mapper[Stream, T] {
+  implicit def groupedStream[K, V, Container, Containers <: HList](implicit guide: Guide[Stream],
+                                                                   ev: Container <:< Group[_, _]) =
+    new Mapper[Stream, Container :: Containers, (K, V)] {
+      type F[_] = Coeval[_]
+      type Out  = (K, V)
+      type FT   = SyncGroupedTraversal[K, V]
+
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        SyncGroupedTraversal[K, V](segments, graph)
+    }
+
+  implicit def streamh[T, Container, Containers <: HList](implicit guide: Guide[Stream],
+                                                          ev: Container <:!< Group[_, _]) =
+    new Mapper[Stream, Container :: Containers, T] {
+      type F[_] = Coeval[_]
+      type Out  = T
+      type FT   = SyncTraversal[T]
+
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        SyncTraversal[T](segments, graph)
+    }
+  implicit def stream[T](implicit guide: Guide[Stream]) = new Mapper[Stream, HNil, T] {
     type F[_] = Coeval[_]
+    type Out  = T
     type FT   = SyncTraversal[T]
+
     def apply(segments: List[Segment[HList]], graph: Graph): FT =
       SyncTraversal[T](segments, graph)
   }
-  implicit def observable[T](implicit guide: Guide[Observable]) = new Mapper[Observable, T] {
+  implicit def groupedObservable[K, V, Container, Containers <: HList](implicit guide: Guide[Observable],
+                                                                       ev: Container <:< Group[_, _]) =
+    new Mapper[Observable, Container :: Containers, (K, V)] {
+      type F[_] = Task[_]
+      type Out  = (K, V)
+      type FT   = AsyncGroupedTraversal[K, V]
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        AsyncGroupedTraversal[K, V](segments, graph)
+    }
+  implicit def observableh[T, Container, Containers <: HList](implicit guide: Guide[Observable],
+                                                              ev: Container <:!< Group[_, _]) =
+    new Mapper[Observable, Container :: Containers, T] {
+      type F[_] = Task[_]
+      type Out  = T
+      type FT   = AsyncTraversal[T]
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        AsyncTraversal[T](segments, graph)
+    }
+  implicit def observable[T](implicit guide: Guide[Observable]) = new Mapper[Observable, HNil, T] {
     type F[_] = Task[_]
+    type Out  = T
     type FT   = AsyncTraversal[T]
     def apply(segments: List[Segment[HList]], graph: Graph): FT =
       AsyncTraversal[T](segments, graph)
@@ -1605,10 +1649,28 @@ object OutTweaker extends Poly2 {
     type Out = End
     def tweak[CT <: ClassType[SET]](ct1: ET[End], ct2: CT): ClassType[Out] = ct1
   }
-  implicit def containers[ET, SET, Container, Containers <: HList] = new OutTweaker[ET, SET, Container :: Containers] {
-    type Out = SET
-    def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
-  }
+//  implicit def containers[ET, SET, Container, Containers <: HList] = new OutTweaker[ET, SET, Container :: Containers] {
+//    type Out = SET
+//    def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
+//  }
+  implicit def containersMap[ET, K, V, Container, Containers <: HList](implicit ev: Container <:< Group[_, _]) =
+    new OutTweaker[ET, Map[K, V], Container :: Containers] {
+      type Out = (K, V)
+      def tweak[CT <: ClassType[Map[K, V]]](ct1: ET, ct2: CT): ClassType[Out] =
+        TupleType[Out](List(ct2.asInstanceOf[MapType[K, V]].keyRange, ct2.asInstanceOf[MapType[K, V]].valueRange))
+    }
+  implicit def containersTuple[ET, T, Container, Containers <: HList](implicit ev: Container <:< Project[_]) =
+    new OutTweaker[ET, List[T], Container :: Containers] {
+      type Out = T
+      def tweak[CT <: ClassType[List[T]]](ct1: ET, ct2: CT): ClassType[Out] =
+        ct2.asInstanceOf[ListType[T]].valueRange.head
+    }
+  implicit def containersOthers[ET, SET, Container, Containers <: HList](implicit ev: Container <:!< Group[_, _],
+                                                                         ev2: Container <:!< Project[_]) =
+    new OutTweaker[ET, SET, Container :: Containers] {
+      type Out = SET
+      def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
+    }
 }
 
 /**
@@ -1628,6 +1690,7 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
     segments.runtimeList.asInstanceOf[List[Segment[HList]]].reverse
   lazy val steps: List[Step] = segmentList.flatMap(_.stepsList)
 
+  @implicitNotFound("could not find a Guide or could not build the result type")
   def withGraph[iET >: ET <: ClassType[_],
                 Steps <: HList,
                 RSteps <: HList,
@@ -1642,7 +1705,7 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
       lf: StructureCalculator.Aux[Containers, iET, Out, CT],
       tweaker: OutTweaker.Aux[iET, Out, Containers, Out2],
       guide: Guide[F],
-      mapper: Mapper[F, Out2]): mapper.FT =
+      mapper: Mapper[F, Containers, Out2]): mapper.FT =
     mapper.apply(segmentList, graph).asInstanceOf[mapper.FT]
 
   def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector)

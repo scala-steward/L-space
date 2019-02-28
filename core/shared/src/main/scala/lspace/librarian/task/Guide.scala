@@ -3,7 +3,7 @@ package lspace.librarian.task
 import java.time.Instant
 
 import lspace.librarian.logic.Assistent
-import lspace.librarian.traversal.step.Project
+import lspace.librarian.traversal.step.{Group, Path, Project}
 import lspace.librarian.traversal.{
   BranchStep,
   ClipStep,
@@ -11,6 +11,7 @@ import lspace.librarian.traversal.{
   FilterBarrierStep,
   FilterStep,
   Librarian,
+  MapStep,
   MoveStep,
   RearrangeBarrierStep,
   ReducingBarrierStep,
@@ -34,6 +35,15 @@ trait Guide[F[_]] {
     case (v1, v2, v3)              => (toValue(v1), toValue(v2), toValue(v3))
     case (v1, v2, v3, v4)          => (toValue(v1), toValue(v2), toValue(v3), toValue(v4))
     case value                     => value
+  }
+
+  def findFirstContainer(steps: List[Step]): Option[Step] = {
+    steps.collectFirst {
+      case step: Group[_, _] => step
+      case step: Project[_]  => step
+      case step: MapStep     => step
+      case step: Path[_, _]  => step
+    }
   }
 
   private case class SimpleLibrarian[+T](get: T,
@@ -77,8 +87,10 @@ trait Guide[F[_]] {
   def branchStep(step: BranchStep, steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def collectingBarrierStep(step: CollectingBarrierStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Any]
+  def collectingBarrierStep(step: CollectingBarrierStep,
+                            steps: List[Step],
+                            segments: List[Segment[_]],
+                            isRootGroup: Boolean = false)(implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
   def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]

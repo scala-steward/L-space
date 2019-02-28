@@ -45,7 +45,8 @@ object Path
 
 }
 
-case class Path[ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments]) extends MapStep {
+case class Path[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
+    extends MapStep {
 
   lazy val toNode: Node            = this
   override def prettyPrint: String = if (by.segmentList.nonEmpty) "path(" + by.toString + ")" else "path"

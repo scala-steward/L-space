@@ -170,11 +170,11 @@ object ClassTypeable {
       BOut,
       BTOut <: ClassType[_]
   ](implicit clsTpblA: ClassTypeable.Aux[A, AOut, ATOut],
-    clsTpblB: ClassTypeable.Aux[B, BOut, BTOut]): ClassTypeable.Aux[(A, B), (AOut, BOut), Tuple2Type[AOut, BOut]] =
+    clsTpblB: ClassTypeable.Aux[B, BOut, BTOut]): ClassTypeable.Aux[(A, B), (AOut, BOut), TupleType[(AOut, BOut)]] =
     new ClassTypeable[(A, B)] {
       type C  = (AOut, BOut)
-      type CT = Tuple2Type[AOut, BOut]
-      def ct: CT = Tuple2Type(List(clsTpblA.ct), List(clsTpblB.ct)).asInstanceOf[Tuple2Type[AOut, BOut]]
+      type CT = TupleType[(AOut, BOut)]
+      def ct: CT = TupleType(List(List(clsTpblA.ct), List(clsTpblB.ct))).asInstanceOf[TupleType[(AOut, BOut)]]
     }
 
   implicit def defaultTuple3[A,
@@ -188,12 +188,13 @@ object ClassTypeable {
                              CTout <: ClassType[_]](implicit clsTpblA: ClassTypeable.Aux[A, Aout, ATout],
                                                     clsTpblB: ClassTypeable.Aux[B, Bout, BTout],
                                                     clsTpblC: ClassTypeable.Aux[C, Cout, CTout])
-    : ClassTypeable.Aux[(A, B, C), (Aout, Bout, Cout), Tuple3Type[Aout, Bout, Cout]] =
+    : ClassTypeable.Aux[(A, B, C), (Aout, Bout, Cout), TupleType[(Aout, Bout, Cout)]] =
     new ClassTypeable[(A, B, C)] {
       type C  = (Aout, Bout, Cout)
-      type CT = Tuple3Type[Aout, Bout, Cout]
+      type CT = TupleType[(Aout, Bout, Cout)]
       def ct: CT =
-        Tuple3Type(List(clsTpblA.ct), List(clsTpblB.ct), List(clsTpblC.ct)).asInstanceOf[Tuple3Type[Aout, Bout, Cout]]
+        TupleType(List(List(clsTpblA.ct), List(clsTpblB.ct), List(clsTpblC.ct)))
+          .asInstanceOf[TupleType[(Aout, Bout, Cout)]]
     }
 
   implicit def defaultTuple4[A,
@@ -211,13 +212,13 @@ object ClassTypeable {
                                                     clsTpblB: ClassTypeable.Aux[B, Bout, BTout],
                                                     clsTpblC: ClassTypeable.Aux[C, Cout, CTout],
                                                     clsTpblD: ClassTypeable.Aux[D, Dout, DTout])
-    : ClassTypeable.Aux[(A, B, C, D), (Aout, Bout, Cout, Dout), Tuple4Type[Aout, Bout, Cout, Dout]] =
+    : ClassTypeable.Aux[(A, B, C, D), (Aout, Bout, Cout, Dout), TupleType[(Aout, Bout, Cout, Dout)]] =
     new ClassTypeable[(A, B, C, D)] {
       type C  = (Aout, Bout, Cout, Dout)
-      type CT = Tuple4Type[Aout, Bout, Cout, Dout]
+      type CT = TupleType[(Aout, Bout, Cout, Dout)]
       def ct: CT =
-        Tuple4Type(List(clsTpblA.ct), List(clsTpblB.ct), List(clsTpblC.ct), List(clsTpblD.ct))
-          .asInstanceOf[Tuple4Type[Aout, Bout, Cout, Dout]]
+        TupleType(List(List(clsTpblA.ct), List(clsTpblB.ct), List(clsTpblC.ct), List(clsTpblD.ct)))
+          .asInstanceOf[TupleType[(Aout, Bout, Cout, Dout)]]
     }
 
 //  implicit def clsdt[T, CT[+Z] <: ClassType[Z]](implicit ev: ClassTypeable[T]): ClassTypeable[CT[T]] = DataType.urlType[CT[T]]

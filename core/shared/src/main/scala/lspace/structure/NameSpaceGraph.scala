@@ -23,7 +23,6 @@ trait NameSpaceGraph extends DataGraph {
 
   trait Classtypes {
     def get(iri: String): Task[Option[ClassType[_]]] =
-//      Task.eval(println(s"get classtype ${iri}")).flatMap { f =>
       datatypes
         .get(iri)
         .flatMap { dt =>
@@ -33,7 +32,6 @@ trait NameSpaceGraph extends DataGraph {
               if (pt.isDefined) Task.now(pt)
               else ontologies.get(iri)
             }
-//          }
         }
 
     def get(node: Node): Task[ClassType[_]] = node.labels match {
@@ -74,11 +72,6 @@ trait NameSpaceGraph extends DataGraph {
       new ConcurrentHashMap[String, Node]().asScala
 
     def get(iri: String): Task[Option[Ontology]] = {
-//      Task.delay(println(s"get ontology ${iri}")).flatMap { f =>
-      //      println(
-      //        Ontology.ontologies
-      //          .get(iri)
-      //          .isDefined)
       Ontology.ontologies
         .get(iri)
         .map(_.map(Some(_)))
@@ -105,7 +98,6 @@ trait NameSpaceGraph extends DataGraph {
             })
         .task
     }
-//    }
 
     def get(id: Long): Task[Option[Ontology]] =
       cached(id)
@@ -209,11 +201,6 @@ trait NameSpaceGraph extends DataGraph {
       mutable.HashMap[String, Node]()
 
     def get(iri: String): Task[Option[Property]] = {
-//      Task.delay(println(s"get property ${iri}")).flatMap { f =>
-      //      println(
-      //        Property.properties
-      //          .get(iri)
-      //          .isDefined)
       Property.properties
         .get(iri)
         .map(_.map(Some(_)))
@@ -236,7 +223,6 @@ trait NameSpaceGraph extends DataGraph {
             }
             .getOrElse(Coeval.now(None)))
         .task
-//      }
     }
 
     def get(id: Long): Task[Option[Property]] =
@@ -271,8 +257,6 @@ trait NameSpaceGraph extends DataGraph {
 
     def cached(iri: String): Option[Property] =
       Property.properties.cached(iri)
-
-    //        .orElse(byIri.get(iri))
 
     def store(property: Property): Task[Node] = {
       byIri.get(property.iri).map(Task.now).getOrElse {
@@ -397,17 +381,6 @@ trait NameSpaceGraph extends DataGraph {
 
     def all: List[DataType[Any]] = datatypes.byId.values.toList
 
-//    protected def fromNode(node: _Node): DataType[_] = {
-//      if (graph != MemGraphDefault)
-//        byId
-//          .get(node.id)
-//          .orElse(byIri.get(node.iri))
-//          .orElse(MemGraphDefault.ns.datatypes.byId.get(node.id))
-//          .orElse(MemGraphDefault.ns.datatypes.byIri.get(node.iri))
-//          .get
-//      else throw new Exception(s"datatypeFromNode not fully implemented ${node.iri}")
-//    } //TODO: retrieve custom collection datatypes
-
     def cached(id: Long): Option[DataType[_]] =
       DataType.datatypes
         .cached(id)
@@ -450,54 +423,45 @@ trait NameSpaceGraph extends DataGraph {
                     case dataType: ListSetType[Any] =>
                       Seq(store(ListType(dataType.valueRange)).map(dt =>
                         node.addOut(CollectionType.keys.valueRange, List(dt))))
-//                      _createEdge(node, CollectionType.keys.valueRange, ListType(dataType.valueRange))
                     case dataType: ListType[Any] =>
                       Seq(store(ListType(dataType.valueRange)).map(dt =>
                         node.addOut(CollectionType.keys.valueRange, List(dt))))
-//                      _createEdge(node, CollectionType.keys.valueRange, ListType(dataType.valueRange))
                     case dataType: MapType[Any, Any] =>
                       Seq(
                         store(ListType(dataType.keyRange)).map(dt => node.addOut(MapType.keys.keyRange, List(dt))),
                         store(ListType(dataType.valueRange)).map(dt =>
                           node.addOut(CollectionType.keys.valueRange, List(dt)))
                       )
-//                      _createEdge(node, MapType.keys.keyRange, ListType(dataType.keyRange))
-//                      _createEdge(node, CollectionType.keys.valueRange, ListType(dataType.valueRange))
                     case dataType: SetType[Any] =>
                       Seq(store(ListType(dataType.valueRange)).map(dt =>
                         node.addOut(CollectionType.keys.valueRange, List(dt))))
-//                      _createEdge(node, CollectionType.keys.valueRange, ListType(dataType.valueRange))
                     case dataType: VectorType[Any] =>
                       Seq(store(ListType(dataType.valueRange)).map(dt =>
                         node.addOut(CollectionType.keys.valueRange, List(dt))))
-//                      _createEdge(node, CollectionType.keys.valueRange, ListType(dataType.valueRange))
-                    case dataType: Tuple2Type[Any, Any] =>
+                    case dataType: TupleType[Any] =>
                       Seq(
-                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
-                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt)))
-                      )
-//                      _createEdge(node, TupleType.keys._1stRange, ListType(dataType._1stRange))
-//                      _createEdge(node, TupleType.keys._2ndRange, ListType(dataType._2ndRange))
-                    case dataType: Tuple3Type[Any, Any, Any] =>
-                      Seq(
-                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
-                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt))),
-                        store(ListType(dataType._3rdRange)).map(dt => node.addOut(TupleType.keys._3rdRange, List(dt)))
-                      )
-//                      _createEdge(node, TupleType.keys._1stRange, ListType(dataType._1stRange))
-//                      _createEdge(node, TupleType.keys._2ndRange, ListType(dataType._2ndRange))
-//                      _createEdge(node, TupleType.keys._3rdRange, ListType(dataType._3rdRange))
-                    case dataType: Tuple4Type[Any, Any, Any, Any] =>
-                      Seq(
-                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
-                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt))),
-                        store(ListType(dataType._3rdRange)).map(dt => node.addOut(TupleType.keys._3rdRange, List(dt))),
-                        store(ListType(dataType._4rdRange)).map(dt => node.addOut(TupleType.keys._4rdRange, List(dt)))
-                      )
-//                      _createEdge(node, TupleType.keys._1stRange, ListType(dataType._1stRange))
-//                      _createEdge(node, TupleType.keys._2ndRange, ListType(dataType._2ndRange))
-//                      _createEdge(node, TupleType.keys._3rdRange, ListType(dataType._3rdRange))
-//                      _createEdge(node, TupleType.keys._4rdRange, ListType(dataType._4rdRange))
+                        Task.gather(dataType.rangeTypes.map(range => Task.gather(range.map(classtypes.store(_))))).map {
+                          nodes =>
+                            node.addOut(TupleType.keys._rangeClassType, nodes)
+                        })
+//                    case dataType: Tuple2Type[Any, Any] =>
+//                      Seq(
+//                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
+//                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt)))
+//                      )
+//                    case dataType: Tuple3Type[Any, Any, Any] =>
+//                      Seq(
+//                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
+//                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt))),
+//                        store(ListType(dataType._3rdRange)).map(dt => node.addOut(TupleType.keys._3rdRange, List(dt)))
+//                      )
+//                    case dataType: Tuple4Type[Any, Any, Any, Any] =>
+//                      Seq(
+//                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
+//                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt))),
+//                        store(ListType(dataType._3rdRange)).map(dt => node.addOut(TupleType.keys._3rdRange, List(dt))),
+//                        store(ListType(dataType._4rdRange)).map(dt => node.addOut(TupleType.keys._4rdRange, List(dt)))
+//                      )
                     case _ => Seq[Task[Edge[Any, Any]]]()
                   }
                 case dataType: DataType[_] => Seq[Task[Edge[Any, Any]]]()

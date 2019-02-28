@@ -33,8 +33,16 @@ trait SyncGuide extends Guide[Stream] {
         segment.stepsList match {
           case Nil => Stream.empty[Out]
           case step :: steps =>
-            val nextStep = buildNextStep(segment.stepsList, segments)
-            nextStep(Stream(createLibrarian[Any](null)))
+            findFirstContainer((segment :: segments).flatMap(_.stepsList)) match {
+              case Some(step: Group[_, _]) =>
+                val (until, from) = (segment :: segments).flatMap(_.stepsList).span(_ != step)
+                val nextStep = buildNextStep(until, Nil) andThen
+                  collectingBarrierStep(step, from.tail, Nil, true).asInstanceOf[Stream[Any] => Stream[Any]]
+                nextStep(Stream(createLibrarian[Any](null)))
+              case step =>
+                val nextStep = buildNextStep(segment.stepsList, segments)
+                nextStep(Stream(createLibrarian[Any](null)))
+            }
         }
     }
   }.andThen(_.map {
@@ -658,62 +666,64 @@ trait SyncGuide extends Guide[Stream] {
     f.asInstanceOf[Stream[Librarian[Any]] => Stream[Librarian[Any]]] andThen nextStep
   }
 
-  def collectingBarrierStep(step: CollectingBarrierStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+  def collectingBarrierStep(
+      step: CollectingBarrierStep,
+      steps: List[Step],
+      segments: List[Segment[_]],
+      isRootGroup: Boolean = false)(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
     val nextStep = buildNextStep(steps, segments)
-    step match {
+    val f = step match {
       case step: Group[_, _] =>
         val byObservable = traversalToF(step.by.segmentList)
         step.by.steps.lastOption match {
           case Some(Head) =>
             obs: Stream[Librarian[Any]] =>
-              Stream(
-                obs
-                  .map { librarian =>
-                    librarian -> byObservable(librarian).headOption
-                  }
-                  .groupBy(_._2
-                    .collect { case librarian: Librarian[Any] => librarian }
-                    .map(_.get match {
-                      case resource: Resource[Any] => resource.value
-                      case v: Any                  => v
-                    }))
-                  .mapValues(_.map(_._1))
-                  .mapValues(nextStep(_).toList))
+              obs
+                .map { librarian =>
+                  librarian -> byObservable(librarian).headOption
+                }
+                .groupBy(_._2
+                  .collect { case librarian: Librarian[Any] => librarian }
+                  .map(_.get match {
+                    case resource: Resource[Any] => resource.value
+                    case v: Any                  => v
+                  }))
+                .mapValues(_.map(_._1))
           case Some(Last) =>
             obs: Stream[Librarian[Any]] =>
-              Stream(
-                obs
-                  .map { librarian =>
-                    librarian -> byObservable(librarian).lastOption
-                  }
-                  .groupBy(_._2
-                    .collect { case librarian: Librarian[Any] => librarian }
-                    .map(_.get match {
-                      case resource: Resource[Any] => resource.value
-                      case v: Any                  => v
-                    }))
-                  .mapValues(_.map(_._1))
-                  .mapValues(nextStep(_).toList))
+              obs
+                .map { librarian =>
+                  librarian -> byObservable(librarian).lastOption
+                }
+                .groupBy(_._2
+                  .collect { case librarian: Librarian[Any] => librarian }
+                  .map(_.get match {
+                    case resource: Resource[Any] => resource.value
+                    case v: Any                  => v
+                  }))
+                .mapValues(_.map(_._1))
           case _ =>
             obs: Stream[Librarian[Any]] =>
-              Stream(
-                obs
-                  .map { librarian =>
-                    librarian -> byObservable(librarian).toList
-                  }
-                  .groupBy(_._2
-                    .collect { case librarian: Librarian[Any] => librarian }
-                    .map(_.get match {
-                      case resource: Resource[Any] => resource.value
-                      case v: Any                  => v
-                    })
-                    .toSet)
-                  .map(t => t._1.toList -> t._2)
-                  .mapValues(_.map(_._1))
-                  .mapValues(nextStep(_).toList))
+              obs
+                .map { librarian =>
+                  librarian -> byObservable(librarian).toList
+                }
+                .groupBy(_._2
+                  .collect { case librarian: Librarian[Any] => librarian }
+                  .map(_.get match {
+                    case resource: Resource[Any] => resource.value
+                    case v: Any                  => v
+                  })
+                  .toSet)
+                .map(t => t._1.toList -> t._2)
+                .mapValues(_.map(_._1))
+
         }
     }
+    if (isRootGroup) {
+      f andThen (_.toStream
+        .map { case (k, v) => k -> nextStep(v).toList })
+    } else f andThen (_.mapValues(nextStep(_).toList)) andThen (Stream(_))
   }
 
   def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step], segments: List[Segment[_]])(

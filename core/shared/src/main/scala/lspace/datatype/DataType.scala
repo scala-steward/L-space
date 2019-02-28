@@ -94,68 +94,73 @@ object DataType
                       MapType(keyRange.flatten, keyRange.flatten)
                     }
                   case dt: TupleType[_] =>
-                    dt match {
-                      case dt: Tuple2Type[_, _] =>
-                        for {
-                          a <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._1stRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                          b <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                        } yield {
-                          MapType(a.flatten, b.flatten)
-                        }
-                      case dt: Tuple3Type[_, _, _] =>
-                        for {
-                          a <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._1stRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                          b <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                          c <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                        } yield {
-                          Tuple3Type(a.flatten, b.flatten, c.flatten)
-                        }
-                      case dt: Tuple4Type[_, _, _, _] =>
-                        for {
-                          a <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._1stRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                          b <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                          c <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                          d <- Coeval
-                            .sequence(
-                              node
-                                .out(TupleType.keys._2ndRangeClassType)
-                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-                        } yield {
-                          Tuple4Type(a.flatten, b.flatten, c.flatten, d.flatten)
-                        }
-                    }
+                    node
+                      .out(TupleType.keys._rangeClassType)
+                      .map(list => Coeval.sequence(list.map(types => Coeval.sequence(types.map(ClassType.build)))))
+                      .head
+                      .map(TupleType(_))
+//                    dt match {
+//                      case dt: Tuple2Type[_, _] =>
+//                        for {
+//                          a <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._1stRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                          b <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._2ndRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                        } yield {
+//                          Tuple2Type(a.flatten, b.flatten)
+//                        }
+//                      case dt: Tuple3Type[_, _, _] =>
+//                        for {
+//                          a <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._1stRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                          b <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._2ndRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                          c <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._2ndRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                        } yield {
+//                          Tuple3Type(a.flatten, b.flatten, c.flatten)
+//                        }
+//                      case dt: Tuple4Type[_, _, _, _] =>
+//                        for {
+//                          a <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._1stRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                          b <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._2ndRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                          c <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._2ndRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                          d <- Coeval
+//                            .sequence(
+//                              node
+//                                .out(TupleType.keys._2ndRangeClassType)
+//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
+//                        } yield {
+//                          Tuple4Type(a.flatten, b.flatten, c.flatten, d.flatten)
+//                        }
+//                    }
                 }
               case _ => Coeval.raiseError(new Exception(""))
             }
@@ -204,10 +209,10 @@ object DataType
         SetType.datatype,
         VectorType.datatype,
         MapType.datatype,
-        TupleType.datatype,
-        Tuple2Type.datatype,
-        Tuple3Type.datatype,
-        Tuple4Type.datatype
+        TupleType.datatype
+//        Tuple2Type.datatype,
+//        Tuple3Type.datatype,
+//        Tuple4Type.datatype
         //      `@class`,
         //      `@property`,
         //      `@datatype`
@@ -221,8 +226,6 @@ object DataType
       new ConcurrentHashMap[String, DataType[_]]().asScala
     private[lspace] val building: concurrent.Map[String, Coeval[DataType[_]]] =
       new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
-//    private[lspace] val constructing: concurrent.Map[String, Task[Coeval[DataType[_]]]] =
-//      new ConcurrentHashMap[String, Task[Coeval[DataType[_]]]]().asScala
 
     def all: List[DataType[_]] = byIri.values.toList.distinct
     def get(iri: String): Option[Coeval[DataType[_]]] =
@@ -243,25 +246,6 @@ object DataType
           }
           d
         }.memoizeOnSuccess))
-//    def getOrConstruct(iri: String)(constructTask: Task[Coeval[DataType[_]]]): Task[Coeval[DataType[_]]] =
-//      default.byIri
-//        .get(iri)
-//        .map(o => Task.now(Coeval.now(o)))
-//        .getOrElse(constructing.getOrElseUpdate(
-//          iri,
-//          constructTask
-//            .map(_.memoize)
-//            .flatMap { o =>
-//              Task {
-//                byIri += o.value().iri -> o.value()
-//                constructing.remove(iri)
-//                o
-//              }
-////                .delayExecution(FiniteDuration(1, "s"))
-////                .runAsyncAndForget(monix.execution.Scheduler.global)
-//            }
-//            .memoize
-//        ))
 
     def cache(datatype: DataType[_]): Unit = {
       byIri += datatype.iri -> datatype
@@ -347,50 +331,57 @@ object DataType
     def mapType[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[K, V] =
       MapType(List(ktpe.ct.asInstanceOf[ClassType[K]]), List(vtpe.ct.asInstanceOf[ClassType[V]])) //.asInstanceOf[MapType[K, V]]
     def mapType() = MapType(List[ClassType[Any]](), List[ClassType[Any]]())
-    def tuple2Type[A, AT[+Z] <: ClassType[Z], ATOut <: ClassType[_], B, BT[+Z] <: ClassType[Z], BTOut <: ClassType[_]](
-        act: AT[A],
-        bct: BT[B]) = Tuple2Type(List(act), List(bct))
-    def tuple2Type[A, B](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B]) =
-      Tuple2Type(List(cta.ct), List(ctb.ct)).asInstanceOf[Tuple2Type[A, B]]
-    def tuple2Type() = Tuple2Type(List(), List())
-    def tuple3Type[A,
-                   AT[+Z] <: ClassType[Z],
-                   ATOut <: ClassType[_],
-                   B,
-                   BT[+Z] <: ClassType[Z],
-                   BTOut <: ClassType[_],
-                   C,
-                   CT[+Z] <: ClassType[Z],
-                   CTOut <: ClassType[_]](act: AT[A], bct: BT[B], cct: CT[C]) =
-      Tuple3Type(List(act), List(bct), List(cct))
-    def tuple3Type[A, B, C](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B], ctc: ClassTypeable[C]) =
-      Tuple3Type(List(cta.ct), List(ctb.ct), List(ctc.ct)).asInstanceOf[Tuple3Type[A, B, C]]
-    def tuple3Type() = Tuple3Type(List(), List(), List())
-    def tuple4Type[A,
-                   AT[+Z] <: ClassType[Z],
-                   ATOut <: ClassType[_],
-                   B,
-                   BT[+Z] <: ClassType[Z],
-                   BTOut <: ClassType[_],
-                   C,
-                   CT[+Z] <: ClassType[Z],
-                   CTOut <: ClassType[_],
-                   D,
-                   DT[+Z] <: ClassType[Z],
-                   DTOut <: ClassType[_]](act: AT[A], bct: BT[B], cct: CT[C], dct: DT[D]) =
-      Tuple4Type(List(act), List(bct), List(cct), List(dct))
-    def tuple4Type[A, B, C, D](a: A, b: B, c: C, d: D)(implicit cta: ClassTypeable[A],
-                                                       ctb: ClassTypeable[B],
-                                                       ctc: ClassTypeable[C],
-                                                       ctd: ClassTypeable[D]) =
-      Tuple4Type(List(cta.ct), List(ctb.ct), List(ctc.ct), List(ctd.ct))
-    def tuple4Type[A, B, C, D](implicit cta: ClassTypeable[A],
-                               ctb: ClassTypeable[B],
-                               ctc: ClassTypeable[C],
-                               ctd: ClassTypeable[D]) =
-      Tuple4Type(List(cta.ct), List(ctb.ct), List(ctc.ct), List(ctd.ct))
-        .asInstanceOf[Tuple4Type[A, B, C, D]]
-    def tuple4Type() = Tuple4Type(List(), List(), List(), List())
+//    def tupleType[A, AT[+Z] <: ClassType[Z], ATOut <: ClassType[_], B, BT[+Z] <: ClassType[Z], BTOut <: ClassType[_]](
+//                                                                                                                        act: AT[A],
+//                                                                                                                        bct: BT[B]) = TupleType(List(act), List(bct))
+//    def tupleType[A, B](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B]) =
+//      TupleType(List(cta.ct), List(ctb.ct)).asInstanceOf[TupleType[A, B]]
+//    def tupleType() = TupleType(List(), List())
+
+//    def tuple2Type[A, AT[+Z] <: ClassType[Z], ATOut <: ClassType[_], B, BT[+Z] <: ClassType[Z], BTOut <: ClassType[_]](
+//        act: AT[A],
+//        bct: BT[B]) = Tuple2Type(List(act), List(bct))
+//    def tuple2Type[A, B](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B]) =
+//      Tuple2Type(List(cta.ct), List(ctb.ct)).asInstanceOf[Tuple2Type[A, B]]
+//    def tuple2Type() = Tuple2Type(List(), List())
+//    def tuple3Type[A,
+//                   AT[+Z] <: ClassType[Z],
+//                   ATOut <: ClassType[_],
+//                   B,
+//                   BT[+Z] <: ClassType[Z],
+//                   BTOut <: ClassType[_],
+//                   C,
+//                   CT[+Z] <: ClassType[Z],
+//                   CTOut <: ClassType[_]](act: AT[A], bct: BT[B], cct: CT[C]) =
+//      Tuple3Type(List(act), List(bct), List(cct))
+//    def tuple3Type[A, B, C](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B], ctc: ClassTypeable[C]) =
+//      Tuple3Type(List(cta.ct), List(ctb.ct), List(ctc.ct)).asInstanceOf[Tuple3Type[A, B, C]]
+//    def tuple3Type() = Tuple3Type(List(), List(), List())
+//    def tuple4Type[A,
+//                   AT[+Z] <: ClassType[Z],
+//                   ATOut <: ClassType[_],
+//                   B,
+//                   BT[+Z] <: ClassType[Z],
+//                   BTOut <: ClassType[_],
+//                   C,
+//                   CT[+Z] <: ClassType[Z],
+//                   CTOut <: ClassType[_],
+//                   D,
+//                   DT[+Z] <: ClassType[Z],
+//                   DTOut <: ClassType[_]](act: AT[A], bct: BT[B], cct: CT[C], dct: DT[D]) =
+//      Tuple4Type(List(act), List(bct), List(cct), List(dct))
+//    def tuple4Type[A, B, C, D](a: A, b: B, c: C, d: D)(implicit cta: ClassTypeable[A],
+//                                                       ctb: ClassTypeable[B],
+//                                                       ctc: ClassTypeable[C],
+//                                                       ctd: ClassTypeable[D]) =
+//      Tuple4Type(List(cta.ct), List(ctb.ct), List(ctc.ct), List(ctd.ct))
+//    def tuple4Type[A, B, C, D](implicit cta: ClassTypeable[A],
+//                               ctb: ClassTypeable[B],
+//                               ctc: ClassTypeable[C],
+//                               ctd: ClassTypeable[D]) =
+//      Tuple4Type(List(cta.ct), List(ctb.ct), List(ctc.ct), List(ctd.ct))
+//        .asInstanceOf[Tuple4Type[A, B, C, D]]
+//    def tuple4Type() = Tuple4Type(List(), List(), List(), List())
 
     val default = new DataType[Any] {
       type Out = Any

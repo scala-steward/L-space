@@ -4,7 +4,7 @@ import lspace.librarian.task.AsyncGuideSpec
 import lspace.structure._
 import lspace.structure.Property.default._
 
-class MemGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
+class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
 
   implicit lazy val guide = lspace.Implicits.AsyncGuide.guide
 

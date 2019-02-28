@@ -87,8 +87,6 @@ object Ontology {
       new ConcurrentHashMap[String, Ontology]().asScala
     private[lspace] val building: concurrent.Map[String, Coeval[Ontology]] =
       new ConcurrentHashMap[String, Coeval[Ontology]]().asScala
-//    private[lspace] val preparing: concurrent.Map[String, Task[Node]] =
-//      new ConcurrentHashMap[String, Task[Node]]().asScala
 
     def all: List[Ontology] = byIri.values.toList.distinct
     def get(iri: String): Option[Coeval[Ontology]] =
@@ -113,18 +111,6 @@ object Ontology {
               o
             }.memoizeOnSuccess
           ))
-//    def getOrPrepare(iri: String)(prepareTask: Task[Node]): Task[Node] = {
-//      default.byIri
-//        .get(iri)
-//        .map(o => Task.now(o))
-//        .getOrElse {
-//          preparing.getOrElseUpdate(
-//            iri,
-//            prepareTask.memoizeOnSuccess
-////              .delayExecution(100 millis)
-//          )
-//        }
-//    }
 
     def cache(ontology: Ontology): Unit = {
       byIri += ontology.iri -> ontology

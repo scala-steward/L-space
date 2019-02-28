@@ -44,9 +44,9 @@ object ClassType {
       case v: List[_]      => DataType.default.listType()
       case v: Set[_]       => DataType.default.setType()
       case v: Vector[_]    => DataType.default.vectorType()
-      case v: (_, _)       => DataType.default.tuple2Type()
-      case v: (_, _, _)    => DataType.default.tuple3Type()
-      case v: (_, _, _, _) => DataType.default.tuple4Type()
+      case v: (_, _)       => TupleType(List(List(), List()))
+      case v: (_, _, _)    => TupleType(List(List(), List(), List()))
+      case v: (_, _, _, _) => TupleType(List(List(), List(), List(), List()))
       case _ =>
         throw new Exception(s"not a known range ${value.getClass}")
     }).asInstanceOf[DataType[T]]

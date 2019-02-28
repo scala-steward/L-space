@@ -335,35 +335,54 @@ trait Encoder {
     }
   }
   def fromTuple(value: Any, expectedType: TupleType[_])(implicit activeContext: AC): JIP = {
-    expectedType match {
-      case label: Tuple2Type[_, _] =>
-        value match {
-          case (v1, v2) =>
-            val jip  = fromAny(v1, label._1stRange.headOption)
-            val jip2 = fromAny(v2, label._2ndRange.headOption)(jip.activeContext)
-            new JIP((jip.json, jip2.json))(jip2.activeContext)
-          case _ => throw ToJsonException(s"tuple2 expected ${value.getClass} found")
-        }
-      case label: Tuple3Type[_, _, _] =>
-        value match {
-          case (v1, v2, v3) =>
-            val jip  = fromAny(v1, label._1stRange.headOption)
-            val jip2 = fromAny(v2, label._2ndRange.headOption)(jip.activeContext)
-            val jip3 = fromAny(v3, label._3rdRange.headOption)(jip2.activeContext)
-            new JIP((jip.json, jip2.json, jip3.json))(jip3.activeContext)
-          case _ => throw ToJsonException(s"tuple3 expected ${value.getClass} found")
-        }
-      case label: Tuple4Type[_, _, _, _] =>
-        value match {
-          case (v1, v2, v3, v4) =>
-            val jip  = fromAny(v1, label._1stRange.headOption)
-            val jip2 = fromAny(v2, label._2ndRange.headOption)(jip.activeContext)
-            val jip3 = fromAny(v3, label._3rdRange.headOption)(jip2.activeContext)
-            val jip4 = fromAny(v4, label._4rdRange.headOption)(jip3.activeContext)
-            new JIP((jip.json, jip2.json, jip3.json, jip4.json))(jip4.activeContext)
-          case _ => throw ToJsonException(s"tuple4 expected ${value.getClass} found")
-        }
-    }
+    val (jsons, newAc) = value
+      .asInstanceOf[Product]
+      .productIterator
+      .toList
+      .zip(expectedType.rangeTypes)
+      .foldLeft(List[Json]() -> activeContext) {
+        case ((jsons, activeContext), (value, types)) =>
+          val jip = fromAny(value, types.headOption)(activeContext)
+          (jsons :+ jip.json) -> jip.activeContext
+      }
+//    val json = jsons match {
+//      case List(a, b)             => (a, b).asJson
+//      case List(a, b, c)          => (a, b, c).asJson
+//      case List(a, b, c, d)       => (a, b, c, d).asJson
+//      case List(a, b, c, d, e)    => (a, b, c, d, e).asJson
+//      case List(a, b, c, d, e, f) => (a, b, c, d, e, f).asJson
+//    }
+
+    new JIP(jsons.asJson)(newAc)
+//    expectedType match {
+//      case label: Tuple2Type[_, _] =>
+//        value match {
+//          case (v1, v2) =>
+//            val jip  = fromAny(v1, label._1stRange.headOption)
+//            val jip2 = fromAny(v2, label._2ndRange.headOption)(jip.activeContext)
+//            new JIP((jip.json, jip2.json))(jip2.activeContext)
+//          case _ => throw ToJsonException(s"tuple2 expected ${value.getClass} found")
+//        }
+//      case label: Tuple3Type[_, _, _] =>
+//        value match {
+//          case (v1, v2, v3) =>
+//            val jip  = fromAny(v1, label._1stRange.headOption)
+//            val jip2 = fromAny(v2, label._2ndRange.headOption)(jip.activeContext)
+//            val jip3 = fromAny(v3, label._3rdRange.headOption)(jip2.activeContext)
+//            new JIP((jip.json, jip2.json, jip3.json))(jip3.activeContext)
+//          case _ => throw ToJsonException(s"tuple3 expected ${value.getClass} found")
+//        }
+//      case label: Tuple4Type[_, _, _, _] =>
+//        value match {
+//          case (v1, v2, v3, v4) =>
+//            val jip  = fromAny(v1, label._1stRange.headOption)
+//            val jip2 = fromAny(v2, label._2ndRange.headOption)(jip.activeContext)
+//            val jip3 = fromAny(v3, label._3rdRange.headOption)(jip2.activeContext)
+//            val jip4 = fromAny(v4, label._4rdRange.headOption)(jip3.activeContext)
+//            new JIP((jip.json, jip2.json, jip3.json, jip4.json))(jip4.activeContext)
+//          case _ => throw ToJsonException(s"tuple4 expected ${value.getClass} found")
+//        }
+//    }
   }
 
   def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: AC): JIP = {
