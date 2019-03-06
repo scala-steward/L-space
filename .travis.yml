@@ -83,8 +83,8 @@ jobs:
       cache:
         directories:
           - $HOME/.ivy2/cache
-          - $HOME/.sbt
+          - $HOME/.sbt/boot
           - $HOME/.coursier
 before_cache:
-  - find $HOME/.sbt -name "*.lock" -type f -delete
-  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+  - find $HOME/.sbt -name "*.lock" -delete
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -delete
