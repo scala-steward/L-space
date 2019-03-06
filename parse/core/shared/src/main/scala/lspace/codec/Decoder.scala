@@ -18,20 +18,6 @@ import scala.collection.{concurrent, immutable}
 import scala.collection.immutable.{AbstractMap, Iterable, ListSet, Map, MapLike}
 import scala.collection.JavaConverters._
 
-object ExpandedMap {
-  def apply[V](obj: Map[String, V])(implicit activeContext: ActiveContext): ExpandedMap[V] =
-    new ExpandedMap(activeContext.expandKeys(obj))
-}
-class ExpandedMap[V](val obj: Map[String, V]) {
-  def get(key: String)      = obj.get(key)
-  def contains(key: String) = obj.contains(key)
-  def size                  = obj.size
-  def isEmpty               = obj.isEmpty
-  def nonEmpty              = obj.nonEmpty
-  def keys                  = obj.keys
-
-  def -(key: String): ExpandedMap[V] = new ExpandedMap[V](obj - key)
-}
 object Decoder {
   type Aux[Json0] = Decoder { type Json = Json0 }
 
@@ -169,17 +155,24 @@ trait Decoder {
   }
 
   def toResource(json: Json, expectedType: Option[ClassType[_]])(implicit activeContext: AC): Task[Resource[Any]] = {
-    json.obj
-      .map { obj =>
-        extractContext(obj).flatMap { implicit activeContext =>
-          val expandedJson = ExpandedMap(obj)
-          if (expectedType.exists(_.isInstanceOf[GeometricType[_]]))
-            toGeometric(json, expectedType.get.asInstanceOf[GeometricType[_]])
-              .map(geo => graph.values.upsert(geo, expectedType.get.asInstanceOf[DataType[Any]]))
-              .onErrorHandleWith { f =>
-                toResource(expandedJson, expectedType)
-              } else toResource(expandedJson, expectedType)
-        }
+    (for {
+      iri <- json.string
+      et  <- expectedType.collect { case ontology: Ontology => ontology }
+    } yield {
+      Task.now(graph.nodes.upsert(iri, et))
+    }).orElse {
+        json.obj
+          .map { obj =>
+            extractContext(obj).flatMap { implicit activeContext =>
+              val expandedJson = ExpandedMap(obj)
+              if (expectedType.exists(_.isInstanceOf[GeometricType[_]]))
+                toGeometric(json, expectedType.get.asInstanceOf[GeometricType[_]])
+                  .map(geo => graph.values.upsert(geo, expectedType.get.asInstanceOf[DataType[Any]]))
+                  .onErrorHandleWith { f =>
+                    toResource(expandedJson, expectedType)
+                  } else toResource(expandedJson, expectedType)
+            }
+          }
       }
       .getOrElse(toObject(json, expectedType.toList).map {
         case (classtype, resource: Resource[_]) => resource
@@ -188,7 +181,13 @@ trait Decoder {
   }
 
   /**
-    *
+    * 1. map key to active property
+    * 2. process value
+    * 2.1 if object
+    * 2.1.1 if no-container
+    * 2.1.1.1 teResource
+    * 2.1.2 container
+    * 2.1.2.1 container-type
     * @param resource
     * @param otherJson already expanded object
     * @param activeContext
@@ -207,7 +206,8 @@ trait Decoder {
       })
       .map(_.map {
         case (activeProperty, json) =>
-          val property = activeProperty.property
+          val property     = activeProperty.property
+          val expectedType = activeContext.expectedType(property)
           val addEdgeF =
             if (activeProperty.`@reverse`) (value: Resource[_]) => resource.addIn(property, value)
             else (value: Resource[_]) => resource.addOut(property, value)
@@ -215,21 +215,47 @@ trait Decoder {
             if (activeProperty.`@reverse`)(ct: ClassType[Any], value: Any) => resource.addIn(property, ct, value)
             else (ct: ClassType[Any], value: Any) => resource.addOut(property, ct, value)
           json.obj
-            .map(ExpandedMap(_))
-            .map(toResource(_, Some(property)).map(addEdgeF(_)).map(List(_)))
+            .map(ExpandedMap(_)) //before or after looking for @index, @language containers?
+            .map {
+              obj =>
+                activeProperty.`@container` match {
+                  case Nil =>
+                    toResource(obj, expectedType).map(addEdgeF(_)).map(List(_))
+                  case List(`@container`.`@index`) =>
+                    Task.gatherUnordered(obj.obj.toList.map {
+                      case (index, json) =>
+                        toResource(json, expectedType)
+                          .map(addEdgeF(_))
+                          .map(_.addOut(Label.P.`@index`, index))
+                          .map(List(_))
+                    })
+                  case List(`@container`.`@language`) =>
+                    Task.gatherUnordered(obj.obj.toList.map {
+                      case (language, json) =>
+                        toResource(json, expectedType)
+                          .map(addEdgeF(_))
+                          .map(_.addOut(Label.P.`@language`, language))
+                          .map(List(_))
+                    })
+//                  case List(`@container`.`@id`) =>
+//                case List(`@container`.`@type`)     =>
+                  case containers =>
+                    Task.raiseError(
+                      FromJsonException(s"not yet supported => @container: [${containers.map(_.iri).mkString(",")}]"))
+                }
+            }
             .orElse(json.list.map {
               array =>
                 val edgesTask: Task[List[Edge[Any, Any]]] =
                   activeProperty.`@container` match {
                     case Nil =>
-                      val expectedType = activeContext.expectedType(property)
                       expectedType
                         .map {
                           case collectionType: CollectionType[_] =>
                             toCollection(array, collectionType)
                               .map(addEdgeTypedF(collectionType, _))
                               .map(List(_))
-                          case et =>
+                          case et => //no container but expected type, try ListType(List(et))
                             //                            if (property.iri == types.schemaDomainIncludes) {
                             toCollection(array, ListType(List(et)))
                               .map(nodes => nodes.map(node => addEdgeTypedF(et, node)))
@@ -238,8 +264,9 @@ trait Decoder {
                           //                                s"array found for ${property.iri} with expected type ${et.iri} in ${resource.iri} without @collection type or @container:@list/@set ${array}"))
                         }
                         .getOrElse {
-                          //TODO: duplicated code, this processes unexpected arrays
-                          Task.gatherUnordered(array.map {
+                          //this processes an unexpected array as a list of edges
+                          Task.gatherUnordered(array.map(toResource(_, expectedType).map(addEdgeF(_))))
+                          /*Task.gatherUnordered(array.map {
                             json =>
                               json.obj
                                 .map(ExpandedMap(_))
@@ -270,66 +297,34 @@ trait Decoder {
                                   .map(v => addEdgeTypedF(ClassType.valueToOntologyResource(v), v))
                                   .map(Task.now))
                                 .getOrElse(Task.raiseError(FromJsonException("cannot parse value")))
-                          })
+                          })*/
                           //                          Task.raiseError(FromJsonException(
                           //                            s"array found for ${property.iri} without expected @collection type or @container:@list/@set"))
                         }
-                    case containers
-                        if containers.headOption.exists(
-                          h => Set[`@container`](`@container`.`@list`, `@container`.`@set`).contains(h)) =>
-                      Task.gatherUnordered(array.map {
-                        json =>
-                          json.obj
-                            .map(ExpandedMap(_))
-                            .map(toResource(_, Some(property)).map(addEdgeF(_)))
-                            .orElse(
-                              json.list
-                                .map { array =>
-                                  val expectedType = activeContext.expectedType(property)
-                                  expectedType match {
-                                    case Some(collectionType: CollectionType[_]) =>
-                                      toCollection(array, collectionType).map(addEdgeTypedF(collectionType, _))
-                                    case _ =>
-                                      Task.raiseError(FromJsonException("array found without @collection type"))
-                                  }
-                                }
-                            )
-                            .orElse {
-                              for {
-                                iri <- json.string
-                                expectedType <- activeContext.expectedType(property).collect {
-                                  case ontology: Ontology => ontology
-                                }
-                              } yield {
-                                Task.now(graph.nodes.upsert(iri, expectedType)).map(addEdgeF(_))
-                              }
-                            }
-                            .orElse(toPrimitive(json)
-                              .map(v => addEdgeTypedF(ClassType.valueToOntologyResource(v), v))
-                              .map(Task.now))
-                            .getOrElse(Task.raiseError(FromJsonException("cannot parse value")))
-                      })
+                    case List(`@container`.`@list`) | List(`@container`.`@set`) =>
+                      //this processes an array as a list of edges
+                      Task.gatherUnordered(array.map(toResource(_, expectedType).map(addEdgeF(_))))
                   }
                 edgesTask
             })
             .getOrElse {
-              val expectedType = activeContext.expectedType(property)
-              (for {
-                iri <- json: Option[String]
-                et  <- expectedType.collect { case ontology: Ontology => ontology }
-              } yield {
-                Task.now(graph.nodes.upsert(iri, et)).map(v => addEdgeF(v))
-              }).orElse {
-                  expectedType.collect { case datatype: DataType[_] => datatype }.map { label =>
-                    toValue(json, label).map(v => addEdgeF(v))
-                  }
-                }
-                .orElse(toPrimitive(json)
-                  .map(v => graph.values.create(v, ClassType.valueToOntologyResource(v)))
-                  .map(v => addEdgeF(v))
-                  .map(Task.now(_)))
-                .getOrElse(Task.raiseError(FromJsonException("cannot parse @value")))
-                .map(List(_))
+              toResource(json, expectedType).map(addEdgeF(_)).map(List(_))
+//              (for {
+//                iri <- json.string
+//                et  <- expectedType.collect { case ontology: Ontology => ontology }
+//              } yield {
+//                Task.now(graph.nodes.upsert(iri, et)).map(v => addEdgeF(v))
+//              }).orElse {
+//                  expectedType.collect { case datatype: DataType[_] => datatype }.map { label =>
+//                    toValue(json, label).map(v => addEdgeF(v))
+//                  }
+//                }
+//                .orElse(toPrimitive(json)
+//                  .map(v => graph.values.create(v, ClassType.valueToOntologyResource(v)))
+//                  .map(v => addEdgeF(v))
+//                  .map(Task.now(_)))
+//                .getOrElse(Task.raiseError(FromJsonException("cannot parse @value")))
+//                .map(List(_))
             }
         //              .getOrElse {
         //                toObject[Any](json).map {
@@ -514,14 +509,26 @@ trait Decoder {
         //              UnexpectedJsonException(s"expected edge with @type ${label.iri} but json is not an object")))
         case label: DataType[_] => Some(toData(json, label).map(label -> _))
       })
-      .orElse(tryRaw(json))
+      .orElse(tryRaw(json, label.headOption))
       .getOrElse(Task.raiseError(UnexpectedJsonException("cannot decode to value")))
   } //.asInstanceOf[Task[(ClassType[Any], Any)]]
 
-  def tryRaw(json: Json)(implicit activeContext: AC): Option[Task[(ClassType[Any], Any)]] = {
-    //is url
+  def tryRaw(json: Json, expectedType: Option[ClassType[Any]] = None)(
+      implicit activeContext: AC): Option[Task[(ClassType[Any], Any)]] = {
     //is primitive
-    toPrimitive(json).map(v => ClassType.valueToOntologyResource(v) -> v).map(Task.now)
+    toPrimitive(json)
+      .map(v => ClassType.valueToOntologyResource(v) -> v)
+      .map(Task.now)
+      .map(_.flatMap {
+        case (dt: TextType[String], s: String) =>
+          (for {
+            iri <- json.string
+            et  <- expectedType.collect { case ontology: Ontology => ontology }
+          } yield {
+            Task.now(et -> graph.nodes.upsert(iri, et))
+          }).getOrElse(Task.now(dt -> s))
+        case (dt, v) => Task.now(dt -> v)
+      })
   }
 
   def toObject(expandedJson: ExpandedMap[Json], expectedType: Option[ClassType[_]])(
@@ -601,9 +608,9 @@ trait Decoder {
 
   //Int, Long, Double or String
   def toPrimitive(json: Json): Option[Any] =
-    json.long
+    json.int
       .orElse(json.double)
-      .orElse(json.int)
+      .orElse(json.long)
       .orElse(json.string)
 
   /**
@@ -918,7 +925,6 @@ trait Decoder {
     Observable.fromTask(fetch(iri)).flatMap { json =>
       json.obj
         .map { obj =>
-          println(s"extracting @context $iri")
           Observable.fromTask(extractContext(obj)).flatMap { implicit activeContext =>
             val expandedJson = ExpandedMap(obj)
             if (expandedJson.contains(types.`@type`))
