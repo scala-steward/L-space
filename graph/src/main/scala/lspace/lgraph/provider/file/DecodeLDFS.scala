@@ -1,7 +1,7 @@
 package lspace.lgraph.provider.file
 
 import lspace.NS.types
-import lspace.codec.NativeTypeDecoder
+import lspace.codec.{ExpandedMap, NativeTypeDecoder}
 import lspace.codec.exception.FromJsonException
 import lspace.structure._
 import monix.eval.Task
@@ -10,6 +10,18 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
     implicit val baseDecoder: NativeTypeDecoder.Aux[Json0])
     extends lspace.codec.Decoder {
   type Json = Json0
+  override def apply(graph0: Lspace): lspace.codec.Decoder.Aux[Json] = DecodeLDFS.apply(graph0, idMaps)(baseDecoder)
+
+  lazy val nsDecoder = {
+    def graph0       = graph
+    def baseDecoder0 = baseDecoder
+    new lspace.codec.Decoder {
+      type Json = Json0
+      val graph: Graph                                      = graph0.ns
+      implicit def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
+      lazy val nsDecoder                                    = this
+    }
+  }
 
   override def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] = //need IdMaps here
     json.string
@@ -23,7 +35,7 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
 //                .sortBy(_._1)} ${graph.nodes().toList.map(_.id).sorted}")))
           .map(id => Task(graph.getOrCreateNode(id))))
 
-  override def toNode(expandedJson: Map[String, Json], label: Option[Ontology])(
+  override def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
       implicit activeContext: AC): Task[Node] = {
     expandedJson
       .get(types.`@id`)

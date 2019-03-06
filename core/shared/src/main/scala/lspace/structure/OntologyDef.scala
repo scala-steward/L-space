@@ -19,19 +19,23 @@ abstract class OntologyDef(
     label: String, //move to union types (e.g. String | Map[String, String]) once available (dotty?)
     comment: String = "", //move to union types (e.g. String | Map[String, String]) once available (dotty?)
     `@extends`: () => List[Ontology] = () => List(),
-    base: Option[String] = None)
+    base: Option[String] = None,
+    labels: Map[String, String] = Map(),
+    comments: Map[String, String] = Map())
     extends ClassTypeDef[Ontology] {
 
   def classtype = ontology
 
   lazy val ontology: Ontology = {
-    val ontology = new Ontology(iri,
-                                iris,
-                                _properties = () => properties,
-                                label = Map("en" -> label),
-                                comment = Map("en" -> comment).filter(_._2.nonEmpty),
-                                _extendedClasses = `@extends`,
-                                base = base)
+    val ontology = new Ontology(
+      iri,
+      iris,
+      _properties = () => properties,
+      label = Map("en" -> label) ++ labels,
+      comment = Map("en" -> comment).filter(_._2.nonEmpty) ++ comments,
+      _extendedClasses = `@extends`,
+      base = base
+    )
     Ontology.ontologies.byIri.getOrElseUpdate(ontology.iri, ontology)
     ontology
   }

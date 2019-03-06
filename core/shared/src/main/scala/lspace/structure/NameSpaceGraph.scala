@@ -2,6 +2,7 @@ package lspace.structure
 
 import java.util.concurrent.ConcurrentHashMap
 
+import lspace.Label
 import lspace.datatype._
 import lspace.structure.Property.default
 import lspace.structure.util.IdProvider
@@ -34,21 +35,21 @@ trait NameSpaceGraph extends DataGraph {
             }
         }
 
-    def get(node: Node): Task[ClassType[_]] = node.labels match {
+    def get(node: Node): Coeval[ClassType[_]] = node.labels match {
       case l if l.contains(DataType.ontology) =>
-        datatypes.cached(iri).map(Task.now).getOrElse {
-          DataType.build(node).task
+        datatypes.cached(iri).map(Coeval.now).getOrElse {
+          DataType.datatypes.getOrBuild(node)
         }
       case l if l.contains(Property.ontology) =>
-        properties.cached(iri).map(Task.now).getOrElse {
-          Property.build(node).task
+        properties.cached(iri).map(Coeval.now).getOrElse {
+          Property.properties.getOrBuild(node)
         }
       case l if l.contains(Ontology.ontology) =>
-        ontologies.cached(iri).map(Task.now).getOrElse {
-          Ontology.build(node).task
+        ontologies.cached(iri).map(Coeval.now).getOrElse {
+          Ontology.ontologies.getOrBuild(node)
         }
       case _ =>
-        Task.raiseError(new Exception(s"could not find class-type ${node.iri}"))
+        Coeval.raiseError(new Exception(s"could not find class-type ${node.iri}"))
     }
 
     def cached(iri: String): Option[ClassType[_]] =
@@ -176,7 +177,7 @@ trait NameSpaceGraph extends DataGraph {
               }
 
               for {
-                properties      <- Task.gather(ontology.properties.map(ns.properties.store))
+//                properties      <- Task.gather(ontology.properties.map(ns.properties.store))
                 extendedClasses <- Task.gather(ontology.extendedClasses.map(ns.ontologies.store))
               } yield {
                 ontology.label.foreach {
@@ -187,9 +188,11 @@ trait NameSpaceGraph extends DataGraph {
                   case (language, comment) =>
                     node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
                 }
-                properties.foreach(edges.create(node, Property.default.`@properties`, _))
+//                properties.foreach(edges.create(node, Property.default.`@properties`, _))
+//                properties.foreach(node.addOut(Label.P.`@properties`, _))
 //                ontology.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
-                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
+//                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
+                node.addOut(Label.P.`@extends`, extendedClasses)
 //                ontology.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
                 ontology.base.foreach { base =>
                   node.addOut(Property.default.`@base`, base)
@@ -218,6 +221,7 @@ trait NameSpaceGraph extends DataGraph {
           nodeStore
             .hasIri(iri)
             .find(_.hasLabel(Property.ontology).isDefined)
+//            .filter(_.out(lspace.Label.P.`@label`).nonEmpty)
             .map { node =>
               Property.properties
                 .getOrBuild(node)
@@ -310,8 +314,8 @@ trait NameSpaceGraph extends DataGraph {
               }
 
               for {
-                range           <- Task.gather(property.range.map(classtypes.store))
-                properties      <- Task.gather(property.properties.map(ns.properties.store))
+                range <- Task.gather(property.range.map(classtypes.store))
+//                properties      <- Task.gather(property.properties.map(ns.properties.store))
                 extendedClasses <- Task.gather(property.extendedClasses.map(ns.properties.store))
               } yield {
 
@@ -327,9 +331,11 @@ trait NameSpaceGraph extends DataGraph {
                   case (language, comment) =>
                     node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
                 }
-                properties.foreach(edges.create(node, Property.default.`@properties`, _))
+//                properties.foreach(edges.create(node, Property.default.`@properties`, _))
+//                properties.foreach(node.addOut(Label.P.`@properties`, _))
                 //                property.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
-                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
+//                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
+                node.addOut(Label.P.`@extends`, extendedClasses)
                 //                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
                 property.base.foreach { base =>
                   node.addOut(Property.default.`@base`, base)
@@ -352,7 +358,7 @@ trait NameSpaceGraph extends DataGraph {
         .flatMap { nodes =>
           Coeval
             .sequence(nodes.distinct.map { node =>
-              cached(node.iri).map(node => Coeval.now(node)).getOrElse(Property.build(node))
+              cached(node.iri).map(node => Coeval.now(node)).getOrElse(Property.properties.getOrBuild(node))
             })
             .task
         }
@@ -477,24 +483,6 @@ trait NameSpaceGraph extends DataGraph {
                           nodes =>
                             node.addOut(TupleType.keys._rangeClassType, nodes)
                         })
-//                    case dataType: Tuple2Type[Any, Any] =>
-//                      Seq(
-//                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
-//                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt)))
-//                      )
-//                    case dataType: Tuple3Type[Any, Any, Any] =>
-//                      Seq(
-//                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
-//                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt))),
-//                        store(ListType(dataType._3rdRange)).map(dt => node.addOut(TupleType.keys._3rdRange, List(dt)))
-//                      )
-//                    case dataType: Tuple4Type[Any, Any, Any, Any] =>
-//                      Seq(
-//                        store(ListType(dataType._1stRange)).map(dt => node.addOut(TupleType.keys._1stRange, List(dt))),
-//                        store(ListType(dataType._2ndRange)).map(dt => node.addOut(TupleType.keys._2ndRange, List(dt))),
-//                        store(ListType(dataType._3rdRange)).map(dt => node.addOut(TupleType.keys._3rdRange, List(dt))),
-//                        store(ListType(dataType._4rdRange)).map(dt => node.addOut(TupleType.keys._4rdRange, List(dt)))
-//                      )
                     case _ => Seq[Task[Edge[Any, Any]]]()
                   }
                 case dataType: DataType[_] => Seq[Task[Edge[Any, Any]]]()
@@ -509,11 +497,13 @@ trait NameSpaceGraph extends DataGraph {
                 case (language, comment) =>
                   node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
               }
-              datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
+//              datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
+//              datatype.properties.foreach(node.addOut(Label.P.`@properties`, _))
 
-              datatype.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
+//              datatype.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
+              node.addOut(Label.P.`@extends`, datatype.extendedClasses)
 
-              Task.gather(datatypeTasks).map { edges =>
+              Task.gather(datatypeTasks ++ datatype.extendedClasses.map(ns.datatypes.store)).map { edges =>
                 node
               }
             }

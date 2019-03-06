@@ -13,7 +13,9 @@ import scala.concurrent.duration.FiniteDuration
 
 object Ontology {
   lazy val ontology: Ontology =
-    Ontology(NS.types.`@class`, iris = Set(NS.types.rdfsClass))
+    Ontology(NS.types.`@class`, iris = Set(NS.types.`@class`, NS.types.rdfsClass, NS.types.schemaClass))
+  lazy val unknownOntology: Ontology =
+    Ontology("@unknownOntology", iris = Set("@unknownOntology"), extendedClasses = List(ontology))
 
   implicit lazy val urlType: IriType[Ontology] = new IriType[Ontology] {
     val iri: String = NS.types.`@class`
@@ -26,48 +28,88 @@ object Ontology {
       def ct: CT = urlType
     }
   import scala.concurrent.duration._
-  def build(node: Node): Coeval[Ontology] = {
-    if (node.hasLabel(ontology).nonEmpty) {
-      Coeval.delay {
+  private def build(node: Node): Coeval[Ontology] = {
+//    println(s"building ${node.iri}")
+    if (node.hasLabel(unknownOntology).nonEmpty) {
+      Coeval(UnknownOntology(node.iri))
+        .map { p =>
+          scribe.trace(s"builded unknown ontology ${p.iri}"); p
+        }
+        .onErrorHandle { f =>
+          scribe.error("could not build unknown ontology? " + f.getMessage); throw f
+        }
+    } else if (node.hasLabel(ontology).nonEmpty) {
+      Coeval
+        .delay {
 //        println(s"build ${node.iri}")
 //        println(node.out(Property.default.typed.propertyProperty).map(_.iri))
 //        println(node.out(Property.default.`@extends`).map(_.asInstanceOf[Node].iri))
-        val properties = Coeval.defer(
-          Coeval
-            .sequence(
-              node
-                .out(Property.default.typed.propertyProperty)
-                .map(p => Property.properties.getOrBuild(p))))
-        val extended = Coeval.defer(
-          Coeval
-            .sequence(node.out(Property.default.`@extends`).collect {
-              case node: Node =>
-                ontologies.getOrBuild(node)
-            }))
+          val properties = Coeval.defer(
+            Coeval
+              .sequence(
+                (node
+                  .out(Property.default.typed.propertyProperty) ++ node
+                  .in(lspace.NS.types.schemaDomainIncludes)
+                  .collect { case node: Node => node }) //.filter(_.labels.contains(Property.ontology))
+                  .map(p => Property.properties.getOrBuild(p))))
+          val extended = Coeval.defer(
+            Coeval
+              .sequence(
+                node
+                  .out(Property.default.`@extends`)
+                  .headOption
+                  .collect {
+                    case nodes: List[_] =>
+                      nodes.collect {
+                        case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
+                          ontologies
+                            .get(node.iri)
+                            .getOrElse {
+                              ontologies.getOrBuild(node)
+                            } //orElse???
+                        case iri: String =>
+                          ontologies
+                            .get(iri)
+                            .getOrElse(
+                              throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+                      }
+                    case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
+                      List(ontologies.get(node.iri).getOrElse(ontologies.getOrBuild(node)))
+                  }
+                  .toList
+                  .flatten))
 
 //        println(s"got properties and range for ${node.iri}")
-        _Ontology(node.iri)(
-          iris = node.iris,
-          _properties = () => properties.value(),
-          label = node
-            .outE(Property.default.typed.labelString)
-            .flatMap { edge =>
-              edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
-            }
-            .toMap,
-          comment = node
-            .outE(Property.default.typed.commentString)
-            .flatMap { edge =>
-              edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
-            }
-            .toMap,
-          _extendedClasses = () => extended.value(),
-          base = node.out(Property.default.typed.baseString).headOption
-        )
-      }.memoizeOnSuccess
+          _Ontology(node.iri)(
+            iris = node.iris,
+            _properties = () => properties.value(),
+            label = node
+              .outE(Property.default.typed.labelString)
+              .flatMap { edge =>
+                edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
+              }
+              .toMap,
+            comment = node
+              .outE(Property.default.typed.commentString)
+              .flatMap { edge =>
+                edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
+              }
+              .toMap,
+            _extendedClasses = () => extended.value(),
+            base = node.out(Property.default.typed.baseString).headOption
+          )
+        }
+        .memoizeOnSuccess
+        .map { p =>
+          scribe.trace(s"builded ontology ${p.iri}"); p
+        }
+        .onErrorHandle { f =>
+          scribe.error(f.getMessage); throw f
+        }
     } else {
       //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
       //        .printStackTrace()
+      scribe.warn(s"could not (yet) build ${node.iri}")
       Coeval.raiseError(
         new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
           s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
@@ -77,7 +119,11 @@ object Ontology {
 
   object ontologies {
     object default {
-      lazy val ontologies = List(ontology, Property.ontology, DataType.ontology) //::: Step.steps.map(_.ontology)
+      lazy val ontologies = List(ontology,
+                                 Property.ontology,
+                                 DataType.ontology,
+                                 unknownOntology,
+                                 Property.unknownProperty) //::: Step.steps.map(_.ontology)
       if (ontologies.size > 99) throw new Exception("extend default-ontology-id range!")
       val byId    = (200l to 200l + ontologies.size - 1 toList).zip(ontologies).toMap
       val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
@@ -98,6 +144,7 @@ object Ontology {
     def getOrBuild(node: Node): Coeval[Ontology] =
       default.byIri
         .get(node.iri)
+        .orElse(byIri.get(node.iri))
         .map(Coeval.now(_))
         .getOrElse(
           building.getOrElseUpdate(
@@ -190,3 +237,5 @@ class Ontology(val iri: String,
 
   override def hashCode(): Int = iri.hashCode
 }
+
+case class UnknownOntology(override val iri: String) extends Ontology(iri)

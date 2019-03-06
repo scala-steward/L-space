@@ -20,7 +20,9 @@ abstract class PropertyDef(iri: String,
                            iris: Set[String] = Set(),
                            container: List[String] = List(),
                            `@range`: () => List[ClassType[_]] = () => List(),
-                           `@extends`: () => List[Property] = () => List())
+                           `@extends`: () => List[Property] = () => List(),
+                           labels: Map[String, String] = Map(),
+                           comments: Map[String, String] = Map())
     extends ClassTypeDef[Property] {
 
   def classtype = property
@@ -32,8 +34,8 @@ abstract class PropertyDef(iri: String,
       _range = `@range`,
       containers = container,
       _properties = () => properties,
-      label = Map("en" -> label),
-      comment = Map("en" -> comment).filter(_._2.nonEmpty),
+      label = Map("en" -> label) ++ labels,
+      comment = Map("en" -> comment).filter(_._2.nonEmpty) ++ comments,
       _extendedClasses = `@extends`
     )
     Property.properties.byIri.getOrElseUpdate(property.iri, property)

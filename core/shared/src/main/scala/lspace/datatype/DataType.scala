@@ -15,7 +15,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object DataType
     extends OntologyDef(NS.types.`@datatype`,
-                        Set(NS.types.schemaDataType),
+                        Set(NS.types.`@datatype`, NS.types.schemaDataType),
                         NS.types.`@datatype`,
                         `@extends` = () => Ontology.ontology :: Nil) {
 
@@ -31,148 +31,105 @@ object DataType
     val iri: String = NS.types.`@datatype`
   }
 
-  def build(node: Node): Coeval[DataType[_]] = {
-    datatypes.get(node.iri).getOrElse {
-      if (node.hasLabel(ontology).nonEmpty) {
-        Coeval
-          .sequence(node.out(Property.default.`@extends`).collect {
-            case node: Node => datatypes.getOrBuild(node)
-          })
-          .flatMap { extended =>
-            extended.head match {
-              case dt: CollectionType[_] =>
-                dt match {
-                  case dt: ListType[_] =>
-                    Coeval
-                      .sequence(
-                        node
-                          .out(ListType.keys.valueRangeClassType)
-                          .map(types => Coeval.sequence(types.map(ClassType.build))))
-                      .map { types =>
-                        ListType(types.flatten)
-                      }
-                  case dt: ListSetType[_] =>
-                    Coeval
-                      .sequence(
-                        node
-                          .out(ListSetType.keys.valueRangeClassType)
-                          .map(types => Coeval.sequence(types.map(ClassType.build))))
-                      .map { types =>
-                        ListSetType(types.flatten)
-                      }
-                  case dt: SetType[_] =>
-                    Coeval
-                      .sequence(
-                        node
-                          .out(SetType.keys.valueRangeClassType)
-                          .map(types => Coeval.sequence(types.map(ClassType.build))))
-                      .map { types =>
-                        SetType(types.flatten)
-                      }
-                  case dt: VectorType[_] =>
-                    Coeval
-                      .sequence(
-                        node
-                          .out(VectorType.keys.valueRangeClassType)
-                          .map(types => Coeval.sequence(types.map(ClassType.build))))
-                      .map { types =>
-                        VectorType(types.flatten)
-                      }
-                  case dt: MapType[_, _] =>
-                    for {
-                      keyRange <- Coeval
-                        .sequence(
-                          node
-                            .out(MapType.keys.keyRangeClassType)
-                            .map(types => Coeval.sequence(types.map(ClassType.build))))
-                      valueRange <- Coeval
-                        .sequence(
-                          node
-                            .out(MapType.keys.valueRangeClassType)
-                            .map(types => Coeval.sequence(types.map(ClassType.build))))
-                    } yield {
-                      MapType(keyRange.flatten, keyRange.flatten)
-                    }
-                  case dt: TupleType[_] =>
-                    node
-                      .out(TupleType.keys._rangeClassType)
-                      .map(list => Coeval.sequence(list.map(types => Coeval.sequence(types.map(ClassType.build)))))
-                      .head
-                      .map(TupleType(_))
-//                    dt match {
-//                      case dt: Tuple2Type[_, _] =>
-//                        for {
-//                          a <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._1stRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                          b <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._2ndRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                        } yield {
-//                          Tuple2Type(a.flatten, b.flatten)
-//                        }
-//                      case dt: Tuple3Type[_, _, _] =>
-//                        for {
-//                          a <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._1stRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                          b <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._2ndRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                          c <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._2ndRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                        } yield {
-//                          Tuple3Type(a.flatten, b.flatten, c.flatten)
-//                        }
-//                      case dt: Tuple4Type[_, _, _, _] =>
-//                        for {
-//                          a <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._1stRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                          b <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._2ndRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                          c <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._2ndRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                          d <- Coeval
-//                            .sequence(
-//                              node
-//                                .out(TupleType.keys._2ndRangeClassType)
-//                                .map(types => Coeval.sequence(types.map(ClassType.build))))
-//                        } yield {
-//                          Tuple4Type(a.flatten, b.flatten, c.flatten, d.flatten)
-//                        }
-//                    }
+  private def build(node: Node): Coeval[DataType[_]] = {
+    if (node.hasLabel(ontology).nonEmpty) {
+      Coeval
+        .sequence(
+          node
+            .out(Property.default.`@extends`)
+            .headOption
+            .collect {
+              case nodes: List[_] =>
+                nodes.collect {
+                  case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+                    datatypes
+                      .get(node.iri)
+                      .getOrElse {
+                        datatypes.getOrBuild(node)
+                      } //orElse???
+                  case iri: String =>
+                    datatypes
+                      .get(iri)
+                      .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
                 }
-              case _ => Coeval.raiseError(new Exception(""))
+              case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+                List(datatypes.get(node.iri).getOrElse(datatypes.getOrBuild(node)))
             }
+            .toList
+            .flatten)
+        .flatMap { extended =>
+          extended.head match {
+            case dt: CollectionType[_] =>
+              dt match {
+                case dt: ListType[_] =>
+                  Coeval
+                    .sequence(
+                      node
+                        .out(ListType.keys.valueRangeClassType)
+                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
+                    .map { types =>
+                      ListType(types.flatten)
+                    }
+                case dt: ListSetType[_] =>
+                  Coeval
+                    .sequence(
+                      node
+                        .out(ListSetType.keys.valueRangeClassType)
+                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
+                    .map { types =>
+                      ListSetType(types.flatten)
+                    }
+                case dt: SetType[_] =>
+                  Coeval
+                    .sequence(
+                      node
+                        .out(SetType.keys.valueRangeClassType)
+                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
+                    .map { types =>
+                      SetType(types.flatten)
+                    }
+                case dt: VectorType[_] =>
+                  Coeval
+                    .sequence(
+                      node
+                        .out(VectorType.keys.valueRangeClassType)
+                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
+                    .map { types =>
+                      VectorType(types.flatten)
+                    }
+                case dt: MapType[_, _] =>
+                  for {
+                    keyRange <- Coeval
+                      .sequence(
+                        node
+                          .out(MapType.keys.keyRangeClassType)
+                          .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
+                    valueRange <- Coeval
+                      .sequence(
+                        node
+                          .out(MapType.keys.valueRangeClassType)
+                          .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
+                  } yield {
+                    MapType(keyRange.flatten, keyRange.flatten)
+                  }
+                case dt: TupleType[_] =>
+                  node
+                    .out(TupleType.keys._rangeClassType)
+                    .map(list =>
+                      Coeval.sequence(list.map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild)))))
+                    .head
+                    .map(TupleType(_))
+              }
+            case _ => Coeval.raiseError(new Exception(""))
           }
-      } else {
-        //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
-        //        .printStackTrace()
-        Coeval.raiseError(
-          new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
-            s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
-              .map(_.iri)}"))
-      }
+        }
+    } else {
+      //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
+      //        .printStackTrace()
+      Coeval.raiseError(
+        new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
+          s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
+            .map(_.iri)}"))
     }
   }
 
@@ -338,51 +295,6 @@ object DataType
 //      TupleType(List(cta.ct), List(ctb.ct)).asInstanceOf[TupleType[A, B]]
 //    def tupleType() = TupleType(List(), List())
 
-//    def tuple2Type[A, AT[+Z] <: ClassType[Z], ATOut <: ClassType[_], B, BT[+Z] <: ClassType[Z], BTOut <: ClassType[_]](
-//        act: AT[A],
-//        bct: BT[B]) = Tuple2Type(List(act), List(bct))
-//    def tuple2Type[A, B](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B]) =
-//      Tuple2Type(List(cta.ct), List(ctb.ct)).asInstanceOf[Tuple2Type[A, B]]
-//    def tuple2Type() = Tuple2Type(List(), List())
-//    def tuple3Type[A,
-//                   AT[+Z] <: ClassType[Z],
-//                   ATOut <: ClassType[_],
-//                   B,
-//                   BT[+Z] <: ClassType[Z],
-//                   BTOut <: ClassType[_],
-//                   C,
-//                   CT[+Z] <: ClassType[Z],
-//                   CTOut <: ClassType[_]](act: AT[A], bct: BT[B], cct: CT[C]) =
-//      Tuple3Type(List(act), List(bct), List(cct))
-//    def tuple3Type[A, B, C](implicit cta: ClassTypeable[A], ctb: ClassTypeable[B], ctc: ClassTypeable[C]) =
-//      Tuple3Type(List(cta.ct), List(ctb.ct), List(ctc.ct)).asInstanceOf[Tuple3Type[A, B, C]]
-//    def tuple3Type() = Tuple3Type(List(), List(), List())
-//    def tuple4Type[A,
-//                   AT[+Z] <: ClassType[Z],
-//                   ATOut <: ClassType[_],
-//                   B,
-//                   BT[+Z] <: ClassType[Z],
-//                   BTOut <: ClassType[_],
-//                   C,
-//                   CT[+Z] <: ClassType[Z],
-//                   CTOut <: ClassType[_],
-//                   D,
-//                   DT[+Z] <: ClassType[Z],
-//                   DTOut <: ClassType[_]](act: AT[A], bct: BT[B], cct: CT[C], dct: DT[D]) =
-//      Tuple4Type(List(act), List(bct), List(cct), List(dct))
-//    def tuple4Type[A, B, C, D](a: A, b: B, c: C, d: D)(implicit cta: ClassTypeable[A],
-//                                                       ctb: ClassTypeable[B],
-//                                                       ctc: ClassTypeable[C],
-//                                                       ctd: ClassTypeable[D]) =
-//      Tuple4Type(List(cta.ct), List(ctb.ct), List(ctc.ct), List(ctd.ct))
-//    def tuple4Type[A, B, C, D](implicit cta: ClassTypeable[A],
-//                               ctb: ClassTypeable[B],
-//                               ctc: ClassTypeable[C],
-//                               ctd: ClassTypeable[D]) =
-//      Tuple4Type(List(cta.ct), List(ctb.ct), List(ctc.ct), List(ctd.ct))
-//        .asInstanceOf[Tuple4Type[A, B, C, D]]
-//    def tuple4Type() = Tuple4Type(List(), List(), List(), List())
-
     val default = new DataType[Any] {
       type Out = Any
       val iri: String = ""
@@ -397,14 +309,14 @@ object DataType
 trait DataType[+T] extends ClassType[T] {
 //  type CT = DataType[_]
 
-  val iris: Set[String]                              = Set()
-  val label: Map[String, String]                     = Map()
-  val comment: Map[String, String]                   = Map()
-  val _extendedClasses: () => List[_ <: DataType[_]] = () => List()
-  val _properties: () => List[Property]              = () => List()
-  val base: Option[String]                           = None
+  val iris: Set[String]                           = Set()
+  val label: Map[String, String]                  = Map()
+  val comment: Map[String, String]                = Map()
+  val _extendedClasses: () => List[DataType[Any]] = () => List()
+  val _properties: () => List[Property]           = () => List()
+  val base: Option[String]                        = None
 
-  override lazy val extendedClasses: List[_ <: DataType[_]] = _extendedClasses()
+  override lazy val extendedClasses: List[DataType[Any]] = _extendedClasses()
 
   override def toString: String = s"datatype:$iri"
 }

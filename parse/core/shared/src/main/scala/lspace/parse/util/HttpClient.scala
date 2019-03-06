@@ -9,6 +9,7 @@ import monix.reactive.Observable
 
 import scala.collection.concurrent
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 trait HttpClient {
   implicit def backend: SttpBackend[Task, Observable[ByteBuffer]]
@@ -18,7 +19,8 @@ trait HttpClient {
 
   private def getWithAccept(iri: String, accept: String): Task[String] = {
     wip.getOrElseUpdate(
-      iri + accept, {
+      iri + accept,
+      Task.defer {
         scribe.trace(s"HTTP-GET: $iri")
         sttp
           .get(uri"$iri")
@@ -30,8 +32,18 @@ trait HttpClient {
               case Left(l)  => Task.raiseError(new Exception(s"Error-code $l: could not get resource $iri"))
             }
           }
-          .doOnFinish(f => Task(wip.remove(iri + accept)))
-      }
+          .onErrorHandle { f =>
+            f.printStackTrace(); s"""{"@id": "${iri}"}"""
+          }
+          .doOnFinish {
+            case None =>
+              Task
+                .delay(wip.remove(iri + accept))
+                .delayExecution(30 seconds)
+                .forkAndForget //this should prevent fetching the same resource(-representation) multiple times within a small period of time
+            case Some(e) => Task(wip.remove(iri + accept))
+          }
+      }.memoizeOnSuccess
     )
   }
 

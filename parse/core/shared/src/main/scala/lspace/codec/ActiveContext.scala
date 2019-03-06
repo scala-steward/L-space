@@ -2,7 +2,7 @@ package lspace.codec
 
 import lspace.NS.types
 import lspace.codec.exception.FromJsonException
-import lspace.structure.{ClassType, Property}
+import lspace.structure.{ClassType, Ontology, Property}
 
 import scala.collection.immutable.ListMap
 
@@ -13,16 +13,10 @@ import scala.collection.immutable.ListMap
 //  def `@base`: Option[String]
 //  def properties: Map[Property, ActiveProperty[Json]]
 case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, String](),
-                         `@vocab`: Option[String] = None,
-                         `@language`: Option[String] = None,
-                         `@base`: Option[String] = None,
-                         properties: Map[Property, ActiveProperty] = Map[Property, ActiveProperty]()) {
-
-//  def copy(`@prefix`: ListMap[String, String] = `@prefix`,
-//           `@vocab`: Option[String] = `@vocab`,
-//           `@language`: Option[String] = `@language`,
-//           `@base`: Option[String] = `@base`,
-//           properties: Map[Property, ActiveProperty[Json]] = properties)(implicit decoder: Decode[Json]): ActiveContext[Json]
+                         `@vocab`: List[String] = List(),
+                         `@language`: List[String] = List(),
+                         `@base`: Option[Option[String]] = None,
+                         definitions: Map[String, ActiveProperty] = Map[String, ActiveProperty]()) {
 
   //TODO: map of expanded prefix map values (values can be compacted with leading prefixes)
 
@@ -33,8 +27,8 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     * @param key
     * @return the compacted iri and a new context with possible additional prefixes
     */
-  def compactIri(key: ClassType[_]): (String, ActiveContext) = {
-    key.label.get(`@language`.getOrElse("en")) match {
+  def compactIri(key: ClassType[_], language: String = "en"): (String, ActiveContext) = {
+    key.label.get(`@language`.headOption.getOrElse(language)) match {
       case Some(label) if label.nonEmpty =>
         val uriBase = key.iri.stripSuffix(label)
         if (uriBase.nonEmpty && uriBase != key.iri) {
@@ -63,22 +57,35 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     * @return
     */
   def expandIri(term: String): String = {
-    val (prefix, suffix) =
-      if (term.startsWith("http") || term.take(10).contains("://")) "" -> term
-      else
-        term.split(":") match {
-          case Array(prefix, term) => prefix -> term
-          case Array(term)         => ""     -> term
-          case _                   => ""     -> term
-        }
-    val iri =
-      if (prefix != "") `@prefix`.get(prefix).map(_ + suffix).getOrElse(suffix)
-      else
-        term //TODO: search vocabularies for matching terms, requires pre-fetching vocabularies or try assembled iri's (@vocab-iri + term)
-    if (iri.startsWith("https")) iri
-    else if (iri.startsWith("http")) iri.replaceFirst("http", "https")
-    else iri
-    //    else context.get(term).flatMap(_.get(types.id)).getOrElse(term)
+    val (prefix, suffix) = term.split(":") match {
+      case Array(prefix, term) => prefix -> term
+      case Array(term)         => ""     -> term
+      case _                   => ""     -> term
+    }
+    if (prefix.startsWith("_")) term
+    else if (suffix.startsWith("//")) term
+    else {
+      val iri =
+        if (prefix != "") {
+          `@prefix`.get(prefix).map(_ + suffix).getOrElse(suffix)
+        } else
+          `@prefix`.get(term)
+            .orElse(
+              `@vocab`.toStream
+                .map(_ + term)
+                .flatMap(ClassType.classtypes.get) //search vocabularies for matching terms, requires pre-fetching vocabularies or try assembled iri's (@vocab-iri + term)
+                .map(_.value())
+                .headOption
+                .map(_.iri)
+            )
+            .orElse(
+              `@base`.headOption.map(_ + term)
+            )
+            .getOrElse(term)
+      if (iri.startsWith("https")) iri
+      else if (iri.startsWith("http")) iri.replaceFirst("http", "https")
+      else iri
+    }
   }
 
   def expandKeys[Json](obj: Map[String, Json]): Map[String, Json] = obj.map {
@@ -86,8 +93,8 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
   }
 
   def expectedType(property: Property) =
-    properties
-      .get(property)
+    definitions
+      .get(property.iri)
       .flatMap(_.`@type`.headOption)
       .orElse(property.range.headOption)
 
@@ -95,10 +102,10 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
 //  def jsonToArray(json: Json): Option[List[Json]]
 //  def jsonToMap(json: Json): Option[Map[String, Json]]
 
-  def extractId[Json](obj: Map[String, Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
+  def extractId[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
     obj.get(types.`@id`).flatMap(decoder.jsonToString(_)).map(expandIri)
 
-  def extractIds[Json](obj: Map[String, Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
+  def extractIds[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
     obj
       .get(types.`@ids`)
       .flatMap(
@@ -110,7 +117,7 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
       .getOrElse(List())
       .map(expandIri)
 
-  def extractLabels[Json](obj: Map[String, Json])(implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] =
+  def extractLabels[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] =
     obj
       .get(types.`@label`)
       .flatMap(
@@ -124,7 +131,7 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
             .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
       .getOrElse(Map())
 
-  def extractComments[Json](obj: Map[String, Json])(
+  def extractComments[Json](obj: ExpandedMap[Json])(
       implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] = {
     obj
       .get(types.`@comment`)
@@ -140,25 +147,33 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
       .getOrElse(Map())
   }
 
-  def extractContainer[Json](obj: Map[String, Json]): Option[Json] =
+  def extractContainer[Json](obj: ExpandedMap[Json]): Option[Json] =
     obj.get(types.`@container`)
 
-  def extractValue[Json, T](obj: Map[String, Json])(cb: Json => T): Option[T] =
+  def extractValue[Json, T](obj: ExpandedMap[Json])(cb: Json => T): Option[T] =
     obj.get(types.`@value`).map(cb)
 
-  def extractFrom[Json](obj: Map[String, Json]): Option[Json] =
+  def extractFrom[Json](obj: ExpandedMap[Json]): Option[Json] =
     obj.get(types.`@from`)
 
-  def extractTo[Json](obj: Map[String, Json]): Option[Json] =
+  def extractTo[Json](obj: ExpandedMap[Json]): Option[Json] =
     obj.get(types.`@to`)
+
+  def ++(activeContext: ActiveContext): ActiveContext =
+    this.copy(
+      `@prefix` = `@prefix` ++ activeContext.`@prefix`,
+      `@vocab` = `@vocab` ++ activeContext.`@vocab`,
+      `@language` = `@language` ++ activeContext.`@language`,
+      `@base` = activeContext.`@base`.orElse(`@base`)
+    )
 }
 
 object ActiveContext {
 
   def toJson[Json](context: ActiveContext)(implicit encoder: NativeTypeEncoder.Aux[Json]): Option[Json] = {
-    val (newActiveContext, result) = context.properties.foldLeft((context, ListMap[String, Json]())) {
+    val (newActiveContext, result) = context.definitions.foldLeft((context, ListMap[String, Json]())) {
       case ((activeContext, result), (key, activeProperty)) =>
-        val (keyIri, newActiveContext) = activeContext.compactIri(key)
+        val (keyIri, newActiveContext) = activeContext.compactIri(activeProperty.property)
         List(
           toJson(activeProperty.`@context`).map(types.`@context` -> _),
           _containers(activeProperty).map(types.`@container`     -> _),

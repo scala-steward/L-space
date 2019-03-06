@@ -203,6 +203,14 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
       x shouldBe Map((List(ontologies.person) -> List((List("Levi"), List()))))
 
     }
+    """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
+      g.N
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .group(_.out(properties.knows).count())
+        .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
+        .withGraph(sampleGraph)
+        .head shouldBe ((2, List((List("Levi"), List()))))
+    }
     """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
       val x: List[(List[Any], List[Double])] = g.N
         .hasIri(sampleGraph.iri + "/person/12345")

@@ -3,8 +3,11 @@ package lspace.datatype.util
 import java.time.{Instant, LocalDate, LocalTime}
 
 import lspace.NS
+import lspace.NS.types
 import lspace.structure.IriResource
 import lspace.types.vector.Geometry
+
+import scala.annotation.tailrec
 
 object TypeHelper {
   def isLiteral(value: Any): Boolean = value match {
@@ -36,4 +39,51 @@ object TypeHelper {
         NS.types.`@time` :: /*ldcontext.types.datetime :: ldcontext.types.date :: */ List()
       case v: Geometry => NS.types.`@geo` :: List()
     })
+
+  private val separators = Set('(', ')', '+')
+
+  def getTypes(iri: String): (List[String], String) = {
+    iri.splitAt(iri.indexWhere(separators.contains)) match {
+      case ("", iri) if iri.startsWith(")") => List()    -> iri.drop(1)
+      case ("", iri)                        => List(iri) -> ""
+      case (iri, tail) if tail.startsWith("(") =>
+        iri match {
+          case types.`@list` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@listset` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@set` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@vector` =>
+            val (valueTypes, newTail) = getTypes(tail.drop(1))
+            valueTypes -> newTail
+          case types.`@map` =>
+            val (keyTypes, newTail) = getTypes(tail.drop(1))
+            if (!newTail.startsWith("(")) throw new Exception("map without second block")
+            val (valueTypes, newTail2) = getTypes(newTail.drop(1))
+            (keyTypes ++ valueTypes) -> newTail2
+          case types.`@tuple` =>
+            @tailrec
+            def getT(tail: String, types: List[List[String]]): (List[List[String]], String) = {
+              val (valueTypes, newTail) = getTypes(tail.drop(1))
+              if (!newTail.startsWith("("))
+                getT(newTail, types :+ (if (valueTypes.nonEmpty) valueTypes else List[String]()))
+              else
+                (types :+ (if (valueTypes.nonEmpty) valueTypes else List())) -> newTail
+            }
+            val (rangeTypes, newTail) = getT(tail, List())
+            rangeTypes.flatten -> newTail
+          case _ =>
+            scribe.error("cannot parse : " + iri)
+            throw new Exception("cannot parse : " + iri)
+        }
+      case (iri, tail) if tail.startsWith(")") => List(iri) -> tail.dropWhile(_ == ')')
+      case (iri, tail) if tail.startsWith("+") =>
+        val (tailTypes, newTail) = getTypes(tail.drop(1))
+        (List(iri) ++ tailTypes) -> newTail
+    }
+  }
 }

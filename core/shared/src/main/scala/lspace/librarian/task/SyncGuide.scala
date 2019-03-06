@@ -676,6 +676,18 @@ trait SyncGuide extends Guide[Stream] {
       case step: Group[_, _] =>
         val byObservable = traversalToF(step.by.segmentList)
         step.by.steps.lastOption match {
+          case Some(Count) =>
+            obs: Stream[Librarian[Any]] =>
+              obs
+                .map { librarian =>
+                  librarian -> byObservable(librarian).head
+                }
+                .groupBy(l =>
+                  l._2.asInstanceOf[Librarian[Any]].get match {
+                    case resource: Resource[Any] => resource.value
+                    case v: Any                  => v
+                })
+                .mapValues(_.map(_._1))
           case Some(Head) =>
             obs: Stream[Librarian[Any]] =>
               obs

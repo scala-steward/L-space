@@ -2,6 +2,7 @@ package lspace.decode
 
 import java.util.UUID
 
+import lspace.codec.ActiveContext
 import lspace.provider.mem.MemGraph
 import lspace.structure.{Node, Ontology, Property}
 import monix.eval.Task
@@ -41,7 +42,7 @@ object DecodeJson {
                   obj.toList.flatMap {
                     case (key, value) =>
                       getProperty(key).map { key =>
-                        decoder.toObject(value, key.range)(decoder.getNewActiveContext).map(key -> _)
+                        decoder.toObject(value, key.range)(ActiveContext()).map(key -> _)
                       }
                   }
                 )
@@ -99,7 +100,7 @@ object DecodeJson {
                     obj.toList.flatMap {
                       case (key, value) =>
                         getProperty(key).map { key =>
-                          decoder.toObject(value, key.range)(decoder.getNewActiveContext).map(key -> _)
+                          decoder.toObject(value, key.range)(ActiveContext()).map(key -> _)
                         }
                     }
                   )

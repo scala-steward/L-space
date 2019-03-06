@@ -8,6 +8,7 @@ object NumericType extends DataTypeDef[NumericType[AnyVal]] {
 
   lazy val datatype: NumericType[AnyVal] = new NumericType[AnyVal] {
     val iri: String                                             = NS.types.`@number`
+    override val iris: Set[String]                              = Set(NS.types.schemaNumber)
     override val label: Map[String, String]                     = Map("en" -> NS.types.schemaNumber)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
   }

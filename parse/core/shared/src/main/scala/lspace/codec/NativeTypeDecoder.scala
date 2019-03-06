@@ -9,6 +9,7 @@ trait NativeTypeDecoder {
   type Json
   def parse(string: String): Task[Json]
 
+  def jsonIsNull(json: Json): Boolean
   implicit def jsonToList(json: Json): Option[List[Json]]
   implicit def jsonToMap(json: Json): Option[Map[String, Json]]
   implicit def jsonToString(json: Json): Option[String]

@@ -19,6 +19,8 @@ class NativeTypeDecoder extends lspace.codec.NativeTypeDecoder {
     }
   }
 
+  def jsonIsNull(json: Json): Boolean = json.isNull
+
   def jsonToMap(json: Json): Option[Map[String, Json]] = json.asObject.map(_.toMap)
 
   def jsonToList(json: Json): Option[List[Json]] = json.asArray.map(_.toList)

@@ -106,7 +106,8 @@ trait GraphUtils {
           .defer {
             //    val nodesByCreatedOnDateTime =
             //      nodes.toList.sortBy(_.out(default.typed.createdonDateTime).take(1).map(_.toEpochMilli).head)
-            if (values.map(v => v.value -> v.label).size != 1) throw new Exception("cannot merge unequal values")
+            if (values.map(v => v.value -> v.label).size != 1)
+              throw new Exception(s"cannot merge unequal values ${values.map(v => v.value -> v.label)}")
             val unmerged =
               values.toList.sortBy(_.id)
 

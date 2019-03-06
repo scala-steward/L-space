@@ -95,7 +95,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
     }
   }
 
-  def get(iri: String): Option[ClassType[Any]] = //TODO: .get (Task) instead of .cached
+  def get(iri: String): Option[DataType[Any]] = //TODO: .get (Task) instead of .cached
     ClassType.classtypes
       .cached(iri)
       .orElse(getTypes(iri) match {
@@ -108,6 +108,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
           scribe.warn(s"no classtype construct build for $iri, residu is: $tail")
           None
       })
+      .asInstanceOf[Option[DataType[Any]]]
 }
 
 trait CollectionType[+T] extends StructuredType[T] {

@@ -133,31 +133,31 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
       case value: Map[Any, Any] =>
         mapCache
           .get(value)
-          .map(_.toStream)
+          .map(_.toStream.filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Stream[graph.GValue[V]]]
       case value: ListSet[Any] =>
         listsetCache
           .get(value)
-          .map(_.toStream)
+          .map(_.toStream.filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Stream[graph.GValue[V]]]
       case value: Set[Any] =>
         setCache
           .get(value)
-          .map(_.toStream)
+          .map(_.toStream.filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Stream[graph.GValue[V]]]
       case value: List[Any] =>
         listCache
           .get(value)
-          .map(_.toStream)
+          .map(_.toStream.filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Stream[graph.GValue[V]]]
       case value: Vector[Any] =>
         vectorCache
           .get(value)
-          .map(_.toStream)
+          .map(_.toStream.filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Stream[graph.GValue[V]]]
       case _ =>

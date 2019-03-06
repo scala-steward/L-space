@@ -357,11 +357,21 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
                                                                               List((List("Levi"), List())))))
           .runToFuture
       }
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .group(_.out(properties.knows).count())
+          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe ((2, List((List("Levi"), List())))))
+          .runToFuture
+      }
       """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .out(properties.knows)
-          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(2000.0)))
+          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List())))

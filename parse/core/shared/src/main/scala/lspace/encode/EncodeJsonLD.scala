@@ -1,6 +1,6 @@
 package lspace.encode
 
-import lspace.codec.NativeTypeEncoder
+import lspace.codec.{ActiveContext, NativeTypeEncoder}
 import lspace.structure.Node
 
 trait EncodeJsonLD[A] extends Encode[A] {
@@ -21,7 +21,7 @@ object EncodeJsonLD {
 
     new EncodeJsonLD[List[T]] {
       def encode: List[T] => String =
-        (nodes: List[T]) => encoder.fromAny(nodes)(encoder.getNewActiveContext).withContext.toString
+        (nodes: List[T]) => encoder.fromAny(nodes)(ActiveContext()).withContext.toString
     }
   }
 

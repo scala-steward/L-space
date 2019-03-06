@@ -69,11 +69,11 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
       case value: LocalDate     => dateCache.get(value).toStream.flatMap(_.toList)
       case value: LocalTime     => timeCache.get(value).toStream.flatMap(_.toList)
       case value: Point         => geopointCache.get(value).toStream.flatMap(_.toList)
-      case value: Map[Any, Any] => mapCache.get(value).toStream.flatMap(_.toList)
-      case value: ListSet[Any]  => listsetCache.get(value).toStream.flatMap(_.toList)
-      case value: Set[Any]      => setCache.get(value).toStream.flatMap(_.toList)
-      case value: List[Any]     => listCache.get(value).toStream.flatMap(_.toList)
-      case value: Vector[Any]   => vectorCache.get(value).toStream.flatMap(_.toList)
+      case value: Map[Any, Any] => mapCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+      case value: ListSet[Any]  => listsetCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+      case value: Set[Any]      => setCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+      case value: List[Any]     => listCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+      case value: Vector[Any]   => vectorCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
       case _ =>
         throw new Exception(s"unsupported valuestore-type, cannot find store for datatype-class ${value.getClass}")
     }

@@ -27,8 +27,6 @@ trait Encoder {
   type AP   = ActiveProperty
   type JOIP = JsonObjectInProgress[Json]
   type JIP  = JsonInProgress[Json]
-  def getNewActiveContext: AC  = ActiveContext()
-  def getNewActiveProperty: AP = ActiveProperty()
 
   implicit def nullToJson: Json                   = baseEncoder.jNull
   implicit def textToJson(text: String): Json     = baseEncoder.encode(text)
@@ -56,7 +54,7 @@ trait Encoder {
     def noSpaces: String = jsonToNoSpacesString(json)
   }
 
-  def apply[T <: Node](node: Node): String = fromNode(node)(getNewActiveContext).withContext.noSpaces
+  def apply[T <: Node](node: Node): String = fromNode(node)(ActiveContext()).withContext.noSpaces
 
   implicit class WithIriString(iri: String)(implicit activeContext: AC) {
     lazy val compact: String = activeContext.compactIri(iri)
@@ -124,25 +122,25 @@ trait Encoder {
 
     val newActiveContext =
       if (edges.lengthCompare(4) == 1 && labelO.isDefined &&
-          activeContext.properties.get(key).exists(_.`@type`.isEmpty) && {
+          activeContext.definitions.get(key.iri).exists(_.`@type`.isEmpty) && {
             if (labelO.exists(l => key.range.headOption.contains(l))) false
             else edges.size / edges.size.toDouble > 0.8
           }) {
         activeContext.copy(
-          properties = activeContext.properties + activeContext.properties
-            .get(key)
-            .map(ap => key -> ap)
-            .getOrElse(key -> ActiveProperty(`@type` = labelO.get :: Nil)))
+          definitions = activeContext.definitions + activeContext.definitions
+            .get(key.iri)
+            .map(ap => key.iri -> ap)
+            .getOrElse(key.iri -> ActiveProperty(`@type` = labelO.get :: Nil, property = key)))
       } else activeContext
 
     edges match {
       case null | List() => JsonInProgress[Json](nullToJson)
       case List(property) /*if key.container.isEmpty*/ =>
-        edgeInVToJson(property)(activeContext)
+        edgeToAsJson(property)(activeContext)
       case edges =>
         edges.foldLeft(List[Json]() -> activeContext) {
           case ((result, activeContext), edge) =>
-            val jip = edgeInVToJson(edge)(activeContext)
+            val jip = edgeToAsJson(edge)(activeContext)
             (result :+ jip.json) -> jip.activeContext
         } match {
           case (result, activeContext) => JsonInProgress[Json](result: Json)(activeContext)
@@ -150,15 +148,15 @@ trait Encoder {
     }
   }
 
-  protected def edgeInVToJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
+  protected def edgeToAsJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
     fromAny(edge.inV,
-            activeContext.properties
-              .get(edge.key)
+            activeContext.definitions
+              .get(edge.key.iri)
               .flatMap(_.`@type`.headOption)
               .orElse(edge.key.range.headOption))
   }
 
-  private def edgeOutVToJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
+  private def edgeFromAsJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
     fromAny(edge.outV, None)(activeContext)
   }
 

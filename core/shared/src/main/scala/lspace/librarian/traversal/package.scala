@@ -21,6 +21,7 @@ package object traversal {
   //  }
 
   object ContainerSteps extends Poly1 {
+    implicit def count                                       = at[Count](s => s)
     implicit def head                                        = at[Head](s => s)
     implicit def last                                        = at[Last](s => s)
     implicit def project[Traversals <: HList]                = at[Project[Traversals]](s => s)
@@ -72,6 +73,12 @@ package object traversal {
         implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Head :: HNil, CT, Tout, CTout] =
       new Impl[Head :: HNil, CT, Tout, CTout] {
         override def convert(hlist: Head :: HNil, value: CT): List[CTout] =
+          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+      }
+    implicit def count[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Count :: HNil, CT, Tout, CTout] =
+      new Impl[Count :: HNil, CT, Tout, CTout] {
+        override def convert(hlist: Count :: HNil, value: CT): List[CTout] =
           List(clsTpbl.ct).filter(_.iri.nonEmpty)
       }
     implicit def last[CT <: ClassType[_], Tout, CTout <: ClassType[_]](

@@ -203,13 +203,13 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
         .parse(raw)
         .onErrorHandle { f =>
           scribe.error(f.getMessage + s" ${raw}")
-          encoder.textToJson("")
+          encoder.textToJson("{}")
         }
         .flatMap { json =>
-          decoder.extractContext(Map(lspace.NS.types.`@context` -> json))(decoder.getNewActiveContext)
+          decoder.extractContext(Map(lspace.NS.types.`@context` -> json))(ActiveContext())
         }
     } //TODO: parse remote context? List of contexts?
-    else Task(decoder.getNewActiveContext)
+    else Task(ActiveContext())
   }
 
   lazy val init: Task[Unit] = {
@@ -616,7 +616,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
       .mapValues(_.map(_.value))
       .foreach {
         case (label, values) =>
-          implicit val ac = encoder.getNewActiveContext
+          implicit val ac = ActiveContext()
           val jsons = label match {
             case label: TextType[_] => values.map(encoder.fromText(_, label).json)
             case label: NumericType[_] =>

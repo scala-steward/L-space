@@ -3,7 +3,7 @@ package lspace.librarian.task
 import java.time.Instant
 
 import lspace.librarian.logic.Assistent
-import lspace.librarian.traversal.step.{Group, Path, Project}
+import lspace.librarian.traversal.step._
 import lspace.librarian.traversal.{
   BranchStep,
   ClipStep,
@@ -43,6 +43,17 @@ trait Guide[F[_]] {
       case step: Project[_]  => step
       case step: MapStep     => step
       case step: Path[_, _]  => step
+    }
+  }
+  def collectContainers(steps: List[Step]): List[Step] = {
+    steps.collect {
+      case step: Group[_, _] => step
+      case step: Project[_]  => step
+      case step: MapStep     => step
+      case step: Path[_, _]  => step
+      case step: Head        => step
+      case step: Last        => step
+      case step: Count       => step
     }
   }
 

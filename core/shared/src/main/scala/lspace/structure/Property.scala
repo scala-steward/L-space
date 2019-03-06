@@ -14,7 +14,9 @@ import scala.concurrent.duration.FiniteDuration
 
 object Property {
   lazy val ontology: Ontology =
-    Ontology(NS.types.`@property`, iris = Set(NS.types.rdfProperty))
+    Ontology(NS.types.`@property`, iris = Set(NS.types.`@property`, NS.types.rdfProperty))
+  lazy val unknownProperty: Ontology =
+    Ontology("@unknownProperty", iris = Set("@unknownProperty"), extendedClasses = List(ontology))
 
   implicit lazy val urlType: IriType[Property] = new IriType[Property] {
     val iri: String = NS.types.`@property`
@@ -34,66 +36,111 @@ object Property {
 //      def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
 //    }
   import scala.concurrent.duration._
-  def build(node: Node): Coeval[Property] = {
-    if (node.hasLabel(urlType).nonEmpty) {
-      Coeval.delay {
-        val range = Coeval.defer(
-          Coeval
-            .sequence(node
-              .out(default.`@range`)
-              .collect {
-                case nodes: List[_] =>
-                  nodes.map {
-                    case node: Node =>
-                      ClassType.classtypes
-                        .get(node.iri)
-                        .getOrElse {
-                          ClassType.build(node)
-                        } //orElse???
-                    case iri: String =>
-                      ClassType.classtypes
-                        .get(iri)
-                        .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+  private def build(node: Node): Coeval[Property] = {
+//    println(s"building ${node.iri}")
+    if (node.hasLabel(unknownProperty).nonEmpty)
+      Coeval(UnknownProperty(node.iri))
+        .map { p =>
+          scribe.trace(s"builded unknown property ${p.iri}"); p
+        }
+        .onErrorHandle { f =>
+          scribe.error("could not build unknown property? " + f.getMessage); throw f
+        } else if (node.hasLabel(ontology).nonEmpty) {
+      Coeval
+        .delay {
+          val range = Coeval.defer(
+            Coeval
+              .sequence(
+                node
+                  .out(default.`@range`)
+                  .headOption
+                  .collect {
+                    case nodes: List[_] =>
+                      nodes.collect {
+                        case node: Node
+                            if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
+                          ClassType.classtypes
+                            .get(node.iri)
+                            .getOrElse {
+                              ClassType.classtypes.getOrBuild(node)
+                            } //orElse???
+                        case iri: String =>
+                          ClassType.classtypes
+                            .get(iri)
+                            .getOrElse(
+                              throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+                      }
+                    case node: Node
+                        if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
+                      List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getOrBuild(node)))
                   }
-                case node: Node =>
-                  List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.build(node)))
-              }
-              .flatten))
-        val properties = Coeval.defer(
-          Coeval
-            .sequence(
-              node
-                .out(default.typed.propertyProperty)
-                .map(p => Property.properties.getOrBuild(p))))
-        val extended = Coeval.defer(
-          Coeval
-            .sequence(node.out(default.`@extends`).collect {
-              case node: Node =>
-                Property.properties.getOrBuild(node)
-            }))
+                  .toList
+                  .flatten))
+          val properties = Coeval.defer(
+            Coeval
+              .sequence(
+                (node
+                  .out(Property.default.typed.propertyProperty) ++ node
+                  .in(lspace.NS.types.schemaDomainIncludes)
+                  .collect { case node: Node => node }) //.filter(_.labels.contains(Property.ontology))
+                  .map(p => Property.properties.getOrBuild(p))))
+          val extended = Coeval.defer(
+            Coeval
+              .sequence(
+                node
+                  .out(default.`@extends`)
+                  .headOption
+                  .collect {
+                    case nodes: List[_] =>
+                      nodes.collect {
+                        case node: Node if node.hasLabel(Property.ontology).isDefined =>
+                          Property.properties
+                            .get(node.iri)
+                            .getOrElse {
+                              Property.properties.getOrBuild(node)
+                            } //orElse???
+                        case iri: String =>
+                          Property.properties
+                            .get(iri)
+                            .getOrElse(
+                              throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+                      }
+                    case node: Node if node.hasLabel(Property.ontology).isDefined =>
+                      List(Property.properties.get(node.iri).getOrElse(Property.properties.getOrBuild(node)))
+                  }
+                  .toList
+                  .flatten))
 
-        _Property(node.iri)(
-          iris = node.iris,
-          _range = () => range.value(),
-          containers = node.out(default.typed.containerString),
-          label = node
-            .outE(default.typed.labelString)
-            .flatMap { edge =>
-              edge.out(default.typed.languageString).map(_ -> edge.to.value)
-            }
-            .toMap,
-          comment = node
-            .outE(default.typed.commentString)
-            .flatMap { edge =>
-              edge.out(default.typed.languageString).map(_ -> edge.to.value)
-            }
-            .toMap,
-          _extendedClasses = () => extended.value(),
-          _properties = () => properties.value(),
-          node.out(default.typed.baseString).headOption
-        )
-      }.memoizeOnSuccess
+          _Property(node.iri)(
+            iris = node.iris,
+            _range = () => range.value(),
+            containers = node.out(default.typed.containerString),
+            label = node
+              .outE(default.typed.labelString)
+              .flatMap { edge =>
+                edge.out(default.typed.languageString).map(_ -> edge.to.value)
+              }
+              .toMap,
+            comment = node
+              .outE(default.typed.commentString)
+              .flatMap { edge =>
+                edge.out(default.typed.languageString).map(_ -> edge.to.value)
+              }
+              .toMap,
+            _extendedClasses = () => extended.value(),
+            _properties = () => properties.value(),
+            node.out(default.typed.baseString).headOption
+          )
+        }
+        .memoizeOnSuccess
+        .map { p =>
+          scribe.trace(s"builded property ${p.iri}"); p
+        }
+        .onErrorHandle { f =>
+          scribe.error(f.getMessage); throw f
+        }
     } else {
+      scribe.warn(s"could not (yet) build ${node.iri}")
       Coeval.raiseError(new Exception(s"${node.iri} is not a property"))
     }
   }
@@ -148,6 +195,7 @@ object Property {
     def getOrBuild(node: Node): Coeval[Property] =
       default.byIri
         .get(node.iri)
+        .orElse(byIri.get(node.iri))
         .map(Coeval.now(_))
         .getOrElse(building.getOrElseUpdate(node.iri, build(node).map { p =>
           byIri += p.iri -> p
@@ -179,31 +227,34 @@ object Property {
     val `@container`: Property =
       _Property(NS.types.`@container`)(_range = () => `@string` :: Nil, containers = NS.types.`@list` :: Nil)
     val `@range`: Property = _Property(NS.types.`@range`)(
-      iris = Set(NS.types.schemaRange),
+      iris = Set(NS.types.`@range`, NS.types.schemaRange),
       _range = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil,
-      containers = NS.types.`@listset` :: Nil
+      containers = Nil //NS.types.`@listset` :: Nil
     )
     val `@type`: Property = _Property(NS.types.`@type`)(
-//      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
-      containers = NS.types.`@listset` :: Nil
+      iris = Set(NS.types.`@type`, NS.types.rdfType),
+      _range = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil,
+      containers = Nil //NS.types.`@listset` :: Nil
     )
     val `@extends`: Property = _Property(NS.types.`@extends`)(
-      iris = Set(NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf),
-//      _range = () => DataType.default.`@class` :: DataType.default.`@property` :: DataType.default.`@datatype` :: Nil,
-      containers = NS.types.`@listset` :: Nil
+      iris = Set(NS.types.`@extends`, NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf),
+      _range = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil,
+      containers = Nil //NS.types.`@listset` :: Nil
     )
     val `@properties`: Property = _Property(NS.types.`@properties`)(_range = () => DataType.default.`@property` :: Nil,
                                                                     containers = NS.types.`@set` :: Nil)
     val `@language`: Property =
-      _Property(NS.types.`@language`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
+      _Property(NS.types.`@language`)(iris = Set(NS.types.`@language`, NS.types.xsdLanguage),
+                                      _range = () => `@string` :: Nil,
+                                      containers = NS.types.`@set` :: Nil)
     val `@index`: Property =
       _Property(NS.types.`@index`)(_range = () => `@string` :: Nil, containers = NS.types.`@set` :: Nil)
     val `@label`: Property =
-      _Property(NS.types.`@label`)(iris = Set(NS.types.rdfsLabel),
+      _Property(NS.types.`@label`)(iris = Set(NS.types.`@label`, NS.types.rdfsLabel),
                                    _range = () => `@string` :: Nil,
                                    containers = NS.types.`@language` :: Nil)
     val `@comment`: Property =
-      _Property(NS.types.`@comment`)(iris = Set(NS.types.rdfsComment),
+      _Property(NS.types.`@comment`)(iris = Set(NS.types.`@comment`, NS.types.rdfsComment),
                                      _range = () => `@string` :: Nil,
                                      containers = NS.types.`@language` :: Nil)
     val `@base`: Property      = _Property(NS.types.`@base`)(_range = () => `@string` :: Nil)
@@ -227,9 +278,9 @@ object Property {
       lazy val irisUrlString: TypedProperty[String]   = `@ids` as `@string`
       lazy val containerString: TypedProperty[String] = `@container` as `@string`
       //  lazy val entryInt: TypedPropertyKey[Int] = entry as intType)
-      lazy val rangeOntology: TypedProperty[Node] = `@range` as Ontology.ontology
-      lazy val rangeProperty: TypedProperty[Node] = `@range` as Property.ontology
-      lazy val rangeDataType: TypedProperty[Node] = `@range` as DataType.ontology
+      lazy val rangeOntology: TypedProperty[List[Node]] = `@range` as ListType(Ontology.ontology :: Nil)
+      lazy val rangeProperty: TypedProperty[List[Node]] = `@range` as ListType(Property.ontology :: Nil)
+      lazy val rangeDataType: TypedProperty[List[Node]] = `@range` as ListType(DataType.ontology :: Nil)
       lazy val rangeListClassType: TypedProperty[List[Node]] = `@range` as ListType(
         Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
 
@@ -239,9 +290,12 @@ object Property {
       //  TYPE.addRange(property)
       lazy val typeDatatype: TypedProperty[Node] = `@type` as DataType.ontology //as DataType.classType
       //  TYPE.addRange(datatype)
-      lazy val extendsOntology: TypedProperty[Node]  = `@extends` as Ontology.ontology //as Ontology.classType
-      lazy val extendsProperty: TypedProperty[Node]  = `@extends` as Property.ontology //as Property.classType
-      lazy val extendsDataType: TypedProperty[Node]  = `@extends` as DataType.ontology //as DataType.classType
+      lazy val extendsOntology
+        : TypedProperty[List[Node]] = `@extends` as ListType(Ontology.ontology :: Nil) //as Ontology.classType
+      lazy val extendsProperty
+        : TypedProperty[List[Node]] = `@extends` as ListType(Property.ontology :: Nil) //as Property.classType
+      lazy val extendsDataType
+        : TypedProperty[List[Node]]                  = `@extends` as ListType(DataType.ontology :: Nil) //as DataType.classType
       lazy val propertyProperty: TypedProperty[Node] = `@properties` as Property.ontology //as Property.classType
       lazy val languageString: TypedProperty[String] = `@language` as `@string`
       lazy val indexString: TypedProperty[String]    = `@index` as `@string`
@@ -362,3 +416,5 @@ class Property(val iri: String,
 
   override def hashCode(): Int = iri.hashCode
 }
+
+case class UnknownProperty(override val iri: String) extends Property(iri)

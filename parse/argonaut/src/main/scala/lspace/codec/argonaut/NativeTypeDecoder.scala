@@ -16,10 +16,12 @@ class NativeTypeDecoder extends lspace.codec.NativeTypeDecoder {
     Parse
       .parse(string) match {
       case Right(json) => Task(json)
-      case Left(error) => Task.raiseError(FromJsonException(error))
+      case Left(error) =>
+        Task.raiseError(FromJsonException(error))
     }
   }
 
+  def jsonIsNull(json: Json): Boolean                  = json.isNull
   def jsonToMap(json: Json): Option[Map[String, Json]] = json.obj.map(_.toMap)
 
   def jsonToList(json: Json): Option[List[Json]] = json.array.map(_.toList)

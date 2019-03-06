@@ -1,5 +1,6 @@
 package lspace.encode
 
+import lspace.codec.ActiveContext
 import lspace.structure.Node
 
 trait EncodeJson[A] extends Encode[A] {
@@ -17,10 +18,10 @@ object EncodeJson {
           case (property, edges) =>
             property.label.get("en").getOrElse(property.iri) -> (edges match {
               case List(edge) =>
-                encoder.fromAny(edge.to, edge.to.labels.headOption)(encoder.getNewActiveContext).json
+                encoder.fromAny(edge.to, edge.to.labels.headOption)(ActiveContext()).json
               case edges =>
                 encoder.listToJson(edges
-                  .map(edge => encoder.fromAny(edge.to, edge.to.labels.headOption)(encoder.getNewActiveContext).json))
+                  .map(edge => encoder.fromAny(edge.to, edge.to.labels.headOption)(ActiveContext()).json))
             })
         })
   }
