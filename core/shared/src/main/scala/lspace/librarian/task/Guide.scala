@@ -28,6 +28,7 @@ trait Guide[F[_]] {
 
   def toValue(v: Any): Any = v match {
     case librarian: Librarian[Any] => toValue(librarian.get)
+    case Some(value)               => Some(toValue(value))
     case resource: Resource[Any]   => resource.value
     case it: Map[Any, Any]         => it.map(t => toValue(t._1) -> toValue(t._2))
     case it: Iterable[Any]         => it.map(toValue)
@@ -43,6 +44,12 @@ trait Guide[F[_]] {
       case step: Project[_]  => step
       case step: MapStep     => step
       case step: Path[_, _]  => step
+//      case step: Head  => step
+//      case step: Last  => step
+//      case step: Count  => step
+//      case step: Mean  => step
+//      case step: Min  => step
+//      case step: Max  => step
     }
   }
   def collectContainers(steps: List[Step]): List[Step] = {
@@ -54,6 +61,9 @@ trait Guide[F[_]] {
       case step: Head        => step
       case step: Last        => step
       case step: Count       => step
+      case step: Mean        => step
+      case step: Min         => step
+      case step: Max         => step
     }
   }
 

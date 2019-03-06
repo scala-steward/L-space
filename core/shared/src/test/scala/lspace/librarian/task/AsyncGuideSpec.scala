@@ -345,7 +345,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .map(_.nonEmpty shouldBe true)
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.label())
@@ -357,7 +357,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
                                                                               List((List("Levi"), List())))))
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.out(properties.knows).count())
@@ -365,6 +365,17 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe ((2, List((List("Levi"), List())))))
+          .runToFuture
+      }
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).head).head.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .group(_.out(properties.knows).hasLabel[Int].head)
+          .head()
+          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe ((None, Some((List("Levi"), None)))))
           .runToFuture
       }
       """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {

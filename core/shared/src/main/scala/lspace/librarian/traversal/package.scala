@@ -24,6 +24,8 @@ package object traversal {
     implicit def count                                       = at[Count](s => s)
     implicit def head                                        = at[Head](s => s)
     implicit def last                                        = at[Last](s => s)
+    implicit def max                                         = at[Max](s => s)
+    implicit def min                                         = at[Min](s => s)
     implicit def project[Traversals <: HList]                = at[Project[Traversals]](s => s)
     implicit def group[T <: ClassType[_], Segments <: HList] = at[Group[T, Segments]](s => s)
     //  implicit def caseMap[T <: MapStep] = at[T](s => s)
@@ -69,11 +71,20 @@ package object traversal {
           List(ListType[Tout](List(clsTpbl.ct.asInstanceOf[ClassType[Tout]]).filter(_.iri.nonEmpty))) //.asInstanceOf[OutCT] //ClassType.valueToOntologyResource(value).asInstanceOf[CT]
       }
 
-    implicit def head[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+    implicit def headHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
         implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Head :: HNil, CT, Tout, CTout] =
       new Impl[Head :: HNil, CT, Tout, CTout] {
         override def convert(hlist: Head :: HNil, value: CT): List[CTout] =
           List(clsTpbl.ct).filter(_.iri.nonEmpty)
+      }
+    implicit def head[L <: HList, CT <: ClassType[_]](
+        implicit ev: L =:!= HNil,
+        inner: StructureCalculator[L, CT]): Aux[Head :: L, CT, inner.Out, inner.OutCT] =
+      new Impl[Head :: L, CT, inner.Out, inner.OutCT] {
+        override def convert(hlist: Head :: L, value: CT): List[inner.OutCT] = {
+          val types = inner.convert(hlist.tail, value)
+          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+        }
       }
     implicit def count[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
         implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Count :: HNil, CT, Tout, CTout] =
@@ -81,11 +92,50 @@ package object traversal {
         override def convert(hlist: Count :: HNil, value: CT): List[CTout] =
           List(clsTpbl.ct).filter(_.iri.nonEmpty)
       }
-    implicit def last[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+    implicit def lastHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
         implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Last :: HNil, CT, Tout, CTout] =
       new Impl[Last :: HNil, CT, Tout, CTout] {
         override def convert(hlist: Last :: HNil, value: CT): List[CTout] =
           List(clsTpbl.ct).filter(_.iri.nonEmpty)
+      }
+    implicit def last[L <: HList, CT <: ClassType[_]](
+        implicit ev: L =:!= HNil,
+        inner: StructureCalculator[L, CT]): Aux[Last :: L, CT, inner.Out, inner.OutCT] =
+      new Impl[Last :: L, CT, inner.Out, inner.OutCT] {
+        override def convert(hlist: Last :: L, value: CT): List[inner.OutCT] = {
+          val types = inner.convert(hlist.tail, value)
+          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+        }
+      }
+    implicit def maxHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Max :: HNil, CT, Tout, CTout] =
+      new Impl[Max :: HNil, CT, Tout, CTout] {
+        override def convert(hlist: Max :: HNil, value: CT): List[CTout] =
+          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+      }
+    implicit def max[L <: HList, CT <: ClassType[_]](
+        implicit ev: L =:!= HNil,
+        inner: StructureCalculator[L, CT]): Aux[Max :: L, CT, inner.Out, inner.OutCT] =
+      new Impl[Max :: L, CT, inner.Out, inner.OutCT] {
+        override def convert(hlist: Max :: L, value: CT): List[inner.OutCT] = {
+          val types = inner.convert(hlist.tail, value)
+          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+        }
+      }
+    implicit def minHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Min :: HNil, CT, Tout, CTout] =
+      new Impl[Min :: HNil, CT, Tout, CTout] {
+        override def convert(hlist: Min :: HNil, value: CT): List[CTout] =
+          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+      }
+    implicit def min[L <: HList, CT <: ClassType[_]](
+        implicit ev: L =:!= HNil,
+        inner: StructureCalculator[L, CT]): Aux[Min :: L, CT, inner.Out, inner.OutCT] =
+      new Impl[Min :: L, CT, inner.Out, inner.OutCT] {
+        override def convert(hlist: Min :: L, value: CT): List[inner.OutCT] = {
+          val types = inner.convert(hlist.tail, value)
+          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+        }
       }
 
     //    implicit def mapStep[L <: HList, T, Step <: MapStep](implicit inner: MyLeftFolder[L, T]): Aux[Step :: L, T, Map[Property, inner.Out]] = new Impl[Step :: L, T, Map[Property, inner.Out]] {

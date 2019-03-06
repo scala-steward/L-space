@@ -22,7 +22,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
         extends PropertyDef(
           "@valueRange",
           "@valueRange",
-          "A @valueRange",
+          "A @valueRange is a strict lowerbound of classtypes, this ensures type-safe casting of collections",
           `@extends` = () => Property.default.`@range` :: Nil,
           `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
         )

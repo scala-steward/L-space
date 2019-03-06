@@ -86,13 +86,17 @@ object Ontology {
             label = node
               .outE(Property.default.typed.labelString)
               .flatMap { edge =>
-                edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
+                val l = edge.out(Property.default.typed.languageString)
+                if (l.nonEmpty) l.map(_ -> edge.to.value)
+                else List("en"          -> edge.to.value)
               }
               .toMap,
             comment = node
               .outE(Property.default.typed.commentString)
               .flatMap { edge =>
-                edge.out(Property.default.typed.languageString).map(_ -> edge.to.value)
+                val l = edge.out(Property.default.typed.languageString)
+                if (l.nonEmpty) l.map(_ -> edge.to.value)
+                else List("en"          -> edge.to.value)
               }
               .toMap,
             _extendedClasses = () => extended.value(),

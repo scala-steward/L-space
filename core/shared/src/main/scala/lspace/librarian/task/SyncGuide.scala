@@ -267,10 +267,28 @@ trait SyncGuide extends Guide[Stream] {
               })
           case step: Path[_, _] =>
             val byObs = traversalToF(step.by.segmentList)
-            obs: Stream[Librarian[Any]] =>
-              obs.map { librarian =>
-                librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])))
-              }
+            step.by.steps.lastOption match {
+              case Some(Count) =>
+                obs: Stream[Librarian[Any]] =>
+                  obs.map { librarian =>
+                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).head)
+                  }
+              case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
+                obs: Stream[Librarian[Any]] =>
+                  obs.map { librarian =>
+                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headOption)
+                  }
+              case Some(Last) =>
+                obs: Stream[Librarian[Any]] =>
+                  obs.map { librarian =>
+                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).lastOption)
+                  }
+              case _ =>
+                obs: Stream[Librarian[Any]] =>
+                  obs.map { librarian =>
+                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).toList)
+                  }
+            }
         }
       case step: Out =>
         obs: Stream[Librarian[Any]] =>
@@ -481,6 +499,12 @@ trait SyncGuide extends Guide[Stream] {
     val nextStep = buildNextStep(steps, segments)
 
     val f = step match {
+      case step: Head =>
+        obs: Stream[Librarian[Any]] =>
+          obs.take(1)
+      case step: Last =>
+        obs: Stream[Librarian[Any]] =>
+          obs.lastOption.toStream
       case step: Limit =>
         obs: Stream[Librarian[Any]] =>
           obs.take(step.max)
@@ -688,7 +712,7 @@ trait SyncGuide extends Guide[Stream] {
                     case v: Any                  => v
                 })
                 .mapValues(_.map(_._1))
-          case Some(Head) =>
+          case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
             obs: Stream[Librarian[Any]] =>
               obs
                 .map { librarian =>
@@ -985,9 +1009,10 @@ trait SyncGuide extends Guide[Stream] {
       obs
         .map(librarian =>
           librarian -> pObs.map {
-            case (pOb, Some(Head)) => pOb(librarian).headOption
-            case (pOb, Some(Last)) => pOb(librarian).lastOption
-            case (pOb, _)          => pOb(librarian).toList
+            case (pOb, Some(Count))                                        => pOb(librarian).head
+            case (pOb, Some(step @ (_: Head | _: Min | _: Max | _: Mean))) => pOb(librarian).headOption
+            case (pOb, Some(Last))                                         => pOb(librarian).lastOption
+            case (pOb, _)                                                  => pOb(librarian).toList
         })
         .map {
           case (librarian, tuple) =>

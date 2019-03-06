@@ -118,13 +118,17 @@ object Property {
             label = node
               .outE(default.typed.labelString)
               .flatMap { edge =>
-                edge.out(default.typed.languageString).map(_ -> edge.to.value)
+                val l = edge.out(Property.default.typed.languageString)
+                if (l.nonEmpty) l.map(_ -> edge.to.value)
+                else List("en"          -> edge.to.value)
               }
               .toMap,
             comment = node
               .outE(default.typed.commentString)
               .flatMap { edge =>
-                edge.out(default.typed.languageString).map(_ -> edge.to.value)
+                val l = edge.out(Property.default.typed.languageString)
+                if (l.nonEmpty) l.map(_ -> edge.to.value)
+                else List("en"          -> edge.to.value)
               }
               .toMap,
             _extendedClasses = () => extended.value(),

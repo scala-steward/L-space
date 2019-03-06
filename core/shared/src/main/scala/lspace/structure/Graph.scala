@@ -7,7 +7,7 @@ import lspace.structure.Property.default
 import lspace.structure.util.ClassTypeable
 import lspace.datatype.{DataType, GraphType, TextType}
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
-import lspace.librarian.task.{AsyncGuide, FTraversal, Guide}
+import lspace.librarian.task.{AsyncGuide, Guide, ZeroOrOneResult}
 import lspace.provider.transaction.Transaction
 import lspace.provider.wrapped.WrappedResource
 import lspace.librarian.traversal.Traversal

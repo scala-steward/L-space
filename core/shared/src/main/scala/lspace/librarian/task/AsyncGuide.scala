@@ -34,6 +34,12 @@ trait AsyncGuide extends Guide[Observable] {
                 val nextStep = buildNextStep(until, Nil) andThen
                   collectingBarrierStep(step, from.tail, Nil, true).asInstanceOf[Observable[Any] => Observable[Any]]
                 nextStep(Observable(createLibrarian[Any](null)))
+//              case Some(step: Max) =>
+//              case Some(step: Min) =>
+//              case Some(step: Count) =>
+//              case Some(step: Mean) =>
+//              case Some(step: Head) =>
+//              case Some(step: Last) =>
               case _ =>
                 val nextStep = buildNextStep(segment.stepsList, segments)
                 nextStep(Observable(createLibrarian[Any](null)))
@@ -292,7 +298,25 @@ trait AsyncGuide extends Guide[Observable] {
           case step: Path[_, _] =>
             val byObs = traversalToF(step.by.segmentList)
             step.by.steps.lastOption match {
-              case Some(Head) =>
+              case Some(Count) =>
+                obs: Observable[Librarian[Any]] =>
+                  obs.flatMap(
+                    librarian =>
+                      Observable.fromTask(
+                        Task
+                          .gather(librarian.path.resources.map { r =>
+                            byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headL
+                          })
+                          .map { v =>
+                            v.map {
+                              case Some(librarian: Librarian[Any]) =>
+                                Some(librarian.get).map {
+                                  case r: Resource[_] => r.value
+                                  case v              => v
+                                }
+                            }
+                          }))
+              case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
                 obs: Observable[Librarian[Any]] =>
                   obs.flatMap(
                     librarian =>
@@ -812,56 +836,59 @@ trait AsyncGuide extends Guide[Observable] {
         val byObservable = traversalToF(step.by.segmentList)
         //TODO
         collectContainers(step.by.steps).lastOption match {
-          case Some(Count) =>
-            obs: Observable[Librarian[Any]] =>
-              obs
-                .flatMap { librarian =>
-                  Observable
-                    .from(byObservable(librarian).headL.map(librarian -> _))
-                }
-                .groupBy(l =>
-                  l._2.asInstanceOf[Librarian[Any]].get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                })
-                .flatMap { group =>
-                  Observable.fromTask(
-                    clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
-                }
-          case Some(Head) =>
-            obs: Observable[Librarian[Any]] =>
-              obs
-                .flatMap { librarian =>
-                  Observable
-                    .from(byObservable(librarian).headOptionL.map(librarian -> _))
-                }
-                .groupBy(_._2
-                  .collect { case librarian: Librarian[Any] => librarian }
-                  .map(_.get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                  }))
-                .flatMap { group =>
-                  Observable.fromTask(
-                    clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
-                }
-          case Some(Last) =>
-            obs: Observable[Librarian[Any]] =>
-              obs
-                .flatMap { librarian =>
-                  Observable
-                    .from(byObservable(librarian).lastOptionL.map(librarian -> _))
-                }
-                .groupBy(_._2
-                  .collect { case librarian: Librarian[Any] => librarian }
-                  .map(_.get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                  }))
-                .flatMap { group =>
-                  Observable.fromTask(
-                    clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
-                }
+          case Some(step) =>
+            step match {
+              case Count =>
+                obs: Observable[Librarian[Any]] =>
+                  obs
+                    .flatMap { librarian =>
+                      Observable
+                        .from(byObservable(librarian).headL.map(librarian -> _))
+                    }
+                    .groupBy(l =>
+                      l._2.asInstanceOf[Librarian[Any]].get match {
+                        case resource: Resource[Any] => resource.value
+                        case v: Any                  => v
+                    })
+                    .flatMap { group =>
+                      Observable.fromTask(
+                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+                    }
+              case step @ (_: Head | _: Min | _: Max | _: Mean) =>
+                obs: Observable[Librarian[Any]] =>
+                  obs
+                    .flatMap { librarian =>
+                      Observable
+                        .from(byObservable(librarian).headOptionL.map(librarian -> _))
+                    }
+                    .groupBy(_._2
+                      .collect { case librarian: Librarian[Any] => librarian }
+                      .map(_.get match {
+                        case resource: Resource[Any] => resource.value
+                        case v: Any                  => v
+                      }))
+                    .flatMap { group =>
+                      Observable.fromTask(
+                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+                    }
+              case Last =>
+                obs: Observable[Librarian[Any]] =>
+                  obs
+                    .flatMap { librarian =>
+                      Observable
+                        .from(byObservable(librarian).lastOptionL.map(librarian -> _))
+                    }
+                    .groupBy(_._2
+                      .collect { case librarian: Librarian[Any] => librarian }
+                      .map(_.get match {
+                        case resource: Resource[Any] => resource.value
+                        case v: Any                  => v
+                      }))
+                    .flatMap { group =>
+                      Observable.fromTask(
+                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+                    }
+            }
           case _ =>
             obs: Observable[Librarian[Any]] =>
 //              Observable.fromTask(
@@ -1142,12 +1169,16 @@ trait AsyncGuide extends Guide[Observable] {
         obs.flatMap { librarian =>
           Observable
             .fromTask(Task.gather(pObs.map {
-              case (pOb, Some(Count)) =>
-                pOb(librarian).headL
-              case (pOb, Some(Head)) =>
-                pOb(librarian).headOptionL
-              case (pOb, Some(Last)) =>
-                pOb(librarian).lastOptionL
+              case (pOb, Some(step)) =>
+                step match {
+                  case step: Count =>
+                    pOb(librarian).headL
+                  case step @ (_: Head | _: Min | _: Max |
+                      _: Mean) => //Some(min: Min) | Some(max: Max) | Some(mean: Mean)
+                    pOb(librarian).headOptionL
+                  case step: Last =>
+                    pOb(librarian).lastOptionL
+                }
               case (pOb, _) =>
                 pOb(librarian).toListL
             }))

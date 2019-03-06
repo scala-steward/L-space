@@ -669,8 +669,6 @@ object Traversal
     //                  (implicit f: FooTest.Aux[T, R], m: Monoid[R])
     //    : Traversal[Start, R, Project :: Steps] = {}
 
-    private def stubList[T]: List[T] = List[T]()
-
     def project[A,
                 AZ[+Z] <: ClassType[Z],
                 B,
@@ -1576,65 +1574,106 @@ object Traversal
 sealed trait Mapper[G[_], Containers <: HList, T] {
   type F[_]
   type Out
-  type FT <: FTraversal[F, G, Out]
+  type FT <: Result[F, G, Out]
 
   def apply(segments: List[Segment[HList]], graph: Graph): FT
 }
 object Mapper {
 //  type Aux[G[_], Out, F0] = Mapper[G, Out] { type F = F0 }
   implicit def groupedStream[K, V, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                                   ev: Container <:< Group[_, _]) =
+                                                                   ev: GroupedResult.IsGrouped[Container]) =
     new Mapper[Stream, Container :: Containers, (K, V)] {
       type F[_] = Coeval[_]
       type Out  = (K, V)
-      type FT   = SyncGroupedTraversal[K, V]
+      type FT   = SyncGroupedResult[K, V]
 
       def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        SyncGroupedTraversal[K, V](segments, graph)
+        SyncGroupedResult[K, V](segments, graph)
     }
 
   implicit def streamh[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                          ev: Container <:!< Group[_, _]) =
+                                                          ev: ListResult.IsList[Container]) =
     new Mapper[Stream, Container :: Containers, T] {
       type F[_] = Coeval[_]
       type Out  = T
-      type FT   = SyncTraversal[T]
+      type FT   = SyncListResult[T]
 
       def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        SyncTraversal[T](segments, graph)
+        SyncListResult[T](segments, graph)
+    }
+  implicit def streamone[T, Container, Containers <: HList](implicit guide: Guide[Stream],
+                                                            ev: OneResult.IsOne[Container]) =
+    new Mapper[Stream, Container :: Containers, T] {
+      type F[_] = Coeval[_]
+      type Out  = T
+      type FT   = SyncOneResult[T]
+
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        SyncOneResult[T](segments, graph)
+    }
+  implicit def streamzeroorone[T, Container, Containers <: HList](implicit guide: Guide[Stream],
+                                                                  ev: ZeroOrOneResult.IsZeroOrOne[Container]) =
+    new Mapper[Stream, Container :: Containers, T] {
+      type F[_] = Coeval[_]
+      type Out  = T
+      type FT   = SyncZeroOrOneResult[T]
+
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        SyncZeroOrOneResult[T](segments, graph)
     }
   implicit def stream[T](implicit guide: Guide[Stream]) = new Mapper[Stream, HNil, T] {
     type F[_] = Coeval[_]
     type Out  = T
-    type FT   = SyncTraversal[T]
+    type FT   = SyncListResult[T]
 
     def apply(segments: List[Segment[HList]], graph: Graph): FT =
-      SyncTraversal[T](segments, graph)
+      SyncListResult[T](segments, graph)
   }
+
   implicit def groupedObservable[K, V, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                       ev: Container <:< Group[_, _]) =
+                                                                       ev: GroupedResult.IsGrouped[Container]) =
     new Mapper[Observable, Container :: Containers, (K, V)] {
       type F[_] = Task[_]
       type Out  = (K, V)
-      type FT   = AsyncGroupedTraversal[K, V]
+      type FT   = AsyncGroupedResult[K, V]
       def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        AsyncGroupedTraversal[K, V](segments, graph)
+        AsyncGroupedResult[K, V](segments, graph)
     }
   implicit def observableh[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                              ev: Container <:!< Group[_, _]) =
+                                                              ev: ListResult.IsList[Container]) =
     new Mapper[Observable, Container :: Containers, T] {
       type F[_] = Task[_]
       type Out  = T
-      type FT   = AsyncTraversal[T]
+      type FT   = AsyncListResult[T]
       def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        AsyncTraversal[T](segments, graph)
+        AsyncListResult[T](segments, graph)
+    }
+  implicit def observableone[T, Container, Containers <: HList](implicit guide: Guide[Observable],
+                                                                ev: OneResult.IsOne[Container]) =
+    new Mapper[Observable, Container :: Containers, T] {
+      type F[_] = Task[_]
+      type Out  = T
+      type FT   = AsyncOneResult[T]
+
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        AsyncOneResult[T](segments, graph)
+    }
+  implicit def observablezeroorone[T, Container, Containers <: HList](implicit guide: Guide[Observable],
+                                                                      ev: ZeroOrOneResult.IsZeroOrOne[Container]) =
+    new Mapper[Observable, Container :: Containers, T] {
+      type F[_] = Task[_]
+      type Out  = T
+      type FT   = AsyncZeroOrOneResult[T]
+
+      def apply(segments: List[Segment[HList]], graph: Graph): FT =
+        AsyncZeroOrOneResult[T](segments, graph)
     }
   implicit def observable[T](implicit guide: Guide[Observable]) = new Mapper[Observable, HNil, T] {
     type F[_] = Task[_]
     type Out  = T
-    type FT   = AsyncTraversal[T]
+    type FT   = AsyncListResult[T]
     def apply(segments: List[Segment[HList]], graph: Graph): FT =
-      AsyncTraversal[T](segments, graph)
+      AsyncListResult[T](segments, graph)
   }
 }
 
