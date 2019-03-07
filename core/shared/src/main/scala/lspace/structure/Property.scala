@@ -408,7 +408,7 @@ class Property(val iri: String,
 
   def container: Option[String] = containers.headOption
 
-  override lazy val extendedClasses: List[Property] = _extendedClasses()
+  override lazy val extendedClasses: List[Property] = _extendedClasses().filterNot(_.`extends`(this))
 
   override def toString: String = s"property:$iri"
 

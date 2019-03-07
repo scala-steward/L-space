@@ -230,7 +230,7 @@ class Ontology(val iri: String,
 //  type Out = Node
 //  type CT  = Ontology
 
-  override lazy val extendedClasses: List[Ontology] = _extendedClasses()
+  override lazy val extendedClasses: List[Ontology] = _extendedClasses().filterNot(_.`extends`(this))
 
   override def toString: String = s"ontology:$iri"
 
