@@ -56,7 +56,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
   lspace.datatype.DataType.datatypes.byIri.clear()
   lspace.datatype.DataType.datatypes.building.clear()
   lazy val samplePersistedGraph = SampledGraph(createGraph("FileStoreManagerSpec-persisted-sample"))
-  Await.ready(samplePersistedGraph.graph.init, 10 seconds)
+  Await.ready(samplePersistedGraph.graph.init, 20 seconds)
 
   "FileStoreManager" when {
     "new" should {
