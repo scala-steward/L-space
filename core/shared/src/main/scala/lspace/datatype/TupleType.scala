@@ -30,8 +30,8 @@ object TupleType extends DataTypeDef[TupleType[Any]] {
 //  }
 
   lazy val datatype = new TupleType[Any] {
-    override lazy val iri: String                               = NS.types.`@tuple`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@tuple`)
+    override lazy val iri: String = NS.types.`@tuple`
+    labelMap = Map("en" -> NS.types.`@tuple`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
   }
 
@@ -116,7 +116,7 @@ class TupleType[+T](val rangeTypes: List[List[ClassType[Any]]] = List()) extends
 //
 //  lazy val datatype = new Tuple2Type[Any, Any](Nil, Nil) {
 //    override lazy val iri: String                               = NS.types.`@tuple` + "2"
-//    override val label: Map[String, String]                     = Map("en" -> s"${NS.types.`@tuple`}2")
+//    labelMap                     = Map("en" -> s"${NS.types.`@tuple`}2")
 //    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
 //  }
 //
@@ -155,7 +155,7 @@ class TupleType[+T](val rangeTypes: List[List[ClassType[Any]]] = List()) extends
 //
 //  lazy val datatype = new Tuple3Type[Any, Any, Any](Nil, Nil, Nil) {
 //    override lazy val iri: String                               = s"${NS.types.`@tuple`}3"
-//    override val label: Map[String, String]                     = Map("en" -> s"${NS.types.`@tuple`}3")
+//    labelMap                     = Map("en" -> s"${NS.types.`@tuple`}3")
 //    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
 //  }
 //
@@ -211,7 +211,7 @@ class TupleType[+T](val rangeTypes: List[List[ClassType[Any]]] = List()) extends
 //
 //  lazy val datatype = new Tuple4Type[Any, Any, Any, Any](Nil, Nil, Nil, Nil) {
 //    override lazy val iri: String                               = s"${NS.types.`@tuple`}4"
-//    override val label: Map[String, String]                     = Map("en" -> s"${NS.types.`@tuple`}4")
+//    labelMap                     = Map("en" -> s"${NS.types.`@tuple`}4")
 //    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
 //  }
 //

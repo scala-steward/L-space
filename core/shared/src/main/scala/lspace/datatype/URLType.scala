@@ -7,8 +7,8 @@ import lspace.structure._
 object NodeURLType extends DataTypeDef[NodeURLType[Node]] {
 
   lazy val datatype = new NodeURLType[Node] {
-    val iri: String                                             = NS.types.`@nodeURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@nodeURL`)
+    val iri: String = NS.types.`@nodeURL`
+    labelMap = Map("en" -> NS.types.`@nodeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 
@@ -24,8 +24,8 @@ object NodeURLType extends DataTypeDef[NodeURLType[Node]] {
     }
 
   def apply[T]: NodeURLType[T] = new NodeURLType[T] {
-    val iri: String                                             = NS.types.`@nodeURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@nodeURL`)
+    val iri: String = NS.types.`@nodeURL`
+    labelMap = Map("en" -> NS.types.`@nodeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 }
@@ -35,8 +35,8 @@ trait NodeURLType[+T] extends IriType[T]
 object EdgeURLType extends DataTypeDef[EdgeURLType[Edge[Any, Any]]] {
 
   lazy val datatype = new EdgeURLType[Edge[Any, Any]] {
-    val iri: String                                             = NS.types.`@edgeURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@edgeURL`)
+    val iri: String = NS.types.`@edgeURL`
+    labelMap = Map("en" -> NS.types.`@edgeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 
@@ -52,8 +52,8 @@ object EdgeURLType extends DataTypeDef[EdgeURLType[Edge[Any, Any]]] {
     }
 
   def apply[T <: Edge[_, _]]: EdgeURLType[T] = new EdgeURLType[T] {
-    val iri: String                                             = NS.types.`@edgeURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@edgeURL`)
+    val iri: String = NS.types.`@edgeURL`
+    labelMap = Map("en" -> NS.types.`@edgeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 }
@@ -63,8 +63,8 @@ trait EdgeURLType[+T] extends IriType[T]
 object ValueURLType extends DataTypeDef[ValueURLType[Any]] {
 
   lazy val datatype = new ValueURLType[Any] {
-    val iri: String                                             = NS.types.`@valueURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@valueURL`)
+    val iri: String = NS.types.`@valueURL`
+    labelMap = Map("en" -> NS.types.`@valueURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 
@@ -80,8 +80,8 @@ object ValueURLType extends DataTypeDef[ValueURLType[Any]] {
     }
 
   def apply[T]: ValueURLType[T] = new ValueURLType[T] {
-    val iri: String                                             = NS.types.`@valueURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@valueURL`)
+    val iri: String = NS.types.`@valueURL`
+    labelMap = Map("en" -> NS.types.`@valueURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 }

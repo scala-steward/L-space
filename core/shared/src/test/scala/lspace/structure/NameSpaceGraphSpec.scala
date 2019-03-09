@@ -30,8 +30,9 @@ trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         graph.ns.classtypes.cached(types.`@property`).isDefined shouldBe true
       }
       "store and retrieve an ontology" in {
-        val unknownOntology = Ontology("unknownOntology", extendedClasses = List(DataType.ontology))
-        graph.ns.ontologies.cached(unknownOntology.iri).isEmpty shouldBe true
+        val unknownOntology = Ontology("unknownOntology")
+        unknownOntology.extendedClasses + DataType.ontology
+        graph.ns.ontologies.cached(unknownOntology.iri).isDefined shouldBe true
 
         graph.ns.ontologies
           .store(unknownOntology)
@@ -40,7 +41,6 @@ trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             node.labels.size shouldBe 1
             node.iri shouldBe unknownOntology.iri
 
-            graph.ns.ontologies.cached(unknownOntology.iri).isDefined shouldBe true
             graph.ns.ontologies.all.contains(unknownOntology) shouldBe true
             graph.ns.nodes.hasIri(unknownOntology.iri).contains(node) shouldBe true
           }

@@ -28,7 +28,7 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     * @return the compacted iri and a new context with possible additional prefixes
     */
   def compactIri(key: ClassType[_], language: String = "en"): (String, ActiveContext) = {
-    key.label.get(`@language`.headOption.getOrElse(language)) match {
+    key.label(`@language`.headOption.getOrElse(language)) match {
       case Some(label) if label.nonEmpty =>
         val uriBase = key.iri.stripSuffix(label)
         if (uriBase.nonEmpty && uriBase != key.iri) {
@@ -74,7 +74,6 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
               `@vocab`.toStream
                 .map(_ + term)
                 .flatMap(ClassType.classtypes.get) //search vocabularies for matching terms, requires pre-fetching vocabularies or try assembled iri's (@vocab-iri + term)
-                .map(_.value())
                 .headOption
                 .map(_.iri)
             )
@@ -96,7 +95,7 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     definitions
       .get(property.iri)
       .flatMap(_.`@type`.headOption)
-      .orElse(property.range.headOption)
+      .orElse(property.range().headOption)
 
 //  def jsonToString(json: Json): Option[String]
 //  def jsonToArray(json: Json): Option[List[Json]]

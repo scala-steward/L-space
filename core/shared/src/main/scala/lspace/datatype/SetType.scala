@@ -8,8 +8,8 @@ import lspace.util.types.DefaultsToAny
 object SetType extends DataTypeDef[SetType[Any]] {
 
   lazy val datatype = new SetType[Any](Nil) {
-    val iri: String                                             = NS.types.`@set`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@set`)
+    val iri: String = NS.types.`@set`
+    labelMap = Map("en" -> NS.types.`@set`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
   }
 

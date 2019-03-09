@@ -7,8 +7,8 @@ import lspace.structure.Ontology
 object StructuredType extends DataTypeDef[StructuredType[Any]] {
 
   lazy val datatype: StructuredType[Any] = new StructuredType[Any] {
-    val iri: String                                             = NS.types.`@structured`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@structured`)
+    val iri: String = NS.types.`@structured`
+    labelMap = Map("en" -> NS.types.`@structured`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
   }
 
@@ -17,8 +17,8 @@ object StructuredType extends DataTypeDef[StructuredType[Any]] {
 //    Ontology(NS.types.`@structured`, extendedClasses = List(DataType.ontology))
 
   def apply[T]: StructuredType[T] = new StructuredType[T] {
-    val iri: String                                             = NS.types.`@structured`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@structured`)
+    val iri: String = NS.types.`@structured`
+    labelMap = Map("en" -> NS.types.`@structured`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
   }
 

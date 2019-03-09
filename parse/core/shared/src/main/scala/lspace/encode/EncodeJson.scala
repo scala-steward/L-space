@@ -16,7 +16,7 @@ object EncodeJson {
         .outEMap()
         .map {
           case (property, edges) =>
-            property.label.get("en").getOrElse(property.iri) -> (edges match {
+            property.label("en").getOrElse(property.iri) -> (edges match {
               case List(edge) =>
                 encoder.fromAny(edge.to, edge.to.labels.headOption)(ActiveContext()).json
               case edges =>

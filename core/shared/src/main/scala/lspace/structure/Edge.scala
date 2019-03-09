@@ -13,8 +13,8 @@ object Edge {
   }
 
   lazy val edgeUrl = new EdgeURLType[Edge[Any, Any]] {
-    val iri: String                                             = NS.types.`@edgeURL`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@edgeURL`)
+    val iri: String = NS.types.`@edgeURL`
+    labelMap = Map("en" -> NS.types.`@edgeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
 }

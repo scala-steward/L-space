@@ -35,12 +35,6 @@ trait Resource[+T] extends IriResource {
   def self: Resource[T] = this
 
   /**
-    * @id is a IRI/URI identifier
-    * @return a String which is empty if no @id is assigned, TODO: should this be an Option[String]?
-    */
-  def `@id`: String = iri
-
-  /**
     * alias for `@id`
     * @return
     */

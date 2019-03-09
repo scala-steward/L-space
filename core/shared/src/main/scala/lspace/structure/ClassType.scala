@@ -1,6 +1,6 @@
 package lspace.structure
 
-import java.time.{Instant, LocalDate, LocalTime}
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.datatype._
 import lspace.structure.util.ClassTypeable
@@ -13,21 +13,22 @@ object ClassType {
 
   def valueToOntologyResource[T](value: T): DataType[T] = {
     (value match {
-      case r: Node        => DataType.default.`@nodeURL`
-      case r: Edge[_, _]  => DataType.default.`@edgeURL`
-      case r: Value[_]    => DataType.default.`@valueURL`
-      case r: Ontology    => DataType.default.`@class`
-      case r: Property    => DataType.default.`@property`
-      case r: DataType[_] => DataType.default.`@datatype`
-      case r: IriResource => DataType.default.`@url`
-      case v: String      => DataType.default.`@string`
-      case v: Int         => DataType.default.`@int`
-      case v: Double      => DataType.default.`@double`
-      case v: Long        => DataType.default.`@long`
-      case v: Instant     => DataType.default.`@datetime`
-      case v: LocalDate   => DataType.default.`@date`
-      case v: LocalTime   => DataType.default.`@time`
-      case v: Boolean     => DataType.default.`@boolean`
+      case r: Node          => DataType.default.`@nodeURL`
+      case r: Edge[_, _]    => DataType.default.`@edgeURL`
+      case r: Value[_]      => DataType.default.`@valueURL`
+      case r: Ontology      => DataType.default.`@class`
+      case r: Property      => DataType.default.`@property`
+      case r: DataType[_]   => DataType.default.`@datatype`
+      case r: IriResource   => DataType.default.`@url`
+      case v: String        => DataType.default.`@string`
+      case v: Int           => DataType.default.`@int`
+      case v: Double        => DataType.default.`@double`
+      case v: Long          => DataType.default.`@long`
+      case v: Instant       => DataType.default.`@datetime`
+      case v: LocalDateTime => DataType.default.`@localdatetime`
+      case v: LocalDate     => DataType.default.`@date`
+      case v: LocalTime     => DataType.default.`@time`
+      case v: Boolean       => DataType.default.`@boolean`
       case v: Geometry =>
         v match {
           case v: Point         => DataType.default.`@geopoint`
@@ -54,34 +55,37 @@ object ClassType {
 
   object classtypes {
     def all: List[ClassType[_]] = Ontology.ontologies.all ++ Property.properties.all ++ DataType.datatypes.all
-    def get(iri: String): Option[Coeval[ClassType[_]]] = {
+    def get(iri: String): Option[ClassType[_]] = {
       Ontology.ontologies.get(iri).orElse(Property.properties.get(iri)).orElse(DataType.datatypes.get(iri))
     }
 
-    def getOrBuild(node: Node): Coeval[ClassType[Any]] = {
+    def getAndUpdate(node: Node): ClassType[Any] = {
       if (node.hasLabel(Ontology.ontology).nonEmpty) {
-        if (node.hasLabel(DataType.ontology).nonEmpty) DataType.datatypes.getOrBuild(node)
-        else Ontology.ontologies.getOrBuild(node)
+        if (node.hasLabel(DataType.ontology).nonEmpty) DataType.datatypes.getAndUpdate(node)
+        else Ontology.ontologies.getAndUpdate(node)
       } else if (node.hasLabel(Property.ontology).nonEmpty) {
-        Property.properties.getOrBuild(node)
+        Property.properties.getAndUpdate(node)
       } else {
-        Coeval.raiseError(new Exception(s"${node.iri} does not look like a classtype ${node.out()}"))
+        throw new Exception(s"${node.iri} does not look like a classtype ${node.out()}")
       }
     }
 
-    def cached(iri: String): Option[ClassType[_]] =
-      Ontology.ontologies.cached(iri).orElse(Property.properties.cached(iri)).orElse(DataType.datatypes.cached(iri))
+//    def cached(iri: String): Option[ClassType[_]] =
+//      Ontology.ontologies.cached(iri).orElse(Property.properties.cached(iri)).orElse(DataType.datatypes.cached(iri))
   }
 
   def makeT[T]: ClassType[T] = new ClassType[T] {
 
-    val iri: String                                    = ""
-    val iris: Set[String]                              = Set()
-    val label: Map[String, String]                     = Map()
-    val comment: Map[String, String]                   = Map()
-    val _extendedClasses: () => List[_ <: DataType[_]] = () => List()
-    val _properties: () => List[Property]              = () => List()
-    val base: Option[String]                           = None
+    val iri: String       = ""
+    val iris: Set[String] = Set()
+
+    //    val _extendedClasses: () => List[_ <: DataType[_]] = () => List()
+    object extendedClasses {
+      def apply(): List[ClassType[Any]] = List()
+      def apply(iri: String): Boolean   = false
+    }
+//    val _properties: () => List[Property]              = () => List()
+//    val base: Option[String] = None
 
     override def toString: String = s"classtype:$iri"
   }
@@ -105,10 +109,11 @@ object ClassType {
 trait ClassType[+T] extends IriResource {
 
   def iris: Set[String]
+  def `@ids` = iris
 
-  protected def _properties: () => List[Property]
+//  protected def _properties: () => List[Property]
 
-  protected def _extendedClasses: () => List[_ <: ClassType[_]]
+//  protected def _extendedClasses: () => List[_ <: ClassType[_]]
 
   //  def extendedClasses: List[ClassType[_]] // = out(DataType.default.EXTENDS).collect { case node: Node => node }.map(ClassType.wrap).asInstanceOf[List[ClassType[_]]]
   /**
@@ -117,41 +122,97 @@ trait ClassType[+T] extends IriResource {
     * @return
     */
   def `extends`(classType: ClassType[_]): Boolean = {
-    if (extendedClasses.contains(classType)) true
+    if (extendedClasses().contains(classType)) true
     else {
       var result: Boolean = false
-      val oIt             = extendedClasses.reverseIterator
+      val oIt             = extendedClasses().reverseIterator
       while (oIt.hasNext && !result) {
         result = oIt.next().`extends`(classType)
       }
       result
     }
   }
+  def `@extends`(classType: ClassType[_]) = `extends`(classType)
 
-  def property(iri: String): Option[Property] = {
-    properties
-      .find(_.iri == iri)
-      .orElse {
-        var result: Option[Property] = None
-        val oIt                      = extendedClasses.reverseIterator
-        while (oIt.hasNext && result.isEmpty) {
-          result = oIt.next().property(iri)
-        }
-        result
+  @deprecated(s"migrate to properties(iri: String)")
+  def property(iri: String): Option[Property]    = properties(iri)
+  def `@property`(iri: String): Option[Property] = properties(iri)
+
+  protected var propertiesList
+    : Coeval[Set[Property]] = Coeval.now(Set[Property]()).memoizeOnSuccess //_properties().toSet ++ extendedClasses.flatMap(_.properties)
+  object properties {
+    def apply(): Set[Property] = propertiesList()
+    def apply(iri: String): Option[Property] = propertiesList().find(_.iris.contains(iri)).orElse {
+      var result: Option[Property] = None
+      val oIt                      = extendedClasses().reverseIterator
+      while (oIt.hasNext && result.isEmpty) {
+        result = oIt.next().properties(iri)
       }
+      result
+    }
+    def +(property: Property): this.type = this.synchronized {
+      propertiesList = propertiesList.map(_ + property).memoizeOnSuccess
+      this
+    }
+    def ++(properties: Iterable[Property]): this.type = this.synchronized {
+      propertiesList = propertiesList.map(_ ++ properties).memoizeOnSuccess
+      this
+    }
+    def -(property: Property): this.type = this.synchronized {
+      propertiesList = propertiesList.map(_ - property).memoizeOnSuccess
+      this
+    }
+    def --(properties: Iterable[Property]): this.type = this.synchronized {
+      propertiesList = propertiesList.map(_ -- properties).memoizeOnSuccess
+      this
+    }
   }
-
-  lazy val properties: Set[Property] = _properties().toSet ++ extendedClasses.flatMap(_.properties)
+  def `@properties` = properties
 
   /**
     * TODO: create hash-tree for faster evaluation
     * @return
     */
-  lazy val extendedClasses: List[_ <: ClassType[_]] = _extendedClasses()
+//  def extendedClasses: List[ClassType[Any]] // = _extendedClasses()
+//  trait Extends {
+//    def apply(): List[ClassType[Any]]
+//    def apply(iri: String): Boolean
+//  }
+  def extendedClasses: {
+    def apply(): List[ClassType[Any]]
+    def apply(iri: String): Boolean
+  }
 
-  def label: Map[String, String]
+  protected var labelMap: Map[String, String] = Map()
+  object label {
+    def apply(): Map[String, String] = labelMap
+    def apply(iri: String)           = labelMap.get(iri)
+    def +(language: String = "en", label: String): this.type = this.synchronized {
+      labelMap = labelMap + (language -> label)
+      this
+    }
+    def ++(label: Map[String, String]): this.type = this.synchronized {
+      labelMap = labelMap ++ label
+      this
+    }
+  }
+  def `@label` = label
 
-  def comment: Map[String, String]
+  protected var commentMap: Map[String, String] = Map()
+  object comment {
+    def apply(): Map[String, String] = commentMap
+    def apply(iri: String)           = commentMap.get(iri)
+    def +(language: String = "en", comment: String): this.type = this.synchronized {
+      commentMap = commentMap + (language -> comment)
+      this
+    }
+    def ++(label: Map[String, String]): this.type = this.synchronized {
+      commentMap = commentMap ++ label
+      this
+    }
+  }
+  def `@comment` = comment
 
-  def base: Option[String]
+//  def base: Option[String]
+//  def `@base` = base
 }

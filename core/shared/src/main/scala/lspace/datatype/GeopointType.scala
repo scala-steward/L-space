@@ -8,8 +8,8 @@ import lspace.types.vector._
 object GeopointType extends DataTypeDef[GeopointType[Point]] {
 
   lazy val datatype: GeopointType[Point] = new GeopointType[Point] {
-    val iri: String                                             = NS.types.`@geopoint`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geopoint`)
+    val iri: String = NS.types.`@geopoint`
+    labelMap = Map("en" -> NS.types.`@geopoint`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 
@@ -29,8 +29,8 @@ trait GeopointType[+T] extends GeometricType[T]
 object GeoMultipointType extends DataTypeDef[GeoMultipointType[MultiPoint]] {
 
   lazy val datatype: GeoMultipointType[MultiPoint] = new GeoMultipointType[MultiPoint] {
-    val iri: String                                             = NS.types.`@geomultipoint`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultipoint`)
+    val iri: String = NS.types.`@geomultipoint`
+    labelMap = Map("en" -> NS.types.`@geomultipoint`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 
@@ -51,8 +51,8 @@ trait GeoMultipointType[+T] extends GeometricType[T]
 object GeoLineType extends DataTypeDef[GeoLineType[Line]] {
 
   lazy val datatype: GeoLineType[Line] = new GeoLineType[Line] {
-    val iri: String                                             = NS.types.`@geoline`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geoline`)
+    val iri: String = NS.types.`@geoline`
+    labelMap = Map("en" -> NS.types.`@geoline`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 
@@ -72,8 +72,8 @@ trait GeoLineType[+T] extends GeometricType[T]
 object GeoMultiLineType extends DataTypeDef[GeoMultiLineType[MultiLine]] {
 
   lazy val datatype: GeoMultiLineType[MultiLine] = new GeoMultiLineType[MultiLine] {
-    val iri: String                                             = NS.types.`@geomultiline`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultiline`)
+    val iri: String = NS.types.`@geomultiline`
+    labelMap = Map("en" -> NS.types.`@geomultiline`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 
@@ -93,8 +93,8 @@ trait GeoMultiLineType[+T] extends GeometricType[T]
 object GeoPolygonType extends DataTypeDef[GeoPolygonType[Polygon]] {
 
   lazy val datatype: GeoPolygonType[Polygon] = new GeoPolygonType[Polygon] {
-    val iri: String                                             = NS.types.`@geopolygon`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geopolygon`)
+    val iri: String = NS.types.`@geopolygon`
+    labelMap = Map("en" -> NS.types.`@geopolygon`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 
@@ -114,8 +114,8 @@ trait GeoPolygonType[+T] extends GeometricType[T]
 object GeoMultiPolygonType extends DataTypeDef[GeoMultiPolygonType[MultiPolygon]] {
 
   lazy val datatype: GeoMultiPolygonType[MultiPolygon] = new GeoMultiPolygonType[MultiPolygon] {
-    val iri: String                                             = NS.types.`@geomultipolygon`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultipolygon`)
+    val iri: String = NS.types.`@geomultipolygon`
+    labelMap = Map("en" -> NS.types.`@geomultipolygon`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 
@@ -136,8 +136,8 @@ trait GeoMultiPolygonType[+T] extends GeometricType[T]
 object GeoMultiGeometryType extends DataTypeDef[GeoMultiGeometryType[MultiGeometry]] {
 
   lazy val datatype: GeoMultiGeometryType[MultiGeometry] = new GeoMultiGeometryType[MultiGeometry] {
-    val iri: String                                             = NS.types.`@geomultigeometry`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@geomultigeometry`)
+    val iri: String = NS.types.`@geomultigeometry`
+    labelMap = Map("en" -> NS.types.`@geomultigeometry`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }
 

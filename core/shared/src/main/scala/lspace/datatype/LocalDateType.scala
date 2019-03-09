@@ -9,9 +9,9 @@ import lspace.structure.Property
 object LocalDateType extends DataTypeDef[LocalDateType[LocalDate]] {
 
   lazy val datatype: LocalDateType[LocalDate] = new LocalDateType[LocalDate] {
-    val iri: String                                             = NS.types.`@date`
-    override val iris: Set[String]                              = Set(NS.types.schemaDate)
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@date`)
+    val iri: String                = NS.types.`@date`
+    override val iris: Set[String] = Set(NS.types.schemaDate)
+    labelMap = Map("en" -> NS.types.`@date`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType.datatype)
   }
 

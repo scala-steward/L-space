@@ -8,8 +8,8 @@ import lspace.util.types.DefaultsToAny
 object VectorType extends DataTypeDef[VectorType[Any]] {
 
   lazy val datatype = new VectorType[Any](Nil) {
-    val iri: String                                             = NS.types.`@vector`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@vector`)
+    val iri: String = NS.types.`@vector`
+    labelMap = Map("en" -> NS.types.`@vector`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
   }
 

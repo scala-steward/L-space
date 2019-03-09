@@ -50,9 +50,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
   Await.ready(graphToPersist.graph.close(), 10 seconds)
 
   lspace.structure.Ontology.ontologies.byIri.clear()
-  lspace.structure.Ontology.ontologies.building.clear()
   lspace.structure.Property.properties.byIri.clear()
-  lspace.structure.Property.properties.building.clear()
   lspace.datatype.DataType.datatypes.byIri.clear()
   lspace.datatype.DataType.datatypes.building.clear()
   lazy val samplePersistedGraph = SampledGraph(createGraph("FileStoreManagerSpec-persisted-sample"))

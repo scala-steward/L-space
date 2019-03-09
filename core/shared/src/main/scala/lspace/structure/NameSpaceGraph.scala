@@ -35,21 +35,21 @@ trait NameSpaceGraph extends DataGraph {
             }
         }
 
-    def get(node: Node): Coeval[ClassType[_]] = node.labels match {
+    def get(node: Node): ClassType[_] = node.labels match {
       case l if l.contains(DataType.ontology) =>
-        datatypes.cached(iri).map(Coeval.now).getOrElse {
-          DataType.datatypes.getOrBuild(node)
+        datatypes.cached(iri).getOrElse {
+          DataType.datatypes.getAndUpdate(node)
         }
       case l if l.contains(Property.ontology) =>
-        properties.cached(iri).map(Coeval.now).getOrElse {
-          Property.properties.getOrBuild(node)
+        properties.cached(iri).getOrElse {
+          Property.properties.getAndUpdate(node)
         }
       case l if l.contains(Ontology.ontology) =>
-        ontologies.cached(iri).map(Coeval.now).getOrElse {
-          Ontology.ontologies.getOrBuild(node)
+        ontologies.cached(iri).getOrElse {
+          Ontology.ontologies.getAndUpdate(node)
         }
       case _ =>
-        Coeval.raiseError(new Exception(s"could not find class-type ${node.iri}"))
+        throw new Exception(s"could not find class-type ${node.iri}")
     }
 
     def cached(iri: String): Option[ClassType[_]] =
@@ -75,6 +75,7 @@ trait NameSpaceGraph extends DataGraph {
     def get(iri: String): Task[Option[Ontology]] = {
       Ontology.ontologies
         .get(iri)
+        .map(Coeval.now)
         .map(_.map(Some(_)))
         .getOrElse(
           nodeStore
@@ -82,8 +83,9 @@ trait NameSpaceGraph extends DataGraph {
             .find(_.hasLabel(Ontology.ontology).isDefined)
             .find(_.hasLabel(DataType.ontology).isEmpty)
             .map { node =>
-              Ontology.ontologies
-                .getOrBuild(node)
+              Coeval
+                .now(Ontology.ontologies
+                  .getAndUpdate(node))
                 .map { ontology =>
                   byId += node.id   -> ontology
                   byIri += node.iri -> node
@@ -109,8 +111,9 @@ trait NameSpaceGraph extends DataGraph {
             .filter(_.hasLabel(Ontology.ontology).isDefined)
             .find(_.hasLabel(DataType.ontology).isEmpty)
             .map { node =>
-              Ontology.ontologies
-                .getOrBuild(node)
+              Coeval
+                .now(Ontology.ontologies
+                  .getAndUpdate(node))
                 .map { ontology =>
                   byId += node.id   -> ontology
                   byIri += node.iri -> node
@@ -132,7 +135,7 @@ trait NameSpaceGraph extends DataGraph {
         .orElse(byId.get(id))
 
     def cached(iri: String): Option[Ontology] =
-      Ontology.ontologies.cached(iri)
+      Ontology.ontologies.get(iri)
 //        .orElse(byIri.get(iri))
 
     def store(ontology: Ontology): Task[Node] = {
@@ -163,7 +166,7 @@ trait NameSpaceGraph extends DataGraph {
                   node
                 }
                 .getOrElse {
-                  Ontology.ontologies.cache(ontology)
+//                  Ontology.ontologies.cache(ontology)
                   nodes.create(Ontology.ontology)
                 }
 
@@ -178,13 +181,13 @@ trait NameSpaceGraph extends DataGraph {
 
               for {
 //                properties      <- Task.gather(ontology.properties.map(ns.properties.store))
-                extendedClasses <- Task.gather(ontology.extendedClasses.map(ns.ontologies.store))
+                extendedClasses <- Task.gather(ontology.extendedClasses().map(ns.ontologies.store))
               } yield {
-                ontology.label.foreach {
+                ontology.label().foreach {
                   case (language, label) =>
                     node.addOut(Property.default.`@label`, label).addOut(Property.default.`@language`, language)
                 }
-                ontology.comment.foreach {
+                ontology.comment().foreach {
                   case (language, comment) =>
                     node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
                 }
@@ -194,9 +197,6 @@ trait NameSpaceGraph extends DataGraph {
 //                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
                 node.addOut(Label.P.`@extends`, extendedClasses)
 //                ontology.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
-                ontology.base.foreach { base =>
-                  node.addOut(Property.default.`@base`, base)
-                }
 
                 node
               }
@@ -216,6 +216,7 @@ trait NameSpaceGraph extends DataGraph {
     def get(iri: String): Task[Option[Property]] = {
       Property.properties
         .get(iri)
+        .map(Coeval.now)
         .map(_.map(Some(_)))
         .getOrElse(
           nodeStore
@@ -223,8 +224,9 @@ trait NameSpaceGraph extends DataGraph {
             .find(_.hasLabel(Property.ontology).isDefined)
 //            .filter(_.out(lspace.Label.P.`@label`).nonEmpty)
             .map { node =>
-              Property.properties
-                .getOrBuild(node)
+              Coeval
+                .now(Property.properties
+                  .getAndUpdate(node))
                 .map { property =>
                   byId += node.id   -> property
                   byIri += node.iri -> node
@@ -247,8 +249,9 @@ trait NameSpaceGraph extends DataGraph {
             .hasId(id)
             .filter(_.hasLabel(Property.ontology).isDefined)
             .map { node =>
-              Property.properties
-                .getOrBuild(node)
+              Coeval
+                .now(Property.properties
+                  .getAndUpdate(node))
                 .map { property =>
                   byId += node.id   -> property
                   byIri += node.iri -> node
@@ -270,7 +273,7 @@ trait NameSpaceGraph extends DataGraph {
         .orElse(byId.get(id))
 
     def cached(iri: String): Option[Property] =
-      Property.properties.cached(iri)
+      Property.properties.get(iri)
 
     def store(property: Property): Task[Node] = {
       byIri.get(property.iri).map(Task.now).getOrElse {
@@ -300,7 +303,7 @@ trait NameSpaceGraph extends DataGraph {
                   node
                 }
                 .getOrElse {
-                  Property.properties.cache(property)
+//                  Property.properties.cache(property)
                   nodes.create(Property.ontology)
                 }
 
@@ -314,20 +317,17 @@ trait NameSpaceGraph extends DataGraph {
               }
 
               for {
-                range <- Task.gather(property.range.map(classtypes.store))
+                range <- Task.gather(property.range().map(classtypes.store))
 //                properties      <- Task.gather(property.properties.map(ns.properties.store))
-                extendedClasses <- Task.gather(property.extendedClasses.map(ns.properties.store))
+                extendedClasses <- Task.gather(property.extendedClasses().map(ns.properties.store))
               } yield {
 
                 node.addOut(Property.default.typed.rangeListClassType, range)
-                property.containers.foreach { container =>
-                  node.addOut(default.`@container`, container)
-                }
-                property.label.foreach {
+                property.label().foreach {
                   case (language, label) =>
                     node.addOut(Property.default.`@label`, label).addOut(Property.default.`@language`, language)
                 }
-                property.comment.foreach {
+                property.comment().foreach {
                   case (language, comment) =>
                     node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
                 }
@@ -337,9 +337,6 @@ trait NameSpaceGraph extends DataGraph {
 //                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
                 node.addOut(Label.P.`@extends`, extendedClasses)
                 //                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
-                property.base.foreach { base =>
-                  node.addOut(Property.default.`@base`, base)
-                }
                 node
               }
             }
@@ -348,20 +345,20 @@ trait NameSpaceGraph extends DataGraph {
     }
 
     /** Gets all properties which extend key */
-    def extending(key: Property): Task[List[Property]] =
-      lspace.g.N
-        .hasIri(key.iri)
-        .repeat(_.in(_.`@extends`), collect = true)()
-        .hasLabel(Property.ontology)
-        .withGraph(thisgraph)
-        .toListF
-        .flatMap { nodes =>
-          Coeval
-            .sequence(nodes.distinct.map { node =>
-              cached(node.iri).map(node => Coeval.now(node)).getOrElse(Property.properties.getOrBuild(node))
-            })
-            .task
-        }
+//    def extending(key: Property): Task[List[Property]] =
+//      lspace.g.N
+//        .hasIri(key.iri)
+//        .repeat(_.in(_.`@extends`), collect = true)()
+//        .hasLabel(Property.ontology)
+//        .withGraph(thisgraph)
+//        .toListF
+//        .flatMap { nodes =>
+//          Coeval
+//            .sequence(nodes.distinct.map { node =>
+//              cached(node.iri).map(node => Coeval.now(node)).getOrElse(Property.properties.getAndUpdate(node))
+//            })
+//            .task
+//        }
   }
   val properties = new Properties {}
 
@@ -374,14 +371,16 @@ trait NameSpaceGraph extends DataGraph {
     def get[T: DefaultsToAny](iri: String): Task[Option[DataType[T]]] =
       DataType.datatypes
         .get(iri)
+        .map(Coeval.now)
         .map(_.map(_.asInstanceOf[DataType[T]]).map(Some(_)))
         .getOrElse(
           nodeStore
             .hasIri(iri)
             .find(_.hasLabel(DataType.ontology).isDefined)
             .map { node =>
-              DataType.datatypes
-                .getOrBuild(node)
+              Coeval
+                .now(DataType.datatypes
+                  .getAndUpdate(node))
                 .map(_.asInstanceOf[DataType[T]])
                 .map(Some(_))
             }
@@ -396,8 +395,9 @@ trait NameSpaceGraph extends DataGraph {
             .hasId(id)
             .filter(_.hasLabel(DataType.ontology).isDefined)
             .map { node =>
-              DataType.datatypes
-                .getOrBuild(node)
+              Coeval
+                .now(DataType.datatypes
+                  .getAndUpdate(node))
                 .map(_.asInstanceOf[DataType[T]])
                 .map(Some(_))
             }
@@ -412,7 +412,7 @@ trait NameSpaceGraph extends DataGraph {
         .orElse(byId.get(id))
 
     def cached(iri: String): Option[DataType[_]] =
-      DataType.datatypes.cached(iri)
+      DataType.datatypes.get(iri)
     //        .orElse(byIri.get(iri))
 
     def store(datatype: DataType[_]): Task[Node] = {
@@ -443,7 +443,7 @@ trait NameSpaceGraph extends DataGraph {
                   node
                 }
                 .getOrElse {
-                  DataType.datatypes.cache(datatype)
+//                  DataType.datatypes.cache(datatype)
                   nodes.create(DataType.ontology)
                 }
 
@@ -489,11 +489,11 @@ trait NameSpaceGraph extends DataGraph {
                 case _ =>
                   throw new Exception(s"datatype not found?! ${datatype.iri}")
               }
-              datatype.label.foreach {
+              datatype.label().foreach {
                 case (language, label) =>
                   node.addOut(Property.default.`@label`, label).addOut(Property.default.`@language`, language)
               }
-              datatype.comment.foreach {
+              datatype.comment().foreach {
                 case (language, comment) =>
                   node.addOut(Property.default.`@comment`, comment).addOut(Property.default.`@language`, language)
               }
@@ -501,9 +501,9 @@ trait NameSpaceGraph extends DataGraph {
 //              datatype.properties.foreach(node.addOut(Label.P.`@properties`, _))
 
 //              datatype.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
-              node.addOut(Label.P.`@extends`, datatype.extendedClasses)
+              node.addOut(Label.P.`@extends`, datatype.extendedClasses())
 
-              Task.gather(datatypeTasks ++ datatype.extendedClasses.map(ns.datatypes.store)).map { edges =>
+              Task.gather(datatypeTasks ++ datatype.extendedClasses().map(ns.datatypes.store)).map { edges =>
                 node
               }
             }

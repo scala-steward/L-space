@@ -7,8 +7,8 @@ import lspace.structure.Property
 object ColorType extends DataTypeDef[ColorType[Any]] { //TODO RgbType, CMYK, PMS, NamedColor
 
   val datatype: ColorType[Any] = new ColorType[Any] {
-    val iri: String                                             = NS.types.`@color`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@color`)
+    val iri: String = NS.types.`@color`
+    labelMap = Map("en" -> NS.types.`@color`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
   }
 

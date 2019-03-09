@@ -1,5 +1,6 @@
 package lspace.codec
 
+import lspace.structure.{Ontology, Property}
 import org.scalatest.{AsyncWordSpec, Matchers}
 import scribe.Level
 import scribe.format.Formatter
@@ -19,8 +20,10 @@ trait DecoderSpec extends AsyncWordSpec with Matchers {
       decoder
         .toOntology("https://schema.org/Person")(ActiveContext())
         .map { ontology =>
+//          Ontology.ontologies.all.foreach(o => println(s"${o.iri} ${o.label()}")) // ${o.comment()}"))
+//          Property.properties.all.foreach(p => println(s"${p.iri} ${p.label()}")) // ${p.comment()}"))
           ontology.iri shouldBe "https://schema.org/Person"
-          ontology.property("https://schema.org/colleagues").isDefined shouldBe true
+          ontology.properties("https://schema.org/colleagues").isDefined shouldBe true
         }
         .runToFuture
     }

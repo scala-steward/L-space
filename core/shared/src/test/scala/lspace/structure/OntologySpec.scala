@@ -21,7 +21,7 @@ class OntologySpec extends WordSpec with Matchers {
   "An ontology" can {
     "extend some other ontology" in {
       val ontology = V.ontology
-      ontology.extendedClasses.size shouldBe 1
+      ontology.extendedClasses().size shouldBe 1
     }
   }
 }

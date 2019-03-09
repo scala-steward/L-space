@@ -6,8 +6,8 @@ import lspace.structure.{Graph, Property}
 object GraphType extends DataTypeDef[GraphType[Graph]] {
 
   lazy val datatype: GraphType[Graph] = new GraphType[Graph] {
-    val iri: String                                             = NS.types.`@graph`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@graph`)
+    val iri: String = NS.types.`@graph`
+    labelMap = Map("en" -> NS.types.`@graph`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype) //TODO: extend IriType?
   }
 
@@ -16,8 +16,8 @@ object GraphType extends DataTypeDef[GraphType[Graph]] {
   trait Properties extends DataType.Properties
 
   def apply[T <: Graph] = new GraphType[T] {
-    val iri: String                                             = NS.types.`@graph`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@graph`)
+    val iri: String = NS.types.`@graph`
+    labelMap = Map("en" -> NS.types.`@graph`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
   }
 }

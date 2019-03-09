@@ -79,8 +79,8 @@ class TraversalSpec extends WordSpec with Matchers {
       lspace.g.N().out().segmentList.flatMap(_.stepsList).size shouldBe 2
       lspace.g.N().out().hasIri("abc").segmentList.flatMap(_.stepsList).size shouldBe 3
       val pDouble =
-        Property._Property("schema/x")(_range = () => List(DataType.default.`@double`),
-                                       containers = List(NS.types.`@list`))
+        Property("schema/x")
+      pDouble.range + DataType.default.`@double`
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
       graph.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
@@ -138,7 +138,9 @@ class TraversalSpec extends WordSpec with Matchers {
           case p: p.And => p.predicate.head == P.gte(1.2)
         } shouldBe true
 
-      val pString                             = Property._Property("aa")(_range = () => List(DataType.default.`@string`))
+      val pString = Property("aa")
+      pString.range + DataType.default.`@string`
+
       val typedPString: TypedProperty[String] = pString + DataType.default.`@string`
       graph.ns.properties.store(pString)
       lspace.g.N().has(pDouble, P.startsWith("a")).segmentList.flatMap(_.stepsList).size shouldBe 2
@@ -146,7 +148,8 @@ class TraversalSpec extends WordSpec with Matchers {
     "consist of multiple steps" in {
       val traversal = graph.g.N().out().out().in()
       traversal.segmentList.flatMap(_.stepsList).size shouldBe 4
-      val pDouble                             = Property._Property("schema/x")(_range = () => List(DataType.default.`@double`))
+      val pDouble = Property("schema/x")
+      pDouble.range + DataType.default.`@double`
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
       val test                                = graph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
       test.sum
@@ -220,8 +223,8 @@ class TraversalSpec extends WordSpec with Matchers {
         .group(_.label())
         .project(_.out("name"), _.out("balance").hasLabel[Double].is(P.gt(200.0)))
         .ct shouldBe Some(
-        TupleType(List(List(ListType(List(Ontology.urlType))),
-                       List(ListType(List(TupleType(List(List(ListType(List())), List(ListType(List(`@double`)))))))))))
+        TupleType(List(ListType(List(Ontology.urlType))) ::
+          List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil))
     }
     """a ([List[Any],List[Any])""" in {
       g.N.project(_.out(), _.in()).ct shouldBe Some(TupleType(List(List(ListType()), List(ListType()))))

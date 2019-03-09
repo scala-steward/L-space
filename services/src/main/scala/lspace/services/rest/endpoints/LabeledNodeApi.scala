@@ -32,7 +32,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
   //  import monix.execution.Scheduler.global
 
   implicit val ec = monix.execution.Scheduler.global
-  val label       = ontology.label.getOrElse("en", throw new Exception("no label found")).toLowerCase()
+  val label       = ontology.label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
 
   import lspace._
   import Implicits.AsyncGuide._
@@ -92,10 +92,10 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
     }
     post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       nodeTask: Task[Node] =>
@@ -116,10 +116,10 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
     }
     put(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       (id: Long, nodeTask: Task[Node]) => //TODO: validate before mutating
@@ -147,10 +147,10 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties.toList).decode(b.asString(cs)))
+      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
     }
     patch(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       (id: Long, nodeTask: Task[Node]) =>

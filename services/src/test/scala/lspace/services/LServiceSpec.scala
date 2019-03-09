@@ -11,7 +11,7 @@ trait LServiceSpec extends AsyncWordSpec with Matchers {
   implicit class WithApiService(labeledNodeApi: LabeledNodeApi)(implicit service: LService) {
     import util._
     def labeledApiTests = {
-      val label = labeledNodeApi.ontology.label("en").toLowerCase()
+      val label = labeledNodeApi.ontology.label("en").getOrElse(labeledNodeApi.ontology.iri).toLowerCase()
       s"have an $label-api" in {
         val input = Input
           .get(s"/$label/")

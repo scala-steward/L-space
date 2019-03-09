@@ -27,8 +27,8 @@ object DecodeJson {
     def decode = (json: String) => {
       val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
       val getProperty = (key: String) => {
-        if (allowedProperties.nonEmpty) allowedProperties.find(_.label.get("en").contains(key))
-        else Property.properties.cached(key)
+        if (allowedProperties.nonEmpty) allowedProperties.find(_.label("en").contains(key))
+        else Property.properties.get(key)
       }
 
       decoder
@@ -42,7 +42,7 @@ object DecodeJson {
                   obj.toList.flatMap {
                     case (key, value) =>
                       getProperty(key).map { key =>
-                        decoder.toObject(value, key.range)(ActiveContext()).map(key -> _)
+                        decoder.toObject(value, key.range())(ActiveContext()).map(key -> _)
                       }
                   }
                 )
@@ -85,8 +85,8 @@ object DecodeJson {
         val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
 
         val getProperty = (key: String) => {
-          if (allowedProperties.nonEmpty) allowedProperties.find(_.label.get("en").contains(key))
-          else Property.properties.cached(key)
+          if (allowedProperties.nonEmpty) allowedProperties.find(_.label("en").contains(key))
+          else Property.properties.get(key)
         }
 
         decoder
@@ -100,7 +100,7 @@ object DecodeJson {
                     obj.toList.flatMap {
                       case (key, value) =>
                         getProperty(key).map { key =>
-                          decoder.toObject(value, key.range)(ActiveContext()).map(key -> _)
+                          decoder.toObject(value, key.range())(ActiveContext()).map(key -> _)
                         }
                     }
                   )

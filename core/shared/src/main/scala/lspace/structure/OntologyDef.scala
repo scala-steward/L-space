@@ -1,5 +1,7 @@
 package lspace.structure
 
+import monix.eval.Coeval
+
 object OntologyDef {
   implicit def oDefToOntology[T <: OntologyDef](df: T): Ontology = df.ontology
 }
@@ -24,24 +26,31 @@ abstract class OntologyDef(
     comments: Map[String, String] = Map())
     extends ClassTypeDef[Ontology] {
 
+  def label0    = label
+  def comment0  = comment
   def classtype = ontology
+  def _extends  = `@extends`
 
   lazy val ontology: Ontology = {
     val ontology = new Ontology(
       iri,
-      iris,
-      _properties = () => properties,
-      label = Map("en" -> label) ++ labels,
-      comment = Map("en" -> comment).filter(_._2.nonEmpty) ++ comments,
-      _extendedClasses = `@extends`,
-      base = base
-    )
+      iris
+//      _properties = () => properties,
+//      labelMap = Map("en" -> label0) ++ labels,
+//      commentMap = Map("en" -> comment0).filter(_._2.nonEmpty) ++ comments,
+//      _extendedClasses = `@extends`,
+    ) {
+      labelMap = Map("en" -> label0) ++ labels
+      commentMap = Map("en" -> comment0).filter(_._2.nonEmpty) ++ comments
+      extendedClassesList = Coeval.delay(_extends()).memoizeOnSuccess
+      propertiesList = Coeval.delay(properties0.toSet).memoizeOnSuccess
+    }
     Ontology.ontologies.byIri.getOrElseUpdate(ontology.iri, ontology)
-    ontology
   }
 
   def keys: Object
   def properties: List[Property] = List()
+  def properties0                = properties
 
   trait Properties {}
 }

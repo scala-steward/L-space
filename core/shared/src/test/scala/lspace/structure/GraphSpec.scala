@@ -226,7 +226,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           sampleGraph.ns.ontologies.cached(SampleGraph.Person.iri) shouldBe Some(SampleGraph.Person.ontology)
         }
         "contains the person-ontology in the global cache" in {
-          Ontology.ontologies.cached(SampleGraph.Person.iri) shouldBe Some(SampleGraph.Person.ontology)
+          Ontology.ontologies.get(SampleGraph.Person.iri) shouldBe Some(SampleGraph.Person.ontology)
         }
         "contains the place-ontology" in {
           sampleGraph.ns.ontologies
@@ -240,7 +240,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           sampleGraph.ns.ontologies.cached(SampleGraph.Place.iri) shouldBe Some(SampleGraph.Place.ontology)
         }
         "contains the place-ontology in the global cache" in {
-          Ontology.ontologies.cached(SampleGraph.Place.iri) shouldBe Some(SampleGraph.Place.ontology)
+          Ontology.ontologies.get(SampleGraph.Place.iri) shouldBe Some(SampleGraph.Place.ontology)
         }
         "contains the name-property" in {
           sampleGraph.ns.properties
@@ -255,8 +255,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             SampleGraph.properties.name.property)
         }
         "contains the name-property in the global cache" in {
-          Property.properties.cached(SampleGraph.properties.name.iri) shouldBe Some(
-            SampleGraph.properties.name.property)
+          Property.properties.get(SampleGraph.properties.name.iri) shouldBe Some(SampleGraph.properties.name.property)
         }
       }
       "have sample data" which {

@@ -12,8 +12,8 @@ import scala.annotation.tailrec
 object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   val datatype = new CollectionType[Iterable[Any]] {
-    val iri: String                                             = NS.types.`@collection`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@collection`)
+    val iri: String = NS.types.`@collection`
+    labelMap = Map("en" -> NS.types.`@collection`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
   }
 
@@ -50,8 +50,8 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   private def getTypes(iri: String): (List[ClassType[Any]], String) = {
     iri.splitAt(iri.indexWhere(separators.contains)) match {
-      case ("", iri) if iri.startsWith(")") => List()                                     -> iri.drop(1)
-      case ("", iri)                        => List(ClassType.classtypes.cached(iri).get) -> ""
+      case ("", iri) if iri.startsWith(")") => List()                                  -> iri.drop(1)
+      case ("", iri)                        => List(ClassType.classtypes.get(iri).get) -> ""
       case (iri, tail) if tail.startsWith("(") =>
         iri match {
           case types.`@list` =>
@@ -97,7 +97,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   def get(iri: String): Option[DataType[Any]] = //TODO: .get (Task) instead of .cached
     ClassType.classtypes
-      .cached(iri)
+      .get(iri)
       .orElse(getTypes(iri) match {
         case (List(ct), "") =>
           Some(ct)

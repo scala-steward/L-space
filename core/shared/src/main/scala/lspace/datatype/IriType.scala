@@ -9,9 +9,9 @@ trait IriType[+T] extends DataType[T]
 object IriType extends DataTypeDef[IriType[IriResource]] {
 
   lazy val datatype = new IriType[IriResource] {
-    val iri: String                                             = NS.types.`@url`
-    override val iris: Set[String]                              = Set(NS.types.schemaURL, NS.types.xsdAnyURI)
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@url`)
+    val iri: String                = NS.types.`@url`
+    override val iris: Set[String] = Set(NS.types.schemaURL, NS.types.xsdAnyURI)
+    labelMap = Map("en" -> NS.types.`@url`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
   }
 

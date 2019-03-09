@@ -35,11 +35,13 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
         val node = graph.nodes.create()
         node.labels.size shouldBe 0
         lazy val veryunknownontology =
-          Ontology("veryunknownontology", extendedClasses = List(veryunknownextendedontology))
+          Ontology("veryunknownontology")
+        veryunknownontology.extendedClasses + veryunknownextendedontology
         lazy val veryunknownextendedontology =
-          Ontology("veryunknownextendedontology", extendedClasses = List(Ontology("veryveryunknownextendedontology")))
+          Ontology("veryunknownextendedontology")
+        veryunknownextendedontology.extendedClasses + Ontology("veryveryunknownextendedontology")
         node.addLabel(veryunknownontology)
-        veryunknownontology.extendedClasses.size shouldBe 1
+        veryunknownontology.extendedClasses().size shouldBe 1
         node.labels.size shouldBe 1
       }
       "be assigned two ontologies" in {
@@ -80,8 +82,9 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
         node.labels.size shouldBe 1
         node.labels.head shouldBe DataType.ontology
         val someDataTypeOntology =
-          Ontology("schema.example.com/weirddata", extendedClasses = List(DataType.ontology))
-        someDataTypeOntology.extendedClasses.size shouldBe 1
+          Ontology("schema.example.com/weirddata")
+        someDataTypeOntology.extendedClasses + DataType.ontology
+        someDataTypeOntology.extendedClasses().size shouldBe 1
 
 //        node.addLabel(someDataTypeOntology)
 //        val storedSomeDataTypeOntology = emptyGraph.ns.ontologies.store(someDataTypeOntology)
@@ -91,7 +94,8 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
     }
     "Properties" can {
       "only be single for cardinality single" ignore {
-        val singleProperty = Property("singleproperty", range = List(DataType.default.`@string`))
+        val singleProperty = Property("singleproperty")
+        singleProperty.range + DataType.default.`@string`
 
         val node = graph.nodes.create()
         node.addOut(singleProperty, "123456")
@@ -101,45 +105,17 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
         node.out(singleProperty).size shouldBe 1
         node.out(singleProperty).head shouldBe "1234567"
       }
-      "be many and contain duplicates for cardinality list" in {
-        val listProperty =
-          Property("listproperty", range = List(DataType.default.`@string`), containers = List(types.`@list`))
-
-        val node = graph.nodes.create()
-        node.addOut(listProperty, "123456")
-        node.out(listProperty).size shouldBe 1
-        node.out(listProperty).head shouldBe "123456"
-        node.addOut(listProperty, "1234567")
-        node.out(listProperty).size shouldBe 2
-        node.out(listProperty) should contain("1234567")
-        node.addOut(listProperty, "1234567")
-        node.out(listProperty).size shouldBe 3
-        node.out(listProperty) should contain("1234567")
-      }
-      "only be unique and contain no duplicates for cardinality set" ignore {
-        val listProperty =
-          Property("setproperty", range = List(DataType.default.`@string`), containers = List(types.`@set`))
-
-        val node = graph.nodes.create()
-        node.addOut(listProperty, "123456")
-        node.out(listProperty).size shouldBe 1
-        node.out(listProperty).head shouldBe "123456"
-        node.addOut(listProperty, "1234567")
-        node.out(listProperty).size shouldBe 2
-        node.out(listProperty) should contain("1234567")
-        node.addOut(listProperty, "1234567")
-        node.out(listProperty).size shouldBe 2
-        node.out(listProperty) should contain("1234567")
-      }
       "have a collection as a value" in {
-        val vectorProperty = Property("some.vector", range = List(VectorType(List(DataType.default.`@int`))))
-        val intVector      = vectorProperty + VectorType(List(DataType.default.`@int`))
-        val node           = graph.nodes.create()
+        val vectorProperty = Property("some.vector")
+        vectorProperty.range + VectorType(List(DataType.default.`@int`))
+        val intVector = vectorProperty + VectorType(List(DataType.default.`@int`))
+        val node      = graph.nodes.create()
         node.addOut(intVector, Vector(1, 2, 3, 4))
         node.out("some.vector") shouldBe List(Vector(1, 2, 3, 4))
       }
       "be of type double" in {
-        val number       = Property("number", range = List(DataType.default.`@double`), containers = List(types.`@set`))
+        val number = Property("number")
+        number.range + DataType.default.`@double`
         val numberDouble = number + DataType.default.`@double`
         val node         = graph.nodes.create()
         node.addOut(numberDouble, 0.0)

@@ -100,8 +100,8 @@ object Traversal
               if (steps.nonEmpty)
                 stepsToContainerStructure(
                   steps,
-                  findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.cached(_)), starttype))
-              else findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.cached(_)), starttype)
+                  findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype))
+              else findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype)
             case step: OutMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
             case step: OutEMap => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
             case step: InMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
@@ -365,7 +365,7 @@ object Traversal
         case label: PropertyDef => label.property
         case label: String =>
           Property.properties
-            .cached(label)
+            .get(label)
             .getOrElse(Property(label)) //throw new Exception("unknown key"))
       }
 
@@ -501,7 +501,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -521,7 +521,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -540,7 +540,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -559,7 +559,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -583,7 +583,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -605,7 +605,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -621,7 +621,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -637,7 +637,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -1040,13 +1040,13 @@ object Traversal
       add(HasLabel(label :: Nil), st, NodeURLType.datatype)
     def hasLabel(label0: String,
                  labels0: String*): Traversal[ST[Start], ET[Node], Segment[HasLabel :: Steps] :: Segments] = {
-      val labelKeys = (label0 :: labels0.toList).map(key => Ontology.ontologies.cached(key).getOrElse(Ontology(key)))
+      val labelKeys = (label0 :: labels0.toList).map(key => Ontology.ontologies.get(key).getOrElse(Ontology(key)))
       add(HasLabel(labelKeys))
     }
 
     def label(key: String,
               keys: String*): Traversal[ST[Start], IriType[Ontology], Segment[Label :: HNil] :: Segments1] =
-      add(Label((key :: keys.toList).map(key => Ontology.ontologies.cached(key).getOrElse(Ontology(key))).toSet),
+      add(Label((key :: keys.toList).map(key => Ontology.ontologies.get(key).getOrElse(Ontology(key))).toSet),
           st,
           DataType.default.`@class`)
     def label(
@@ -1103,7 +1103,7 @@ object Traversal
       add(HasLabel(label :: Nil), st, EdgeURLType.datatype)
     def hasLabel(label0: String,
                  labels0: String*): Traversal[ST[Start], ET[Edge[In, Out]], Segment[HasLabel :: Steps] :: Segments] = {
-      val labelKeys = (label0 :: labels0.toList).map(key => Property.properties.cached(key).getOrElse(Property(key)))
+      val labelKeys = (label0 :: labels0.toList).map(key => Property.properties.get(key).getOrElse(Property(key)))
       add(HasLabel(labelKeys))
     }
 
@@ -1114,7 +1114,7 @@ object Traversal
               .map(
                 key =>
                   Property.properties
-                    .cached(key)
+                    .get(key)
                     .getOrElse(Property(key)))
               .toSet),
           st,
@@ -1519,14 +1519,14 @@ object Traversal
         .headOption
         .map(et => tweaker.tweak(traversal.et, et))
         .filter(_.iri.nonEmpty)
-    ct.foreach {
-      case ontology: Ontology =>
-        if (Ontology.ontologies.get(ontology.iri).isEmpty) Ontology.ontologies.cache(ontology)
-      case property: Property =>
-        if (Property.properties.get(property.iri).isEmpty) Property.properties.cache(property)
-      case datatype: DataType[_] =>
-        if (DataType.datatypes.get(datatype.iri).isEmpty) DataType.datatypes.cache(datatype)
-    }
+//    ct.foreach {
+//      case ontology: Ontology =>
+//        if (Ontology.ontologies.get(ontology.iri).isEmpty) Ontology.ontologies.cache(ontology)
+//      case property: Property =>
+//        if (Property.properties.get(property.iri).isEmpty) Property.properties.cache(property)
+//      case datatype: DataType[_] =>
+//        if (DataType.datatypes.get(datatype.iri).isEmpty) DataType.datatypes.cache(datatype)
+//    }
     ct
   }
 
@@ -1761,7 +1761,7 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
   lazy val toNode: Node = {
     val node0 = DetachedGraph.nodes.create(ontology)
 //    segmentList.map(_.toNode).foreach(node0.addOut(keys.segmentNode, _))
-    node0.addOut(keys.segmentNode, segmentList.map(_.toNode).toVector)
+    if (segmentList.nonEmpty) node0.addOut(keys.segmentNode, segmentList.map(_.toNode).toVector)
     node0
   }
 

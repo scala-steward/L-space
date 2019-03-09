@@ -7,8 +7,8 @@ import lspace.structure.Property
 object CalendarType extends DataTypeDef[CalendarType[Any]] {
 
   val datatype: CalendarType[Any] = new CalendarType[Any] {
-    val iri: String                                             = NS.types.`@temporal`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@temporal`)
+    val iri: String = NS.types.`@temporal`
+    labelMap = Map("en" -> NS.types.`@temporal`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
   }
 

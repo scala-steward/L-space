@@ -22,19 +22,17 @@ object DataType
   object keys
 
   lazy val datatype: DataType[Any] = new DataType[Any] {
-    val iri: String                         = NS.types.`@datatype`
-    override val iris: Set[String]          = Set(NS.types.schemaDataType)
-    override val label: Map[String, String] = Map("en" -> NS.types.`@datatype`)
+    val iri: String                            = NS.types.`@datatype`
+    override val iris: Set[String]             = Set(NS.types.schemaDataType)
+    labelMap = Map("en" -> NS.types.`@datatype`)
   }
 
   def urlType[T]: IriType[T] = new IriType[T] {
     val iri: String = NS.types.`@datatype`
   }
 
-  private def build(node: Node): Coeval[DataType[_]] = {
+  /*private def build(node: Node): Coeval[DataType[_]] = {
     if (node.hasLabel(ontology).nonEmpty) {
-      Coeval
-        .sequence(
           node
             .out(Property.default.`@extends`)
             .headOption
@@ -45,7 +43,7 @@ object DataType
                     datatypes
                       .get(node.iri)
                       .getOrElse {
-                        datatypes.getOrBuild(node)
+                        datatypes.getAndUpdate(node)
                       } //orElse???
                   case iri: String =>
                     datatypes
@@ -53,10 +51,10 @@ object DataType
                       .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
                 }
               case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-                List(datatypes.get(node.iri).getOrElse(datatypes.getOrBuild(node)))
+                List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
             }
             .toList
-            .flatten)
+            .flatten
         .flatMap { extended =>
           extended.head match {
             case dt: CollectionType[_] =>
@@ -131,7 +129,7 @@ object DataType
           s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
             .map(_.iri)}"))
     }
-  }
+  }*/
 
   object datatypes {
 
@@ -167,9 +165,6 @@ object DataType
         VectorType.datatype,
         MapType.datatype,
         TupleType.datatype
-//        Tuple2Type.datatype,
-//        Tuple3Type.datatype,
-//        Tuple4Type.datatype
         //      `@class`,
         //      `@property`,
         //      `@datatype`
@@ -185,35 +180,99 @@ object DataType
       new ConcurrentHashMap[String, Coeval[DataType[_]]]().asScala
 
     def all: List[DataType[_]] = byIri.values.toList.distinct
-    def get(iri: String): Option[Coeval[DataType[_]]] =
-      default.byIri
-        .get(iri)
-        .orElse(byIri.get(iri))
-        .map(o => Coeval.now(o))
-        .orElse(building.get(iri))
-    def getOrBuild(node: Node): Coeval[DataType[_]] =
-      default.byIri
-        .get(node.iri)
-        .map(Coeval.now(_))
-        .getOrElse(building.getOrElseUpdate(node.iri, build(node).map { d =>
-          byIri += d.iri -> d
-          building.remove(node.iri)
-          d.iris.foreach { iri =>
-            datatypes.byIri += iri -> d
-          }
-          d
-        }.memoizeOnSuccess))
-
-    def cache(datatype: DataType[_]): Unit = {
-      byIri += datatype.iri -> datatype
-      datatype.iris.foreach { iri =>
-        datatypes.byIri += iri -> datatype
+//    def get(iri: String): Option[Coeval[DataType[_]]] =
+//      default.byIri
+//        .get(iri)
+//        .orElse(byIri.get(iri))
+//        .map(o => Coeval.now(o))
+//        .orElse(building.get(iri))
+    def get(iri: String, iris: Set[String] = Set()): Option[DataType[_]] = {
+      val allIris = (iris + iri)
+      allIris.flatMap(iri => default.byIri.get(iri).orElse(byIri.get(iri))).toList match {
+        case List(datatype) => Some(datatype)
+        case Nil => None
+        case datatypes => scribe.warn("It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
+          datatypes.headOption
       }
     }
-    def cached(long: Long): Option[DataType[_]]  = default.byId.get(long)
-    def cached(iri: String): Option[DataType[_]] = default.byIri.get(iri).orElse(byIri.get(iri))
+    def getOrCreate(iri: String, iris: Set[String]): DataType[_] = get(iri, iris).getOrElse {
+      synchronized {
+        get(iri, iris).getOrElse {
+          val datatype = (iris + iri).flatMap(CollectionType.get).toList match {
+            case List(datatype) => datatype
+            case Nil => throw new Exception(s"could not build collectiontype for @id's ${iris + iri}")
+            case datatypes =>
+              scribe.warn("It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
+              datatypes.head
+          }
+          datatype.iris.foreach(byIri.update(_, datatype))
+          datatype
+        }
+      }
+    }
+    def getAndUpdate(node: Node): DataType[_] =
+      {
+        val datatype = getOrCreate(node.iri, node.iris)
 
-    def remove(iri: String): Unit = byIri.remove(iri)
+        datatype.label ++ node
+          .outE(Property.default.typed.labelString)
+          .flatMap { edge =>
+            val l = edge.out(Property.default.typed.languageString)
+            if (l.nonEmpty) l.map(_ -> edge.to.value)
+            else List("en"          -> edge.to.value)
+          }
+          .toMap
+        datatype.comment ++ node
+          .outE(Property.default.typed.commentString)
+          .flatMap { edge =>
+            val l = edge.out(Property.default.typed.commentString)
+            if (l.nonEmpty) l.map(_ -> edge.to.value)
+            else List("en"          -> edge.to.value)
+          }
+          .toMap
+
+        datatype.properties ++ (node
+          .out(Property.default.typed.propertyProperty) ++ node
+          .in(lspace.NS.types.schemaDomainIncludes)
+          .collect { case node: Node => node }).filter(_.labels.contains(Property.ontology))
+          .map(Property.properties.getAndUpdate)
+
+        datatype.extendedClasses ++ node
+          .out(Property.default.`@extends`)
+          .headOption
+          .collect {
+            case nodes: List[_] =>
+              nodes.collect {
+                case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+                  datatypes
+                    .get(node.iri)
+                    .getOrElse {
+                      datatypes.getAndUpdate(node)
+                    } //orElse???
+                case iri: String =>
+                  datatypes
+                    .get(iri)
+                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+              }
+            case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+              List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
+          }
+          .toList
+          .flatten
+
+        datatype
+      }
+
+//    def cache(datatype: DataType[_]): Unit = {
+//      byIri += datatype.iri -> datatype
+//      datatype.iris.foreach { iri =>
+//        datatypes.byIri += iri -> datatype
+//      }
+//    }
+    def cached(long: Long): Option[DataType[_]]  = default.byId.get(long)
+//    def cached(iri: String): Option[DataType[_]] = default.byIri.get(iri).orElse(byIri.get(iri))
+
+//    def remove(iri: String): Unit = byIri.remove(iri)
   }
 
   implicit def clsDatatype[T]: ClassTypeable.Aux[DataType[T], T, DataType[T]] = new ClassTypeable[DataType[T]] {
@@ -306,17 +365,38 @@ object DataType
   *
   * @tparam T
   */
-trait DataType[+T] extends ClassType[T] {
+trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
   val iris: Set[String]                           = Set()
-  val label: Map[String, String]                  = Map()
-  val comment: Map[String, String]                = Map()
-  val _extendedClasses: () => List[DataType[Any]] = () => List()
-  val _properties: () => List[Property]           = () => List()
-  val base: Option[String]                        = None
+  def _extendedClasses: () => List[DataType[Any]] = () => List()
+  def _properties: () => List[Property]           = () => List()
 
-  override lazy val extendedClasses: List[DataType[Any]] = _extendedClasses()
+  protected var extendedClassesList: Coeval[List[DataType[Any]]] = Coeval.delay(_extendedClasses()).memoizeOnSuccess
+//  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
+  object extendedClasses {
+    def apply(): List[DataType[Any]] = extendedClassesList()
+    def apply(iri: String): Boolean =
+      extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
+
+  def +(parent: DataType[Any]): this.type = this.synchronized {
+    if(!parent.`@extends`(self)) extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
+    else scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
+    this
+  }
+  def ++(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
+    parent.foreach(+)
+    this
+  }
+  def -(parent: DataType[Any]): this.type = this.synchronized {
+    extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
+    this
+  }
+  def --(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
+    extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
+    this
+  }
+  }
 
   override def toString: String = s"datatype:$iri"
 }

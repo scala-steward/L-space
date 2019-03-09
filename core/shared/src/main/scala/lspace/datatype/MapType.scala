@@ -10,8 +10,8 @@ import lspace.util.types.DefaultsToAny
 object MapType extends DataTypeDef[MapType[Any, Any]] {
 
   lazy val datatype = new MapType[Any, Any](Nil, Nil) {
-    val iri: String                                             = NS.types.`@map`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@map`)
+    val iri: String = NS.types.`@map`
+    labelMap = Map("en" -> NS.types.`@map`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
   }
 

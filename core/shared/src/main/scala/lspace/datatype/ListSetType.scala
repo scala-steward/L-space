@@ -10,8 +10,8 @@ import scala.collection.immutable.ListSet
 object ListSetType extends DataTypeDef[ListSetType[Any]] {
 
   lazy val datatype = new ListSetType[Any](Nil) {
-    val iri: String                                             = NS.types.`@listset`
-    override val label: Map[String, String]                     = Map("en" -> NS.types.`@listset`)
+    val iri: String = NS.types.`@listset`
+    labelMap = Map("en" -> NS.types.`@listset`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
   }
 

@@ -17,6 +17,7 @@ import scala.annotation.tailrec
 import scala.collection.{concurrent, immutable}
 import scala.collection.immutable.{AbstractMap, Iterable, ListSet, Map, MapLike}
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 object Decoder {
   type Aux[Json0] = Decoder { type Json = Json0 }
@@ -662,6 +663,7 @@ trait Decoder {
             .get(types.`@properties`)
             .map(extractIris(_))
           propertiesIris.map(_.map(graph.nodes.upsert(_))).map(_.map(node.addOut(Label.P.`@properties`, _)))
+
           node
         }
     } else Task.raiseError(FromJsonException(s"ontology is not of type '@class' ${expandedJson.obj}"))
@@ -684,7 +686,6 @@ trait Decoder {
                 nodes =>
                   val unfinished = nodes.filter(node =>
                     node.hasLabel(Ontology.ontology).isEmpty && node.hasLabel(Property.ontology).isEmpty)
-                  println(s"getting unfinished ${unfinished.map(_.iri)}")
                   Task.gather(unfinished.map(_.iri).map(toClasstype)).flatMap { clstypes =>
                     graph.ns.ontologies
                       .get(iri)
@@ -692,6 +693,7 @@ trait Decoder {
                         FromJsonException(s"could not build ontology after having done all the preparing ... "))))
                   }
               }
+              .doOnFinish(f => Task.delay(owip.remove(iri)).delayExecution(5 seconds).forkAndForget)
               .memoizeOnSuccess
           )
         })
@@ -714,6 +716,8 @@ trait Decoder {
           (expandedJson - types.`@range` - types.schemaRange - types.schemaDomainIncludes - types.`@properties`) -> false
       toNode(strippedExpandedJson, Some(Property.ontology))
         .map { node =>
+          val property = Property.properties.getAndUpdate(node)
+
           val rangeIris = expandedJson
             .get(types.`@range`)
             .orElse(expandedJson.get(types.schemaRange))
@@ -752,28 +756,31 @@ trait Decoder {
   def toProperty(iri: String)(implicit activeContext: AC): Task[Property] =
     graph.ns.properties
       .get(iri)
-      .flatMap(_.map(Task.now)
-        .getOrElse {
-          pwip.getOrElseUpdate(
-            iri,
-            nsDecoder
-              .fetchPropertyNode(iri)
-              .toListL
-              .flatMap {
-                nodes =>
+      .flatMap {
+        _.map(Task.now)
+          .getOrElse {
+            pwip.getOrElseUpdate(
+              iri,
+              nsDecoder
+                .fetchPropertyNode(iri)
+                .toListL
+                .flatMap { nodes =>
                   val unfinished = nodes.filter(node =>
                     node.hasLabel(Ontology.ontology).isEmpty && node.hasLabel(Property.ontology).isEmpty)
                   Task.gather(unfinished.map(_.iri).map(iri => ctwip.get(iri).getOrElse(toClasstype(iri)))).flatMap {
                     clstypes =>
                       graph.ns.properties
                         .get(iri)
-                        .flatMap(_.map(Task.now).getOrElse(Task.raiseError(
-                          FromJsonException("could not build property after having done all the preparing ..."))))
+                        .flatMap(_.map(Task.now)
+                          .getOrElse(Task.raiseError(
+                            FromJsonException("could not build property after having done all the preparing ..."))))
                   }
-              }
-              .memoizeOnSuccess
-          )
-        })
+                }
+                .doOnFinish(f => Task.delay(pwip.remove(iri)).delayExecution(5 seconds).forkAndForget)
+                .memoizeOnSuccess
+            )
+          }
+      }
 
   def toProperties(json: Json)(implicit activeContext: AC): Task[List[Property]] =
     Task.gather(extractIris(json).map(toProperty))
@@ -878,7 +885,7 @@ trait Decoder {
         _.map(Task.now)
           .getOrElse(ClassType.classtypes
             .get(iri)
-            .map(_.task)
+            .map(Task.now)
             .getOrElse {
               nsDecoder.fetchClassTypeNode(iri).toListL.flatMap {
                 nodes =>
