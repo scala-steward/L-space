@@ -22,8 +22,8 @@ object DataType
   object keys
 
   lazy val datatype: DataType[Any] = new DataType[Any] {
-    val iri: String                            = NS.types.`@datatype`
-    override val iris: Set[String]             = Set(NS.types.schemaDataType)
+    val iri: String                = NS.types.`@datatype`
+    override val iris: Set[String] = Set(NS.types.schemaDataType)
     labelMap = Map("en" -> NS.types.`@datatype`)
   }
 
@@ -190,8 +190,10 @@ object DataType
       val allIris = (iris + iri)
       allIris.flatMap(iri => default.byIri.get(iri).orElse(byIri.get(iri))).toList match {
         case List(datatype) => Some(datatype)
-        case Nil => None
-        case datatypes => scribe.warn("It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
+        case Nil            => None
+        case datatypes =>
+          scribe.warn(
+            "It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
           datatypes.headOption
       }
     }
@@ -200,9 +202,10 @@ object DataType
         get(iri, iris).getOrElse {
           val datatype = (iris + iri).flatMap(CollectionType.get).toList match {
             case List(datatype) => datatype
-            case Nil => throw new Exception(s"could not build collectiontype for @id's ${iris + iri}")
+            case Nil            => throw new Exception(s"could not build collectiontype for @id's ${iris + iri}")
             case datatypes =>
-              scribe.warn("It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
+              scribe.warn(
+                "It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
               datatypes.head
           }
           datatype.iris.foreach(byIri.update(_, datatype))
@@ -210,58 +213,58 @@ object DataType
         }
       }
     }
-    def getAndUpdate(node: Node): DataType[_] =
-      {
-        val datatype = getOrCreate(node.iri, node.iris)
+    def getAndUpdate(node: Node): DataType[_] = {
+      val datatype = getOrCreate(node.iri, node.iris)
 
-        datatype.label ++ node
-          .outE(Property.default.typed.labelString)
-          .flatMap { edge =>
-            val l = edge.out(Property.default.typed.languageString)
-            if (l.nonEmpty) l.map(_ -> edge.to.value)
-            else List("en"          -> edge.to.value)
-          }
-          .toMap
-        datatype.comment ++ node
-          .outE(Property.default.typed.commentString)
-          .flatMap { edge =>
-            val l = edge.out(Property.default.typed.commentString)
-            if (l.nonEmpty) l.map(_ -> edge.to.value)
-            else List("en"          -> edge.to.value)
-          }
-          .toMap
+      datatype.label ++ node
+        .outE(Property.default.typed.labelString)
+        .flatMap { edge =>
+          val l = edge.out(Property.default.typed.languageString)
+          if (l.nonEmpty) l.map(_ -> edge.to.value)
+          else List("en"          -> edge.to.value)
+        }
+        .toMap
+      datatype.comment ++ node
+        .outE(Property.default.typed.commentString)
+        .flatMap { edge =>
+          val l = edge.out(Property.default.typed.commentString)
+          if (l.nonEmpty) l.map(_ -> edge.to.value)
+          else List("en"          -> edge.to.value)
+        }
+        .toMap
 
-        datatype.properties ++ (node
-          .out(Property.default.typed.propertyProperty) ++ node
-          .in(lspace.NS.types.schemaDomainIncludes)
-          .collect { case node: Node => node }).filter(_.labels.contains(Property.ontology))
-          .map(Property.properties.getAndUpdate)
+      datatype.properties ++ (node
+        .out(Property.default.typed.propertyProperty) ++ node
+        .in(lspace.NS.types.schemaDomainIncludes)
+        .collect { case node: Node => node })
+        .filter(_.labels.contains(Property.ontology))
+        .map(Property.properties.getAndUpdate)
 
-        datatype.extendedClasses ++ node
-          .out(Property.default.`@extends`)
-          .headOption
-          .collect {
-            case nodes: List[_] =>
-              nodes.collect {
-                case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-                  datatypes
-                    .get(node.iri)
-                    .getOrElse {
-                      datatypes.getAndUpdate(node)
-                    } //orElse???
-                case iri: String =>
-                  datatypes
-                    .get(iri)
-                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-              }
-            case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-              List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
-          }
-          .toList
-          .flatten
+      datatype.extendedClasses ++ node
+        .out(Property.default.`@extends`)
+        .headOption
+        .collect {
+          case nodes: List[_] =>
+            nodes.collect {
+              case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+                datatypes
+                  .get(node.iri)
+                  .getOrElse {
+                    datatypes.getAndUpdate(node)
+                  } //orElse???
+              case iri: String =>
+                datatypes
+                  .get(iri)
+                  .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+            }
+          case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+            List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
+        }
+        .toList
+        .flatten
 
-        datatype
-      }
+      datatype
+    }
 
 //    def cache(datatype: DataType[_]): Unit = {
 //      byIri += datatype.iri -> datatype
@@ -269,7 +272,7 @@ object DataType
 //        datatypes.byIri += iri -> datatype
 //      }
 //    }
-    def cached(long: Long): Option[DataType[_]]  = default.byId.get(long)
+    def cached(long: Long): Option[DataType[_]] = default.byId.get(long)
 //    def cached(iri: String): Option[DataType[_]] = default.byIri.get(iri).orElse(byIri.get(iri))
 
 //    def remove(iri: String): Unit = byIri.remove(iri)
@@ -379,23 +382,24 @@ trait DataType[+T] extends ClassType[T] { self =>
     def apply(iri: String): Boolean =
       extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
 
-  def +(parent: DataType[Any]): this.type = this.synchronized {
-    if(!parent.`@extends`(self)) extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
-    else scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
-    this
-  }
-  def ++(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
-    parent.foreach(+)
-    this
-  }
-  def -(parent: DataType[Any]): this.type = this.synchronized {
-    extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
-    this
-  }
-  def --(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
-    extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
-    this
-  }
+    def +(parent: DataType[Any]): this.type = this.synchronized {
+      if (!parent.`@extends`(self))
+        extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
+      else scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
+      this
+    }
+    def ++(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
+      parent.foreach(this.+)
+      this
+    }
+    def -(parent: DataType[Any]): this.type = this.synchronized {
+      extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
+      this
+    }
+    def --(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
+      extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
+      this
+    }
   }
 
   override def toString: String = s"datatype:$iri"

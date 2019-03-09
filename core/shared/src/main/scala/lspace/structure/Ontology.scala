@@ -144,8 +144,10 @@ object Ontology {
       val allIris = (iris + iri)
       allIris.flatMap(iri => default.byIri.get(iri).orElse(byIri.get(iri))).toList match {
         case List(ontology) => Some(ontology)
-        case Nil => None
-        case ontologies => scribe.warn("It looks like multiple ontologies which have some @id's in common are found, this should not happen...")
+        case Nil            => None
+        case ontologies =>
+          scribe.warn(
+            "It looks like multiple ontologies which have some @id's in common are found, this should not happen...")
           ontologies.headOption
       }
     }
@@ -158,59 +160,58 @@ object Ontology {
         }
       }
     }
-    def getAndUpdate(node: Node): Ontology =
-      {
-        val ontology = getOrCreate(node.iri, node.iris)
+    def getAndUpdate(node: Node): Ontology = {
+      val ontology = getOrCreate(node.iri, node.iris)
 
-        ontology.label ++ node
-          .outE(Property.default.typed.labelString)
-          .flatMap { edge =>
-            val l = edge.out(Property.default.typed.languageString)
-            if (l.nonEmpty) l.map(_ -> edge.to.value)
-            else List("en"          -> edge.to.value)
-          }
-          .toMap
-        ontology.comment ++ node
-          .outE(Property.default.typed.commentString)
-          .flatMap { edge =>
-            val l = edge.out(Property.default.typed.commentString)
-            if (l.nonEmpty) l.map(_ -> edge.to.value)
-            else List("en"          -> edge.to.value)
-          }
-          .toMap
+      ontology.label ++ node
+        .outE(Property.default.typed.labelString)
+        .flatMap { edge =>
+          val l = edge.out(Property.default.typed.languageString)
+          if (l.nonEmpty) l.map(_ -> edge.to.value)
+          else List("en"          -> edge.to.value)
+        }
+        .toMap
+      ontology.comment ++ node
+        .outE(Property.default.typed.commentString)
+        .flatMap { edge =>
+          val l = edge.out(Property.default.typed.commentString)
+          if (l.nonEmpty) l.map(_ -> edge.to.value)
+          else List("en"          -> edge.to.value)
+        }
+        .toMap
 
-        ontology.properties ++ (node
-          .out(Property.default.typed.propertyProperty) ++ node
-          .in(lspace.NS.types.schemaDomainIncludes)
-          .collect { case node: Node => node }).filter(_.labels.contains(Property.ontology))
-          .map(Property.properties.getAndUpdate)
+      ontology.properties ++ (node
+        .out(Property.default.typed.propertyProperty) ++ node
+        .in(lspace.NS.types.schemaDomainIncludes)
+        .collect { case node: Node => node })
+        .filter(_.labels.contains(Property.ontology))
+        .map(Property.properties.getAndUpdate)
 
-        ontology.extendedClasses ++ node
-          .out(Property.default.`@extends`)
-          .headOption
-          .collect {
-            case nodes: List[_] =>
-              nodes.collect {
-                case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
-                  Ontology.ontologies
-                    .get(node.iri, node.iris)
-                    .getOrElse {
-                      Ontology.ontologies.getAndUpdate(node)
-                    } //orElse???
-                case iri: String =>
-                  Ontology.ontologies
-                    .get(iri)
-                    .getOrElse(
-                      throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-              }
-            case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
-              List(Ontology.ontologies.get(node.iri, node.iris).getOrElse(Ontology.ontologies.getAndUpdate(node)))
-          }
-          .toList
-          .flatten
+      ontology.extendedClasses ++ node
+        .out(Property.default.`@extends`)
+        .headOption
+        .collect {
+          case nodes: List[_] =>
+            nodes.collect {
+              case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
+                Ontology.ontologies
+                  .get(node.iri, node.iris)
+                  .getOrElse {
+                    Ontology.ontologies.getAndUpdate(node)
+                  } //orElse???
+              case iri: String =>
+                Ontology.ontologies
+                  .get(iri)
+                  .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+            }
+          case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
+            List(Ontology.ontologies.get(node.iri, node.iris).getOrElse(Ontology.ontologies.getAndUpdate(node)))
+        }
+        .toList
+        .flatten
 
-        ontology
-      }
+      ontology
+    }
 
 //    def cache(ontology: Ontology): Unit = {
 //      byIri += ontology.iri -> ontology
@@ -218,19 +219,19 @@ object Ontology {
 //        ontologies.byIri += iri -> ontology
 //      }
 //    }
-    def cached(long: Long): Option[Ontology]  = default.byId.get(long)
+    def cached(long: Long): Option[Ontology] = default.byId.get(long)
 //    def cached(iri: String): Option[Ontology] = default.byIri.get(iri).orElse(byIri.get(iri))
 
 //    def remove(iri: String): Unit = byIri.remove(iri)
   }
 
   private[structure] def apply(iri: String,
-            iris: Set[String],
-            properties: () => List[Property] = () => List(),
-            label: Map[String, String] = Map(),
-            comment: Map[String, String] = Map(),
-            extendedClasses: () => List[Ontology] = () => List(),
-            base: Option[String] = None): Ontology = {
+                               iris: Set[String],
+                               properties: () => List[Property] = () => List(),
+                               label: Map[String, String] = Map(),
+                               comment: Map[String, String] = Map(),
+                               extendedClasses: () => List[Ontology] = () => List(),
+                               base: Option[String] = None): Ontology = {
 
     def label0           = label
     def comment0         = comment
@@ -273,16 +274,18 @@ class Ontology(val iri: String,
   protected var extendedClassesList
     : Coeval[List[Ontology]] = Coeval.now(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
   object extendedClasses {
-    def apply(): List[Ontology]            = extendedClassesList.value()
-    def apply(iri: String): Boolean = extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
+    def apply(): List[Ontology] = extendedClassesList.value()
+    def apply(iri: String): Boolean =
+      extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
 
     def +(parent: Ontology): this.type = this.synchronized {
-      if(!parent.`@extends`(self)) extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
+      if (!parent.`@extends`(self))
+        extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
       else scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
       this
     }
     def ++(parent: Iterable[Ontology]): this.type = this.synchronized {
-      parent.foreach(+)
+      parent.foreach(this.+)
       this
     }
     def -(parent: Ontology): this.type = this.synchronized {

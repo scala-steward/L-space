@@ -36,7 +36,7 @@ abstract class PropertyDef(iri: String,
   lazy val property: Property = {
     val property = new Property(
       iri,
-      iris,
+      iris
 //      _range = `@range`,
 //      containers = container,
 //      _properties = () => properties,

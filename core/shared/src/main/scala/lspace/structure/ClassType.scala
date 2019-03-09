@@ -54,9 +54,14 @@ object ClassType {
   }
 
   object classtypes {
-    def all: List[ClassType[_]] = Ontology.ontologies.all ++ Property.properties.all ++ DataType.datatypes.all
+    def all: List[ClassType[_]] =
+      List[ClassType[_]]() ++ Ontology.ontologies.all ++ Property.properties.all ++ DataType.datatypes.all
     def get(iri: String): Option[ClassType[_]] = {
-      Ontology.ontologies.get(iri).orElse(Property.properties.get(iri)).orElse(DataType.datatypes.get(iri))
+      Ontology.ontologies
+        .get(iri)
+        .asInstanceOf[Option[ClassType[_]]]
+        .orElse(Property.properties.get(iri))
+        .orElse(DataType.datatypes.get(iri))
     }
 
     def getAndUpdate(node: Node): ClassType[Any] = {
