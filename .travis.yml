@@ -79,10 +79,7 @@ jobs:
     - stage: release
       name: "Cross-publish to Sonatype"
       before_install: git fetch --tags
-      env:
-        - CI_SNAPSHOT_RELEASE=publish
-        - CI_RELEASE=publishSigned
-      script: sbt ++$TRAVIS_SCALA_VERSION ci-release
+      script: sbt ci-release
       cache:
         directories:
           - $HOME/.ivy2/cache
