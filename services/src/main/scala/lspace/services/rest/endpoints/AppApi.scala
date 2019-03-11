@@ -8,7 +8,7 @@ import cats.effect.IO
 import com.twitter.finagle.Http
 import lspace.services.app.JsApp
 
-case class AppApi(apps: List[JsApp]) extends Api {
+class AppApi(apps: List[JsApp]) extends Api {
 
   private def htmlResponse(document: String): Response = {
     val rep = Response()

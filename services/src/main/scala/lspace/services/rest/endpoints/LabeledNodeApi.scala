@@ -15,12 +15,15 @@ import lspace.codec.{Decoder, NativeTypeDecoder}
 import lspace.decode.{DecodeJson, DecodeJsonLD}
 import lspace.provider.detached.DetachedGraph
 
-//object LabeledNodeApi {
-//  def apply(ontology: Ontology)(implicit graph: Lspace, baseDecoder: NativeTypeDecoder): LabeledNodeApi =
-//    new LabeledNodeApi(ontology)
-//}
+object LabeledNodeApi {
+  def apply(ontology: Ontology)(implicit graph: Lspace, baseDecoder: NativeTypeDecoder): LabeledNodeApi =
+    new LabeledNodeApi(ontology)
+}
 
-case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val baseDecoder: NativeTypeDecoder)
+class LabeledNodeApi(
+    val ontology: Ontology,
+    additionalProperties: List[Property] = List(),
+    forbiddenProperties: List[Property] = List())(implicit val graph: Graph, val baseDecoder: NativeTypeDecoder)
     extends Api {
 //  implicit val encoder = Encoder //todo Encode context per client-session
 //  implicit val decoder
@@ -50,14 +53,14 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
       .withGraph(graph)
       .headOptionF
 
-  val byIri: Endpoint[IO, Node] = get(path[String]).mapOutputAsync { (iri: String) =>
+  def byIri: Endpoint[IO, Node] = get(path[String]).mapOutputAsync { (iri: String) =>
     iriToNodeTask(iri).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
   }
 
   /**
     * GET /{id}
     */
-  val byId: Endpoint[IO, Node] = get(path[Long]).mapOutputAsync { id =>
+  def byId: Endpoint[IO, Node] = get(path[Long]).mapOutputAsync { id =>
     idToNodeTask(id).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
   }
 
@@ -68,7 +71,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
   /**
     * GET /
     */
-  val list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
+  def list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
     g.N.hasLabel(ontology).withGraph(graph).toListF.map(Ok).toIO
   }
 
@@ -88,14 +91,20 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
 //      }.toIO
 //    }
 
-  val create: Endpoint[IO, Node] = {
+  def create: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
+      Right(
+        DecodeJsonLD
+          .jsonldToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
+      Right(
+        DecodeJson
+          .jsonToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .decode(b.asString(cs)))
     }
     post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       nodeTask: Task[Node] =>
@@ -112,14 +121,20 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     }
   }
 
-  val replaceById: Endpoint[IO, Node] = {
+  def replaceById: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
+      Right(
+        DecodeJsonLD
+          .jsonldToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
+      Right(
+        DecodeJson
+          .jsonToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .decode(b.asString(cs)))
     }
     put(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       (id: Long, nodeTask: Task[Node]) => //TODO: validate before mutating
@@ -143,14 +158,20 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     }
   }
 
-  val updateById: Endpoint[IO, Node] = {
+  def updateById: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(DecodeJsonLD.jsonldToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
+      Right(
+        DecodeJsonLD
+          .jsonldToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(DecodeJson.jsonToLabeledNode(ontology, ontology.properties().toList).decode(b.asString(cs)))
+      Right(
+        DecodeJson
+          .jsonToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .decode(b.asString(cs)))
     }
     patch(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       (id: Long, nodeTask: Task[Node]) =>
@@ -174,7 +195,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
         }.toIO
     }
   }
-  val removeById: Endpoint[IO, Node] = delete(path[Long]) { id: Long =>
+  def removeById: Endpoint[IO, Node] = delete(path[Long]) { id: Long =>
     val t = graph.transaction
     t.nodes
       .hasIri(graph.iri + "/" + label + "/" + id)
@@ -192,7 +213,7 @@ case class LabeledNodeApi(val ontology: Ontology)(implicit val graph: Graph, val
     * GET /
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
-  val getByLibrarian: Endpoint[IO, List[Node]] = {
+  def getByLibrarian: Endpoint[IO, List[Node]] = {
     import io.finch.internal.HttpContent
     implicit val decoder = Decoder(DetachedGraph)
     implicit val d1 = io.finch.Decode

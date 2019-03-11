@@ -24,21 +24,35 @@ object DecodeJsonLD {
     * @param decoder
     * @return
     */
-  def jsonldToLabeledNode(label: Ontology, allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder): DecodeJson[Node] = new DecodeJson[Node] {
-    def decode =
-      (json: String) =>
-        decoder
-          .stringToLabeledNode(json, label)
-          .map { node =>
-            if (allowedProperties.nonEmpty) {
-              val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-              val fNode       = resultGraph.nodes.create()
-              node.outE(allowedProperties: _*).foreach(e => fNode --- e.key --> e.to)
-              fNode
-            } else node
-        }
-  }
+  def jsonldToLabeledNode(
+      label: Ontology,
+      allowedProperties: List[Property] = List(),
+      additionalProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
+    new DecodeJson[Node] {
+      def decode =
+        (json: String) =>
+          decoder
+            .stringToLabeledNode(json, label)
+            .map { node =>
+              if (allowedProperties.nonEmpty) {
+                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+                val fNode       = resultGraph.nodes.create()
+                node.outE(allowedProperties ++ additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
+                fNode
+              } else if (additionalProperties.nonEmpty) {
+                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+                val fNode       = resultGraph.nodes.create()
+                node.outE(additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
+                fNode
+              } else if (forbiddenProperties.nonEmpty) {
+                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+                val fNode       = resultGraph.nodes.create()
+                node.outE().filterNot(forbiddenProperties.contains).foreach(e => fNode --- e.key --> e.to)
+                fNode
+              } else node
+          }
+    }
 
   /**
     *
@@ -49,10 +63,18 @@ object DecodeJsonLD {
     * @tparam T
     * @return
     */
-  def bodyJsonldTyped[T](label: Ontology, nodeToT: Node => T, allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder): DecodeJson[T] =
+  def bodyJsonldTyped[T](
+      label: Ontology,
+      nodeToT: Node => T,
+      allowedProperties: List[Property] = List(),
+      additionalProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[T] =
     new DecodeJson[T] {
-      def decode = (json: String) => jsonldToLabeledNode(label).decode(json).map(nodeToT(_))
+      def decode =
+        (json: String) =>
+          jsonldToLabeledNode(label, allowedProperties, additionalProperties, forbiddenProperties)
+            .decode(json)
+            .map(nodeToT(_))
     }
 
   /**
@@ -61,21 +83,34 @@ object DecodeJsonLD {
     * @param decoder
     * @return
     */
-  def jsonldToNode(allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder): DecodeJson[Node] = new DecodeJson[Node] {
-    def decode = { (json: String) =>
-      decoder
-        .stringToNode(json)
-        .map { node =>
-          if (allowedProperties.nonEmpty) {
-            val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-            val fNode       = resultGraph.nodes.create()
-            node.outE(allowedProperties: _*).foreach(e => fNode --- e.key --> e.to)
-            fNode
-          } else node
-        }
+  def jsonldToNode(
+      allowedProperties: List[Property] = List(),
+      additionalProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
+    new DecodeJson[Node] {
+      def decode = { (json: String) =>
+        decoder
+          .stringToNode(json)
+          .map { node =>
+            if (allowedProperties.nonEmpty) {
+              val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+              val fNode       = resultGraph.nodes.create()
+              node.outE(allowedProperties ++ additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
+              fNode
+            } else if (additionalProperties.nonEmpty) {
+              val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+              val fNode       = resultGraph.nodes.create()
+              node.outE(additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
+              fNode
+            } else if (forbiddenProperties.nonEmpty) {
+              val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+              val fNode       = resultGraph.nodes.create()
+              node.outE().filterNot(forbiddenProperties.contains).foreach(e => fNode --- e.key --> e.to)
+              fNode
+            } else node
+          }
+      }
     }
-  }
 
   def jsonldToTraversal(
       implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =

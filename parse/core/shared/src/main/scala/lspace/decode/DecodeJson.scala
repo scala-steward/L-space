@@ -22,40 +22,50 @@ object DecodeJson {
     * @param decoder
     * @return
     */
-  def jsonToLabeledNode(label: Ontology, allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder): DecodeJson[Node] = new DecodeJson[Node] {
-    def decode = (json: String) => {
-      val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-      val getProperty = (key: String) => {
-        if (allowedProperties.nonEmpty) allowedProperties.find(_.label("en").contains(key))
-        else Property.properties.get(key)
-      }
+  def jsonToLabeledNode(
+      label: Ontology,
+      allowedProperties: List[Property] = List(),
+      additionalProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
+    new DecodeJson[Node] {
+      def decode = (json: String) => {
+        val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+        val getProperty = (key: String) => {
+          if (allowedProperties.nonEmpty)
+            allowedProperties
+              .find(_.label("en").contains(key))
+              .orElse(additionalProperties.find(_.label("en").contains(key)))
+          else if (allowedProperties.nonEmpty) additionalProperties.find(_.label("en").contains(key))
+          else if (forbiddenProperties.nonEmpty)
+            if (forbiddenProperties.find(_.label("en").contains(key)).isEmpty) Property.properties.get(key) else None
+          else Property.properties.get(key)
+        }
 
-      decoder
-        .parse(json)
-        .flatMap(
-          decoder
-            .jsonToMap(_)
-            .map { obj =>
-              Task
-                .gatherUnordered(
-                  obj.toList.flatMap {
-                    case (key, value) =>
-                      getProperty(key).map { key =>
-                        decoder.toObject(value, key.range())(ActiveContext()).map(key -> _)
-                      }
+        decoder
+          .parse(json)
+          .flatMap(
+            decoder
+              .jsonToMap(_)
+              .map { obj =>
+                Task
+                  .gatherUnordered(
+                    obj.toList.flatMap {
+                      case (key, value) =>
+                        getProperty(key).map { key =>
+                          decoder.toObject(value, key.range())(ActiveContext()).map(key -> _)
+                        }
+                    }
+                  )
+                  .map { properties =>
+                    val node = resultGraph.nodes.create()
+                    node.addLabel(label)
+                    properties.foreach { case (p, (ct, v)) => node.addOut(p, ct, v) }
+                    node
                   }
-                )
-                .map { properties =>
-                  val node = resultGraph.nodes.create()
-                  node.addLabel(label)
-                  properties.foreach { case (p, (ct, v)) => node.addOut(p, ct, v) }
-                  node
-                }
-            }
-            .getOrElse(Task.raiseError(new Exception("bad body"))))
+              }
+              .getOrElse(Task.raiseError(new Exception("bad body"))))
+      }
     }
-  }
 
   /**
     *
@@ -66,12 +76,19 @@ object DecodeJson {
     * @tparam T
     * @return
     */
-  def bodyJsonTyped[T](label: Ontology, nodeToT: Node => T, allowedProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder): DecodeJson[T] = new DecodeJson[T] {
-    def decode: String => Task[T] = { json: String =>
-      jsonToLabeledNode(label).decode(json).map(nodeToT(_))
+  def bodyJsonTyped[T](
+      label: Ontology,
+      nodeToT: Node => T,
+      allowedProperties: List[Property] = List(),
+      additionalProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[T] =
+    new DecodeJson[T] {
+      def decode: String => Task[T] = { json: String =>
+        jsonToLabeledNode(label, allowedProperties, additionalProperties, forbiddenProperties)
+          .decode(json)
+          .map(nodeToT(_))
+      }
     }
-  }
 
   /**
     *
@@ -79,13 +96,22 @@ object DecodeJson {
     * @param decoder
     * @return
     */
-  def jsonToNode(allowedProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
+  def jsonToNode(
+      allowedProperties: List[Property] = List(),
+      additionalProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
     new DecodeJson[Node] {
       def decode = (json: String) => {
         val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
 
         val getProperty = (key: String) => {
-          if (allowedProperties.nonEmpty) allowedProperties.find(_.label("en").contains(key))
+          if (allowedProperties.nonEmpty)
+            allowedProperties
+              .find(_.label("en").contains(key))
+              .orElse(additionalProperties.find(_.label("en").contains(key)))
+          else if (allowedProperties.nonEmpty) additionalProperties.find(_.label("en").contains(key))
+          else if (forbiddenProperties.nonEmpty)
+            if (forbiddenProperties.find(_.label("en").contains(key)).isEmpty) Property.properties.get(key) else None
           else Property.properties.get(key)
         }
 
