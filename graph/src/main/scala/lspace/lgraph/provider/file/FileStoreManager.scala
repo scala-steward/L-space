@@ -206,7 +206,8 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
           encoder.textToJson("{}")
         }
         .flatMap { json =>
-          decoder.extractContext(Map(lspace.NS.types.`@context` -> json))(ActiveContext())
+          import decoder._
+          Map(lspace.NS.types.`@context` -> json).extractContext(ActiveContext())
         }
     } //TODO: parse remote context? List of contexts?
     else Task(ActiveContext())

@@ -3,6 +3,8 @@ package lspace.codec
 import lspace.NS.types
 import lspace.codec.exception.FromJsonException
 import lspace.structure.{ClassType, Ontology, Property}
+import lspace.types.string.{Blank, Identifier, Iri}
+import shapeless.tag.@@
 
 import scala.collection.immutable.ListMap
 
@@ -56,14 +58,14 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     * @param term
     * @return
     */
-  def expandIri(term: String): String = {
+  def expandIri(term: String): Identifier = {
     val (prefix, suffix) = term.split(":") match {
       case Array(prefix, term) => prefix -> term
       case Array(term)         => ""     -> term
       case _                   => ""     -> term
     }
-    if (prefix.startsWith("_")) term
-    else if (suffix.startsWith("//")) term
+    if (prefix.startsWith("_")) Blank(term)
+    else if (suffix.startsWith("//")) Iri(term)
     else {
       val iri =
         if (prefix != "") {
@@ -81,15 +83,15 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
               `@base`.headOption.map(_ + term)
             )
             .getOrElse(term)
-      if (iri.startsWith("https")) iri
-      else if (iri.startsWith("http")) iri.replaceFirst("http", "https")
-      else iri
+      if (iri.startsWith("https")) Iri(iri)
+      else if (iri.startsWith("http")) Iri(iri.replaceFirst("http", "https"))
+      else Iri(iri)
     }
   }
 
-  def expandKeys[Json](obj: Map[String, Json]): Map[String, Json] = obj.map {
-    case (key, value) => expandIri(key) -> value
-  }
+//  def expandKeys[Json](obj: Map[String, Json]): Map[String, Json] = obj.map {
+//    case (key, value) => expandIri(key) -> value
+//  }
 
   def expectedType(property: Property) =
     definitions
@@ -101,62 +103,62 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
 //  def jsonToArray(json: Json): Option[List[Json]]
 //  def jsonToMap(json: Json): Option[Map[String, Json]]
 
-  def extractId[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
-    obj.get(types.`@id`).flatMap(decoder.jsonToString(_)).map(expandIri)
-
-  def extractIds[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
-    obj
-      .get(types.`@ids`)
-      .flatMap(
-        json =>
-          decoder
-            .jsonToList(json)
-            .map(_.flatMap(decoder.jsonToString(_).orElse(throw FromJsonException("unknown key/iri format"))))
-            .orElse(decoder.jsonToString(json).map(List(_))))
-      .getOrElse(List())
-      .map(expandIri)
-
-  def extractLabels[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] =
-    obj
-      .get(types.`@label`)
-      .flatMap(
-        json =>
-          decoder
-            .jsonToMap(json)
-            .map(_.map {
-              case (key, json) =>
-                key -> decoder.jsonToString(json).getOrElse(throw FromJsonException("@label value is not a string"))
-            })
-            .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
-      .getOrElse(Map())
-
-  def extractComments[Json](obj: ExpandedMap[Json])(
-      implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] = {
-    obj
-      .get(types.`@comment`)
-      .flatMap(
-        json =>
-          decoder
-            .jsonToMap(json)
-            .map(_.map {
-              case (key, json) =>
-                key -> decoder.jsonToString(json).getOrElse(throw FromJsonException("@comment value is not a string"))
-            })
-            .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
-      .getOrElse(Map())
-  }
-
-  def extractContainer[Json](obj: ExpandedMap[Json]): Option[Json] =
-    obj.get(types.`@container`)
-
-  def extractValue[Json, T](obj: ExpandedMap[Json])(cb: Json => T): Option[T] =
-    obj.get(types.`@value`).map(cb)
-
-  def extractFrom[Json](obj: ExpandedMap[Json]): Option[Json] =
-    obj.get(types.`@from`)
-
-  def extractTo[Json](obj: ExpandedMap[Json]): Option[Json] =
-    obj.get(types.`@to`)
+//  def extractId[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
+//    obj.get(types.`@id`).flatMap(decoder.jsonToString(_)).map(expandIri)
+//
+//  def extractIds[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]) =
+//    obj
+//      .get(types.`@ids`)
+//      .flatMap(
+//        json =>
+//          decoder
+//            .jsonToList(json)
+//            .map(_.flatMap(decoder.jsonToString(_).orElse(throw FromJsonException("unknown key/iri format"))))
+//            .orElse(decoder.jsonToString(json).map(List(_))))
+//      .getOrElse(List())
+//      .map(expandIri)
+//
+//  def extractLabels[Json](obj: ExpandedMap[Json])(implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] =
+//    obj
+//      .get(types.`@label`)
+//      .flatMap(
+//        json =>
+//          decoder
+//            .jsonToMap(json)
+//            .map(_.map {
+//              case (key, json) =>
+//                key -> decoder.jsonToString(json).getOrElse(throw FromJsonException("@label value is not a string"))
+//            })
+//            .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
+//      .getOrElse(Map())
+//
+//  def extractComments[Json](obj: ExpandedMap[Json])(
+//      implicit decoder: NativeTypeDecoder.Aux[Json]): Map[String, String] = {
+//    obj
+//      .get(types.`@comment`)
+//      .flatMap(
+//        json =>
+//          decoder
+//            .jsonToMap(json)
+//            .map(_.map {
+//              case (key, json) =>
+//                key -> decoder.jsonToString(json).getOrElse(throw FromJsonException("@comment value is not a string"))
+//            })
+//            .orElse(decoder.jsonToString(json).map(l => Map("en" -> l))))
+//      .getOrElse(Map())
+//  }
+//
+//  def extractContainer[Json](obj: ExpandedMap[Json]): Option[Json] =
+//    obj.get(types.`@container`)
+//
+//  def extractValue[Json, T](obj: ExpandedMap[Json])(cb: Json => T): Option[T] =
+//    obj.get(types.`@value`).map(cb)
+//
+//  def extractFrom[Json](obj: ExpandedMap[Json]): Option[Json] =
+//    obj.get(types.`@from`)
+//
+//  def extractTo[Json](obj: ExpandedMap[Json]): Option[Json] =
+//    obj.get(types.`@to`)
 
   def ++(activeContext: ActiveContext): ActiveContext =
     this.copy(

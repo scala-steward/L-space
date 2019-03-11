@@ -3,8 +3,8 @@ package lspace.codec
 import scala.collection.immutable.Map
 
 object ExpandedMap {
-  def apply[V](obj: Map[String, V])(implicit activeContext: ActiveContext): ExpandedMap[V] =
-    new ExpandedMap(activeContext.expandKeys(obj))
+//  def apply[V](obj: Map[String, V])(implicit activeContext: ActiveContext): ExpandedMap[V] =
+//    new ExpandedMap(activeContext.expandKeys(obj))
 }
 
 class ExpandedMap[V](val obj: Map[String, V]) {

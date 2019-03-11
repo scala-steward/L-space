@@ -45,7 +45,7 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
       .flatMap(idMaps.nodeIds.get)
 //        .getOrElse(_, throw FromJsonException("unknown node id ref")))
       .map { id =>
-        extractOntologies(expandedJson).flatMap { ontologies =>
+        expandedJson.extractOntologies.flatMap { ontologies =>
           Task(graph.getOrCreateNode(id)).map { node =>
             if (ontologies.isEmpty) label.foreach(node.addLabel)
             else ontologies.foreach(node.addLabel)

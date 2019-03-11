@@ -9,5 +9,5 @@ object Prefix {
 }
 
 case class Prefix(iri: String) extends AnyVal {
-  def +(path: String): String @@ Iri = Iri(iri + path)
+  def +(path: String): String = Iri(iri + path).iri //TODO: return Iri
 }

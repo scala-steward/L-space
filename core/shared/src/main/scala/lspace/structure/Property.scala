@@ -332,6 +332,11 @@ object Property {
     val `@properties`: Property = new Property(NS.types.`@properties`) {
       rangeList = Coeval.delay(Property.ontology :: Nil).memoizeOnSuccess
     }
+//    val `schema:domainIncludes`: Property =
+//      new Property(NS.types.schemaDomainIncludes, iris = Set(NS.types.schemaDomainIncludes)) {
+//        rangeList = Coeval.delay(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil).memoizeOnSuccess
+//        labelMap = Map("en" -> "domainIncludes")
+//      }
     val `@language`: Property =
       new Property(NS.types.`@language`, iris = Set(NS.types.`@language`, NS.types.xsdLanguage)) {
         rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess
@@ -477,7 +482,7 @@ object Property {
 }
 
 /**
-  *
+  * //TODO: create inverse-link if any
   * @param iri
   * @param iris
   * @param _range common class-types for the outgoing resource, the first type is implicit for de-/serialization

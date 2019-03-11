@@ -209,7 +209,7 @@ trait Resource[+T] extends IriResource {
 
   /** Filters and groups in-coming edges by the provided labels
     *
-    * @param key the [[Edge]]'s labels
+    * @param key the [[lspace.structure.Edge]]'s labels
     * @return Map[Property, List[Edge[Any, T]]]
     */
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]]

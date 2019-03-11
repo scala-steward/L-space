@@ -1,10 +1,6 @@
 package lspace.types.string
 
-import shapeless.tag
-import shapeless.tag.@@
-
 object Iri {
-  def apply(v: String): String @@ Iri = tag[Iri](v)
+  implicit def iriToString(iri: Iri): String = iri.iri
 }
-
-trait Iri
+case class Iri(iri: String) extends Identifier
