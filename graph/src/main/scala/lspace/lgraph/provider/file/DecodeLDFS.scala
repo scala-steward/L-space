@@ -26,7 +26,7 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
   override def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] = //need IdMaps here
     json.string
       .map(activeContext.expandIri)
-      .map(s => Task(graph.nodes.upsert(s))) //TODO: add label if missing?
+      .map(s => Task(graph.nodes.upsert(s.iri))) //TODO: add label if missing?
       .orElse(
         json.long
           .orElse(json.int.map(_.toLong))

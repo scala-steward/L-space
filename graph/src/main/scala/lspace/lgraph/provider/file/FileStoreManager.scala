@@ -311,7 +311,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                         .map(
                           _.map(
                             _.string
-                              .map(context.expandIri)
+                              .map(context.expandIri).map(_.iri)
                               .getOrElse(throw FromJsonException("key not a string"))
                           ).map(iri =>
                             graph.ns.ontologies
@@ -358,15 +358,15 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                         .fromTask(
                           for {
                             property <- graph.ns.properties
-                              .get(context.expandIri(keyJson.string.get))
+                              .get(context.expandIri(keyJson.string.get).iri)
                               .flatMap(_.map(Task.now).getOrElse(
                                 Task.raiseError(FromJsonException(s"$keyJson property could not be build/fetched"))))
-                            fromLabels <- Task.gather(fromLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(iri => graph.ns.classtypes
-                              .get(context.expandIri(iri))
+                            fromLabels <- Task.gather(fromLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(_.iri).map(iri => graph.ns.classtypes
+                              .get(context.expandIri(iri).iri)
                               .flatMap(_.map(Task.now).getOrElse(
                                 Task.raiseError(FromJsonException(s"$fromLabelsJson classtypes could not be build/fetched")))))))
-                            toLabels <- Task.gather(toLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(iri => graph.ns.classtypes
-                              .get(context.expandIri(iri))
+                            toLabels <- Task.gather(toLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(_.iri).map(iri => graph.ns.classtypes
+                              .get(context.expandIri(iri).iri)
                               .flatMap(_.map(Task.now).getOrElse(
                                 Task.raiseError(FromJsonException(s"$toLabelsJson classtypes could not be build/fetched")))))))
                           } yield {
@@ -474,15 +474,15 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                         .fromTask(
                           for {
                             property <- graph.ns.properties
-                              .get(context.expandIri(keyJson.string.get))
+                              .get(context.expandIri(keyJson.string.get).iri)
                               .flatMap(_.map(Task.now).getOrElse(
                                 Task.raiseError(FromJsonException(s"$keyJson property could not be build/fetched"))))
-                            fromLabels <- Task.gather(fromLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(iri =>graph.ns.classtypes
+                            fromLabels <- Task.gather(fromLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(_.iri).map(iri =>graph.ns.classtypes
                               .get(iri)
                               .flatMap(_.map(Task.now).getOrElse(
                                 CollectionType.get(iri).map(Task.now).getOrElse(Task.raiseError(FromJsonException(s"$toLabelsJson classtypes could not be build/fetched")))
                               )))))
-                            toLabels <- Task.gather(toLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(iri => graph.ns.classtypes
+                            toLabels <- Task.gather(toLabelsJson.list.toList.flatMap(_.flatMap(_.string).map(context.expandIri).map(_.iri).map(iri => graph.ns.classtypes
                               .get(iri)
                               .flatMap(_.map(Task.now).getOrElse(
                                 CollectionType.get(iri).map(Task.now).getOrElse(Task.raiseError(FromJsonException(s"$toLabelsJson classtypes could not be build/fetched")))
@@ -589,7 +589,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                       (for {
                         longId <- id.long
                         datatype <- label.string
-                          .map(context.expandIri)
+                          .map(context.expandIri).map(_.iri)
                           .flatMap { iri =>
                             CollectionType.get(iri)
                           }
