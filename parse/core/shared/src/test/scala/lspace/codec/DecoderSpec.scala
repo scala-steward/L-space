@@ -17,7 +17,7 @@ trait DecoderSpec extends AsyncWordSpec with Matchers {
     .replace()
 
   "The Decoder" should {
-    "parse any ontology from schema.org" ignore {
+    "parse any ontology from schema.org" in {
       decoder
         .toOntology("https://schema.org/Person")(ActiveContext())
         .map { ontology =>

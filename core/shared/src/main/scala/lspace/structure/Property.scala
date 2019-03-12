@@ -240,7 +240,7 @@ object Property {
         .headOption
         .collect {
           case nodes: List[_] =>
-            println(s"get range ${nodes.asInstanceOf[List[Node]].map(_.iri)} for ${node.iri}")
+//            println(s"get range ${nodes.asInstanceOf[List[Node]].map(_.iri)} for ${node.iri}")
             nodes.collect {
               case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
                 ClassType.classtypes
@@ -249,7 +249,7 @@ object Property {
                     ClassType.classtypes.getAndUpdate(node)
                   } //orElse???
               case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
-                println(s"found ct by iri ${node.iri}")
+//                println(s"found ct by iri ${node.iri}")
                 ClassType.classtypes.get(node.iri).get
               case iri: String =>
                 ClassType.classtypes
@@ -259,13 +259,13 @@ object Property {
           case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
             List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getAndUpdate(node)))
           case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
-            println(s"found ct by iri ${node.iri}")
+//            println(s"found ct by iri ${node.iri}")
             List(ClassType.classtypes.get(node.iri).get)
         }
         .toList
         .flatten
 
-      println(property.range().map(_.iri))
+//      println(property.range().map(_.iri))
 
       property.properties ++ (node
         .out(Property.default.typed.propertyProperty) ++ node
