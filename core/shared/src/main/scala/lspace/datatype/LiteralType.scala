@@ -9,7 +9,8 @@ trait LiteralType[+T] extends DataType[T]
 object LiteralType extends DataTypeDef[LiteralType[Any]] {
 
   lazy val datatype: LiteralType[Any] = new LiteralType[Any] {
-    val iri: String = NS.types.`@literal`
+    val iri: String                = NS.types.`@literal`
+    override val iris: Set[String] = Set(NS.types.`@literal`)
     labelMap = Map("en" -> NS.types.`@literal`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
   }

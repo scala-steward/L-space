@@ -8,7 +8,8 @@ import lspace.types.vector._
 object GeopointType extends DataTypeDef[GeopointType[Point]] {
 
   lazy val datatype: GeopointType[Point] = new GeopointType[Point] {
-    val iri: String = NS.types.`@geopoint`
+    val iri: String                = NS.types.`@geopoint`
+    override val iris: Set[String] = Set(NS.types.`@geopoint`)
     labelMap = Map("en" -> NS.types.`@geopoint`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(GeometricType.datatype)
   }

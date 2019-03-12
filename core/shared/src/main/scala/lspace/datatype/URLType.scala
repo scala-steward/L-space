@@ -7,7 +7,8 @@ import lspace.structure._
 object NodeURLType extends DataTypeDef[NodeURLType[Node]] {
 
   lazy val datatype = new NodeURLType[Node] {
-    val iri: String = NS.types.`@nodeURL`
+    val iri: String                = NS.types.`@nodeURL`
+    override val iris: Set[String] = Set(NS.types.`@nodeURL`)
     labelMap = Map("en" -> NS.types.`@nodeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }

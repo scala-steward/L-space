@@ -371,7 +371,7 @@ object DataType
 trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
-  val iris: Set[String]                           = Set()
+  val iris: Set[String]                           = Set() + iri
   def _extendedClasses: () => List[DataType[Any]] = () => List()
   def _properties: () => List[Property]           = () => List()
 

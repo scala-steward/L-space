@@ -9,7 +9,8 @@ import lspace.structure.util.ClassTypeable
 object LocalDateTimeType extends DataTypeDef[DateTimeType[LocalDateTime]] {
 
   lazy val datatype: DateTimeType[LocalDateTime] = new DateTimeType[LocalDateTime] {
-    val iri: String = NS.types.`@localdatetime`
+    val iri: String                = NS.types.`@localdatetime`
+    override val iris: Set[String] = Set(NS.types.`@localdatetime`)
     labelMap = Map("en" -> NS.types.`@localdatetime`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType.datatype)
   }

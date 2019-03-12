@@ -113,7 +113,7 @@ object ClassType {
   */
 trait ClassType[+T] extends IriResource {
 
-  def iris: Set[String]
+  def iris: Set[String] //TODO var iriList: Coeval[Set[String]]
   def `@ids` = iris
 
 //  protected def _properties: () => List[Property]

@@ -1,5 +1,7 @@
 package lspace.provider.mem
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.datatype.{DataType, TextType}
 import lspace.structure.Property.default
 import lspace.structure._
@@ -25,10 +27,14 @@ trait MemResource[T] extends Resource[T] {
 
 //  private val linksOut: concurrent.Map[Property, List[Edge[T, _]]] =
 //    new ConcurrentHashMap[Property, List[Edge[T, _]]](16, 0.9f, 32).asScala
-  private val linksOut: mutable.OpenHashMap[Property, List[Edge[T, _]]] =
-    mutable.OpenHashMap[Property, List[Edge[T, _]]]()
+//  private val linksOut: mutable.OpenHashMap[Property, List[Edge[T, _]]] =
+  private val linksOut: concurrent.Map[Property, List[Edge[T, _]]] =
+//    mutable.OpenHashMap[Property, List[Edge[T, _]]]()
+    new ConcurrentHashMap[Property, List[Edge[T, _]]]().asScala
 
-  protected[lspace] def _addOut(edge: Edge[T, _]): Unit = this.synchronized {
+  object Lock
+
+  protected[lspace] def _addOut(edge: Edge[T, _]): Unit = Lock.synchronized {
     if (edge.from != this) throw new Exception("edge.from != this, cannot add out-link")
     linksOut += edge.key -> (edge :: linksOut
       .getOrElse(edge.key, List[Edge[T, _]]())
@@ -37,10 +43,10 @@ trait MemResource[T] extends Resource[T] {
 
 //  private val linksIn: concurrent.Map[Property, List[Edge[_, T]]] =
 //    new ConcurrentHashMap[Property, List[Edge[_, T]]](2, 0.9f, 4).asScala
-  private val linksIn: mutable.OpenHashMap[Property, List[Edge[_, T]]] =
-    mutable.OpenHashMap[Property, List[Edge[_, T]]]()
+  private val linksIn: concurrent.Map[Property, List[Edge[_, T]]] =
+    new ConcurrentHashMap[Property, List[Edge[_, T]]]().asScala
 
-  protected[lspace] def _addIn(edge: Edge[_, T]): Unit = this.synchronized {
+  protected[lspace] def _addIn(edge: Edge[_, T]): Unit = Lock.synchronized {
     if (edge.to != this) throw new Exception("edge.from != this, cannot add in-link")
     linksIn += edge.key -> (edge :: linksIn
       .getOrElse(edge.key, List[Edge[_, T]]())
@@ -88,7 +94,7 @@ trait MemResource[T] extends Resource[T] {
   private def validateDT[V](dt: DataType[V], value: V) =
     if (dt.iri.nonEmpty) dt else ClassType.valueToOntologyResource(value)
 
-  def removeIn[V >: T](edge: Edge[_, V]): Unit = this.synchronized {
+  def removeIn[V >: T](edge: Edge[_, V]): Unit = Lock.synchronized {
     linksIn.get(edge.key).foreach { links =>
       if (links.contains(edge)) {
         val newSet = links.filterNot(_ == edge)
@@ -98,7 +104,7 @@ trait MemResource[T] extends Resource[T] {
       }
     }
   }
-  def removeOut[V >: T](edge: Edge[V, _]): Unit = this.synchronized {
+  def removeOut[V >: T](edge: Edge[V, _]): Unit = Lock.synchronized {
     linksOut.get(edge.key).foreach { links =>
       if (links.contains(edge)) {
         val newSet = links.filterNot(_ == edge)
@@ -108,12 +114,12 @@ trait MemResource[T] extends Resource[T] {
       }
     }
   }
-  def removeIn(key: Property): Unit = this.synchronized {
+  def removeIn(key: Property): Unit = Lock.synchronized {
     val toRemove = inE(key)
     linksIn -= key
     toRemove.foreach(_.remove())
   }
-  def removeOut(key: Property): Unit = this.synchronized {
+  def removeOut(key: Property): Unit = Lock.synchronized {
     val toRemove = outE(key)
     linksOut -= key
     toRemove.foreach(_.remove())
