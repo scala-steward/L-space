@@ -1,6 +1,5 @@
 package lspace.lgraph.provider.cassandra
 
-import argonaut.Parse
 import com.datastax.driver.core.PagingState
 import com.outworkers.phantom.builder.batch.BatchQuery
 import com.outworkers.phantom.dsl._
@@ -9,7 +8,6 @@ import lspace.lgraph.store.{LEdgeStore, LNodeStore, LValueStore, StoreManager}
 import lspace.datatype.DataType
 import lspace.structure
 import lspace.structure.{Ontology, Property}
-import lspace.parse.{ActiveContext, JsonLD}
 import monix.eval.Task
 import monix.reactive._
 
@@ -37,8 +35,6 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
   override def nodeStore: LNodeStore[G]   = graph.nodeStore.asInstanceOf[LNodeStore[G]]
   override def edgeStore: LEdgeStore[G]   = graph.edgeStore.asInstanceOf[LEdgeStore[G]]
   override def valueStore: LValueStore[G] = graph.valueStore.asInstanceOf[LValueStore[G]]
-
-  val jsonld = JsonLD(graph)
 
   Await.result(
     Future.sequence(
@@ -71,7 +67,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
 
           node.labels
             .flatMap { id =>
-              Ontology.allOntologies.byId.get(id).orElse(graph.ns.ontologies.get(id))
+              graph.ns.ontologies.cached(id)
             }
             .foreach(o => _node.addLabel(o))
           _node
@@ -104,7 +100,7 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
           graph.newEdge(
             edge.id,
             from.asInstanceOf[graph.GResource[Any]],
-            Property.allProperties.byId.get(edge.key).orElse(graph.ns.properties.get(edge.key)).get,
+            graph.ns.properties.cached(edge.key).get,
             to.asInstanceOf[graph.GResource[Any]]
           )
       }) #::: (if (!result.result.isExhausted()) pagedEdgesF(f, Some(result.pagingState)) else Stream())
@@ -116,8 +112,8 @@ class CassandraStoreManager[G <: LGraph](override val graph: G, override val dat
       .filterNot(v => graph.valueStore.isDeleted(v.id))
       .map(value =>
         valueStore.cachedById(value.id).asInstanceOf[Option[graph.GValue[Any]]].getOrElse {
-          val datatype = DataType.allDataTypes.byId.get(value.label).orElse(graph.ns.datatypes.get(value.label)).get
-          val parsedValue = jsonld.decode
+          val datatype = graph.ns.datatypes.cached(value.label).get
+          val parsedValue = decoder
             .toData(Parse.parseOption(value.value).get, datatype)(ActiveContext())
             .runSyncUnsafe()(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
           graph.newValue(value.id, parsedValue, datatype)

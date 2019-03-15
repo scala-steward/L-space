@@ -154,7 +154,7 @@ lazy val graph = (project in file("graph"))
   )
 
 lazy val cassandra = (project in file("store/cassandra"))
-  .dependsOn(graph % "compile->compile;test->test")
+  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
   .settings(settings)
   .settings(
     name := "lspace-store-cassandra",

@@ -16,7 +16,7 @@ object LGraph {
 
   /**
     *
-    * @param cacheLevel fraction of resources to populate the cache, 0 for nothing 1 for everything (in memory allows for it)
+    * @param cacheLevel fraction of resources to populate the cache, 0 for nothing 1 for everything (if memory allows for it)
     */
   case class Options(cacheLevel: Double = 1.0)
   def apply(storeProvider: StoreProvider, indexProvider: IndexProvider, options: Options = Options()): LGraph = {
