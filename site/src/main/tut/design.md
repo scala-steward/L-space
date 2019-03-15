@@ -36,16 +36,20 @@ Supported types are:
       * String
       * Boolean
     * Temporal
-      * (java.time): Instant, LocalDate, LocalTime
+      * (java.time): Instant, LocalDateTime, LocalDate, LocalTime
     * Structured
-      * Geo: L-space geometric types (work-in-progress, open-for-suggestions)
+      * Geo: L-space geometric types (work-in-progress)
       * Collection
         * List, Vector, Set, Map, ListSet
       * Tuple(N)
       * [Squants DSL (WIP)](https://github.com/typelevel/squants)
 
-A note on collection types: 
+*A note on collection types:*  
 A collection can contain any type of supported data. Collections can be nested and they can contain resources.
+L-space brings nested collections to json-ld. A collection-type can be represented by a parsable, non-resolvable iri. 
+E.g. a list of lists of any ```@list(@list)```, a list of integers ```list(@int)```, a list of list of integers ```@list(@list(@int))```, 
+a map of stings vs list of dates ```@map(@string)(@list(@date))```, a list of persons ```@list(https://schema.org/Person``` or assumed 
+there is 'schema' prefix ```@list(schema:Person)```, a polymorphic list of persons or organizations ```@list(schema:Person+schema:Organization)``` etc.
 
 ## Graph model
 A graph exists of a data-space, name-space and index-space. 

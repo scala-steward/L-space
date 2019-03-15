@@ -10,7 +10,8 @@ position: 4
 * [Encoding/Decoding](#encoding/decoding)
  
 ## Supported formats
-L-space is about semantic graph computing. It is expected data distributed and hence it should provide for the necessary tools to coop.
+L-space is about semantic graph computing. It expects data to be distributed and hence it should provide for the 
+necessary tools to coop.
 
 ### Json-ld
 The main format used for encoding/decoding information is json-ld. The current implementation takes an interpretation 
