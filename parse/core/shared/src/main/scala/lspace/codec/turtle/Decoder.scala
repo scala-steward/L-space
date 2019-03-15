@@ -1,0 +1,253 @@
+package lspace.codec.turtle
+
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
+import java.util.concurrent.ConcurrentHashMap
+
+import lspace.codec.ActiveContext
+import lspace.structure._
+import lspace.types.string.{Blank, Identifier, Iri}
+import lspace.types.vector.{Point, Polygon}
+import monix.eval.Task
+import monix.reactive.Observable
+
+import scala.annotation.tailrec
+import scala.collection.concurrent
+import scala.collection.immutable.Map
+import scala.util.matching.Regex
+import scala.collection.JavaConverters._
+import scala.util.Try
+
+case class Turtle(context: ActiveContext = ActiveContext(), statements: List[Statement] = List())
+
+case class Statement(subject: Identifier, predicates: Predicates)
+trait Object
+case class Single(value: String)               extends Object
+case class Multi(values: List[Object])         extends Object
+case class Predicates(pv: List[(Iri, Object)]) extends Object
+
+object Decoder {
+
+  def apply(graph0: Lspace): Decoder =
+    new Decoder {
+      val graph: Graph = graph0
+      lazy val nsDecoder = new Decoder {
+        val graph: Graph   = graph0.ns
+        lazy val nsDecoder = this
+      }
+    }
+}
+trait Decoder {
+  def graph: Graph
+  def nsDecoder: Decoder
+
+  protected lazy val blankNodes: concurrent.Map[String, Node] =
+    new ConcurrentHashMap[String, Node](16, 0.9f, 32).asScala
+  protected lazy val blankEdges: concurrent.Map[String, Edge[_, _]] =
+    new ConcurrentHashMap[String, Edge[_, _]](16, 0.9f, 32).asScala
+  protected lazy val blankValues: concurrent.Map[String, Value[_]] =
+    new ConcurrentHashMap[String, Value[_]](16, 0.9f, 32).asScala
+
+  implicit class WithString(s: String) {
+    def stripLtGt: String = s.stripPrefix("<").stripSuffix(">")
+
+    def toResource(implicit activeContext: ActiveContext): Resource[_] = {
+      s match {
+        case nodeLike if nodeLike.startsWith("<") && nodeLike.endsWith(">") =>
+          activeContext.expandIri(nodeLike.stripLtGt) match {
+            case Iri(iri)   => graph.nodes.upsert(iri)
+            case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+          }
+        case intLike if intLike.endsWith("^^xsd:integer") =>
+          graph.values.upsert(intLike.stripSuffix("^^xsd:integer").stripPrefix("\"").stripSuffix("\"").toInt)
+        case doubleLike if doubleLike.endsWith("^^xsd:double") =>
+          graph.values.upsert(doubleLike.stripSuffix("^^xsd:double").stripPrefix("\"").stripSuffix("\"").toDouble)
+        case decimalLike if decimalLike.endsWith("^^xsd:decimal") =>
+          graph.values.upsert(decimalLike.stripSuffix("^^xsd:decimal").stripPrefix("\"").stripSuffix("\"").toDouble)
+        case booleanLike if Try(booleanLike.toBoolean).isSuccess => graph.values.upsert(booleanLike.toBoolean)
+        case stringLike if stringLike.endsWith("^^xsd:string") =>
+          graph.values.upsert(stringLike.stripSuffix("^^xsd:string").stripPrefix("\"").stripSuffix("\""))
+        case string => graph.values.upsert(string.stripPrefix("\"").stripSuffix("\""))
+      }
+    }
+  }
+
+  implicit class WithTurtle(turtle: Turtle) {
+    implicit val activeContext = turtle.context
+    def process: Graph = {
+      turtle.statements.map { statement =>
+        val subject = statement.subject match {
+          case Iri(iri)   => graph.nodes.upsert(iri)
+          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+        }
+        statement.predicates.process.foreach { case (property, resource) => subject --- property --> resource }
+      }
+      graph
+    }
+  }
+
+  implicit class WithPredicates(predicates: Predicates)(implicit activeContext: ActiveContext) {
+    def process: List[(Property, Resource[_])] = {
+      predicates.pv.flatMap {
+        case (p, Single(o)) => List(Property.properties.getOrCreate(p.iri, Set()) -> o.toResource)
+        case (p, Multi(os)) =>
+          val property = Property.properties.getOrCreate(p.iri, Set())
+          os.map {
+            case Single(o) => property -> o.toResource
+            case predicates: Predicates =>
+              val node = graph.nodes.create()
+              predicates.process.foreach { case (property, resource) => node --- property --> resource }
+              property -> node
+          }
+        case (p, predicates: Predicates) =>
+          val node = graph.nodes.create()
+          predicates.process.foreach { case (property, resource) => node --- property --> resource }
+          List(Property.properties.getOrCreate(p.iri, Set()) -> node)
+      }
+    }
+  }
+
+  def parse(string: String): Task[Turtle] = {
+    @tailrec
+    def spanPrefix(string: String, prefixes: List[String] = List()): (List[String], String) =
+      string.trim() match {
+        case prefix if prefix.startsWith("@prefix") || prefix.take(7).toLowerCase().startsWith("prefix") =>
+          prefix.split("\n", 1).toList match {
+            case List(prefix, tail) => spanPrefix(tail, prefixes :+ prefix)
+            case List(tail)         => prefixes -> tail
+          }
+      }
+    val (prefixes, tail) = spanPrefix(string)
+
+    val (headers, contents) = string.linesIterator.toList
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .span(
+        l =>
+          l.startsWith("@prefix") || l
+            .startsWith("@base") || l.take(7).toLowerCase.startsWith("prefix") || l
+            .take(5)
+            .toLowerCase
+            .startsWith("base"))
+    val activeContext = headers.foldLeft(ActiveContext()) {
+      case (activeContext, header) if header.startsWith("@prefix") =>
+        header.split(" ").toList match {
+          case List(key, prefix, iri, ".") =>
+            activeContext.copy(
+              `@prefix` = activeContext.`@prefix` + (prefix
+                .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri))
+          case other => throw new Exception(s"unexpected @prefix header ${other.mkString(" ")}")
+        }
+      case (activeContext, header) if header.startsWith("@base") =>
+        header.split(" ").toList match {
+          case List(key, iri, ".") =>
+            activeContext.copy(`@base` = Some(Some(activeContext.expandIri(iri.stripLtGt).iri)))
+          case other => throw new Exception(s"unexpected @prefix header ${other.mkString(" ")}")
+        }
+      case (activeContext, header) =>
+        header.split(" ").toList match {
+          case List(key, prefix, iri) if key.toLowerCase == "prefix" =>
+            activeContext.copy(
+              `@prefix` = activeContext.`@prefix` + (prefix
+                .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri))
+          case List(key, iri) if key.toLowerCase == "base" =>
+            activeContext.copy(`@base` = Some(Some(activeContext.expandIri(iri.stripLtGt).iri)))
+          case other => throw new Exception(s"unexpected header ${other.mkString(" ")}")
+        }
+    }
+
+    val regex = new Regex("\"(.*?)\"|([^\\s]+)")
+
+    def wordsToStatement(words: List[String]): Statement =
+      words match {
+        case Nil        => throw new Exception("empty statement")
+        case s :: words =>
+//          println(s"got subject $s")
+//          println(s"tail is $words")
+          wordsToPredicates(words) match {
+            case (predicates, words) =>
+              Statement(activeContext.expandIri(s.stripLtGt), predicates)
+          }
+      }
+
+    def wordsToPredicates(words: List[String]): (Predicates, List[String]) = {
+      words match {
+        case p :: o :: "." :: Nil =>
+          Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri] -> Single(o)) :: Nil) -> Nil
+        case p :: o :: "," :: words =>
+          val pI = activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri]
+          wordsToObjects(words, pI) match {
+            case (objects, words) =>
+              wordsToPredicates(words) match {
+                case (predicates, words) =>
+                  predicates.copy((pI -> objects.copy(Single(o) :: objects.values)) :: predicates.pv) -> words
+              }
+          }
+        case p :: o :: ";" :: words =>
+          val pI = activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri]
+          wordsToPredicates(words) match {
+            case (predicates, words) => predicates.copy((pI -> Single(o)) :: predicates.pv) -> words
+          }
+        case p :: o :: "]" :: words =>
+          Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri] -> Single(o)) :: Nil) -> words
+        case p :: "[" :: words =>
+          val pI = activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri]
+          subjectBlankNode(words, pI) match {
+            case (nodePredicates, words) =>
+              words match {
+                case "." :: Nil => Predicates((pI -> nodePredicates) :: Nil) -> Nil
+                case ";" :: words =>
+                  wordsToPredicates(words) match {
+                    case (predicates, words) => predicates.copy(pv = (pI -> nodePredicates) :: predicates.pv) -> words
+                  }
+              }
+          }
+      }
+    }
+
+    def subjectBlankNode(words: List[String], predicate: Identifier): (Predicates, List[String]) = {
+      words match {
+        case p :: "[" :: words =>
+          val (predicates, tail) = subjectBlankNode(words, activeContext.expandIri(p.stripLtGt))
+          Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri], predicates) :: Nil) -> tail
+        case p :: o :: "]" :: words =>
+          Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri], Single(o)) :: Nil) -> words
+        case p :: o :: ";" :: words =>
+          wordsToPredicates(words) match {
+            case (predicates, words) =>
+              Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri], Single(o)) :: predicates.pv) -> words
+          }
+      }
+    }
+
+    def wordsToObjects(words: List[String], predicate: Identifier): (Multi, List[String]) = {
+      words match {
+        case o :: "," :: words =>
+          val (oTail, tail) = wordsToObjects(words, predicate)
+          oTail.copy(Single(o) :: oTail.values) -> tail
+        case o :: ";" :: words => Multi(Single(o) :: Nil) -> (";" :: words)
+      }
+    }
+
+    Task.eval {
+      Turtle(
+        activeContext, {
+          val matches = regex.findAllMatchIn(contents.mkString(" ")).toList
+          val words = matches.map {
+            _.subgroups.flatMap(Option(_)).fold("")(_ ++ _)
+          }
+          words
+            .foldLeft(List[List[String]]() -> List[String]()) {
+              case ((lines, segments), line) if line.endsWith(".") => ((line :: segments).reverse :: lines) -> Nil
+              case ((lines, segments), line)                       => lines                                 -> (line :: segments)
+            }
+            ._1
+            .foldLeft(List[Statement]()) {
+              case (statements, words) =>
+//                println(s"wordsToStatement: $words")
+                wordsToStatement(words) :: statements
+            }
+        }
+      )
+    }
+  }
+}
