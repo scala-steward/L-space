@@ -3,9 +3,9 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
   val scala     = "2.12.8"
-  val finch     = "0.27.0"
+  val finch     = "0.28.0"
   val monix     = "3.0.0-RC2"
-  val sttp      = "1.5.8"
+  val sttp      = "1.5.11"
   val elastic4s = "6.5.0"
   val phantom   = "2.30.0"
 }
@@ -18,8 +18,8 @@ object Dependencies {
       "com.chuusai"   %%% "shapeless"      % "2.3.3",
       "org.typelevel" %%% "squants"        % "1.4.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
-      "com.outr"      %%% "scribe"    % "2.7.1",
-      "org.scalatest" %%% "scalatest" % "3.0.5" % "test"
+      "com.outr"      %%% "scribe"    % "2.7.3",
+      "org.scalatest" %%% "scalatest" % "3.0.7" % "test"
     ))
 
   val coreJsDeps = Def.setting(
@@ -72,12 +72,11 @@ object Dependencies {
     "com.github.finagle" %% "finchx-core"     % Version.finch,
     "com.github.finagle" %% "finchx-generic"  % Version.finch,
     "com.github.finagle" %% "finchx-argonaut" % Version.finch,
-    "com.github.finagle" %% "finchx-sse"      % Version.finch,
     "com.github.finagle" %% "finchx-refined"  % Version.finch,
     "com.twitter"        %% "twitter-server"  % "19.1.0",
     "com.vmunier"        %% "scalajs-scripts" % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi"   %% "scalatags" % "0.6.7",
-    "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+    "org.scalatest" %% "scalatest" % "3.0.7" % "test"
   )
 }
