@@ -21,8 +21,11 @@ lazy val compilerOptions = Seq(
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
 //  "-Ytyper-debug",
+//  "-Ybreak-cycles",
 //  "-Ylog:all",
 //  "-verbose",
+//  "-Xdev",
+//  "-Ydebug",
   "-deprecation",
   "-encoding",
   "utf8"
@@ -150,7 +153,8 @@ lazy val graph = (project in file("graph"))
   .settings(settings)
   .settings(
     name := "lspace-graph",
-    libraryDependencies ++= graphDeps
+    libraryDependencies ++= graphDeps,
+    Test / parallelExecution := false
   )
 
 lazy val cassandra = (project in file("store/cassandra"))
@@ -187,6 +191,7 @@ lazy val services = (project in file("services"))
   .settings(
     name := "lspace-services",
     libraryDependencies ++= servicesDeps,
+    Test / parallelExecution := false
   )
 
 val makeSettingsYml = Def.task {
