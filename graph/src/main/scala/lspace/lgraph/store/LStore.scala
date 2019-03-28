@@ -5,6 +5,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 import lspace.lgraph.LGraph
 import lspace.structure.store.Store
+import monix.eval.Task
+import monix.reactive.Observable
 
 import scala.collection.concurrent
 import scala.collection.JavaConverters._
@@ -12,6 +14,7 @@ import scala.collection.JavaConverters._
 object LStore {
 //  def apply[T <: Resource[_]](iri: String, graph: LGraph): LStore[T] =
 //    new LStore[T](iri, graph)
+  implicit val ec = monix.execution.Scheduler.io("lstore-io")
 }
 
 trait LStore[G <: LGraph] extends Store[G] {
@@ -23,7 +26,7 @@ trait LStore[G <: LGraph] extends Store[G] {
   protected[store] lazy val _deleted: concurrent.Map[Long, Instant] =
     new ConcurrentHashMap[Long, Instant]().asScala
 
-  def store(resource: T): Unit = {
+  def store(resource: T): Task[Unit] = Task {
     cache(resource)
   }
 
@@ -101,15 +104,17 @@ trait LStore[G <: LGraph] extends Store[G] {
     })
   }
 
-  def hasId(id: Long): Option[T2]     = cachedById(id)
-  def hasIri(iri: String): Stream[T2] = cachedByIri(iri)
+  def hasId(id: Long): Task[Option[T2]]   = Task { cachedById(id) }
+  def hasIri(iri: String): Observable[T2] = Observable.fromIterable(cachedByIri(iri))
 
-  def delete(resource: T): Unit = {
+  def delete(resource: T): Task[Unit] = Task {
     uncache(resource)
   }
 
-  def all(): Stream[T2]
+  def all(): Observable[T2]
 
-  def cached(): Stream[T2] = _cache.values.toStream
-  def totalCached(): Int   = _cache.size
+  def cached = new {
+    def all(): Stream[T2]           = _cache.values.toStream
+    def hasId(id: Long): Option[T2] = _cache.get(id)
+  }
 }

@@ -3,6 +3,7 @@ package lspace.provider.wrapped
 import monix.reactive.subjects.Var
 import lspace.structure._
 import lspace.util.CacheStatus
+import monix.eval.Task
 
 trait WrappedResource[T] extends Resource[T] {
   //  def value: T = self.value
@@ -28,11 +29,11 @@ trait WrappedResource[T] extends Resource[T] {
   def inE(key: Property*): List[Edge[Any, T]]                    = self.inE(key: _*)
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]]  = self.inEMap(key: _*)
 
-  def removeIn[V >: T](edge: Edge[_, V]): Unit  = self.removeIn(edge)
-  def removeOut[V >: T](edge: Edge[V, _]): Unit = self.removeOut(edge)
-  def removeIn(key: Property): Unit             = self.removeIn(key)
-  def removeOut(key: Property): Unit            = self.removeOut(key)
+  def removeIn[V >: T](edge: Edge[_, V]): Task[Unit]  = self.removeIn(edge)
+  def removeOut[V >: T](edge: Edge[V, _]): Task[Unit] = self.removeOut(edge)
+  def removeIn(key: Property): Task[Unit]             = self.removeIn(key)
+  def removeOut(key: Property): Task[Unit]            = self.removeOut(key)
 
-  protected def _remove(): Unit = ??? //should never be hit
-  override def remove(): Unit   = self.remove()
+  protected def _remove(): Unit     = ??? //should never be hit
+  override def remove(): Task[Unit] = self.remove()
 }

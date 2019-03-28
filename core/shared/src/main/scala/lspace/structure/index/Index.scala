@@ -6,6 +6,8 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure.OntologyDef
 import lspace.structure._
 import lspace.structure.index.shape.Shape
+import monix.eval.Task
+import monix.reactive.Observable
 
 object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Index", "An index ...") {
   object keys {
@@ -25,16 +27,19 @@ object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Inde
     val traversalNode = keys.traversalNode
   }
 
-  implicit def toNode[I <: Index](index: I): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    index.traversal.segments.map(_.toNode).foreach(node.addOut(keys.traversalNode, _))
-    node
+  implicit def toNode[I <: Index](index: I): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      u <- Task
+        .gather(index.traversal.segments.map(_.toNode))
+        .flatMap(l => Task.gather(l.map(node.addOut(keys.traversalNode, _))))
+    } yield node
   }
 }
 
 trait Index {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this.memoizeOnSuccess
 
   /**
     * A traversal-pattern only Segments containing FilterStep's and RearrangeSteps separated by an Out-step
@@ -50,18 +55,18 @@ trait Index {
     * adds value-path to resources-path
     * @param pattern
     */
-  def store(shape: Shape): Unit
+  def store(shape: Shape): Task[Unit]
 
   /**
     * searches for value-path-pattern in this index
     * @param values
     * @return list of applicable resource-paths
     */
-  def find(values: Vector[Map[Property, List[P[_]]]]): List[Shape]
+  def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape]
 
   /**
     * removes value-paths and purges resource-path when it is incomplete
     * @param path
     */
-  def delete(shape: Shape): Unit
+  def delete(shape: Shape): Task[Unit]
 }

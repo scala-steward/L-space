@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.datatype.ListType
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object And
@@ -44,16 +45,18 @@ object And
     lazy val `ns.l-space.eu/librarian/step/And/traversal @Traversal`: TypedKey[List[Node]] = keys.traversalTraversal
   }
 
-  implicit def toNode(and: And): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.traversalTraversal, and.traversals.map(_.toNode))
-    node
+  implicit def toNode(and: And): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      traversals <- Task.gather(and.traversals.map(_.toNode))
+      _          <- node.addOut(keys.traversalTraversal, traversals)
+    } yield node
   }
 }
 
 case class And(traversals: List[Traversal[_, _, _ <: HList]]) extends FilterStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     "and(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

@@ -5,8 +5,7 @@ import com.twitter.finagle.Service
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.io.Buf
 import com.twitter.util.Promise
-import io.finch.Bootstrap
-import io.finch.sse.ServerSentEvent
+import io.finch.{Bootstrap, ServerSentEvent}
 import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.encode.EncodeJsonLD
 import lspace.encode.EncodeJson

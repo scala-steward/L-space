@@ -39,16 +39,16 @@ class CacheReaper(graph: LGraph) {
 
             val reaptime = Instant.now().getEpochSecond
 
-            val edgesToReap = graph.edgeStore
-              .cached()
+            val edgesToReap = graph.edgeStore.cached
+              .all()
               .filter(_._lastused + reapAfter < reaptime)
 
-            val nodesToReap = graph.nodeStore
-              .cached()
+            val nodesToReap = graph.nodeStore.cached
+              .all()
               .filter(_._lastused + reapAfter < reaptime)
 
-            val valuesToReap = graph.valueStore
-              .cached()
+            val valuesToReap = graph.valueStore.cached
+              .all()
               .filter(_._lastused + reapAfter < reaptime)
 
             graph.edgeStore.dropDeletedMarks(120)

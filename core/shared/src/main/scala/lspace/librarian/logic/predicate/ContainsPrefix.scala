@@ -4,6 +4,7 @@ import lspace.librarian.logic.predicate.P._
 import lspace.librarian.logic.predicate.{PredicateDef, PredicateWrapper, SeqP}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object ContainsPrefix
     extends PredicateDef("ContainsPrefix", `@extends` = () => List(SeqP.ontology))
@@ -18,15 +19,16 @@ object ContainsPrefix
   override lazy val properties: List[Property] = SeqP.properties
   trait Properties extends SeqP.Properties
 
-  implicit def toNode[T](containsPrefix: ContainsPrefix[T]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(SeqP.keys.value, ClassType.valueToOntologyResource(containsPrefix.pvalue), containsPrefix.pvalue)
-    node
+  implicit def toNode[T](p: ContainsPrefix[T]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+    } yield node
   }
 }
 
 case class ContainsPrefix[+T](pvalue: T) extends SeqP[T] {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"containsPrefix($pvalue)"
 }

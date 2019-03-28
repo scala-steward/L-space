@@ -26,14 +26,14 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
   override def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] = //need IdMaps here
     json.string
       .map(activeContext.expandIri)
-      .map(s => Task(graph.nodes.upsert(s.iri))) //TODO: add label if missing?
+      .map(s => graph.nodes.upsert(s.iri)) //TODO: add label if missing?
       .orElse(
         json.long
           .orElse(json.int.map(_.toLong))
           .flatMap(idMaps.nodeIds.get)
 //              .getOrElse(id, throw FromJsonException(s"unknown node id ref $id in ${graph.iri} ${idMaps.nodeIds.toList
 //                .sortBy(_._1)} ${graph.nodes().toList.map(_.id).sorted}")))
-          .map(id => Task(graph.getOrCreateNode(id))))
+          .map(id => graph.getOrCreateNode(id)))
 
   override def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
       implicit activeContext: AC): Task[Node] = {
@@ -46,9 +46,11 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
 //        .getOrElse(_, throw FromJsonException("unknown node id ref")))
       .map { id =>
         expandedJson.extractOntologies.flatMap { ontologies =>
-          Task(graph.getOrCreateNode(id)).map { node =>
-            if (ontologies.isEmpty) label.foreach(node.addLabel)
-            else ontologies.foreach(node.addLabel)
+          for {
+            node <- graph.getOrCreateNode(id)
+            _ <- Task.sequence(if (ontologies.isEmpty) label.toList.map(node.addLabel)
+            else ontologies.map(node.addLabel))
+          } yield {
             if ((expandedJson - types.`@id` - types.`@type`).nonEmpty) {
               scribe.warn("node object has more properties that expected for ld+json+fs")
             } //TODO: log/warn if more unexpected data is found
@@ -62,14 +64,13 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
 
   override def tryEdgeRef(json: Json, label: Property)(implicit activeContext: AC): Option[Task[Edge[_, _]]] =
     json.string
-      .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
-      .map(Task.now)
+      .map(graph.edges.hasIri(_).headL) //TODO: check if label == edge.key and throw exception if !=
       .orElse(
         json.long
           .orElse(json.int.map(_.toLong))
           .flatMap(idMaps.edgeIds.get)
 //            .getOrElse(_, throw FromJsonException("unknown edge id ref")))
-          .flatMap(graph.edges.hasId(_).map(Task(_))))
+          .map(graph.edges.hasId(_).map(_.getOrElse(throw FromJsonException("wrong edgeref")))))
   //    override def toEdge(expandedJson: Map[String, Json], expectedTypes: List[Property])(
   //      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = {
   //      (activeContext.extractFrom(expandedJson), activeContext.extractTo(expandedJson)) match {

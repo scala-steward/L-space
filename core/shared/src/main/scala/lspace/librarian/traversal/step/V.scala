@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.datatype.{DataType, ListType}
+import monix.eval.Task
 
 object V
     extends StepDef("V", "An v-step selects values to traverse from.", () => ResourceStep.ontology :: Nil)
@@ -27,20 +28,17 @@ object V
     val valueUrl = keys.valueUrl
   }
 
-  implicit def toNode(v: V): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.valueUrl, v.values)
-//    v.values
-//      .map(v => node.addOut(keys.value, ClassType.valueToOntologyResource(v), v))
-//      .map(_.to)
-//      .asInstanceOf[List[Value[_]]]
-    node
+  implicit def toNode(step: V): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.valueUrl, step.values)
+    } yield node
   }
 }
 
 case class V(values: List[_] = List()) extends ResourceStep {
 
-  def toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     "V(" + values.map {
       case resource: Resource[_] => resource.value

@@ -122,12 +122,14 @@ trait SyncGuide extends Guide[Stream] {
           step.nodes match {
             case List() =>
               obs: Stream[Librarian[Any]] =>
-                obs.flatMap { librarian =>
-                  graph
-                    .nodes()
-                    .map(node =>
-                      librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node)))
-                }
+                obs
+                  .flatMap { librarian =>
+                    graph.nodeStore.cached
+                      .all()
+                      .asInstanceOf[Stream[Node]]
+                      .map(node =>
+                        librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node)))
+                  }
             case list: List[Node] =>
               obs: Stream[Librarian[Any]] =>
                 obs.flatMap { librarian =>
@@ -137,8 +139,9 @@ trait SyncGuide extends Guide[Stream] {
           }
         } else { obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            graph
-              .nodes()
+            graph.nodeStore.cached
+              .all()
+              .asInstanceOf[Stream[Node]]
               .filter(step.nodes.contains)
               .map(node => librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node)))
           }
@@ -151,8 +154,9 @@ trait SyncGuide extends Guide[Stream] {
             case List() =>
               obs: Stream[Librarian[Any]] =>
                 obs.flatMap { librarian =>
-                  graph
-                    .edges()
+                  graph.edgeStore.cached
+                    .all()
+                    .asInstanceOf[Stream[Edge[_, _]]]
                     .map(edge =>
                       librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge)))
                 }
@@ -165,8 +169,9 @@ trait SyncGuide extends Guide[Stream] {
           }
         } else { obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            graph
-              .nodes()
+            graph.edgeStore.cached
+              .all()
+              .asInstanceOf[Stream[Edge[_, _]]]
               .filter(step.edges.contains)
               .map(edge => librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge)))
           }
@@ -179,8 +184,9 @@ trait SyncGuide extends Guide[Stream] {
             case List() =>
               obs: Stream[Librarian[Any]] =>
                 obs.flatMap { librarian =>
-                  graph
-                    .values()
+                  graph.valueStore.cached
+                    .all()
+                    .asInstanceOf[Stream[Value[_]]]
                     .map(value =>
                       librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
                 }
@@ -193,8 +199,9 @@ trait SyncGuide extends Guide[Stream] {
           }
         } else { obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            graph
-              .values()
+            graph.valueStore.cached
+              .all()
+              .asInstanceOf[Stream[Value[_]]]
               .filter(v => step.values.contains(v.value))
               .map(value => librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
           }

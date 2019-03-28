@@ -5,6 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.datatype.{DataType, ListType}
 import lspace.structure._
 import lspace.NS.types
+import monix.eval.Task
 
 object E
     extends StepDef("E", "An e-step selects edges to traverse from.", () => ResourceStep.ontology :: Nil)
@@ -31,17 +32,17 @@ object E
     val edgeUrl = keys.edgeUrl
   }
 
-  implicit def toNode(e: E): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.edgeUrl, e.edges)
-//    e.links.foreach(node.addOut(keys.edge, _))
-    node
+  implicit def toNode(step: E): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.edgeUrl, step.edges)
+    } yield node
   }
 
 }
 
 case class E(edges: List[Edge[Any, Any]] = List()) extends ResourceStep {
 
-  def toNode: Node                 = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "E(" + edges.map(_.id).mkString(", ") + ")"
 }

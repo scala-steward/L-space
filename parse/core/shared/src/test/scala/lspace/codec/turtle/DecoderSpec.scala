@@ -8,7 +8,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
 
   val graph: Graph                         = Graph("lspace.codec.turtle.DecoderSpec")
   val decoder: lspace.codec.turtle.Decoder = lspace.codec.turtle.Decoder(graph)
-  import monix.execution.Scheduler.Implicits.global
+  import lspace.Implicits.Scheduler.global
 
   val sample =
     """
@@ -31,11 +31,13 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
         .onErrorHandle { f =>
           f.printStackTrace(); throw f
         }
-        .map { turtle =>
+        .flatMap { turtle =>
           println(turtle)
           import decoder._
           turtle.process
-          1 shouldBe 1
+        }
+        .map { graph =>
+          succeed
         }
         .runToFuture
     }

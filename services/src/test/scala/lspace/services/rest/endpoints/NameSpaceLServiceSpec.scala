@@ -5,9 +5,15 @@ import lspace._
 import lspace.librarian.traversal.Step
 import lspace.provider.mem.MemGraph
 import lspace.structure.Graph
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import monix.eval.Task
+import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 
-class NameSpaceLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+import scala.concurrent.Future
+import scala.concurrent.duration._
+
+class NameSpaceLServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
+
+  import lspace.Implicits.Scheduler.global
 
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
   implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
@@ -15,18 +21,29 @@ class NameSpaceLServiceSpec extends WordSpec with Matchers with BeforeAndAfterAl
   implicit val ndecoder = lspace.codec.argonaut.NativeTypeDecoder
   lazy val nsService    = NameSpaceService(graph)
 
-  P.predicates.map(_.ontology).foreach(graph.ns.ontologies.store)
-  Step.steps.map(_.ontology).foreach(graph.ns.ontologies.store)
+  scala.concurrent.Await.ready(
+    (for {
+      _ <- Task.sequence(P.predicates.map(_.ontology).map(graph.ns.ontologies.store))
+      _ <- Task.sequence(Step.steps.map(_.ontology).map(graph.ns.ontologies.store))
+    } yield ()).runToFuture,
+    15.seconds
+  )
 
   "The nsService" can {
     "return namespace-resources in applicication/ld+json" in {
-      val input = Input
-        .get("/librarian/p/Eqv")
-        .withHeaders("Accept" -> "application/ld+json")
-      nsService.getResource(input).awaitOutput().map { output =>
-        output.isRight shouldBe true
-        output.right.get.value.toString shouldBe
-          """{"@id":"https://ns.l-space.eu/librarian/p/Eqv","@type":"@class","@label":{"en":"Eqv"},"@extends":["https://ns.l-space.eu/librarian/p/EqP"],"@properties":"https://ns.l-space.eu/librarian/p/value"}"""
+      Future {
+        val input = Input
+          .get("/librarian/p/Eqv")
+          .withHeaders("Accept" -> "application/ld+json")
+        nsService
+          .getResource(input)
+          .awaitOutput()
+          .map { output =>
+            output.isRight shouldBe true
+            output.right.get.value.toString shouldBe
+              """{"@id":"https://ns.l-space.eu/librarian/p/Eqv","@type":"@class","@label":{"en":"Eqv"},"@extends":["https://ns.l-space.eu/librarian/p/EqP"],"@properties":"https://ns.l-space.eu/librarian/p/value"}"""
+          }
+          .get
       }
     }
   }

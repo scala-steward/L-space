@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 
 case object Last
     extends StepDef("Last", "A last-step limits the traversal to last result.", () => ClipStep.ontology :: Nil)
@@ -16,12 +17,12 @@ case object Last
   override lazy val properties: List[Property] = ClipStep.properties
   trait Properties extends ClipStep.Properties
 
-  implicit def toNode(last: Last): Node = DetachedGraph.nodes.create(ontology)
+  implicit def toNode(last: Last): Task[Node] = DetachedGraph.nodes.create(ontology)
 
 }
 
 trait Last extends ClipStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "last"
 }

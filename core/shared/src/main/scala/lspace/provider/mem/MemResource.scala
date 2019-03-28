@@ -5,6 +5,8 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.datatype.{DataType, TextType}
 import lspace.structure.Property.default
 import lspace.structure._
+import monix.eval.Task
+import monix.reactive.Observable
 
 import scala.collection.{concurrent, mutable}
 import scala.collection.JavaConverters._
@@ -18,36 +20,35 @@ trait MemResource[T] extends Resource[T] {
     linksOut
       .get(default.`@id`)
       .flatMap(_.headOption)
-      .flatMap(_.inV.hasLabel(TextType.datatype).map(_.value))
+      .flatMap(_.to.hasLabel(TextType.datatype).map(_.value))
       .getOrElse("")
 
   override def iris: Set[String] =
-    linksOut.get(default.`@id`).map(_.flatMap(_.inV.hasLabel(TextType.datatype).map(_.value)).toSet).getOrElse(Set()) ++
-      linksOut.get(default.`@ids`).map(_.flatMap(_.inV.hasLabel(TextType.datatype).map(_.value)).toSet).getOrElse(Set())
+    linksOut.get(default.`@id`).map(_.flatMap(_.to.hasLabel(TextType.datatype).map(_.value)).toSet).getOrElse(Set()) ++
+      linksOut.get(default.`@ids`).map(_.flatMap(_.to.hasLabel(TextType.datatype).map(_.value)).toSet).getOrElse(Set())
 
-//  private val linksOut: concurrent.Map[Property, List[Edge[T, _]]] =
-//    new ConcurrentHashMap[Property, List[Edge[T, _]]](16, 0.9f, 32).asScala
-//  private val linksOut: mutable.OpenHashMap[Property, List[Edge[T, _]]] =
   private val linksOut: concurrent.Map[Property, List[Edge[T, _]]] =
-//    mutable.OpenHashMap[Property, List[Edge[T, _]]]()
-    new ConcurrentHashMap[Property, List[Edge[T, _]]]().asScala
+    new ConcurrentHashMap[Property, List[Edge[T, _]]](16, 0.9f, 32).asScala
+//private val linksOut: concurrent.TrieMap[Property, List[Edge[T, _]]] =
+//    new concurrent.TrieMap[Property, List[Edge[T, _]]]()
 
   object Lock
 
   protected[lspace] def _addOut(edge: Edge[T, _]): Unit = Lock.synchronized {
     if (edge.from != this) throw new Exception("edge.from != this, cannot add out-link")
-    linksOut += edge.key -> (edge :: linksOut
-      .getOrElse(edge.key, List[Edge[T, _]]())
-      .reverse).distinct.reverse
+    linksOut += edge.key ->
+      (edge :: linksOut
+        .getOrElse(edge.key, List[Edge[T, _]]())
+        .reverse).distinct.reverse
   }
 
-//  private val linksIn: concurrent.Map[Property, List[Edge[_, T]]] =
-//    new ConcurrentHashMap[Property, List[Edge[_, T]]](2, 0.9f, 4).asScala
   private val linksIn: concurrent.Map[Property, List[Edge[_, T]]] =
-    new ConcurrentHashMap[Property, List[Edge[_, T]]]().asScala
+    new ConcurrentHashMap[Property, List[Edge[_, T]]](2, 0.9f, 4).asScala
+//  private val linksIn: concurrent.TrieMap[Property, List[Edge[_, T]]] =
+//    new concurrent.TrieMap[Property, List[Edge[_, T]]]() //.asScala
 
   protected[lspace] def _addIn(edge: Edge[_, T]): Unit = Lock.synchronized {
-    if (edge.to != this) throw new Exception("edge.from != this, cannot add in-link")
+    if (edge.to != this) throw new Exception("edge.to != this, cannot add in-link")
     linksIn += edge.key -> (edge :: linksIn
       .getOrElse(edge.key, List[Edge[_, T]]())
       .reverse).distinct.reverse
@@ -94,34 +95,46 @@ trait MemResource[T] extends Resource[T] {
   private def validateDT[V](dt: DataType[V], value: V) =
     if (dt.iri.nonEmpty) dt else ClassType.valueToOntologyResource(value)
 
-  def removeIn[V >: T](edge: Edge[_, V]): Unit = Lock.synchronized {
-    linksIn.get(edge.key).foreach { links =>
-      if (links.contains(edge)) {
-        val newSet = links.filterNot(_ == edge)
-        if (newSet.isEmpty) linksIn -= edge.key
-        else linksIn += edge.key -> newSet
-        edge.remove()
-      }
+  def removeIn[V >: T](edge: Edge[_, V]): Task[Unit] = Task.defer {
+    Lock.synchronized {
+      Observable
+        .fromIterable(linksIn.get(edge.key))
+        .mapEval { links =>
+          if (links.contains(edge)) {
+            val newSet = links.filterNot(_ == edge)
+            if (newSet.isEmpty) linksIn -= edge.key
+            else linksIn += edge.key -> newSet
+            edge.remove()
+          } else Task.unit
+      } completedL
     }
   }
-  def removeOut[V >: T](edge: Edge[V, _]): Unit = Lock.synchronized {
-    linksOut.get(edge.key).foreach { links =>
-      if (links.contains(edge)) {
-        val newSet = links.filterNot(_ == edge)
-        if (newSet.isEmpty) linksOut -= edge.key
-        else linksOut += edge.key -> newSet
-        edge.remove()
-      }
+  def removeOut[V >: T](edge: Edge[V, _]): Task[Unit] = Task.defer {
+    Lock.synchronized {
+      Observable
+        .fromIterable(linksOut.get(edge.key))
+        .mapEval { links =>
+          if (links.contains(edge)) {
+            val newSet = links.filterNot(_ == edge)
+            if (newSet.isEmpty) linksOut -= edge.key
+            else linksOut += edge.key -> newSet
+            edge.remove()
+          } else Task.unit
+      } completedL
     }
   }
-  def removeIn(key: Property): Unit = Lock.synchronized {
-    val toRemove = inE(key)
-    linksIn -= key
-    toRemove.foreach(_.remove())
+  def removeIn(key: Property): Task[Unit] = Task.defer {
+    Lock.synchronized {
+      val toRemove = inE(key)
+      linksIn -= key
+      for { _ <- Task.gather(toRemove.map(_.remove())) } yield ()
+    }
   }
-  def removeOut(key: Property): Unit = Lock.synchronized {
-    val toRemove = outE(key)
-    linksOut -= key
-    toRemove.foreach(_.remove())
+  def removeOut(key: Property): Task[Unit] = Task.defer {
+    Lock.synchronized {
+      val toRemove = outE(key)
+      linksOut -= key
+      for { _ <- Task.gather(toRemove.map(_.remove())) } yield ()
+    }
   }
 }

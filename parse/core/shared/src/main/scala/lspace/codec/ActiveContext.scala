@@ -97,7 +97,7 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     definitions
       .get(property.iri)
       .flatMap(_.`@type`.headOption)
-      .orElse(property.range().headOption)
+//      .orElse(property.range().headOption) // @range is only meant for guidance and not used for de-/serialization
 
 //  def jsonToString(json: Json): Option[String]
 //  def jsonToArray(json: Json): Option[List[Json]]

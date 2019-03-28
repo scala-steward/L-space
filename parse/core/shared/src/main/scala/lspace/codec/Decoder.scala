@@ -44,12 +44,12 @@ trait Decoder {
   type Json
   implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
 
-  protected lazy val blankNodes: concurrent.Map[String, Node] =
-    new ConcurrentHashMap[String, Node](16, 0.9f, 32).asScala
-  protected lazy val blankEdges: concurrent.Map[String, Edge[_, _]] =
-    new ConcurrentHashMap[String, Edge[_, _]](16, 0.9f, 32).asScala
-  protected lazy val blankValues: concurrent.Map[String, Value[_]] =
-    new ConcurrentHashMap[String, Value[_]](16, 0.9f, 32).asScala
+  protected lazy val blankNodes: concurrent.Map[String, Task[Node]] =
+    new ConcurrentHashMap[String, Task[Node]](16, 0.9f, 32).asScala
+  protected lazy val blankEdges: concurrent.Map[String, Task[Edge[_, _]]] =
+    new ConcurrentHashMap[String, Task[Edge[_, _]]](16, 0.9f, 32).asScala
+  protected lazy val blankValues: concurrent.Map[String, Task[Value[_]]] =
+    new ConcurrentHashMap[String, Task[Value[_]]](16, 0.9f, 32).asScala
 
   def apply(graph0: Lspace): Decoder.Aux[Json] = Decoder.apply(graph0)(baseDecoder)
 
@@ -260,7 +260,7 @@ trait Decoder {
       iri <- json.string
       et  <- expectedType.collect { case ontology: Ontology => ontology }
     } yield {
-      Task.now(graph.nodes.upsert(iri, et))
+      graph.nodes.upsert(iri, et)
     }).orElse {
         json.obj
           .map { obj =>
@@ -268,15 +268,15 @@ trait Decoder {
               val expandedJson = obj.expand
               if (expectedType.exists(_.isInstanceOf[GeometricType[_]]))
                 toGeometric(json, expectedType.get.asInstanceOf[GeometricType[_]])
-                  .map(geo => graph.values.upsert(geo, expectedType.get.asInstanceOf[DataType[Any]]))
+                  .flatMap(geo => graph.values.upsert(geo, expectedType.get.asInstanceOf[DataType[Any]]))
                   .onErrorHandleWith { f =>
                     toResource(expandedJson, expectedType)
                   } else toResource(expandedJson, expectedType)
             }
           }
       }
-      .getOrElse(toObject(json, expectedType.toList).map {
-        case (classtype, resource: Resource[_]) => resource
+      .getOrElse(toObject(json, expectedType.toList).flatMap {
+        case (classtype, resource: Resource[_]) => Task.now(resource)
         case (classtype: DataType[_], value)    => graph.values.create(value, classtype)
       })
   }
@@ -321,22 +321,22 @@ trait Decoder {
               obj =>
                 activeProperty.`@container` match {
                   case Nil =>
-                    toResource(obj, expectedType).map(addEdgeF(_)).map(List(_))
+                    toResource(obj, expectedType).flatMap(addEdgeF(_)).map(List(_))
                   case List(`@container`.`@index`) =>
                     Task.gatherUnordered(obj.obj.toList.map {
                       case (index, json) =>
                         toResource(json, expectedType)
-                          .map(addEdgeF(_))
-                          .map(_.addOut(Label.P.`@index`, index))
-                          .map(List(_))
+                          .flatMap(addEdgeF(_))
+                          .flatMap(_.addOut(Label.P.`@index`, index))
+//                          .map(List(_))
                     })
                   case List(`@container`.`@language`) =>
                     Task.gatherUnordered(obj.obj.toList.map {
                       case (language, json) =>
                         toResource(json, expectedType)
-                          .map(addEdgeF(_))
-                          .map(_.addOut(Label.P.`@language`, language))
-                          .map(List(_))
+                          .flatMap(addEdgeF(_))
+                          .flatMap(_.addOut(Label.P.`@language`, language))
+//                          .map(List(_))
                     })
 //                  case List(`@container`.`@id`) =>
 //                case List(`@container`.`@type`)     =>
@@ -354,19 +354,19 @@ trait Decoder {
                         .map {
                           case collectionType: CollectionType[_] =>
                             toCollection(array, collectionType)
-                              .map(addEdgeTypedF(collectionType, _))
+                              .flatMap(addEdgeTypedF(collectionType, _))
                               .map(List(_))
                           case et => //no container but expected type, try ListType(List(et))
                             //                            if (property.iri == types.schemaDomainIncludes) {
                             toCollection(array, ListType(List(et)))
-                              .map(nodes => nodes.map(node => addEdgeTypedF(et, node)))
+                              .flatMap(nodes => Task.gatherUnordered(nodes.map(node => addEdgeTypedF(et, node))))
                           //                            } else
                           //                              Task.raiseError(FromJsonException(
                           //                                s"array found for ${property.iri} with expected type ${et.iri} in ${resource.iri} without @collection type or @container:@list/@set ${array}"))
                         }
                         .getOrElse {
                           //this processes an unexpected array as a list of edges
-                          Task.gatherUnordered(array.map(toResource(_, expectedType).map(addEdgeF(_))))
+                          Task.gatherUnordered(array.map(toResource(_, expectedType).flatMap(addEdgeF(_))))
                           /*Task.gatherUnordered(array.map {
                             json =>
                               json.obj
@@ -404,12 +404,12 @@ trait Decoder {
                         }
                     case List(`@container`.`@list`) | List(`@container`.`@set`) =>
                       //this processes an array as a list of edges
-                      Task.gatherUnordered(array.map(toResource(_, expectedType).map(addEdgeF(_))))
+                      Task.gatherUnordered(array.map(toResource(_, expectedType).flatMap(addEdgeF(_))))
                   }
                 edgesTask
             })
             .getOrElse {
-              toResource(json, expectedType).map(addEdgeF(_)).map(List(_))
+              toResource(json, expectedType).flatMap(addEdgeF(_)).map(List(_))
 //              (for {
 //                iri <- json.string
 //                et  <- expectedType.collect { case ontology: Ontology => ontology }
@@ -443,36 +443,37 @@ trait Decoder {
     json.string
       .map(activeContext.expandIri)
       .map {
-        case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+        case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
         case Iri(iri)   => graph.nodes.upsert(iri)
       }
-      .map(Task.now)
+//      .map(Task.now)
   //        .getOrElse(Task.raiseError(FromJsonException("object expected when parsing to node")))
 
   def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(implicit activeContext: AC): Task[Node] = {
     val iri = expandedJson.extractId
     if (iri.isDefined && expandedJson.size == 1) {
       //node-ref
-      iri
-        .map {
-          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
-          case Iri(iri)   => graph.nodes.upsert(iri)
-        }
-        .map(Task.now)
-        .get
+      iri.map {
+        case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
+        case Iri(iri)   => graph.nodes.upsert(iri)
+      }.get
     } else {
       val iris = expandedJson.extractIds.toSet
-      val node = iri
+      iri
         .map {
-          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
           case Iri(iri)   => graph.nodes.upsert(iri, iris.map(_.iri))
         }
         .getOrElse(graph.nodes.create())
-      expandedJson.extractOntologies.flatMap { ontologies =>
-        if (ontologies.isEmpty) label.foreach(node.addLabel)
-        else ontologies.foreach(node.addLabel)
-        withEdges(node, expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`)
-      }
+        .flatMap { node =>
+          expandedJson.extractOntologies.flatMap { ontologies =>
+            for {
+              _ <- (if (ontologies.isEmpty) Task.gather(label.toList.map(node.addLabel))
+                    else Task.gather(ontologies.map(node.addLabel)))
+              _ <- withEdges(node, expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`)
+            } yield node
+          }
+        }
     }
   }
 
@@ -481,10 +482,9 @@ trait Decoder {
       .map(activeContext.expandIri)
       .flatMap {
         case Blank(iri) => blankEdges.get(iri)
-        case Iri(iri)   => graph.edges.hasIri(iri).headOption
+        case Iri(iri)   => Some(graph.edges.hasIri(iri).headL)
       }
 //      .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
-      .map(Task.now)
   def toEdge(expandedJson: ExpandedMap[Json], expectedType: Option[Property])(
       implicit activeContext: AC): Option[Task[Edge[Any, Any]]] = toEdge(expandedJson, expectedType.toList)
   def toEdge(expandedJson: ExpandedMap[Json], expectedTypes: List[Property])(
@@ -500,11 +500,12 @@ trait Decoder {
             .flatMap {
               _.filter(expectedTypes.contains)
                 .map { label =>
-                  val edge: Edge[Any, Any] = from.addOut(label, to)
-                  withEdges(
-                    edge,
-                    expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@from` - types.`@to` - types.`@type`)
-                    .map(e => edge)
+                  from.addOut(label, to).flatMap { edge: Edge[Any, Any] =>
+                    withEdges(
+                      edge,
+                      expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@from` - types.`@to` - types.`@type`)
+                      .map(e => edge)
+                  }
                 }
                 .getOrElse(Task.raiseError(FromJsonException("unexpected @type for edge object")))
             }
@@ -645,7 +646,7 @@ trait Decoder {
             iri <- json.string
             et  <- expectedType.collect { case ontology: Ontology => ontology }
           } yield {
-            Task.now(et -> graph.nodes.upsert(iri, et))
+            graph.nodes.upsert(iri, et).map(et -> _)
           }).getOrElse(Task.now(dt -> s))
         case (dt, v) => Task.now(dt -> v)
       })
@@ -697,7 +698,7 @@ trait Decoder {
           .map(activeContext.expandIri)
           .map(_.iri)
           .map(graph.nodes.upsert(_))
-          .map(Task(_))
+//          .map(Task(_))
           .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown IriType, expected IRI/URL ${json}")))
       case _ =>
         Task.raiseError(UnexpectedJsonException(s"unknown DataType ${label.iri}"))
@@ -711,17 +712,16 @@ trait Decoder {
         .flatMap { label =>
           label
             .map(toValue(json, _))
-            .orElse(
-              toPrimitive(json)
-                .map(v => graph.values.create(v, ClassType.valueToOntologyResource(v)))
-                .map(Task.now))
+            .orElse(toPrimitive(json)
+              .map(v => graph.values.create(v, ClassType.valueToOntologyResource(v))))
+//                .map(Task.now))
             .getOrElse(Task.raiseError(FromJsonException("cannot parse @value")))
         }
     }
   }
 
   def toValue(json: Json, label: DataType[_])(implicit activeContext: AC): Task[Value[Any]] =
-    toData(json, label).map { v =>
+    toData(json, label).flatMap { v =>
       graph.values.create(v, label)
     }
 
@@ -762,149 +762,248 @@ trait Decoder {
       .map(activeContext.expandIri)
       .map(_.iri)
 
-  def prepareOntologyNode(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Node] = {
+  def prepareOntology(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Ontology] = {
 //    scribe.trace(s"prepare ontology ${obj}")
 //    val expandedJson = activeContext.expandKeys(obj)
+
     if (expandedJson
           .get(types.`@type`)
           .map(extractIris(_))
           .exists(iris => Ontology.ontology.iris.intersect(iris.toSet).nonEmpty)) {
-      toNode(expandedJson - types.`@extends` - types.rdfsSubClassOf - types.`@properties`, Some(Ontology.ontology))
-        .onErrorHandle { f =>
-          scribe.error(f.getMessage); throw f
+      val iri  = expandedJson.extractId
+      val iris = expandedJson.extractIds.toSet
+      iri
+        .map {
+//          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //ontology without fqdn? local-node?
+          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri))
         }
-        .map { node =>
+        .map(_.flatMap { node =>
           val extendsIris = expandedJson
             .get(types.`@extends`)
             .orElse(expandedJson.get(types.rdfsSubClassOf))
-            .map(extractIris(_))
-          extendsIris
-            .map(_.map(graph.nodes.upsert(_)))
-            .map(node.addOut(Label.P.`@extends`, _))
+            .toList
+            .flatMap(extractIris(_))
           val propertiesIris = expandedJson
             .get(types.`@properties`)
-            .map(extractIris(_))
-          propertiesIris.map(_.map(graph.nodes.upsert(_))).map(_.map(node.addOut(Label.P.`@properties`, _)))
-
-          node
-        }
+            .toList
+            .flatMap(extractIris(_))
+          for {
+            _ <- expandedJson.extractOntologies.flatMap { ontologies =>
+              if (ontologies.isEmpty) node.addLabel(Ontology.ontology)
+              else Task.gather(ontologies.map(node.addLabel))
+            }
+            extending <- Task
+              .gather(
+                extendsIris
+                  .map(graph.nodes
+                    .upsert(_, Ontology.ontology)))
+            _ <- node.addOut(Label.P.`@extends`, extending)
+            _ <- Task
+              .gatherUnordered(
+                extending
+                  .filter(_.hasLabel(Ontology.ontology).isEmpty)
+                  .filter(o => o.iris.flatMap(Ontology.ontologies.get(_).toList).isEmpty)
+                  .map(node =>
+                    if (!owip.contains(node.iri)) toOntology(node.iri)
+                    else
+                      Task.unit.delayExecution(50.millis).flatMap { f =>
+                        if (Ontology.ontologies.get(node.iri).nonEmpty) Task.unit
+                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                    }))
+            properties <- Task
+              .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
+            _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
+            _ <- withEdges(node,
+                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
+            ontology = Ontology.ontologies.getAndUpdate(node)
+            _ <- (for {
+              _ <- withEdges(
+                node,
+                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type` - types.`@extends` - types.rdfsSubClassOf - types.`@label` - types.rdfsLabel - types.`@comment` - types.rdfsComment - types.`@properties`
+              )
+              _ <- Task.gatherUnordered(
+                properties
+                  .filter(_.hasLabel(Property.ontology).isEmpty)
+                  .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
+                  .map(node =>
+                    if (!pwip.contains(node.iri)) toProperty(node.iri)
+                    else
+                      Task.unit.delayExecution(50.millis).flatMap { f =>
+                        if (Property.properties.get(node.iri).nonEmpty) Task.unit
+                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                    }))
+            } yield {
+              Property.properties.getAndUpdate(node)
+            }).forkAndForget
+          } yield ontology
+        })
+        .getOrElse(Task.raiseError(FromJsonException(s"ontology without iri $expandedJson")))
     } else Task.raiseError(FromJsonException(s"ontology is not of type '@class' ${expandedJson.obj}"))
   }
 
   protected lazy val owip: concurrent.Map[String, Task[Ontology]] =
     new ConcurrentHashMap[String, Task[Ontology]](16, 0.9f, 32).asScala
 
-  def toOntology(iri: String)(implicit activeContext: AC): Task[Ontology] =
+  def toOntology(iri: String)(implicit activeContext: AC): Task[Ontology] = {
+//    println(s"toOntology ${iri}")
     graph.ns.ontologies
       .get(iri)
       .flatMap(_.map(Task.now)
         .getOrElse {
-          owip.getOrElseUpdate(
-            iri,
-            nsDecoder
-              .fetchOntologyNode(iri)
-              .toListL
-              .flatMap {
-                nodes =>
-                  val unfinished = nodes.filter(node =>
-                    node.hasLabel(Ontology.ontology).isEmpty && node.hasLabel(Property.ontology).isEmpty)
-                  Task.gather(unfinished.map(_.iri).map(toClasstype)).flatMap { clstypes =>
-                    graph.ns.ontologies
-                      .get(iri)
-                      .flatMap(_.map(Task.now).getOrElse(Task.raiseError(
-                        FromJsonException(s"could not build ontology after having done all the preparing ... "))))
-                  }
-              }
-              .doOnFinish(f => Task.delay(owip.remove(iri)).delayExecution(5 seconds).forkAndForget)
-              .memoizeOnSuccess
-          )
+//          println(s"toOntology ${iri}")
+          //          val ontology = Ontology.ontologies.getOrCreate(iri, Set())
+          owip
+            .getOrElseUpdate(
+              iri,
+              nsDecoder
+                .fetchOntology(iri)
+                .doOnFinish { f =>
+                  Task.delay(owip.remove(iri)).delayExecution(5 seconds).forkAndForget
+                }
+                .memoizeOnSuccess
+            )
         })
+  }
 
   def toOntologies(json: Json)(implicit activeContext: AC): Task[List[Ontology]] =
     Task.gather(extractIris(json).map(toOntology))
 
-  def preparePropertyNode(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Node] = {
+  def prepareProperty(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Property] = {
 //    scribe.trace(s"prepare property ${obj}")
 //    val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson
           .get(types.`@type`)
           .map(extractIris(_))
           .exists(iris => Property.ontology.iris.intersect(iris.toSet).nonEmpty)) {
-      val iri = expandedJson.get(types.`@id`).flatMap(_.string.map(activeContext.expandIri))
-      val (strippedExpandedJson, selfref) =
-        if (iri.map(_.iri).exists(expandedJson.contains))
-          (expandedJson - types.`@range` - types.schemaRange - types.schemaDomainIncludes - types.`@properties` - iri
-            .map(_.iri)
-            .get) -> true
-        else
-          (expandedJson - types.`@range` - types.schemaRange - types.schemaDomainIncludes - types.`@properties`) -> false
-      toNode(strippedExpandedJson, Some(Property.ontology))
-        .map { node =>
-          val property = Property.properties.getAndUpdate(node)
+      val iri  = expandedJson.extractId
+      val iris = expandedJson.extractIds.toSet
+      iri
+        .map {
+          //          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //property without fqdn? local-node?
+          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri))
+        }
+        .map(_.flatMap { node =>
+          val extendsIris = expandedJson
+            .get(types.`@extends`)
+            .orElse(expandedJson.get(types.rdfsSubClassOf))
+            .toList
+            .flatMap(extractIris(_))
 
           val rangeIris = expandedJson
             .get(types.`@range`)
             .orElse(expandedJson.get(types.schemaRange))
-            .map(extractIris(_))
-          rangeIris
-            .map(_.map(graph.nodes.upsert(_)))
-            .map(node.addOut(Label.P.`@range`, _))
+            .toList
+            .flatMap(extractIris(_))
+
           val domainIncludeIris = expandedJson
             .get(types.schemaDomainIncludes)
-            .map(extractIris(_))
-          domainIncludeIris
-            .map(_.map(graph.nodes.upsert(_)))
-            .map(_.map(_.addOut(Label.P.`@properties`, node)))
-          val extendsIris = expandedJson
-            .get(types.`@extends`)
-            .orElse(expandedJson.get(types.rdfsSubPropertyOf))
-            .map(extractIris(_))
-          extendsIris
-            .map(_.map(graph.nodes.upsert(_)))
-            .map(node.addOut(Label.P.`@extends`, _))
+            .toList
+            .flatMap(extractIris(_))
+
           val propertiesIris = expandedJson
             .get(types.`@properties`)
-            .map(extractIris(_))
-          propertiesIris.map(_.map(graph.nodes.upsert(_))).map(_.map(node.addOut(Label.P.`@properties`, _)))
-          if (selfref) expandedJson.get(iri.map(_.iri).get).foreach { json =>
-            //TODO: get range and parse json
-          }
-          node
-        }
-    } else Task.raiseError(FromJsonException("property is not of type '@property'"))
+            .toList
+            .flatMap(extractIris(_))
+
+          for {
+            _ <- expandedJson.extractOntologies.flatMap { properties =>
+              if (properties.isEmpty) node.addLabel(Property.ontology)
+              else Task.gather(properties.map(node.addLabel))
+            }
+            extending <- Task
+              .gather(
+                extendsIris
+                  .map(graph.nodes
+                    .upsert(_, Property.ontology)))
+            _ <- node.addOut(Label.P.`@extends`, extending)
+            _ <- Task.gatherUnordered(
+              extending
+                .filter(_.hasLabel(Property.ontology).isEmpty)
+                .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
+                .map(node =>
+                  if (!pwip.contains(node.iri)) toProperty(node.iri)
+                  else
+                    Task.unit.delayExecution(50.millis).flatMap { f =>
+                      if (Property.properties.get(node.iri).nonEmpty) Task.unit
+                      else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                  }))
+            range <- Task
+              .gather(rangeIris
+                .map(graph.nodes.upsert(_)))
+            _ <- node.addOut(Label.P.`@range`, range)
+            includedIn <- Task.gather(domainIncludeIris
+              .map(graph.nodes.upsert(_)))
+            _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))).forkAndForget
+            properties <- Task
+              .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
+            _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
+            _ <- withEdges(node,
+                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
+            property = Property.properties.getAndUpdate(node)
+            _ <- (for {
+              _ <- withEdges(
+                node,
+                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type` - types.`@extends` - types.rdfsSubPropertyOf - types.`@label` - types.rdfsLabel - types.`@comment` - types.rdfsComment - types.`@properties`
+              )
+//              _ <- Task.gatherUnordered(
+//                range
+//                  .filter(ct => ct.hasLabel(Ontology.ontology).isEmpty && ct.hasLabel(Property.ontology).isEmpty)
+//                  .filter(ct => ct.iris.flatMap(ClassType.classtypes.get(_).toList).isEmpty)
+//                  .map(node =>
+//                    if (!ctwip.contains(node.iri)) toClasstype(node.iri)
+//                    else
+//                      Task.unit.delayExecution(50.millis).flatMap { f =>
+//                        if (ClassType.classtypes.get(node.iri).nonEmpty) Task.unit
+//                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+//                    }))
+//              _ <- Task.gatherUnordered(
+//                includedIn
+//                  .filter(ct => ct.hasLabel(Ontology.ontology).isEmpty && ct.hasLabel(Property.ontology).isEmpty)
+//                  .filter(ct => ct.iris.flatMap(ClassType.classtypes.get(_).toList).isEmpty)
+//                  .map(node =>
+//                    if (!ctwip.contains(node.iri)) toClasstype(node.iri)
+//                    else
+//                      Task.unit.delayExecution(50.millis).flatMap { f =>
+//                        if (ClassType.classtypes.get(node.iri).nonEmpty) Task.unit
+//                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+//                    }))
+              _ <- Task.gatherUnordered(
+                properties
+                  .filter(_.hasLabel(Property.ontology).isEmpty)
+                  .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
+                  .map(node =>
+                    if (!pwip.contains(node.iri)) toProperty(node.iri)
+                    else
+                      Task.unit.delayExecution(50.millis).flatMap { f =>
+                        if (Property.properties.get(node.iri).nonEmpty) Task.unit
+                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                    }))
+            } yield {
+              Property.properties.getAndUpdate(node)
+            }).forkAndForget
+          } yield property
+        })
+        .getOrElse(Task.raiseError(FromJsonException(s"property without iri $expandedJson")))
+    } else Task.raiseError(FromJsonException(s"property is not of type '@property' ${expandedJson.obj}"))
   }
 
   protected lazy val pwip: concurrent.Map[String, Task[Property]] =
     new ConcurrentHashMap[String, Task[Property]](16, 0.9f, 32).asScala
 
-  def toProperty(iri: String)(implicit activeContext: AC): Task[Property] =
+  def toProperty(iri: String)(implicit activeContext: AC): Task[Property] = {
+//    println(s"toProperty ${iri}")
     graph.ns.properties
       .get(iri)
       .flatMap {
         _.map(Task.now)
           .getOrElse {
-            pwip.getOrElseUpdate(
-              iri,
-              nsDecoder
-                .fetchPropertyNode(iri)
-                .toListL
-                .flatMap { nodes =>
-                  val unfinished = nodes.filter(node =>
-                    node.hasLabel(Ontology.ontology).isEmpty && node.hasLabel(Property.ontology).isEmpty)
-                  Task.gather(unfinished.map(_.iri).map(iri => ctwip.get(iri).getOrElse(toClasstype(iri)))).flatMap {
-                    clstypes =>
-                      graph.ns.properties
-                        .get(iri)
-                        .flatMap(_.map(Task.now)
-                          .getOrElse(Task.raiseError(
-                            FromJsonException("could not build property after having done all the preparing ..."))))
-                  }
-                }
-                .doOnFinish(f => Task.delay(pwip.remove(iri)).delayExecution(5 seconds).forkAndForget)
-                .memoizeOnSuccess
-            )
+//            println(s"toProperty ${iri}")
+            //            val property = Property.properties.getOrCreate(iri, Set())
+            pwip
+              .getOrElseUpdate(iri, nsDecoder.fetchProperty(iri).memoizeOnSuccess)
           }
       }
+  }
 
   def toProperties(json: Json)(implicit activeContext: AC): Task[List[Property]] =
     Task.gather(extractIris(json).map(toProperty))
@@ -912,63 +1011,114 @@ trait Decoder {
   private val building: concurrent.Map[String, Task[Node]] =
     new ConcurrentHashMap[String, Task[Node]]().asScala
 
-  def prepareDataTypeNode(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Node] = {
+  def prepareDataType(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[DataType[_]] = {
 //    scribe.trace(s"prepare datatype ${obj}")
 //    val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson
           .get(types.`@type`)
           .map(extractIris(_))
           .exists(iris => DataType.ontology.iris.intersect(iris.toSet).nonEmpty)) {
-      toNode(expandedJson - types.`@extends` - types.`@properties`, Some(DataType.ontology))
-        .map { node =>
+      val iri  = expandedJson.extractId
+      val iris = expandedJson.extractIds.toSet
+      iri
+        .map {
+          //          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //ontology without fqdn? local-node?
+          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri))
+        }
+        .map(_.flatMap { node =>
           val extendsIris = expandedJson
             .get(types.`@extends`)
             .orElse(expandedJson.get(types.rdfsSubClassOf))
-            .map(extractIris(_))
-          extendsIris
-            .map(_.map(graph.nodes.upsert(_)))
-            .map(node.addOut(Label.P.`@extends`, _))
+            .toList
+            .flatMap(extractIris(_))
           val propertiesIris = expandedJson
             .get(types.`@properties`)
-            .map(extractIris(_))
-          propertiesIris.map(_.map(graph.nodes.upsert(_))).map(_.map(node.addOut(Label.P.`@properties`, _)))
-          node
-        }
-    } else Task.raiseError(FromJsonException("datatype is not of type '@datatype'"))
+            .toList
+            .flatMap(extractIris(_))
+          for {
+            _ <- expandedJson.extractOntologies.flatMap { ontologies =>
+              if (ontologies.isEmpty) node.addLabel(DataType.ontology)
+              else Task.gather(ontologies.map(node.addLabel))
+            }
+            extending <- Task
+              .gather(
+                extendsIris
+                  .map(graph.nodes
+                    .upsert(_, DataType.ontology)))
+            _ <- node.addOut(Label.P.`@extends`, extending)
+            _ <- Task
+              .gatherUnordered(
+                extending
+                  .filter(_.hasLabel(DataType.ontology).isEmpty)
+                  .filter(o => o.iris.flatMap(DataType.datatypes.get(_).toList).isEmpty)
+                  .map(node =>
+                    if (!owip.contains(node.iri)) toOntology(node.iri)
+                    else
+                      Task.unit.delayExecution(50.millis).flatMap { f =>
+                        if (DataType.datatypes.get(node.iri).nonEmpty) Task.unit
+                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                    }))
+            properties <- Task
+              .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
+            _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
+            _ <- withEdges(node,
+                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
+            datatype = DataType.datatypes.getAndUpdate(node)
+            _ <- (for {
+              _ <- withEdges(
+                node,
+                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type` - types.`@extends` - types.rdfsSubClassOf - types.`@label` - types.rdfsLabel - types.`@comment` - types.rdfsComment - types.`@properties`
+              )
+              _ <- Task.gatherUnordered(
+                properties
+                  .filter(_.hasLabel(Property.ontology).isEmpty)
+                  .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
+                  .map(node =>
+                    if (!pwip.contains(node.iri)) toProperty(node.iri)
+                    else
+                      Task.unit.delayExecution(50.millis).flatMap { f =>
+                        if (Property.properties.get(node.iri).nonEmpty) Task.unit
+                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                    }))
+            } yield {
+              DataType.datatypes.getAndUpdate(node)
+            }).forkAndForget
+          } yield datatype
+        })
+        .getOrElse(Task.raiseError(FromJsonException(s"ontology without iri $expandedJson")))
+    } else Task.raiseError(FromJsonException(s"ontology is not of type '@class' ${expandedJson.obj}"))
   }
 
-  def toDatatype(iri: String)(implicit activeContext: AC): Task[DataType[Any]] =
+  def toDatatype(iri: String)(implicit activeContext: AC): Task[DataType[Any]] = {
+//    println(s"toDatatype ${iri}")
     graph.ns.datatypes
       .get(iri)
       .flatMap(_.map(Task.now)
         .getOrElse {
+//          println(s"toDatatype ${iri}")
           Task
             .gather(
               lspace.datatype.util.TypeHelper
                 .getTypes(iri)
                 ._1
                 .filter(iri => ClassType.classtypes.get(iri).isEmpty)
-                .map(nsDecoder.fetchClassTypeNode(_).toListL))
-            .map(_.flatten)
-            .flatMap { nodes =>
-              val unfinished = nodes.filter(node =>
-                node.hasLabel(Ontology.ontology).isEmpty && node.hasLabel(Property.ontology).isEmpty)
-              Task.gather(unfinished.map(_.iri).map(toClasstype)).flatMap { clstypes =>
-                CollectionType
-                  .get(iri)
-                  .map(Task.now)
-                  .getOrElse(Task.raiseError(FromJsonException("could not build collectiontype")))
-              }
+                .map(nsDecoder.fetchClassType(_)))
+            .flatMap { clsTypes =>
+              CollectionType
+                .get(iri)
+                .map(Task.now)
+                .getOrElse(Task.raiseError(FromJsonException("could not build collectiontype")))
             }
         })
+  }
 
   def toDatatypes(json: Json)(implicit activeContext: AC): Task[List[DataType[Any]]] =
     Task.sequence(extractIris(json).map(toDatatype))
 
-  protected lazy val ctwip: concurrent.Map[String, Task[Node]] =
-    new ConcurrentHashMap[String, Task[Node]](16, 0.9f, 32).asScala
+  protected lazy val ctwip: concurrent.Map[String, Task[ClassType[_]]] =
+    new ConcurrentHashMap[String, Task[ClassType[_]]](16, 0.9f, 32).asScala
 
-  def prepareClassTypeNode(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Node] = {
+  def prepareClassType(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[ClassType[_]] = {
 //    val expandedJson = activeContext.expandKeys(obj)
     val typeIris = expandedJson
       .get(types.`@type`)
@@ -981,48 +1131,78 @@ trait Decoder {
       .flatMap(extractIris(_))
       .toSet
     if (iris.isEmpty) scribe.warn(s"no iris for ${expandedJson.obj}")
+
     if (Ontology.ontology.iris & typeIris nonEmpty) {
-      ctwip.getOrElseUpdate(iris.head, prepareOntologyNode(expandedJson).memoizeOnSuccess)
-      //      Observable.fromTask(toNode(expandedJson, Some(Ontology.ontology))).flatMap(prepareOntology)
+      ctwip.getOrElseUpdate(
+        iris.head,
+        prepareOntology(expandedJson).flatMap { ontology =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+            ontology
+          }
+        }.memoizeOnSuccess
+      )
     } else if (Property.ontology.iris & typeIris nonEmpty) {
-      ctwip.getOrElseUpdate(iris.head, preparePropertyNode(expandedJson).memoizeOnSuccess)
-      //      Observable.fromTask(toNode(expandedJson, Some(Property.ontology))).flatMap(prepareProperty)
+      ctwip.getOrElseUpdate(
+        iris.head,
+        prepareProperty(expandedJson).flatMap { node =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+            node
+          }
+        }.memoizeOnSuccess
+      )
     } else if (DataType.ontology.iris & typeIris nonEmpty) {
-      ctwip.getOrElseUpdate(iris.head, prepareDataTypeNode(expandedJson).memoizeOnSuccess)
-      //      Observable.fromTask(toNode(expandedJson, Some(DataType.ontology))).flatMap(prepareDataType)
+      ctwip.getOrElseUpdate(
+        iris.head,
+        prepareDataType(expandedJson).flatMap { node =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+            node
+          }
+        }.memoizeOnSuccess
+      )
     } else {
       scribe.warn(s"preparingClassTypeNode $iris without type ${typeIris}")
-      fetchClassTypeNode(iris.head).toListL.flatMap { nodes =>
-        nodes
-          .find(_.iri == iris.head)
-          .map(Task.now)
-          .getOrElse(Task.raiseError(FromJsonException("fetchClassTypeNode failed")))
-      }
+      ctwip.getOrElseUpdate(
+        iris.head,
+        fetchClassType(iris.head).memoizeOnSuccess
+      )
     }
-//      Task.raiseError(FromJsonException(s"classtype is not of type '@class' ${obj}"))
   }
 
-  def toClasstype(iri: String)(implicit activeContext: AC): Task[ClassType[Any]] =
+  def toClasstype(iri: String)(implicit activeContext: AC): Task[ClassType[Any]] = {
+//    println(s"toClassType ${iri}")
     graph.ns.classtypes
       .get(iri)
-      .flatMap(
-        _.map(Task.now)
-          .getOrElse(ClassType.classtypes
-            .get(iri)
-            .map(Task.now)
-            .getOrElse {
-              nsDecoder.fetchClassTypeNode(iri).toListL.flatMap {
-                nodes =>
-                  val unfinished = nodes.filter(node =>
-                    node.hasLabel(Ontology.ontology).isEmpty && node.hasLabel(Property.ontology).isEmpty)
-                  Task.gather(unfinished.map(_.iri).map(toClasstype)).flatMap { clstypes =>
-                    graph.ns.classtypes
-                      .get(iri)
-                      .flatMap(_.map(Task.now).getOrElse(Task.raiseError(
-                        FromJsonException(s"could not build classtypes $iri after having done all the preparing ..."))))
-                  }
-              }
-            }))
+      .flatMap(_.map(Task.now)
+        .getOrElse {
+          lspace.datatype.util.TypeHelper
+            .getTypes(iri)
+            ._1 match {
+            case Nil =>
+              ClassType.classtypes
+                .get(iri)
+                .map(Task.now)
+                .getOrElse {
+                  //                println(s"toClassType ${iri}")
+                  ctwip.getOrElseUpdate(
+                    iri,
+                    nsDecoder.fetchClassType(iri).memoizeOnSuccess
+                  )
+                }
+            case iris =>
+              Task
+                .gather(
+                  iris
+                    .filter(iri => ClassType.classtypes.get(iri).isEmpty)
+                    .map(nsDecoder.fetchClassType(_)))
+                .flatMap { clsTypes =>
+                  CollectionType
+                    .get(iri)
+                    .map(Task.now)
+                    .getOrElse(Task.raiseError(FromJsonException("could not build collectiontype")))
+                }
+          }
+        })
+  }
 
   def toClasstypes(json: Json)(implicit activeContext: AC): Task[List[ClassType[Any]]] =
     Task.gather(extractIris(json).map(toClasstype))
@@ -1073,183 +1253,178 @@ trait Decoder {
       }
       .map(_.toMap)
 
-  protected lazy val wip: concurrent.Map[String, Task[String]] =
-    new ConcurrentHashMap[String, Task[String]](16, 0.9f, 32).asScala
-
-  def fetchOntologyNode(iri: String)(implicit activeContext: AC): Observable[Node] = {
-    Observable.fromTask(fetch(iri)).flatMap { json =>
+  def fetchOntology(iri: String)(implicit activeContext: AC): Task[Ontology] = {
+    fetch(iri).flatMap { json =>
       json.obj
         .map { obj =>
-          Observable.fromTask(obj.extractContext).flatMap { implicit activeContext =>
+          obj.extractContext.flatMap { implicit activeContext =>
             val expandedJson = obj.expand
-            if (expandedJson.contains(types.`@type`))
-              Observable.fromTask(prepareOntologyNode(expandedJson - types.`@context`))
-            else if (expandedJson.contains(types.`@graph`)) {
+            if (expandedJson.contains(types.`@type`)) {
+              prepareOntology(expandedJson - types.`@context`)
+            } else if (expandedJson.contains(types.`@graph`)) {
               expandedJson
                 .get(types.`@graph`)
                 .flatMap(json =>
                   json.list.map { jsons =>
-                    Observable
-                      .fromTask {
+                    Task
+                      .gatherUnordered(
+                        jsons
+                          .map(_.obj)
+                          .filter(_.exists(_.size > 2))
+                          .map {
+                            _.map(obj => obj.extractContext.map(_ -> obj))
+                              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
+                          })
+                      .flatMap { list =>
                         Task
-                          .gatherUnordered(jsons
-                            .map(_.obj)
-                            .filter(_.exists(_.size > 2))
-                            .map {
-                              _.map(obj => obj.extractContext.map(_ -> obj))
-                                .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
-                            })
-                          .flatMap { list =>
-                            Task.gatherUnordered {
-                              list.map {
-                                case (ac, obj) =>
-                                  val expandedJson = obj.expand(ac)
-                                  expandedJson
-                                    .extractId(ac)
-                                    .map(_.iri)
-                                    .map { iri =>
-                                      ctwip.getOrElseUpdate(iri, prepareClassTypeNode(expandedJson - types.`@context`))
-                                    }
-                                    .get
-                              }
+                          .sequence { //gatherUnordered seems to deadlock?
+                            list.map {
+                              case (ac, obj) =>
+                                val expandedJson = obj.expand(ac)
+                                expandedJson
+                                  .extractId(ac)
+                                  .map(_.iri)
+                                  .map { iri =>
+                                    prepareClassType(expandedJson - types.`@context`)
+                                      .timeout(5000.millis)
+                                      .memoizeOnSuccess
+                                  }
+                                  .getOrElse(Task.raiseError(FromJsonException("classtype without iri")))
                             }
                           }
                       }
-                      .flatMap(l => Observable.fromIterable(l))
+                      .flatMap { f =>
+                        graph.ns.nodes
+                          .hasIri(iri)
+                          .headOptionL
+                          .flatMap(_.map(n => Task.now(Ontology.ontologies.getAndUpdate(n)))
+                            .getOrElse(Task.raiseError(
+                              throw FromJsonException(s"could not find $iri after fetching and preparing"))))
+                      }
                 })
-                .getOrElse(Observable.raiseError(FromJsonException("@graph is not an array")))
+                .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
             } else
-              Observable.raiseError(
-                FromJsonException(s"cannot parse ontology, not @type or @graph ${expandedJson.keys}"))
+              Task.raiseError(FromJsonException(s"cannot parse ontology, not @type or @graph ${expandedJson.keys}"))
           }
         }
-        .getOrElse(Observable.raiseError(FromJsonException("Ontology resource is not an object")))
+        .getOrElse(Task.raiseError(FromJsonException("Ontology resource is not an object")))
     }
   }
 
-  def fetchPropertyNode(iri: String)(implicit activeContext: AC): Observable[Node] = {
-    ctwip.get(iri).map(Observable.fromTask).getOrElse {
-      Observable.fromTask(fetch(iri)).flatMap { json =>
-        json.obj
-          .map { obj =>
-            Observable.fromTask(obj.extractContext).flatMap { implicit activeContext =>
-              val expandedJson = obj.expand
-              if (expandedJson.contains(types.`@type`))
-                Observable.fromTask(preparePropertyNode(expandedJson - types.`@context`))
-              else if (expandedJson.contains(types.`@graph`)) {
-                expandedJson
-                  .get(types.`@graph`)
-                  .flatMap { json =>
-                    json.list.map { jsons =>
-                      Observable
-                        .fromTask {
-                          Task
-                            .gatherUnordered(jsons
-                              .map(_.obj)
-                              .filter(_.exists(_.size > 2))
-                              .map {
-                                _.map(obj => obj.extractContext.map(_ -> obj))
-                                  .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
-                              })
-                            .flatMap { list =>
-                              Task.gatherUnordered {
-                                list.map {
-                                  case (ac, obj) =>
-                                    val expandedJson = obj.expand(ac)
-                                    expandedJson
-                                      .extractId(ac)
-                                      .map(_.iri)
-                                      .map { iri =>
-                                        ctwip.getOrElseUpdate(iri,
-                                                              prepareClassTypeNode(expandedJson - types.`@context`))
-                                      }
-                                      .get
+  def fetchProperty(iri: String)(implicit activeContext: AC): Task[Property] = {
+    fetch(iri).flatMap { json =>
+      json.obj
+        .map { obj =>
+          obj.extractContext.flatMap { implicit activeContext =>
+            val expandedJson = obj.expand
+            if (expandedJson.contains(types.`@type`)) {
+              prepareProperty(expandedJson - types.`@context`)
+            } else if (expandedJson.contains(types.`@graph`)) {
+              expandedJson
+                .get(types.`@graph`)
+                .flatMap { json =>
+                  json.list.map { jsons =>
+                    Task
+                      .gatherUnordered(
+                        jsons
+                          .map(_.obj)
+                          .filter(_.exists(_.size > 2))
+                          .map {
+                            _.map(obj => obj.extractContext.map(_ -> obj))
+                              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
+                          })
+                      .flatMap { list =>
+                        Task.gatherUnordered {
+                          list.map {
+                            case (ac, obj) =>
+                              val expandedJson = obj.expand(ac)
+                              expandedJson
+                                .extractId(ac)
+                                .map(_.iri)
+                                .map { iri =>
+                                  prepareClassType(expandedJson - types.`@context`).memoizeOnSuccess
                                 }
-                              }
-                            }
+                                .get
+                          }
                         }
-                        .flatMap(l => Observable.fromIterable(l))
-                    }
+                      }
+                      .flatMap { f =>
+                        graph.ns.nodes
+                          .hasIri(iri)
+                          .headOptionL
+                          .flatMap(_.map(n => Task.now(Property.properties.getAndUpdate(n)))
+                            .getOrElse(Task.raiseError(
+                              throw FromJsonException(s"could not find $iri after fetching and preparing"))))
+                      }
+
+//                      .map(_.collectFirst {
+//                        case property: Property if property.iris.contains(iri) => property
+//                      }.getOrElse(throw FromJsonException(s"could not find $iri after fetching and preparing")))
                   }
-                  .getOrElse(Observable.raiseError(FromJsonException("@graph is not an array")))
-              } else
-                expandedJson
-                  .extractId(activeContext)
-                  .map(_.iri)
-                  .map { iri =>
-                    Observable(graph.nodes.upsert(iri, Property.unknownProperty))
-                  }
-                  .getOrElse(
-                    Observable.raiseError(
-                      FromJsonException(s"cannot parse property, not @type or @graph $json ${obj.keys}"))
-                  )
-            //              Observable.raiseError(FromJsonException("cannot parse property, not @type or @graph"))
-            }
+                }
+                .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
+            } else
+              scribe.warn(s"fetching and building $iri failed, empty property created")
+            Task.now(Property.properties.getOrCreate(iri, Set()))
+//              Task.raiseError(FromJsonException(s"cannot parse property, not @type or @graph ${expandedJson.keys}"))
           }
-          //        .getOrElse(Observable.now(graph.nodes.upsert(iri, Property.unknownProperty))) ////Observable.empty[Node])
-          .getOrElse(Observable.raiseError(FromJsonException("Property resource is not an object")))
-      }
+        }
+        .getOrElse(Task.raiseError(FromJsonException("Property resource is not an object")))
     }
   }
-  def fetchClassTypeNode(iri: String)(implicit activeContext: AC): Observable[Node] = {
-    ctwip.get(iri).map(Observable.fromTask).getOrElse {
-      Observable.fromTask(fetch(iri)).flatMap { json =>
-        json.obj
-          .map(_.expand)
-          .map { obj =>
-            Observable.fromTask(obj.obj.extractContext).flatMap { implicit activeContext =>
-              if (obj.contains(types.`@type`)) Observable.fromTask(prepareClassTypeNode(obj - types.`@context`))
-              else if (obj.contains(types.`@graph`)) {
-                obj
-                  .get(types.`@graph`)
-                  .flatMap { json =>
-                    json.list.map { jsons =>
-                      Observable
-                        .fromTask {
-                          Task
-                            .gatherUnordered(jsons
-                              .map(_.obj)
-                              .filter(_.exists(_.size > 2))
-                              .map {
-                                _.map(obj => obj.extractContext.map(_ -> obj))
-                                  .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
-                              })
-                            .flatMap { list =>
-                              Task.gatherUnordered {
-                                list.map {
-                                  case (ac, obj) =>
-                                    val expandedJson = obj.expand(ac)
-                                    expandedJson
-                                      .extractId(ac)
-                                      .map(_.iri)
-                                      .map { iri =>
-                                        ctwip.getOrElseUpdate(iri,
-                                                              prepareClassTypeNode(expandedJson - types.`@context`))
-                                      }
-                                      .get
+  def fetchClassType(iri: String)(implicit activeContext: AC): Task[ClassType[_]] = {
+    fetch(iri).flatMap { json =>
+      json.obj
+        .map(_.expand)
+        .map { obj =>
+          obj.obj.extractContext.flatMap { implicit activeContext =>
+            if (obj.contains(types.`@type`)) prepareClassType(obj - types.`@context`)
+            else if (obj.contains(types.`@graph`)) {
+              obj
+                .get(types.`@graph`)
+                .flatMap { json =>
+                  json.list.map { jsons =>
+                    Task
+                      .gatherUnordered(
+                        jsons
+                          .map(_.obj)
+                          .filter(_.exists(_.size > 2))
+                          .map {
+                            _.map(obj => obj.extractContext.map(_ -> obj))
+                              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
+                          })
+                      .flatMap { list =>
+                        Task.gatherUnordered {
+                          list.map {
+                            case (ac, obj) =>
+                              val expandedJson = obj.expand(ac)
+                              expandedJson
+                                .extractId(ac)
+                                .map(_.iri)
+                                .map { iri =>
+                                  prepareClassType(expandedJson - types.`@context`).memoizeOnSuccess
                                 }
-                              }
-                            }
+                                .get
+                          }
                         }
-                        .flatMap(l => Observable.fromIterable(l))
-                    }
+                      }
+                      .flatMap { f =>
+                        graph.ns.nodes
+                          .hasIri(iri)
+                          .headOptionL
+                          .flatMap(_.map(n => Task.now(ClassType.classtypes.getAndUpdate(n)))
+                            .getOrElse(Task.raiseError(
+                              throw FromJsonException(s"could not find $iri after fetching and preparing"))))
+                      }
                   }
-                  .getOrElse(Observable.raiseError(FromJsonException("@graph is not an array")))
+                }
+                .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
 
-              } else
-                //              activeContext
-                //                .extractId(obj)
-                //                .map { iri =>
-                //                  Observable.now(graph.nodes.upsert(iri))
-                //                }
-                //                .getOrElse(
-                Observable.raiseError(FromJsonException(s"cannot parse classtype, not @type or @graph ${obj.keys}"))
-            //            )
-            //              Observable.raiseError(FromJsonException("cannot parse property, not @type or @graph"))
-            }
+            } else
+              Task.raiseError(FromJsonException(s"cannot parse classtype, not @type or @graph ${obj.obj}"))
           }
-          .getOrElse(Observable.raiseError(FromJsonException(s"cannot parse classtype, not @type or @graph $json")))
-      }
+        }
+        .getOrElse(Task.raiseError(FromJsonException(s"cannot parse classtype, not @type or @graph $json")))
     }
   }
 
@@ -1264,6 +1439,8 @@ trait Decoder {
         if (iri.startsWith("https://schema.org")) {
           httpClient.application.ldjson
             .get(eIri)
+//            .executeOn(monix.execution.Scheduler.io())
+            .timeout(5.second)
             .flatMap(parse)
         } else
           parse(s"""{"@id": "${iri}"}""")

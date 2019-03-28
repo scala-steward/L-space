@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Group
@@ -34,10 +35,12 @@ object Group
     lazy val `ns.l-space.eu/librarian/step/Group/by @Traversal`: TypedKey[Node] = keys.byTraversal
   }
 
-  implicit def toNode[ET <: ClassType[_], Segments <: HList](group: Group[ET, Segments]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.by, group.by.toNode)
-    node
+  implicit def toNode[ET <: ClassType[_], Segments <: HList](step: Group[ET, Segments]): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.by.toNode
+      _         <- node.addOut(keys.byTraversal, traversal)
+    } yield node
   }
 
 }
@@ -45,6 +48,6 @@ object Group
 case class Group[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
     extends CollectingBarrierStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "group(_." + by.toString + ")"
 }

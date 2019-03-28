@@ -4,6 +4,9 @@ import java.time.Instant
 
 import lspace.lgraph.LGraph
 import lspace.structure.store.NodeStore
+import monix.eval.Task
+import monix.reactive.Observable
+
 import scala.concurrent.duration._
 
 object LNodeStore {
@@ -12,56 +15,98 @@ object LNodeStore {
 
 class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] with NodeStore[G] {
 
-  override def hasId(id: Long): Option[T2] =
-    if (isDeleted(id)) None else cachedById(id).orElse(graph.storeManager.nodeById(id).headOption)
+  override def hasId(id: Long): Task[Option[T2]] =
+    if (isDeleted(id)) Task.now(None)
+    else
+      cachedById(id) match {
+        case Some(e) => Task.now(Some(e))
+        case None    => graph.storeManager.nodeById(id).map(_.map(_.asInstanceOf[T2]))
+      }
 
-  def hasId(ids: List[Long]): Stream[T2] = {
+  def hasId(ids: List[Long]): Observable[T2] = {
     val (deleted, tryable) = ids.partition(isDeleted)
     val byCache            = tryable.map(id => id -> cachedById(id))
     val (noCache, cache)   = byCache.partition(_._2.isEmpty)
-    (cache.flatMap(_._2) toStream) ++ (if (noCache.nonEmpty) graph.storeManager.nodesById(noCache.map(_._1))
-                                       else Stream())
+    Observable.fromIterable(cache.flatMap(_._2)) ++ (if (noCache.nonEmpty)
+                                                       graph.storeManager
+                                                         .nodesById(noCache.map(_._1))
+                                                         .asInstanceOf[Observable[T2]]
+                                                         .executeOn(LStore.ec)
+                                                     else Observable.empty[T2])
   }
 
-  override def hasIri(iri: String): Stream[T2] =
-    cachedByIri(iri).filterNot(n => isDeleted(n.id)) ++ graph.storeManager.nodeByIri(iri) distinct
+  override def hasIri(iri: String): Observable[T2] = {
+    val cachedResult = cachedByIri(iri).filterNot(e => isDeleted(e.id))
+    Observable.fromIterable(cachedResult) ++
+      graph.storeManager
+        .nodeByIri(iri)
+        .asInstanceOf[Observable[T2]]
+        .filter(!cachedResult.toSet.contains(_))
+        .executeOn(LStore.ec)
+  }
 
-  override def store(node: T): Unit = {
-    super.store(node)
-    graph.storeManager
-      .storeNodes(List(node))
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+  def hasIri(iri: Set[String]): Observable[T2] = {
+    val cachedResult = iri.flatMap(iri => cachedByIri(iri).filterNot(e => isDeleted(e.id)))
+    Observable.fromIterable(cachedResult) ++
+      graph.storeManager
+        .nodesByIri(iri.toList)
+        .asInstanceOf[Observable[T2]]
+        .filter(!cachedResult.contains(_))
+        .executeOn(LStore.ec)
+  }
+
+  override def store(node: T): Task[Unit] = {
+    for {
+      _ <- super.store(node)
+      _ <- graph.storeManager
+        .storeNodes(List(node))
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  override def store(nodes: List[T]): Unit = {
-    nodes.foreach(super.store)
-    graph.storeManager
-      .storeNodes(nodes)
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+  override def store(nodes: List[T]): Task[Unit] = {
+    for {
+      _ <- Task.gatherUnordered(nodes.map(super.store))
+      _ <- graph.storeManager
+        .storeNodes(nodes)
+        .executeOn(LStore.ec)
+        .forkAndForget
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  override def delete(node: T): Unit = {
+  override def delete(node: T): Task[Unit] = Task.defer {
     _deleted += node.id -> Instant.now()
-    super.delete(node)
-    graph.storeManager
-      .deleteNodes(List(node))
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+    for {
+      _ <- super.delete(node)
+      _ <- graph.storeManager
+        .deleteNodes(List(node))
+        .executeOn(LStore.ec)
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  override def delete(nodes: List[T]): Unit = {
+  override def delete(nodes: List[T]): Task[Unit] = Task.defer {
     val delTime = Instant.now()
     nodes.foreach(node => _deleted += node.id -> delTime)
-    nodes.foreach(super.delete)
-    graph.storeManager
-      .deleteNodes(nodes)
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+    for {
+      _ <- Task.gatherUnordered(nodes.map(super.delete))
+      _ <- graph.storeManager
+        .deleteNodes(nodes)
+        .executeOn(LStore.ec)
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  override def all(): Stream[T2] =
-    _cache.toStream.map(_._2).filterNot(n => isDeleted(n.id)) ++ graph.storeManager.nodes distinct
-  def count(): Long = graph.storeManager.nodeCount()
+  override def all(): Observable[T2] = {
+    val cached = _cache.values
+    Observable.fromIterable(cached).filter(n => !isDeleted(n.id)) ++ graph.storeManager.nodes
+      .filter(!cached.toSet.contains(_))
+      .executeOn(LStore.ec)
+  }
+  def count(): Task[Long] = graph.storeManager.nodeCount()
 }

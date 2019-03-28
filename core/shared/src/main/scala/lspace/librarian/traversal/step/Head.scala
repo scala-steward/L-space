@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 
 case object Head
     extends StepDef("Head", "A head-step limits the traversal to first result.", () => ClipStep.ontology :: Nil)
@@ -16,12 +17,12 @@ case object Head
   override lazy val properties: List[Property] = ClipStep.properties
   trait Properties extends ClipStep.Properties
 
-  implicit def toNode(head: Head): Node = DetachedGraph.nodes.create(ontology)
+  implicit def toNode(head: Head): Task[Node] = DetachedGraph.nodes.create(ontology)
 
 }
 
 trait Head extends ClipStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "head"
 }

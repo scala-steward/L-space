@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 import shapeless.HList
 
 object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]] {
@@ -79,15 +80,16 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   override lazy val properties
     : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
 
-  implicit def toNode[CT0 <: ClassType[_]](repeat: Repeat[CT0]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.traversalTraversal, repeat.traversal.toNode)
-    repeat.until.foreach(until => node.addOut(keys.untilTraversal, until.toNode))
-    repeat.max.foreach(max => node.addOut(keys.maxInt, max))
-    if (repeat.collect) node.addOut(keys.collectBoolean, repeat.collect)
-    if (repeat.noloop) node.addOut(keys.noloopBoolean, repeat.noloop)
-    node
+  implicit def toNode[CT0 <: ClassType[_]](step: Repeat[CT0]): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.traversal.toNode
+      _         <- node.addOut(keys.traversalTraversal, traversal)
+      until     <- Task.gather(step.until.toList.map(_.toNode))
+      _         <- Task.gather(until.map(node.addOut(keys.untilTraversal, _)))
+      _         <- if (step.collect) node.addOut(keys.collectBoolean, step.collect) else Task.unit
+      _         <- if (step.noloop) node.addOut(keys.collectBoolean, step.noloop) else Task.unit
+    } yield node
   }
 }
 
@@ -98,7 +100,7 @@ case class Repeat[E0 <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E0
                                       noloop: Boolean)
     extends BranchStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     s"repeat(_.${traversal.toString}" + (until match {
       case Some(until) =>

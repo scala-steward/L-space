@@ -4,6 +4,7 @@ import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Has
     extends StepDef(
@@ -15,15 +16,19 @@ object Has
     with StepWrapper[Has] {
 
   def toStep(node: Node): Has =
-    Has(node
-          .outE(keys.key)
-          .take(1)
-          .map(i => node.graph.ns.properties.cached(i.inV.iri).get)
-          .head,
-        node
-          .out(keys.predicateUrl)
-          .headOption
-          .map(P.toP))
+    Has(
+      node
+        .outE(keys.key)
+        .take(1)
+        .map { i =>
+          node.graph.ns.properties.cached(i.to.iri).get
+        }
+        .head,
+      node
+        .out(keys.predicateUrl)
+        .headOption
+        .map(P.toP)
+    )
 
   object keys {
     object key
@@ -52,18 +57,20 @@ object Has
     val predicateUrl = keys.predicateUrl
   }
 
-  implicit def toNode(has: Has): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    val edge = node.addOut(keys.key, has.key)
-    has.predicate.map(_.toNode).foreach(node.addOut(keys.predicateUrl, _))
-    node
+  implicit def toNode(step: Has): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      _          <- node.addOut(keys.key, step.key)
+      predicates <- Task.gather(step.predicate.toList.map(_.toNode))
+      _          <- Task.gather(predicates.map(node.addOut(keys.predicateUrl, _)))
+    } yield node
   }
 
 }
 
 case class Has(key: Property, predicate: Option[P[_]] = None) extends HasStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     if (predicate.nonEmpty) s"has(${key.iri}, P.${predicate.head.prettyPrint})"
     else "has(" + key.iri + ")"

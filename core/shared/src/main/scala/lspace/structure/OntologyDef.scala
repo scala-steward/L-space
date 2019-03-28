@@ -50,7 +50,7 @@ abstract class OntologyDef(
 
   def keys: Object
   def properties: List[Property] = List()
-  def properties0                = properties
+  private def properties0        = properties
 
   trait Properties {}
 }

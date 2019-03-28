@@ -124,15 +124,16 @@ object Ontology {
 
   object ontologies {
     object default {
-      lazy val ontologies = List(ontology,
-                                 Property.ontology,
-                                 DataType.ontology,
-                                 unknownOntology,
-                                 Property.unknownProperty) //::: Step.steps.map(_.ontology)
+      lazy val ontologies = List(ontology, Property.ontology, DataType.ontology) //::: Step.steps.map(_.ontology)
       if (ontologies.size > 99) throw new Exception("extend default-ontology-id range!")
       val byId    = (200l to 200l + ontologies.size - 1 toList).zip(ontologies).toMap
       val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
       val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+
+      lspace.librarian.traversal.Step.steps
+        .map(_.ontology)
+      lspace.librarian.logic.predicate.P.predicates
+        .map(_.ontology)
     }
     private[lspace] val byIri: concurrent.Map[String, Ontology] =
       new ConcurrentHashMap[String, Ontology]().asScala
@@ -307,5 +308,3 @@ class Ontology(val iri: String,
 
   override def hashCode(): Int = iri.hashCode
 }
-
-case class UnknownOntology(override val iri: String) extends Ontology(iri)

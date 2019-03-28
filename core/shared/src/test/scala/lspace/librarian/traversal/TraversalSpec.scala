@@ -20,7 +20,7 @@ class TraversalSpec extends WordSpec with Matchers {
     "starts empty" in {
       val graphName = "data.example.com/test"
       g.segmentList.flatMap(_.stepsList).size shouldBe 0
-      g.toNode.graph shouldBe DetachedGraph
+//      g.toNode.graph shouldBe DetachedGraph
     }
     "start with a ResourceStep" in {
       g.N.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 2
@@ -89,9 +89,9 @@ class TraversalSpec extends WordSpec with Matchers {
       //      println(Traversal.g("biggraph").V().has(pDouble, P.eq(0.5).gt(0.4)).toString)
       lspace.g.N().has(pDouble).segmentList.flatMap(_.stepsList).size shouldBe 2
       val testNode = graph.nodes.create()
-      List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
-      testNode.addOut(pDouble, 0.5)
-      testNode.out(pDouble).size shouldBe 5
+//      List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
+//      testNode.addOut(pDouble, 0.5)
+//      testNode.out(pDouble).size shouldBe 5
       //      testNode.property(pDouble, 1, 1.1, 0.5, 3l)
       //      Traversal[VStep, VStep]().has(NumericPropertyKey("", "")(TraversalSpec.DoubleType), 0L).steps.size shouldBe 1
       lspace.g.N().has(pDouble, P.eqv(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
@@ -146,12 +146,12 @@ class TraversalSpec extends WordSpec with Matchers {
       lspace.g.N().has(pDouble, P.startsWith("a")).segmentList.flatMap(_.stepsList).size shouldBe 2
     }
     "consist of multiple steps" in {
-      val traversal = graph.g.N().out().out().in()
+      val traversal = lspace.g.N().out().out().in()
       traversal.segmentList.flatMap(_.stepsList).size shouldBe 4
       val pDouble = Property("schema/x")
       pDouble.range + DataType.default.`@double`
       val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
-      val test                                = graph.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
+      val test                                = lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
       test.sum
       lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }

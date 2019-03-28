@@ -31,63 +31,65 @@ trait GraphUtils {
 
             //    val (unmerged, transcended) =
             //      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
-            unmerged.tail.foreach {
-              slave =>
-                val masterVertexOntologies = unmerged.head.labels //out(this.typeOntology).map(Ontology.wrap)
-                val suborVertexOntologies  = slave.labels //out(this.typeOntology).map(Ontology.wrap)
-                val ontologyGap            = suborVertexOntologies.diff(masterVertexOntologies)
-                val typesToAdd             = mutable.HashSet[Ontology]()
-                val typesToRemove          = mutable.HashSet[Ontology]()
-                ontologyGap.foreach { ontology =>
-                  if (!masterVertexOntologies.exists(_.`extends`(ontology))) {
-                    masterVertexOntologies.find(o => ontology.`extends`(o)) match {
-                      case Some(inheritedOntology) =>
-                        typesToRemove += inheritedOntology
-                      case None =>
-                    }
-                    typesToAdd += ontology
-                  }
-                }
-                //      typesToRemove.foreach(_.remove()) ???
-                typesToAdd
-                  .filterNot(tpe => typesToAdd.exists(_.`extends`(tpe)))
-                  .foreach(tpe => unmerged.head.addLabel(tpe))
-                val linksIn = slave.inEMap()
-
-                linksIn.foreach {
-                  case (key, properties) =>
-                    properties.foreach { property =>
-                      scala.util.control.NonFatal
-                      try {
-                        property.from.addOut(property.key, unmerged.head)
-                      } catch {
-                        case NonFatal(e) =>
-                          scribe.error(e.getMessage)
-                          throw e
+            for {
+              _ <- Task.sequence(unmerged.tail.map {
+                slave =>
+                  val masterVertexOntologies = unmerged.head.labels //out(this.typeOntology).map(Ontology.wrap)
+                  val suborVertexOntologies  = slave.labels //out(this.typeOntology).map(Ontology.wrap)
+                  val ontologyGap            = suborVertexOntologies.diff(masterVertexOntologies)
+                  val typesToAdd             = mutable.HashSet[Ontology]()
+                  val typesToRemove          = mutable.HashSet[Ontology]()
+                  ontologyGap.foreach { ontology =>
+                    if (!masterVertexOntologies.exists(_.`extends`(ontology))) {
+                      masterVertexOntologies.find(o => ontology.`extends`(o)) match {
+                        case Some(inheritedOntology) =>
+                          typesToRemove += inheritedOntology
+                        case None =>
                       }
+                      typesToAdd += ontology
                     }
-                }
-                val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
-                linksOut.foreach {
-                  case (key, properties) =>
-                    properties.foreach { property =>
-                      unmerged.head.addOut(property.key, property.to)
-                    }
-                }
-                //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
-                slave.remove()
-            }
-            //    transcended.foreach(_.remove())
-            unmerged.head.graph.nodes.hasIri(List(unmerged.head.iri)) match {
-              case List(node) => Task(node)
-              case List()     => Task.raiseError(new Exception(s"after merging no node ${unmerged.head.iri} left?"))
-              case list       => mergeNodes(list.toSet)
+                  }
+                  //      typesToRemove.foreach(_.remove()) ???
+                  val linksIn  = slave.inEMap()
+                  val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
+                  for {
+                    _ <- Task.sequence(
+                      typesToAdd
+                        .filterNot(tpe => typesToAdd.exists(_.`extends`(tpe)))
+                        .map(tpe => unmerged.head.addLabel(tpe)))
+                    _ <- Task.sequence(linksIn.map {
+                      case (key, properties) =>
+                        Task.sequence(properties.map { property =>
+                          property.from.addOut(property.key, unmerged.head)
+                        })
+                    })
+                    _ <- Task.sequence(linksOut.map {
+                      case (key, properties) =>
+                        Task.sequence(properties.map { property =>
+                          unmerged.head.addOut(property.key, property.to)
+                        })
+                    })
+                    //_ <- slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+                    _ <- slave.remove()
+                  } yield ()
+              })
+              node <- unmerged.head.graph.nodes.hasIri(List(unmerged.head.iri)).toListL.flatMap {
+                case List(node) =>
+                  Task(node)
+                case List() => Task.raiseError(new Exception(s"after merging no node ${unmerged.head.iri} left?"))
+                case list =>
+                  mergeNodes(list.toSet)
+              }
+              //_ <- Task.gather(transcended.map(_.remove()))
+            } yield {
+              node
             }
           }
           .doOnFinish(f =>
             Task {
               nodeMergeTasks.remove(iri)
           })
+          .memoizeOnSuccess
       )
     }
   }
@@ -113,45 +115,50 @@ trait GraphUtils {
 
             //    val (unmerged, transcended) =
             //      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
-            unmerged.tail.foreach {
-              slave =>
-                //      typesToRemove.foreach(_.remove()) ???
+            for {
+              _ <- Task.sequence(unmerged.tail.map {
+                slave =>
+                  //      typesToRemove.foreach(_.remove()) ???
 
-                val linksIn = slave.inEMap()
-
-                linksIn.foreach {
-                  case (key, properties) =>
-                    properties.foreach { property =>
-                      try {
-                        property.from.addOut(property.key, unmerged.head)
-                      } catch {
-                        case NonFatal(e) =>
-                          scribe.error(e.getMessage)
-                          throw e
-                      }
+                  val linksIn  = slave.inEMap()
+                  val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
+                  for {
+                    _ <- Task.sequence(linksIn.map {
+                      case (key, properties) =>
+                        Task.sequence(properties.map { property =>
+                          property.from.addOut(property.key, unmerged.head)
+                        })
+                    })
+                    _ <- Task.sequence(linksOut.map {
+                      case (key, properties) =>
+                        Task.sequence(properties.map { property =>
+                          unmerged.head.addOut(property.key, property.to)
+                        })
+                    })
+                    _ <- Task.defer {
+                      slave.remove()
                     }
+                  } yield ()
+                  //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+              })
+              value <- unmerged.head.graph.values
+                .byValue(List(unmerged.head.value -> unmerged.head.label))
+                .toListL
+                .flatMap {
+                  case List(value) =>
+                    Task(unmerged.head)
+                  case List() => Task(unmerged.head)
+                  case list =>
+                    mergeValues(list.toSet)
                 }
-                val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
-                linksOut.foreach {
-                  case (key, properties) =>
-                    properties.foreach { property =>
-                      unmerged.head.addOut(property.key, property.to)
-                    }
-                }
-                //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
-                slave.remove()
-            }
-            //    transcended.foreach(_.remove())
-            unmerged.head.graph.values.byValue(List(unmerged.head.value -> unmerged.head.label)) match {
-              case List(value) => Task(unmerged.head)
-              case List()      => Task(unmerged.head)
-              case list        => mergeValues(list.toSet)
-            }
+              //_ <- Task.gather(transcended.map(_.remove()))
+            } yield value
           }
           .onErrorHandle { f =>
             f.printStackTrace(); throw f
           }
           .doOnFinish(f => Task(valueMergeTasks.remove(values.head.value)))
+          .memoizeOnSuccess
       )
     }
   }

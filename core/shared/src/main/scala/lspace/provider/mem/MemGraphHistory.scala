@@ -2,6 +2,7 @@ package lspace.provider.mem
 
 import lspace.structure.util.IdProvider
 import lspace.structure.{DataGraph, History}
+import monix.eval.Task
 import monix.execution.atomic.Atomic
 
 object MemGraphHistory {
@@ -10,8 +11,8 @@ object MemGraphHistory {
       val iri: String = _iri
 
       lazy val idProvider: IdProvider = new IdProvider {
-        private val id = Atomic(1000l)
-        def next: Long = id.incrementAndGet()
+        private val id       = Atomic(1000l)
+        def next: Task[Long] = Task.now(id.incrementAndGet())
       }
 
       private val self = this

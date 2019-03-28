@@ -4,6 +4,7 @@ import lspace.datatype.DataType
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object As
     extends StepDef(
@@ -42,16 +43,17 @@ object As
     val nameString = keys.nameString
   }
 
-  implicit def toNode(as: As[_ <: Any, _ <: String]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.nameString, as.label)
-    node
+  implicit def toNode(as: As[_ <: Any, _ <: String]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.nameString, as.label)
+    } yield node
   }
 }
 
 case class As[T, name <: String](label: name) extends Step {
   def _maphelper: T = List[T]().head
 
-  def toNode: Node                 = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "as(" + label + ")"
 }

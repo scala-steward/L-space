@@ -6,6 +6,7 @@ import lspace.datatype._
 import lspace.structure.Property
 import monix.eval.Task
 import monix.execution.CancelableFuture
+import monix.reactive.Observable
 
 object MemStoreManager {
   def apply[G <: LGraph](graph: G): MemStoreManager[G] = new MemStoreManager[G](graph)
@@ -18,50 +19,53 @@ object MemStoreManager {
   */
 class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(graph) {
 
-  override def nodeById(id: Long): Option[graph._Node with LNode] = None
+  override def nodeById(id: Long): Task[Option[graph._Node with LNode]] = Task.now(None)
 
-  override def nodesById(ids: List[Long]): Stream[graph._Node with LNode] = Stream()
+  override def nodesById(ids: List[Long]): Observable[graph._Node with LNode] = Observable()
 
-  override def nodeByIri(iri: String): Stream[graph._Node with LNode] = Stream()
+  override def nodeByIri(iri: String): Observable[graph._Node with LNode] = Observable()
 
-  override def nodesByIri(iri: List[String]): Stream[graph._Node with LNode] = Stream()
+  override def nodesByIri(iri: List[String]): Observable[graph._Node with LNode] = Observable()
 
-  override def edgeById(id: Long): Option[graph._Edge[Any, Any] with LEdge[Any, Any]] = None
+  override def edgeById(id: Long): Task[Option[graph._Edge[Any, Any] with LEdge[Any, Any]]] = Task.now(None)
 
-  override def edgesById(ids: List[Long]): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override def edgesById(ids: List[Long]): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def edgesByFromId(fromId: Long): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override def edgesByFromId(fromId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def edgesByFromIdAndKey(fromId: Long, key: Property): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] =
-    Stream()
+  override def edgesByFromIdAndKey(fromId: Long,
+                                   key: Property): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
+    Observable()
 
-  override def edgesByToId(toId: Long): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override def edgesByToId(toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def edgesByToIdAndKey(toId: Long, key: Property): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] =
-    Stream()
+  override def edgesByToIdAndKey(toId: Long, key: Property): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
+    Observable()
 
-  override def edgesByFromIdAndToId(fromId: Long, toId: Long): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] =
-    Stream()
+  override def edgesByFromIdAndToId(fromId: Long, toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
+    Observable()
 
   override def edgesByFromIdAndKeyAndToId(fromId: Long,
                                           key: Property,
-                                          toId: Long): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+                                          toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
+    Observable()
 
-  override def edgeByIri(iri: String): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override def edgeByIri(iri: String): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def edgesByIri(iri: List[String]): Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override def edgesByIri(iri: List[String]): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def valueById(id: Long): Option[graph._Value[Any] with LValue[Any]] = None
+  override def valueById(id: Long): Task[Option[graph._Value[Any] with LValue[Any]]] = Task.now(None)
 
-  override def valuesById(ids: List[Long]): Stream[graph._Value[Any] with LValue[Any]] = Stream()
+  override def valuesById(ids: List[Long]): Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def valueByIri(iri: String): Stream[graph._Value[Any] with LValue[Any]] = Stream()
+  override def valueByIri(iri: String): Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def valuesByIri(iri: List[String]): Stream[graph._Value[Any] with LValue[Any]] = Stream()
+  override def valuesByIri(iri: List[String]): Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def valueByValue[T](value: T, dt: DataType[T]): Stream[graph._Value[T] with LValue[T]] = Stream()
+  override def valueByValue[T](value: T, dt: DataType[T]): Observable[graph._Value[T] with LValue[T]] = Observable()
 
-  override def valuesByValue[T](values: List[(T, DataType[T])]): Stream[graph._Value[T] with LValue[T]] = Stream()
+  override def valuesByValue[T](values: List[(T, DataType[T])]): Observable[graph._Value[T] with LValue[T]] =
+    Observable()
 
   override def storeNodes(nodes: List[graph._Node with LNode]): Task[_] = Task.unit
 
@@ -82,17 +86,17 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
   override def deleteValues(values: List[(graph._Value[_$1] with LValue[_$1]) forSome { type _$1 }]): Task[_] =
     Task.unit
 
-  override def nodes: Stream[graph._Node with LNode] = Stream()
+  override def nodes: Observable[graph._Node with LNode] = Observable()
 
-  override def edges: Stream[graph._Edge[Any, Any] with LEdge[Any, Any]] = Stream()
+  override def edges: Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def values: Stream[graph._Value[Any] with LValue[Any]] = Stream()
+  override def values: Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def nodeCount(): Long = graph.nodes().size
+  override def nodeCount(): Task[Long] = graph.nodes().countL
 
-  override def edgeCount(): Long = graph.edges().size
+  override def edgeCount(): Task[Long] = graph.edges().countL
 
-  override def valueCount(): Long = graph.values().size
+  override def valueCount(): Task[Long] = graph.values().countL
 
   lazy val init: Task[Unit] = Task.unit
 

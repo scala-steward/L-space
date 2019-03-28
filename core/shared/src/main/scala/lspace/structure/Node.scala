@@ -2,8 +2,10 @@ package lspace.structure
 
 import lspace.NS
 import lspace.datatype.{DataType, IriType, NodeURLType}
+import lspace.librarian.traversal.{step, Segment, Traversal}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
+import shapeless.{::, HNil}
 
 object Node {
 
@@ -18,6 +20,11 @@ object Node {
     labelMap = Map("en" -> NS.types.`@nodeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
   }
+
+  implicit class WithNode[T](node: Node) {
+    def g: Traversal[ClassType[Any], NodeURLType[Node], Segment[step.N :: HNil] :: HNil]     = lspace.g.N(node)
+    def start: Traversal[ClassType[Any], NodeURLType[Node], Segment[step.N :: HNil] :: HNil] = g
+  }
 }
 
 /** Implement this trait with graph specific node functions */
@@ -27,8 +34,8 @@ trait Node extends Resource[Node] {
 
   def labels: List[Ontology]
 
-  protected def _addLabel(ontology: Ontology): Unit = {
-    graph.ns.ontologies.store(ontology).runToFuture(monix.execution.Scheduler.global)
+  protected def _addLabel(ontology: Ontology): Task[Unit] = {
+    graph.ns.ontologies.store(ontology).forkAndForget //.runToFuture(monix.execution.Scheduler.global)
 //    graph.ns.ontologies
 //      .get(ontology.iri)
 //      .flatMap { ontologyOption =>
@@ -38,9 +45,9 @@ trait Node extends Resource[Node] {
 //      }
 //      .runToFuture(monix.execution.Scheduler.global)
   }
-  def addLabel(ontology: Ontology): Unit
+  def addLabel(ontology: Ontology): Task[Unit]
 
-  def remove(): Unit = graph.nodes.delete(this)
+  def remove(): Task[Unit] = graph.nodes.delete(this)
 
   def removeLabel(classType: Ontology)
 

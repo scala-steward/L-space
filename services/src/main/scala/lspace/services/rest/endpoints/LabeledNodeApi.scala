@@ -34,8 +34,8 @@ class LabeledNodeApi(
   //  import monix.eval.Task.catsEffect
   //  import monix.execution.Scheduler.global
 
-  implicit val ec = monix.execution.Scheduler.global
-  val label       = ontology.label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
+  import lspace.Implicits.Scheduler.global
+  val label = ontology.label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
 
   import lspace._
   import Implicits.AsyncGuide._
@@ -108,15 +108,17 @@ class LabeledNodeApi(
     }
     post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       nodeTask: Task[Node] =>
-        nodeTask.map { node =>
-          val t       = graph.transaction
-          val newNode = t.nodes.create(ontology)
-          newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-          node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-          newNode.addLabel(ontology)
-          t ++ node.graph
-          t.commit()
-          Created(graph.nodes.hasId(newNode.id).get)
+        nodeTask.flatMap { node =>
+          val t = graph.transaction
+          for {
+            newNode <- t.nodes.create(ontology)
+            _       <- newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+            _       <- node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+            _       <- newNode.addLabel(ontology)
+            _       <- t ++ node.graph
+            _       <- t.commit()
+            r       <- graph.nodes.hasId(newNode.id)
+          } yield Created(r.get)
         }.toIO //(catsEffect(global))
     }
   }
@@ -138,23 +140,23 @@ class LabeledNodeApi(
     }
     put(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       (id: Long, nodeTask: Task[Node]) => //TODO: validate before mutating
-        nodeTask.flatMap { node =>
-          val t = graph.transaction
-          t.nodes
-            .hasIri(graph.iri + "/" + label + "/" + id)
-            .headOption //TODO: handle 'unexpected' multiple results
-            .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-              Task {
-                node.outE(`@id`).foreach(_.remove())
-                node --- `@id` --> (graph.iri + "/" + label + "/" + id)
-                existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).foreach(_.remove())
-                t ++ node.graph
-                t.commit()
-                Ok(graph.nodes.hasId(existingNode.id).get)
-              }
-            }
-            .getOrElse(Task(NotFound(new Exception("cannot PUT a resource which does not exist"))))
-        }.toIO
+        nodeTask
+          .flatMap { node =>
+            val t = graph.transaction
+            for {
+              existingNode <- t.nodes //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
+                .hasIri(graph.iri + "/" + label + "/" + id)
+                .headL
+              _ <- Task.sequence(node.outE(`@id`).map(_.remove()))
+              _ <- node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+              _ <- Task.sequence(existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).map(_.remove()))
+              _ <- t ++ node.graph
+              _ <- t.commit()
+              r <- graph.nodes.hasId(existingNode.id)
+            } yield Ok(r.get)
+          }
+          .onErrorHandle(f => NotFound(new Exception("cannot PUT a resource which does not exist"))) //TODO: handle 'unexpected' multiple results
+          .toIO
     }
   }
 
@@ -175,38 +177,39 @@ class LabeledNodeApi(
     }
     patch(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       (id: Long, nodeTask: Task[Node]) =>
-        nodeTask.flatMap { node =>
-          val t = graph.transaction
-          t.nodes
-            .hasIri(graph.iri + "/" + label + "/" + id)
-            .headOption //TODO: handle 'unexpected' multiple results
-            .map { existingNode => //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-              Task {
-                node.outE(`@id`).foreach(_.remove())
-                node --- `@id` --> (graph.iri + "/" + label + "/" + id)
-                //          existingNode.outE(node.outEMap().keys.toList: _*).foreach(_.remove())
-                node.outEMap().keys.filterNot(_ == `@id`).foreach(existingNode.removeOut)
-                t ++ node.graph
-                t.commit()
-                Ok(graph.nodes.hasId(existingNode.id).get)
-              }
-            }
-            .getOrElse(Task(NotFound(new Exception("cannot PATCH a resource which does not exist"))))
-        }.toIO
+        nodeTask
+          .flatMap { node =>
+            val t = graph.transaction
+            for {
+              existingNode <- t.nodes //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
+                .hasIri(graph.iri + "/" + label + "/" + id)
+                .headL
+              _ <- Task.sequence(node.outE(`@id`).map(_.remove()))
+              _ <- node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+              _ <- Task.sequence(
+                existingNode
+                  .outE()
+                  .filterNot(e => e.key == `@id` || e.key == `@ids`)
+                  .filter(e => node.outMap().keySet.contains(e.key))
+                  .map(_.remove()))
+              _ <- t ++ node.graph
+              _ <- t.commit()
+              r <- graph.nodes.hasId(existingNode.id)
+            } yield Ok(r.get)
+          }
+          .onErrorHandle(f => NotFound(new Exception("cannot PATCH a resource which does not exist")))
+          .toIO
     }
   }
   def removeById: Endpoint[IO, Node] = delete(path[Long]) { id: Long =>
     val t = graph.transaction
-    t.nodes
-      .hasIri(graph.iri + "/" + label + "/" + id)
-      .headOption //TODO: handle 'unexpected' multiple results
-      .map { node =>
-        Task {
-          node.remove() //TODO: decide if values or blank nodes need to be explicitly removed
-          NoContent[Node]
-        }.toIO
-      }
-      .getOrElse(Task(NotFound(new Exception("cannot DELETE a resource which does not exist"))).toIO)
+    (for {
+      node <- t.nodes
+        .hasIri(graph.iri + "/" + label + "/" + id)
+        .headL //TODO: handle 'unexpected' multiple results
+      _ <- node.remove() //TODO: decide if values or blank nodes need to be explicitly removed
+    } yield
+      NoContent[Node]).onErrorHandle(f => NotFound(new Exception("cannot DELETE a resource which does not exist"))).toIO
   }
 
   /**

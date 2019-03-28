@@ -1758,11 +1758,12 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
     case traversal: Traversal[ClassType[_], ClassType[_], HList] => segmentList == traversal.segmentList
   }
 
-  lazy val toNode: Node = {
-    val node0 = DetachedGraph.nodes.create(ontology)
-//    segmentList.map(_.toNode).foreach(node0.addOut(keys.segmentNode, _))
-    if (segmentList.nonEmpty) node0.addOut(keys.segmentNode, segmentList.map(_.toNode).toVector)
-    node0
+  lazy val toNode: Task[Node] = {
+    for {
+      node     <- DetachedGraph.nodes.create(Traversal.ontology)
+      segments <- Task.gather(segmentList.map(_.toNode).toVector)
+      _        <- if (segments.nonEmpty) node.addOut(keys.segmentNode, segments) else Task.unit
+    } yield node
   }
 
   def prettyPrint: String = {

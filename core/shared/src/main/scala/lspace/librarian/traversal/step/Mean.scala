@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 case object Mean
     extends StepDef("Mean",
@@ -17,7 +18,7 @@ case object Mean
   override lazy val properties: List[Property] = ReducingBarrierStep.properties
   trait Properties extends ReducingBarrierStep.Properties
 
-  lazy val toNode: Node            = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology)
   override def prettyPrint: String = "mean"
 }
 

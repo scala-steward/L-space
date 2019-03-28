@@ -5,6 +5,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Order
@@ -57,11 +58,13 @@ object Order
     val increasingBoolean = keys.increasingBoolean
   }
 
-  implicit def toNode(order: Order): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.byTraversal, order.by.toNode)
-    if (!order.increasing) node.addOut(keys.increasingBoolean, order.increasing)
-    node
+  implicit def toNode(step: Order): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.by.toNode
+      _         <- node.addOut(keys.byTraversal, traversal)
+      _         <- if (!step.increasing) node.addOut(keys.increasingBoolean, step.increasing) else Task.unit
+    } yield node
   }
 
 }
@@ -70,6 +73,6 @@ object Order
 case class Order(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean)
     extends RearrangeBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "order(" + by.toString + ")"
 }

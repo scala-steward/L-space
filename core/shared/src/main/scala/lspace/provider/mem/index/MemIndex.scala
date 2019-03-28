@@ -6,6 +6,8 @@ import lspace.librarian.traversal.{Step, UntypedTraversal}
 import lspace.structure.Property
 import lspace.structure.index.Index
 import lspace.structure.index.shape.Shape
+import monix.eval.Task
+import monix.reactive.Observable
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -44,26 +46,26 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
   val patterns: List[Set[Property]] =
     splitByOut(if (traversal.steps.head.isInstanceOf[Out]) List(Set()) else List(), traversal.steps)
 
-  def store(shape: Shape): Unit = synchronized {
+  def store(shape: Shape): Task[Unit] =
+    Task.now(synchronized {
 //    if (shape.edges.zipAll(path, null, null).forall {
 //          case (null, p) => false
 //          case (e, null) => false
 //          case (e, p)    => p.label.contains(e.key)
 //        }) {
-    data += shape
+      data += shape
 //    }
-  }
+    })
 
-  def find(values: Vector[Map[Property, List[P[_]]]]): List[Shape] = {
-    data.toStream.filter { shape =>
+  def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape] =
+    Observable.fromIterable(data.toStream.filter { shape =>
       (shape.origin :: shape.edges.map(_.to).toList).zipAll(values, null, null).forall {
         case (null, mpp) => false
         case (e, null)   => false
         case (e, List()) => true
 //        case (e, mpp)    => mpp.forall(mpp => e.out(mpp._1).exists(v => mpp._2.forall(p => p.assert(v))))
       }
-    }.toList
-  }
+    }.toList)
 
-  def delete(shape: Shape): Unit = data -= shape
+  def delete(shape: Shape): Task[Unit] = Task.now(data -= shape)
 }

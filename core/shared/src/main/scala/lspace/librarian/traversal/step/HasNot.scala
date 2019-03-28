@@ -5,6 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure.{Node, Property, PropertyDef, TypedProperty}
 import lspace.NS.types
 import lspace.librarian.logic.predicate.P
+import monix.eval.Task
 
 object HasNot
     extends StepDef(
@@ -54,19 +55,20 @@ object HasNot
     val predicateUrl = keys.predicateUrl
   }
 
-  implicit def toNode(has: HasNot): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.key, has.key)
-    has.predicate.foreach(predicate => node.addOut(keys.predicateUrl, predicate.toNode))
-    node
+  implicit def toNode(step: HasNot): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      _          <- node.addOut(keys.key, step.key)
+      predicates <- Task.gather(step.predicate.toList.map(_.toNode))
+      _          <- Task.gather(predicates.map(node.addOut(keys.predicateUrl, _)))
+    } yield node
   }
 
 }
 
 case class HasNot(key: Property, predicate: Option[P[_]] = None) extends HasStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     if (predicate.nonEmpty) s"hasNot(${key.iri}, P.${predicate.head.prettyPrint})"
     else "hasNot(" + key.iri + ")"

@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Not] {
@@ -35,16 +36,18 @@ object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: 
     val traversalTraversal = keys.traversalTraversal
   }
 
-  implicit def toNode(not: Not): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.traversalTraversal, not.traversal.toNode)
-    node
+  implicit def toNode(step: Not): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.traversal.toNode
+      _         <- node.addOut(keys.traversalTraversal, traversal)
+    } yield node
   }
 
 }
 
 case class Not(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends FilterStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "not(_." + traversal.toString + ")"
 }

@@ -1,10 +1,11 @@
-package lspace.librarian.traversal
+package lspace.librarian.traversal //FIX: move to lspace.librarian.traversal.step
 
 import lspace.datatype.{DataType, DataTypeDef}
 import lspace.librarian.traversal.step._
 import lspace.structure._
 import lspace.structure.OntologyDef
 import lspace.structure.PropertyDef
+import monix.eval.Task
 
 object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set(), "Step", "Step") {
 
@@ -126,7 +127,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
 }
 trait Step extends Product with Serializable {
 
-  def toNode: Node
+  def toNode: Task[Node]
   def prettyPrint: String
 }
 

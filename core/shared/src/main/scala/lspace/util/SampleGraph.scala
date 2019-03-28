@@ -5,6 +5,7 @@ import java.time.LocalDate
 import lspace.datatype._
 import lspace.structure._
 import lspace.types.vector.Point
+import monix.eval.Task
 
 object SampleGraph {
 
@@ -87,94 +88,203 @@ object SampleGraph {
     * @param graph
     * @return object of places and persons
     */
-  def loadSocial(graph: Graph): Unit = {
+  def loadSocial(graph: Graph): Task[Unit] = {
 
-    val places = new {
-      val SanJosédeMaipo = new {
-        val place = graph + ontologies.place
-        val id    = place --- Property.default.`@id` --> (graph.iri + "/place/123")
-        val name  = place --- "name" --> "San José de Maipo"
-        val geo   = place --- properties.geo --> Point(72.0403, 60.90879)
+    for {
+      _places <- for {
+        _SanJosédeMaipo <- for {
+          _place <- graph + ontologies.place
+          _id    <- _place --- Property.default.`@id` --> (graph.iri + "/place/123")
+          _name  <- _place --- "name" --> "San José de Maipo"
+          _geo   <- _place --- properties.geo --> Point(72.0403, 60.90879)
+        } yield
+          new {
+            val place = _place
+            val id    = _id
+            val name  = _name
+            val geo   = _geo
+          }
+        _CrystalSprings <- for {
+          _place <- graph + ontologies.place
+          _id    <- _place --- Property.default.`@id` --> (graph.iri + "/place/12345")
+          _name  <- _place --- "name" --> "Crystal Springs"
+          _geo   <- _place --- properties.geo --> Point(-48.4046, 175.87173)
+        } yield
+          new {
+            val place = _place
+            val id    = _id
+            val name  = _name
+            val geo   = _geo
+          }
+        _Haridwar <- for {
+          _place <- graph + ontologies.place
+          _id    <- _place --- Property.default.`@id` --> (graph.iri + "/place/345")
+          _name  <- _place --- "name" --> "Haridwar"
+          _geo   <- _place --- properties.geo --> Point(89.45136, 88.01204)
+        } yield
+          new {
+            val place = _place
+            val id    = _id
+            val name  = _name
+            val geo   = _geo
+          }
+        _Talca <- for {
+          _place <- graph + ontologies.place
+          _id    <- _place --- Property.default.`@id` --> (graph.iri + "/place/34567")
+          _name  <- _place --- "name" --> "Talca"
+          _geo   <- _place --- properties.geo --> Point(74.32746, -45.06438)
+        } yield
+          new {
+            val place = _place
+            val id    = _id
+            val name  = _name
+            val geo   = _geo
+          }
+      } yield
+        new {
+          val SanJosédeMaipo = _SanJosédeMaipo
+          val CrystalSprings = _CrystalSprings
+          val Haridwar       = _Haridwar
+          val Talca          = _Talca
+        }
+      _persons <- for {
+        _Yoshio <- for {
+          _person     <- graph + ontologies.person
+          _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/123")
+          _name       <- _person --- properties.name --> "Yoshio" //relation can be a string
+          _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("1996-08-18")
+          _birthPlace <- _person --- properties.birthPlace --> _places.CrystalSprings.place
+          _balance    <- _person --- properties.balance --> 10.34
+          _rate       <- _person --- properties.rate --> 4
+        } yield
+          new {
+            val person     = _person
+            val id         = _id
+            val name       = _name
+            val birthdate  = _birthdate
+            val birthPlace = _birthPlace
+            val balance    = _balance
+            val rate       = _rate
+          }
+        _Levi <- for {
+          _person     <- graph + ontologies.person
+          _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/12345")
+          _name       <- _person --- properties.name --> "Levi" //relation can be a string
+          _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("2008-12-20")
+          _birthPlace <- _person --- properties.birthPlace --> _places.CrystalSprings.place
+          _balance    <- _person --- properties.balance --> -245.05
+          _rate       <- _person --- properties.rate --> 2
+        } yield
+          new {
+            val person     = _person
+            val id         = _id
+            val name       = _name
+            val birthdate  = _birthdate
+            val birthPlace = _birthPlace
+            val balance    = _balance
+            val rate       = _rate
+          }
+        _Gray <- for {
+          _person     <- graph + ontologies.person
+          _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/345")
+          _name       <- _person --- properties.name --> "Gray" //relation can be a string
+          _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("1997-04-10")
+          _birthPlace <- _person --- properties.birthPlace --> _places.Haridwar.place
+          _balance    <- _person --- properties.balance --> 2230.30
+          _rate       <- _person --- properties.rate --> 1
+        } yield
+          new {
+            val person     = _person
+            val id         = _id
+            val name       = _name
+            val birthdate  = _birthdate
+            val birthPlace = _birthPlace
+            val balance    = _balance
+            val rate       = _rate
+          }
+        _Kevin <- for {
+          _person     <- graph + ontologies.person
+          _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/34567")
+          _name       <- _person --- properties.name --> "Kevin" //relation can be a string
+          _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("2008-11-30")
+          _birthPlace <- _person --- properties.birthPlace --> _places.SanJosédeMaipo.place
+          _balance    <- _person --- properties.balance --> 500.50
+          _rate       <- _person --- properties.rate --> 2
+        } yield
+          new {
+            val person     = _person
+            val id         = _id
+            val name       = _name
+            val birthdate  = _birthdate
+            val birthPlace = _birthPlace
+            val balance    = _balance
+            val rate       = _rate
+          }
+        _Stan <- for {
+          _person     <- graph + ontologies.person
+          _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/567")
+          _name       <- _person --- properties.name --> "Stan" //relation can be a string
+          _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("2002-06-13")
+          _birthPlace <- _person --- properties.birthPlace --> _places.SanJosédeMaipo.place
+          _balance    <- _person --- properties.balance --> 300
+          _rate       <- _person --- properties.rate --> 4
+        } yield
+          new {
+            val person     = _person
+            val id         = _id
+            val name       = _name
+            val birthdate  = _birthdate
+            val birthPlace = _birthPlace
+            val balance    = _balance
+            val rate       = _rate
+          }
+        _Garrison <- for {
+          _person     <- graph + ontologies.person
+          _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/56789")
+          _name       <- _person --- properties.name --> "Garrison" //relation can be a string
+          _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("1994-06-18")
+          _birthPlace <- _person --- properties.birthPlace --> _places.Talca.place
+        } yield
+          new {
+            val person     = _person
+            val id         = _id
+            val name       = _name
+            val birthdate  = _birthdate
+            val birthPlace = _birthPlace
+          }
+      } yield
+        new {
+          val Yoshio   = _Yoshio
+          val Levi     = _Levi
+          val Gray     = _Gray
+          val Kevin    = _Kevin
+          val Stan     = _Stan
+          val Garrison = _Garrison
+        }
+      _knows <- {
+        import _persons._
+        for {
+          _GarrissonKnownStan  <- Garrison.person --- properties.knows --- Stan.person
+          _GarrissonKnownKevin <- Garrison.person --- properties.knows --- Kevin.person
+          _KevinKnownStan      <- Kevin.person --- properties.knows --- Stan.person
+          _KevinKnownGray      <- Kevin.person --- properties.knows --- Gray.person
+          _GrayKnowsLevi       <- Gray.person --- properties.knows --- Levi.person
+          _LeviKnowsYoshio     <- Levi.person --- properties.knows --- Yoshio.person
+        } yield
+          new {
+            val GarrissonKnownStan  = _GarrissonKnownStan
+            val GarrissonKnownKevin = _GarrissonKnownKevin
+            val KevinKnownStan      = _KevinKnownStan
+            val KevinKnownGray      = _KevinKnownGray
+            val GrayKnowsLevi       = _GrayKnowsLevi
+            val LeviKnowsYoshio     = _LeviKnowsYoshio
+          }
       }
-      val CrystalSprings = new {
-        val place = graph + ontologies.place
-        place --- Property.default.`@id` --> (graph.iri + "/place/12345")
-        val name = place --- "name" --> "Crystal Springs"
-        val geo  = place --- properties.geo --> Point(-48.4046, 175.87173)
+    } yield
+      new {
+        val places  = _places
+        val persons = _persons
+        val knows   = _knows
       }
-      val Haridwar = new {
-        val place = graph + ontologies.place
-        val id    = place --- Property.default.`@id` --> (graph.iri + "/place/345")
-        val name  = place --- "name" --> "Haridwar"
-        val geo   = place --- properties.geo --> Point(89.45136, 88.01204)
-      }
-      val Talca = new {
-        val place = graph + ontologies.place
-        val id    = place --- Property.default.`@id` --> (graph.iri + "/place/34567")
-        val name  = place --- "name" --> List("Talca", "Tal Ca")
-        val geo   = place --- properties.geo --> Point(74.32746, -45.06438)
-      }
-    }
-
-    val persons = new {
-      val Yoshio = new {
-        val person     = graph + ontologies.person
-        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/123")
-        val name       = person --- properties.name --> "Yoshio" //relation can be a string
-        val birthdate  = person --- properties.birthDate --> LocalDate.parse("1996-08-18")
-        val birthPlace = person --- properties.birthPlace --> places.CrystalSprings.place
-        val balance    = person --- properties.balance --> 10.34
-        val rate       = person --- properties.rate --> 4
-      }
-      val Levi = new {
-        val person     = graph + ontologies.person
-        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/12345")
-        val name       = person --- "name" --> "Levi" //relation can be a Property-object
-        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-12-20")
-        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.CrystalSprings.place
-        val balance    = person --- properties.balance --> -245.05
-        val rate       = person --- properties.rate --> 2
-      }
-      val Gray = new {
-        val person     = graph + ontologies.person
-        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/345")
-        val name       = person --- "name" --> "Gray"
-        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("1997-04-10")
-        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.Haridwar.place
-        val balance    = person --- properties.balance --> 2230.30
-        val rate       = person --- properties.rate --> 1
-      }
-      val Kevin = new {
-        val person     = graph + ontologies.person
-        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/34567")
-        val name       = person --- "name" --> "Kevin"
-        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("2008-11-30")
-        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.SanJosédeMaipo.place
-        val balance    = person --- properties.balance --> 500.50
-        val rate       = person --- properties.rate --> 2
-      }
-      val Stan = new {
-        val person     = graph + ontologies.person
-        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/567")
-        val name       = person --- "name" --> "Stan"
-        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("2002-06-13")
-        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.SanJosédeMaipo.place
-        val balance    = person --- properties.balance --> 300
-        val rate       = person --- properties.rate --> 4
-      }
-      val Garrison = new {
-        val person     = graph + ontologies.person
-        val id         = person --- Property.default.`@id` --> (graph.iri + "/person/56789")
-        val name       = person --- "name" --> "Garrison"
-        val birthdate  = person --- namespaces.schema / "birthDate" --> LocalDate.parse("1994-06-18")
-        val birthPlace = person --- namespaces.schema / "birthPlace" --> places.Talca.place
-      }
-      val GarrissonKnownStan  = Garrison.person --- properties.knows --- Stan.person
-      val GarrissonKnownKevin = Garrison.person --- properties.knows --- Kevin.person
-      val KevinKnownStan      = Kevin.person --- properties.knows --- Stan.person
-      val KevinKnownGray      = Kevin.person --- properties.knows --- Gray.person
-      val GrayKnowsLevi       = Gray.person --- properties.knows --- Levi.person
-      val LeviKnowsYoshio     = Levi.person --- properties.knows --- Yoshio.person
-    }
   }
 }

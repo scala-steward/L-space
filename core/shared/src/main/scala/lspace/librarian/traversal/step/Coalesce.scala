@@ -4,6 +4,7 @@ import lspace.NS.types
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Coalesce
@@ -43,17 +44,19 @@ object Coalesce
       Coalesce.keys.traversalTraversal
   }
 
-  implicit def toNode(step: Coalesce[_ <: ClassType[_], _ <: ClassType[_]]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    step.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
-    node
+  implicit def toNode(step: Coalesce[_ <: ClassType[_], _ <: ClassType[_]]): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      traversals <- Task.gather(step.traversals.map(_.toNode))
+      _          <- Task.gather(traversals.map(node.addOut(keys.traversal, _)))
+    } yield node
   }
 }
 
 case class Coalesce[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])
     extends BranchStep {
 
-  def toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     "coalesce(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

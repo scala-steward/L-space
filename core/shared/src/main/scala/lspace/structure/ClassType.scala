@@ -71,7 +71,8 @@ object ClassType {
       } else if (node.hasLabel(Property.ontology).nonEmpty) {
         Property.properties.getAndUpdate(node)
       } else {
-        throw new Exception(s"${node.iri} does not look like a classtype ${node.out()}")
+        throw new Exception(s"${node.iri} does not look like a classtype ${node.labels
+          .map(_.iri)} ${node.outE().map(e => e.key.iri + " " + e.to.prettyPrint)}")
       }
     }
 

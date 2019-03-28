@@ -131,11 +131,10 @@ trait AsyncGuide extends Guide[Observable] {
             case List() =>
               obs: Observable[Librarian[Any]] =>
                 obs.flatMap { librarian =>
-                  Observable.fromIterable(
-                    graph
-                      .nodes()
-                      .map(node =>
-                        librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node))))
+                  graph
+                    .nodes()
+                    .map(node =>
+                      librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node)))
                 }
             case list: List[Node] =>
               obs: Observable[Librarian[Any]] =>
@@ -146,11 +145,10 @@ trait AsyncGuide extends Guide[Observable] {
           }
         } else { obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            Observable.fromIterable(
-              graph
-                .nodes()
-                .filter(step.nodes.contains)
-                .map(node => librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node))))
+            graph.nodeStore
+              .hasIri(step.nodes.flatMap(_.iris).toSet)
+              .asInstanceOf[Observable[Node]]
+              .map(node => librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node)))
           }
         }
       case step: E =>
@@ -161,11 +159,10 @@ trait AsyncGuide extends Guide[Observable] {
             case List() =>
               obs: Observable[Librarian[Any]] =>
                 obs.flatMap { librarian =>
-                  Observable.fromIterable(
-                    graph
-                      .edges()
-                      .map(edge =>
-                        librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge))))
+                  graph
+                    .edges()
+                    .map(edge =>
+                      librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge)))
                 }
             case list: List[Edge[_, _]] =>
               obs: Observable[Librarian[Any]] =>
@@ -176,11 +173,10 @@ trait AsyncGuide extends Guide[Observable] {
           }
         } else { obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            Observable.fromIterable(
-              graph
-                .edges()
-                .filter(step.edges.contains)
-                .map(edge => librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge))))
+            graph.edgeStore
+              .hasIri(step.edges.flatMap(_.iris).toSet)
+              .asInstanceOf[Observable[Edge[_, _]]]
+              .map(edge => librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge)))
           }
         }
       case step: V =>
@@ -191,11 +187,10 @@ trait AsyncGuide extends Guide[Observable] {
             case List() =>
               obs: Observable[Librarian[Any]] =>
                 obs.flatMap { librarian =>
-                  Observable.fromIterable(
-                    graph
-                      .values()
-                      .map(value =>
-                        librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value))))
+                  graph
+                    .values()
+                    .map(value =>
+                      librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
                 }
             case list: List[Value[_]] =>
               obs: Observable[Librarian[Any]] =>
@@ -206,12 +201,12 @@ trait AsyncGuide extends Guide[Observable] {
           }
         } else { obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            Observable.fromIterable(
-              graph
-                .values()
-                .filter(v => step.values.contains(v.value))
-                .map(value =>
-                  librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value))))
+            Observable
+              .fromIterable(step.values)
+              .flatMap(v =>
+                graph.valueStore.byValue(v, ClassType.valueToOntologyResource(v)).asInstanceOf[Observable[Value[_]]])
+              .asInstanceOf[Observable[Value[_]]]
+              .map(value => librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
           }
         }
       //      case step: R =>

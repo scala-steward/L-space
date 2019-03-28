@@ -48,21 +48,21 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
   "an numeric assistent" can {
     //Numeric type tests
     pTests(assistent.eqv(Eqv(1)), 1 :: 1.0 :: 1L :: Nil, 2 :: 3L :: 3.3 :: Nil, List[Any]())
-    pTests(assistent.eqv(Eqv(1.0)), 1 :: 1.0 :: 1L :: Nil, 2 :: 3L :: 3.3 :: Nil, List[Any]())
-    pTests(assistent.eqv(Eqv(1L)), 1 :: 1.0 :: 1L :: Nil, 2 :: 3L :: 3.3 :: Nil, List[Any]())
+    pTests(assistent.eqv(Eqv(2.0)), 2 :: 2.0 :: 2L :: Nil, 1 :: 3L :: 3.3 :: Nil, List[Any]())
+    pTests(assistent.eqv(Eqv(3L)), 3 :: 3.0 :: 3L :: Nil, 2 :: 4L :: 3.3 :: Nil, List[Any]())
     pTests(assistent.neqv(Neqv(1)), 2 :: 3L :: 3.3 :: Nil, 1 :: 1.0 :: 1L :: Nil, List[Any]())
     pTests(assistent.lt(Lt(5)), 2 :: 3L :: 3.3 :: Nil, 5 :: 7.0 :: 8L :: Nil, "a" :: new                   {} :: Nil)
     pTests(assistent.lte(Lte(5)), 5 :: 3L :: 3.3 :: Nil, 6 :: 7.0 :: 8L :: Nil, "a" :: new                 {} :: Nil)
     pTests(assistent.gt(Gt(5)), 6 :: 7.0 :: 8L :: Nil, 5 :: 5.0 :: 3L :: 3.3 :: Nil, "a" :: new            {} :: Nil)
     pTests(assistent.gte(Gte(5)), 5 :: 5.0 :: 8L :: Nil, 4 :: 3L :: 3.3 :: Nil, "a" :: new                 {} :: Nil)
     pTests(assistent.between(Between(4, 6)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
-    pTests(assistent.between(Between(4.0, 6.0)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.between(Between(4.1, 6.0)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
     pTests(assistent.between(Between(3.9, 6l)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new  {} :: Nil)
     pTests(assistent.outside(Outside(4, 6)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new     {} :: Nil)
-    pTests(assistent.outside(Outside(4.0, 6.0)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.outside(Outside(4.1, 6.0)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new {} :: Nil)
     pTests(assistent.outside(Outside(3.9, 6l)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new  {} :: Nil)
     pTests(assistent.inside(Inside(4, 6)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new        {} :: Nil)
-    pTests(assistent.inside(Inside(4.0, 6.0)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new    {} :: Nil)
+    pTests(assistent.inside(Inside(4.1, 6.0)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new    {} :: Nil)
     pTests(assistent.inside(Inside(3.9, 6l)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
     pTests(assistent.contains(Contains(3)),
            List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,

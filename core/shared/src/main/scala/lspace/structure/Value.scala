@@ -1,7 +1,10 @@
 package lspace.structure
 
 import lspace.datatype.{DataType, ValueURLType}
+import lspace.librarian.traversal.{step, Segment, Traversal}
 import lspace.structure.util.ClassTypeable
+import monix.eval.Task
+import shapeless.{::, HNil}
 
 object Value {
   val reservedKeys: Set[String] = Set(Property.default.`@type`.iri)
@@ -10,6 +13,11 @@ object Value {
     type C  = T
     type CT = ValueURLType[T]
     def ct: CT = ValueURLType.apply[T]
+  }
+
+  implicit class WithValue[T, OutC, Out <: ClassType[OutC]](value: Value[T])(
+      implicit cls: ClassTypeable.Aux[T, OutC, Out]) {
+    def g: Traversal[ClassType[Any], Out, Segment[step.V :: HNil] :: HNil] = lspace.g.V(value.value)
   }
 }
 
@@ -24,7 +32,7 @@ trait Value[+T] extends Resource[T] {
     super.hasLabel(label: _*).asInstanceOf[Option[Value[L]]]
   }
 
-  def remove(): Unit = graph.values.delete(this)
+  def remove(): Task[Unit] = graph.values.delete(this)
 
   override def equals(o: scala.Any): Boolean = o match {
     case resource: graph._Value[_] => sameResource(resource)

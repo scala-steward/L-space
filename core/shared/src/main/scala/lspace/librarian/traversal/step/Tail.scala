@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 
 object Tail
     extends StepDef("Tail", "A tail-step limits the traversal to last n-results.", () => ClipStep.ontology :: Nil)
@@ -27,15 +28,16 @@ object Tail
     val maxInt = keys.maxInt
   }
 
-  implicit def toNode(tail: Tail): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.maxInt, tail.max)
-    node
+  implicit def toNode(step: Tail): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.maxInt, step.max)
+    } yield node
   }
 }
 
 case class Tail(max: Int) extends ClipStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"tail($max)"
 }

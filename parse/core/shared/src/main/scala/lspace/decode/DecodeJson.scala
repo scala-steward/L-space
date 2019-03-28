@@ -56,11 +56,14 @@ object DecodeJson {
                         }
                     }
                   )
-                  .map { properties =>
-                    val node = resultGraph.nodes.create()
-                    node.addLabel(label)
-                    properties.foreach { case (p, (ct, v)) => node.addOut(p, ct, v) }
-                    node
+                  .flatMap { properties =>
+                    for {
+                      node <- resultGraph.nodes.create()
+                      _    <- node.addLabel(label)
+                      _ <- Task.gatherUnordered(properties.map {
+                        case (p, (ct, v)) => node.addOut(p, ct, v)
+                      })
+                    } yield node
                   }
               }
               .getOrElse(Task.raiseError(new Exception("bad body"))))
@@ -130,11 +133,12 @@ object DecodeJson {
                         }
                     }
                   )
-                  .map { properties =>
+                  .flatMap { properties =>
                     val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                    val node        = resultGraph.nodes.create()
-                    properties.foreach { case (p, (ct, v)) => node.addOut(p, ct, v) }
-                    node
+                    for {
+                      node <- resultGraph.nodes.create()
+                      _    <- Task.gatherUnordered(properties.map { case (p, (ct, v)) => node.addOut(p, ct, v) })
+                    } yield node
                   }
               }
               .getOrElse(Task.raiseError(new Exception("bad body"))))

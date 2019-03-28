@@ -4,6 +4,7 @@ import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object HasValue
     extends StepDef("HasValue",
@@ -21,15 +22,17 @@ object HasValue
     val predicate = keys.predicate
   }
 
-  implicit def toNode(hasValue: HasValue): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(Has.keys.predicate, hasValue.predicate.toNode)
-    node
+  implicit def toNode(step: HasValue): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      predicate <- step.predicate.toNode
+      _         <- node.addOut(keys.predicate, predicate)
+    } yield node
   }
 }
 
 case class HasValue(predicate: P[_]) extends HasStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "hasValue(" + predicate.prettyPrint + ")"
 }

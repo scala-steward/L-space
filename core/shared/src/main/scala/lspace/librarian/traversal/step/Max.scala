@@ -4,6 +4,7 @@ import lspace.datatype._
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Max
@@ -46,15 +47,17 @@ object Max
     val byTraversal = keys.byTraversal
   }
 
-  implicit def toNode(max: Max): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.byTraversal, max.by.toNode)
-    node
+  implicit def toNode(step: Max): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.by.toNode
+      _         <- node.addOut(keys.byTraversal, traversal)
+    } yield node
   }
 }
 
 case class Max(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList]) extends FilterBarrierStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "max(" + by.toString + ")"
 }

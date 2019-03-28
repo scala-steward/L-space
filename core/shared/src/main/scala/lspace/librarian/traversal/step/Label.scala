@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[Label] {
 
@@ -18,22 +19,23 @@ object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  implicit def toNode(label: Label): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    label.label.foreach {
-      case ontology: Ontology =>
-        node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, ontology.asInstanceOf[Ontology])
-      case property: Property =>
-        node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, property.asInstanceOf[Property])
-      case classtype =>
-        node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, classtype)
-    }
-    node
+  implicit def toNode(step: Label): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _ <- Task.gather(step.label.map {
+        case ontology: Ontology =>
+          node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, ontology.asInstanceOf[Ontology])
+        case property: Property =>
+          node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, property.asInstanceOf[Property])
+        case classtype =>
+          node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, classtype)
+      })
+    } yield node
   }
 }
 
 case class Label(label: Set[ClassType[_]]) extends MoveStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "label(" + label.map(_.iri).mkString(", ") + ")"
 }

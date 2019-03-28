@@ -7,16 +7,19 @@ import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.structure.Property.default._
 import lspace.structure.OntologyDef
+import monix.eval.Task
 
 object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Client", "A client ..") {
 
-  def apply(iri: String, role: Set[Role], manager: Set[User], session: Set[ClientSession]): Client = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(typed.iriUrlString, iri)
-    role.foreach(role => node.addOut(keys.`lspace:Client/role@Role`, role))
-    manager.foreach(manager => node.addOut(keys.`lspace:Client/manager@User`, manager))
-    session.foreach(session => node.addOut(keys.`lspace:Client/session@ClientSession`, session))
-    new Client(node)
+  def apply(iri: String, role: Set[Role], manager: Set[User], session: Set[ClientSession]): Task[Client] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(typed.iriUrlString, iri)
+      _    <- Task.gatherUnordered(role.map(role => node.addOut(keys.`lspace:Client/role@Role`, role)))
+      _    <- Task.gatherUnordered(manager.map(manager => node.addOut(keys.`lspace:Client/manager@User`, manager)))
+      _ <- Task.gatherUnordered(
+        session.map(session => node.addOut(keys.`lspace:Client/session@ClientSession`, session)))
+    } yield new Client(node)
   }
 
   def wrap(node: Node): Client = node match {

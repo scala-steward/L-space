@@ -8,15 +8,17 @@ import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.structure.Property.default._
 import lspace.structure.OntologyDef
+import monix.eval.Task
 
 object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", "User of something") {
 
-  def apply(iri: String, role: Set[Role], manager: Set[User]): User = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(typed.iriUrlString, iri)
-    role.foreach(role => node.addOut(keys.`lspace:User/role@Role`, role))
-    manager.foreach(manager => node.addOut(keys.`lspace:User/manager@User`, manager))
-    new User(node)
+  def apply(iri: String, role: Set[Role], manager: Set[User]): Task[User] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(typed.iriUrlString, iri)
+      _    <- Task.gatherUnordered(role.map(role => node.addOut(keys.`lspace:User/role@Role`, role)))
+      _    <- Task.gatherUnordered(manager.map(manager => node.addOut(keys.`lspace:User/manager@User`, manager)))
+    } yield new User(node)
   }
 
   def wrap(node: Node): User = node match {

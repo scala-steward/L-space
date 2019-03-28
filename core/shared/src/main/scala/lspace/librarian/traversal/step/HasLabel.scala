@@ -5,6 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.NS.types
 import lspace.datatype.DataType
+import monix.eval.Task
 
 object HasLabel
     extends StepDef("HasLabel", "A hasLabel-step filters resources by label.", () => HasStep.ontology :: Nil)
@@ -47,19 +48,23 @@ object HasLabel
     val labelDataTypeNode = keys.labelDataTypeNode
   }
 
-  implicit def toNode(hasLabel: HasLabel): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    hasLabel.label.foreach {
-      case ontology: Ontology => node.addOut(keys.label, ontology.asInstanceOf[Ontology])
-      case property: Property => node.addOut(keys.label, property.asInstanceOf[Property])
-      case classtype          => node.addOut(keys.label, classtype)
-    }
-    node
+  implicit def toNode(step: HasLabel): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _ <- Task.gather(step.label.map {
+        case ontology: Ontology =>
+          node.addOut(keys.label, ontology.asInstanceOf[Ontology])
+        case property: Property =>
+          node.addOut(keys.label, property.asInstanceOf[Property])
+        case classtype =>
+          node.addOut(keys.label, classtype)
+      })
+    } yield node
   }
 }
 
 case class HasLabel(label: List[ClassType[_]]) extends HasStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "hasLabel(" + label.map(_.iri).mkString(", ") + ")"
 }

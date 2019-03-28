@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 case object Dedup
     extends StepDef("Dedup",
@@ -17,7 +18,7 @@ case object Dedup
   override lazy val properties: List[Property] = GlobalFilterStep.properties
   trait Properties extends GlobalFilterStep.Properties
 
-  def toNode: Node                 = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology)
   override def prettyPrint: String = "dedup()"
 }
 

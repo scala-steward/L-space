@@ -4,6 +4,7 @@ import lspace.librarian.logic.predicate.P._
 import lspace.librarian.logic.predicate._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Inside
     extends PredicateDef("Inside", `@extends` = () => List(RangeP.ontology))
@@ -21,16 +22,17 @@ object Inside
   override lazy val properties: List[Property] = RangeP.properties
   trait Properties extends RangeP.Properties
 
-  implicit def toNode[T](inside: Inside[T]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(RangeP.keys.lower, ClassType.valueToOntologyResource(inside.lower), inside.lower)
-    node.addOut(RangeP.keys.upper, ClassType.valueToOntologyResource(inside.upper), inside.upper)
-    node
+  implicit def toNode[T](p: Inside[T]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.lower, ClassType.valueToOntologyResource(p.lower), p.lower)
+      _    <- node.addOut(keys.upper, ClassType.valueToOntologyResource(p.upper), p.upper)
+    } yield node
   }
 }
 
 case class Inside[+T](lower: T, upper: T) extends RangeP[T] {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"inside($lower, $upper)"
 }

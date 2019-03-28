@@ -3,6 +3,7 @@ package lspace.provider.detached
 import lspace.provider.mem._
 import lspace.structure._
 import lspace.structure.util.IdProvider
+import monix.eval.Task
 import monix.execution.atomic.Atomic
 
 object DetachedGraph extends MemDataGraph {
@@ -10,8 +11,8 @@ object DetachedGraph extends MemDataGraph {
   lazy val self        = this
 
   lazy val idProvider: IdProvider = new IdProvider {
-    private val id = Atomic(1000l)
-    def next: Long = id.incrementAndGet()
+    private val id       = Atomic(1000l)
+    def next: Task[Long] = Task.now(id.incrementAndGet())
   }
 
   val ns: MemNSGraph = new MemNSGraph {
@@ -40,17 +41,17 @@ object DetachedGraph extends MemDataGraph {
     }
   }
 
-  override protected[provider] def storeNode(node: GNode): Unit = {}
+  override protected[provider] def storeNode(node: GNode): Task[Unit] = Task.unit
 
-  override protected def storeEdge(edge: GEdge[_, _]): Unit = {
+  override protected def storeEdge(edge: GEdge[_, _]): Task[Unit] = Task {
     edge.from
       .asInstanceOf[MemResource[Any]]
       ._addOut(edge.asInstanceOf[Edge[Any, _]])
   }
 
-  override protected def _indexEdge[S, E](edge: GEdge[S, E]): Unit = {}
+  override protected def _indexEdge[S, E](edge: GEdge[S, E]): Task[Unit] = Task.unit
 
-  override protected def storeValue(value: GValue[_]): Unit = {}
+  override protected def storeValue(value: GValue[_]): Task[Unit] = Task.unit
 
 //  override protected def _indexValue(value: GValue[_]): Unit = {}
 

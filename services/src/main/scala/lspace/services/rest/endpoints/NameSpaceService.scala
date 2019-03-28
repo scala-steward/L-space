@@ -7,6 +7,7 @@ import io.finch._
 import io.finch.Endpoint
 import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.structure.{Graph, Lspace}
+import monix.eval.Task
 
 import scala.collection.mutable
 
@@ -27,6 +28,8 @@ trait NameSpaceService extends Api {
   implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
   implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
 
+  import lspace.Implicits.Scheduler.global
+
   val encoder = Encoder(baseEncoder)
 
   val headersAll = root.map(_.headerMap.toMap)
@@ -42,10 +45,11 @@ trait NameSpaceService extends Api {
     cache
       .get(graph.iri + "/" + path)
       .flatMap(_.get("application/ld+json"))
-      .orElse(
+      .map(Task.now)
+      .getOrElse(
         graph.ns.nodes
           .hasIri(graph.iri + "/" + path)
-          .headOption
+          .headL
           .map(encoder(_))
           .map { json =>
             cache += (graph.iri + "/" + path)                                                                -> (cache
@@ -54,17 +58,19 @@ trait NameSpaceService extends Api {
           })
       .map(Ok)
       .map(_.withHeader("Content-Type", "application/ld+json"))
-      .getOrElse(io.finch.NotFound(new Exception("unknown path")))
+      .onErrorHandle(f => io.finch.NotFound(new Exception("unknown path")))
+      .toIO
   }
 
   val byIri: Endpoint[IO, String] = get(param[String]("iri")) { iri: String =>
     cache
       .get(iri)
       .flatMap(_.get("application/ld+json"))
-      .orElse(
+      .map(Task.now)
+      .getOrElse(
         graph.ns.nodes
           .hasIri(iri)
-          .headOption
+          .headL
           .map(encoder(_))
           .map { json =>
             cache += iri                                                                  -> (cache
@@ -73,7 +79,8 @@ trait NameSpaceService extends Api {
           })
       .map(Ok)
       .map(_.withHeader("Content-Type", "application/ld+json"))
-      .getOrElse(io.finch.NotFound(new Exception("unknown iri")))
+      .onErrorHandle(f => io.finch.NotFound(new Exception("unknown iri")))
+      .toIO
   }
 
   val api = getResource :+: byIri

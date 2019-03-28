@@ -8,6 +8,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure.OntologyDef
 import lspace.structure._
 import lspace.structure.Property.default._
+import monix.eval.Task
 
 object UserSession
     extends OntologyDef(
@@ -19,14 +20,15 @@ object UserSession
       () => ClientSession.ontology :: Nil
     ) {
 
-  def apply(iri: String, expiration: Instant, startTime: Instant, client: Client, user: User): UserSession = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(typed.iriUrlString, iri)
-    node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
-    node.addOut(OpenSession.keys.`lspace:OpenSession/startTime@Instant`, startTime)
-    node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, client)
-    node.addOut(keys.`lspace:UserSession/user@User`, user)
-    new UserSession(node) {}
+  def apply(iri: String, expiration: Instant, startTime: Instant, client: Client, user: User): Task[UserSession] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(typed.iriUrlString, iri)
+      _    <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      _    <- node.addOut(OpenSession.keys.`lspace:OpenSession/startTime@Instant`, startTime)
+      _    <- node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, client)
+      _    <- node.addOut(keys.`lspace:UserSession/user@User`, user)
+    } yield new UserSession(node) {}
   }
 
   def wrap(node: Node): UserSession = node match {

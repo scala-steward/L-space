@@ -2,6 +2,7 @@ package lspace.provider.wrapped
 
 import lspace.structure._
 import lspace.util.CacheStatus
+import monix.eval.Task
 
 abstract class WrappedNode(override val self: Node) extends Node with WrappedResource[Node] {
 
@@ -9,7 +10,7 @@ abstract class WrappedNode(override val self: Node) extends Node with WrappedRes
   //  @transient override val status: CacheStatus.CacheStatus = self.status
   //  @transient override val memento: Observable[Long] = self.memento
 
-  override def labels: List[Ontology]                 = self.labels
-  override def addLabel(classType: Ontology): Unit    = self.addLabel(classType)
-  override def removeLabel(classType: Ontology): Unit = self.removeLabel(classType)
+  override def labels: List[Ontology]                    = self.labels
+  override def addLabel(classType: Ontology): Task[Unit] = self.addLabel(classType)
+  override def removeLabel(classType: Ontology): Unit    = self.removeLabel(classType)
 }

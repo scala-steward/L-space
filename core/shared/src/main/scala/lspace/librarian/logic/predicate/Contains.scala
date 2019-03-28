@@ -4,6 +4,7 @@ import lspace.librarian.logic.predicate.P._
 import lspace.librarian.logic.predicate._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Contains
     extends PredicateDef("Contains", `@extends` = () => List(CollectionP.ontology))
@@ -21,15 +22,16 @@ object Contains
   override lazy val properties: List[Property] = CollectionP.properties
   trait Properties extends CollectionP.Properties
 
-  implicit def toNode[T](contains: Contains[T]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(CollectionP.keys.value, ClassType.valueToOntologyResource(contains.pvalue), contains.pvalue)
-    node
+  implicit def toNode[T](contains: Contains[T]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(contains.pvalue), contains.pvalue)
+    } yield node
   }
 }
 
 case class Contains[+T](pvalue: T) extends CollectionP[T] {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"contains($pvalue)"
 }

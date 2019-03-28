@@ -4,6 +4,7 @@ import lspace.datatype.DataType
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object TimeLimit
     extends StepDef("TimeLimit",
@@ -29,16 +30,17 @@ object TimeLimit
     val durationTime = keys.durationTime
   }
 
-  implicit def toNode(timeLimit: TimeLimit): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    timeLimit.time.foreach(time => node.addOut(keys.durationTime, time))
-    node
+  implicit def toNode(step: TimeLimit): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- if (step.time.isDefined) node.addOut(keys.durationTime, step.time.get) else Task.unit
+    } yield node
   }
 }
 
 case class TimeLimit(time: Option[squants.time.Time] = None) extends EnvironmentStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     time.map(s"timeLimit(" + _.toString() + ")").getOrElse("timeLimit()")
 }

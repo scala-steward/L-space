@@ -10,6 +10,7 @@ import lspace.structure._
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.IdProvider
 import monix.execution.atomic.Atomic
+import monix.reactive.Observable
 import shapeless.{::, HList}
 
 object MemGraph {
@@ -24,8 +25,8 @@ object MemGraph {
       val iri: String = _iri
 
       lazy val idProvider: IdProvider = new IdProvider {
-        private val id = Atomic(1000l)
-        def next: Long = id.incrementAndGet()
+        private val id       = Atomic(1000l)
+        def next: Task[Long] = Task.now(id.incrementAndGet())
       }
 
       private lazy val self = this
@@ -69,16 +70,16 @@ trait MemGraph extends Graph {
 
   def transaction: Transaction = MemTransaction(thisgraph)
 
-  protected[mem] val nodeStore: MemNodeStore[this.type]   = MemNodeStore("@node", thisgraph)
-  protected[mem] val edgeStore: MemEdgeStore[this.type]   = MemEdgeStore("@edge", thisgraph)
-  protected[mem] val valueStore: MemValueStore[this.type] = MemValueStore("@edge", thisgraph)
+  protected[lspace] val nodeStore: MemNodeStore[this.type]   = MemNodeStore("@node", thisgraph)
+  protected[lspace] val edgeStore: MemEdgeStore[this.type]   = MemEdgeStore("@edge", thisgraph)
+  protected[lspace] val valueStore: MemValueStore[this.type] = MemValueStore("@edge", thisgraph)
 
-  protected[mem] val `@idStore`: ValueStore[this.type] =
+  protected[mem] val `@idStore`: MemValueStore[this.type] =
     MemValueStore(NS.types.`@id`, thisgraph)
 
   private[this] val newNodeLock = new Object
-  protected[mem] def newNode(id: Long): GNode = newNodeLock.synchronized {
-    nodeStore
+  protected[lspace] def newNode(id: Long): GNode = newNodeLock.synchronized {
+    nodeStore.cached
       .hasId(id)
       .getOrElse {
         def _id = id
@@ -86,19 +87,19 @@ trait MemGraph extends Graph {
           val id              = _id
           val graph: MemGraph = thisgraph
         }
-        nodeStore.store(node.asInstanceOf[GNode])
+        nodeStore.cache(node.asInstanceOf[GNode])
         node
       }
       .asInstanceOf[GNode]
   }
 
-  override protected[mem] def storeNode(node: GNode): Unit = super.storeNode(node)
+  override protected[mem] def storeNode(node: GNode): Task[Unit] = super.storeNode(node)
 
   protected[this] val newEdgeLock = new Object
-  protected[mem] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
+  protected[lspace] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
     newEdgeLock
       .synchronized {
-        edgeStore.hasId(id).getOrElse {
+        edgeStore.cached.hasId(id).getOrElse {
           def _id   = id
           def _from = from
           def _key  = key
@@ -110,39 +111,39 @@ trait MemGraph extends Graph {
             val to: GResource[E]   = _to
             val graph: MemGraph    = thisgraph
           }
-          edgeStore.store(edge.asInstanceOf[GEdge[_, _]])
+          edgeStore.cache(edge.asInstanceOf[GEdge[_, _]])
           edge
         }
       }
       .asInstanceOf[GEdge[S, E]]
 
-  protected[mem] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
-    val _from = resources
-      .hasId(from)
-      .map(_.asInstanceOf[GResource[Any]])
-      .getOrElse {
-        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
-      }
-    val _to =
-      resources
-        .hasId(to)
-        .map(_.asInstanceOf[GResource[Any]])
-        .getOrElse {
-          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
-        }
+//  protected[mem] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+//    val _from = resources
+//      .hasId(from)
+//      .map(_.asInstanceOf[GResource[Any]])
+//      .getOrElse {
+//        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
+//      }
+//    val _to =
+//      resources
+//        .hasId(to)
+//        .map(_.asInstanceOf[GResource[Any]])
+//        .getOrElse {
+//          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
+//        }
+//
+//    val edge = createEdge(id, _from, key, _to)
+//    edge.asInstanceOf[GEdge[Any, Any]]
+//  }
 
-    val edge = createEdge(id, _from, key, _to)
-    edge.asInstanceOf[GEdge[Any, Any]]
-  }
-
-  override protected[mem] def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
-    super.createEdge(id, from, key, to).asInstanceOf[GEdge[Any, Any]]
+//  override protected[mem] def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
+//    super.createEdge(id, from, key, to).asInstanceOf[GEdge[Any, Any]]
 
   protected[this] val newValueLock = new Object
-  protected[mem] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
+  protected[lspace] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
     newValueLock
       .synchronized {
-        valueStore.hasId(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
+        valueStore.cached.hasId(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
           def _id    = id
           def _value = value
           def _label = label
@@ -152,7 +153,7 @@ trait MemGraph extends Graph {
             val label: DataType[T] = _label
             val graph: MemGraph    = thisgraph
           }
-          valueStore.store(gValue.asInstanceOf[GValue[_]])
+          valueStore.cache(gValue.asInstanceOf[valueStore.T])
           gValue
         }
       }
@@ -162,32 +163,37 @@ trait MemGraph extends Graph {
     * delete in-/out-going edges from the resource
     * @param resource
     */
-  protected def deleteResource[T <: _Resource[_]](resource: T): Unit = {
-    resource.outEMap().foreach {
+  protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] = {
+    Observable.fromIterable(resource.outEMap()).flatMap {
       case (key, properties) =>
-        properties.foreach(edge => edge.to.removeIn(edge))
-    }
-    resource.inEMap().foreach {
+        Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
+    } ++ Observable.fromIterable(resource.inEMap()).flatMap {
       case (key, properties) =>
-        properties.foreach(edge => edge.from.removeOut(edge))
-    }
+        Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
+    } completedL
   }
 
-  def toFile(path: String = "defaultname.json", process: (Stream[Resource[_]], String => Unit) => String): Task[Unit] =
-    Task {
+  def toFile(path: String = "defaultname.json",
+             process: (Observable[Resource[_]], String => Unit) => Task[String]): Task[Unit] =
+    Task.defer {
       import java.io._
 
       // FileWriter
       val jsonfile = new File(path)
       val bw       = new BufferedWriter(new FileWriter(jsonfile))
-      val context = process(nodes(), { value: String =>
-        bw.write(value)
-        bw.newLine()
-      })
-      bw.close()
-      val contextfile = new File(path + ".context")
-      val bwc         = new BufferedWriter(new FileWriter(contextfile))
-      bwc.write(context)
-      bwc.close()
+
+      for {
+        context <- process(nodes(), { value: String =>
+          bw.write(value)
+          bw.newLine()
+        })
+      } yield {
+        bw.close()
+
+        val contextfile = new File(path + ".context")
+        val bwc         = new BufferedWriter(new FileWriter(contextfile))
+        bwc.write(context)
+        bwc.close()
+      }
     }
 }

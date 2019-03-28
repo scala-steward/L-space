@@ -2,6 +2,7 @@ package lspace.librarian.logic.predicate
 
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Neqv extends PredicateDef("Neqv", `@extends` = () => EqP.ontology :: Nil) with PredicateWrapper[Neqv[_]] {
 
@@ -14,15 +15,16 @@ object Neqv extends PredicateDef("Neqv", `@extends` = () => EqP.ontology :: Nil)
   override lazy val properties: List[Property] = EqP.properties
   trait Properties extends EqP.Properties
 
-  implicit def toNode[T](neqv: Neqv[T]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(neqv.pvalue), neqv.pvalue)
-    node
+  implicit def toNode[T](p: Neqv[T]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+    } yield node
   }
 }
 
 case class Neqv[+T](pvalue: T) extends EqP[T] {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"neqv($pvalue)"
 }

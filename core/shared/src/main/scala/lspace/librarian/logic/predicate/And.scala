@@ -3,11 +3,13 @@ package lspace.librarian.logic.predicate
 import lspace.datatype.ListType
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
-object And extends PredicateDef("And", `@extends` = () => List(P.ontology)) with PredicateWrapper[And] {
+object And extends PredicateDef("And") with PredicateWrapper[And] {
 
   def toP(node: Node): And = {
-    And(node.out(keys.predicateP).flatten.map(P.toP))
+    val predicates = node.out(keys.predicateP).flatten.map(P.toP)
+    And(predicates.asInstanceOf[List[P[Any]]])
   }
 
   object keys extends P.Properties {
@@ -26,11 +28,12 @@ object And extends PredicateDef("And", `@extends` = () => List(P.ontology)) with
     lazy val predicateP = keys.predicateP
   }
 
-  implicit def toNode(eqv: And): Node = {
-    val node           = DetachedGraph.nodes.create(ontology)
-    val predicateNodes = eqv.predicate.map(_.toNode)
-    node.addOut(keys.predicateP, predicateNodes)
-    node
+  implicit def toNode(p: And): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      predicates <- Task.gather(p.predicate.map(_.toNode))
+      _          <- node.addOut(keys.predicate, predicates)
+    } yield node
   }
 
   implicit class WithAndPredicate(and: And) {
@@ -38,10 +41,9 @@ object And extends PredicateDef("And", `@extends` = () => List(P.ontology)) with
     def ||[T, PR[Z] <: P[Z]](predicate: PR[T]*): Or  = Or((and: P[Any]) :: predicate.toList)
   }
 }
-
-case class And(predicate: List[P[_]]) extends P[Any] {
+case class And(predicate: List[P[Any]]) extends P[Any] {
   def _pvalue: Any = predicate.map(_._pvalue)
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"and(${predicate.map(_.prettyPrint).mkString(", ")})"
 }

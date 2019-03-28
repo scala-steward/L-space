@@ -1,7 +1,8 @@
 package lspace.encode
 
 import lspace.codec.ActiveContext
-import lspace.structure.Node
+import lspace.librarian.traversal.Collection
+import lspace.structure.{ClassType, Node}
 
 trait EncodeJson[A] extends Encode[A] {
   def encode: A => String
@@ -34,6 +35,13 @@ object EncodeJson {
     def encode: List[T] => String =
       (nodes: List[T]) => encoder.listToJson(nodes.map(_nodeToJsonMap(_).asInstanceOf[encoder.Json])).toString
   }
+
+  implicit def collectionToJson[T, CT <: ClassType[_]](implicit encoder: lspace.codec.Encoder) =
+    new EncodeJson[Collection[T, CT]] {
+      def encode: Collection[T, CT] => String =
+        (collection: Collection[T, CT]) =>
+          encoder.fromAny(collection.item, collection.ct)(ActiveContext()).json.toString
+    }
 
   implicit val encodeJsonJson = new EncodeJson[String] {
     def encode = (string: String) => string

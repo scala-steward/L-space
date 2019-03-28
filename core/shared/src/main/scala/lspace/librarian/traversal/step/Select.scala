@@ -5,6 +5,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.NS.types
+import monix.eval.Task
 import shapeless.{HList, Poly1}
 
 object Select
@@ -54,16 +55,16 @@ object Select
   }
   override lazy val properties: List[Property] = keys.name :: Nil
 
-  implicit def toNode(select: Select[_]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-
-    select.names.foreach(node.addOut(keys.name, _))
-    node
+  implicit def toNode(step: Select[_]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- Task.gather(step.names.map(node.addOut(keys.name, _)))
+    } yield node
   }
 }
 
 case class Select[E](names: List[String]) extends TraverseStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"select(${names.mkString("a")}"
 }

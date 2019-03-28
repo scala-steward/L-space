@@ -5,12 +5,13 @@ import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import lspace.datatype.DataType
 import lspace.structure._
 import lspace.structure.util.ClassTypeable
+import monix.eval.Task
 
 object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P", comment = "Predicate ontology") {
 
   object keys
 
-  implicit def nodeToP(node: Node): P[_] = P.toP(node)
+//  implicit def nodeToP(node: Node): P[_] = P.toP(node)
 
   def toP(node: Node): P[_] = node match {
     case p: P[_] => p
@@ -80,7 +81,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
     implicit object localtime     extends OrderHelper[LocalTime]
   }
 
-  def &&[T, PR[+Z] <: P[Z]](predicate: PR[T]*): And = And(predicate.toList)
+  def &&[T, PR[+Z] <: P[Z]](predicate: PR[T]*): And = new And(predicate.toList)
   def ||[T, PR[+Z] <: P[Z]](predicate: PR[T]*): Or  = Or(predicate.toList)
   def eqv[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Eqv[T] =
     Eqv(value)
@@ -131,7 +132,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
   import shapeless.=:!=
   implicit class WithPredicate[T <: P[_]](_predicate: T)(implicit ev: T =:!= And, ev2: T =:!= Or) {
     def &&[T0, PR0[Z] <: P[Z], T1, TT1 <: ClassType[_]](predicate: PR0[T0])(
-        implicit ct: ClassTypeable.Aux[T0, T1, TT1]): And = And(_predicate :: predicate :: Nil)
+        implicit ct: ClassTypeable.Aux[T0, T1, TT1]): And = new And(_predicate :: predicate :: Nil)
     def ||[T0, PR0[Z] <: P[Z], T1, TT1 <: ClassType[_]](predicate: PR0[T0])(
         implicit ct: ClassTypeable.Aux[T0, T1, TT1]): Or = Or(_predicate :: predicate :: Nil)
   }
@@ -145,7 +146,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
 trait P[+T] extends Product with Serializable {
   def _pvalue: Any
-  def toNode: Node
+  def toNode: Task[Node]
   def prettyPrint: String
 }
 

@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 case object Drop
     extends StepDef("Drop", "A drop-step removes all resources, held by the traverers, from the graph.")
@@ -15,7 +16,7 @@ case object Drop
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 
-  def toNode: Node                 = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology)
   override def prettyPrint: String = "drop()"
 }
 

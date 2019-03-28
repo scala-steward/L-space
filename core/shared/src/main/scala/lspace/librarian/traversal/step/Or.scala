@@ -6,6 +6,7 @@ import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.NS.types
 import lspace.datatype.ListType
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Or
@@ -42,17 +43,19 @@ object Or
     val traversalTraversal = keys.traversalTraversal
   }
 
-  implicit def toNode(or: Or): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.traversal, or.traversals.map(_.toNode))
-    node
+  implicit def toNode(step: Or): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      traversals <- Task.gather(step.traversals.map(_.toNode))
+      _          <- Task.gather(traversals.map(node.addOut(keys.traversal, _)))
+    } yield node
   }
 
 }
 
 case class Or(traversals: List[Traversal[_, _, _ <: HList]]) extends FilterStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     "or(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

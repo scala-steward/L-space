@@ -2,7 +2,10 @@ package lspace.structure
 
 import lspace.NS
 import lspace.datatype.{DataType, EdgeURLType, IriType}
+import lspace.librarian.traversal.{step, Segment, Traversal}
 import lspace.structure.util.ClassTypeable
+import monix.eval.Task
+import shapeless.{::, HNil}
 
 object Edge {
 
@@ -16,6 +19,10 @@ object Edge {
     val iri: String = NS.types.`@edgeURL`
     labelMap = Map("en" -> NS.types.`@edgeURL`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
+  }
+
+  implicit class WithEdge[S, E](edge: Edge[S, E]) {
+    def g: Traversal[ClassType[Any], EdgeURLType[Edge[S, E]], Segment[step.E :: HNil] :: HNil] = lspace.g.E(edge)
   }
 }
 
@@ -44,7 +51,7 @@ trait Edge[+S, +E] extends Resource[Edge[S, E]] {
     */
   def from: Resource[S]
 
-  def remove(): Unit = graph.edges.delete(this)
+  def remove(): Task[Unit] = graph.edges.delete(this)
 
   override def equals(o: scala.Any): Boolean = o match {
     case resource: graph._Edge[_, _] => sameResource(resource)

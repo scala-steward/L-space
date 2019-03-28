@@ -6,6 +6,7 @@ import lspace.librarian.traversal.{Segment, Step, Traversal, UntypedTraversal, s
 import lspace.librarian.traversal.step.Has
 import lspace.structure.index.Index
 import lspace.structure.util.IdProvider
+import monix.eval.Task
 import monix.execution.CancelableFuture
 import shapeless.HList
 
@@ -19,8 +20,8 @@ trait IndexGraph extends Graph {
   protected def `@typeIndex`: Index
 
   lazy val init: CancelableFuture[Unit] = CancelableFuture.unit
-  def getIndex(traversal: UntypedTraversal): Option[Index]
-  protected def createIndex(traversal: UntypedTraversal): Index
+  def getIndex(traversal: UntypedTraversal): Task[Option[Index]]
+  protected def createIndex(traversal: UntypedTraversal): Task[Index]
 
   implicit def stepListToTraversal(steps: List[Step]): Traversal[ClassType[Any], ClassType[Any], HList] =
     Traversal(steps.toVector)
@@ -40,12 +41,12 @@ trait IndexGraph extends Graph {
 //      }).untyped.toTyped.toList.asInstanceOf[List[Node]]
 //  }
 
-  def getOrCreateIndex(traversal: UntypedTraversal): Index = {
+  def getOrCreateIndex(traversal: UntypedTraversal): Task[Index] = {
     //TODO: log when existing index is returned and no new index is created
 
-    getIndex(traversal).getOrElse(createIndex(traversal))
+    getIndex(traversal).flatMap(_.map(Task.now).getOrElse(createIndex(traversal)))
   }
-  def deleteIndex(index: Index): Unit
+  def deleteIndex(index: Index): Task[Unit]
 
 //  def find[T](predicates: List[P[T]], property: Property): List[Resource[T]] = {
 //    getIndex(Shape(property)).toList
@@ -56,7 +57,7 @@ trait IndexGraph extends Graph {
 //    getIndex(values.map(_.keySet).map(Shape(_))).toList.flatMap(_.find(values))
 //  }
 
-  override protected def deleteNode(node: GNode): Unit = {
+  override protected def deleteNode(node: GNode): Task[Unit] = {
     //    `@typeIndex`.delete()
     super.deleteNode(node)
   }
@@ -64,23 +65,22 @@ trait IndexGraph extends Graph {
   abstract override protected def createEdge[S, E](id: Long,
                                                    from: GResource[S],
                                                    key: Property,
-                                                   to: GResource[E]): GEdge[S, E] = {
-    val edge = super.createEdge(id, from, key, to)
-    storeEdge(edge.asInstanceOf[GEdge[_, _]])
-    edge
-  }
+                                                   to: GResource[E]): Task[GEdge[S, E]] =
+    for {
+      edge <- super.createEdge(id, from, key, to)
+      u    <- storeEdge(edge.asInstanceOf[GEdge[_, _]])
+    } yield edge
 
-  override protected def deleteEdge(edge: GEdge[_, _]): Unit = {
+  override protected def deleteEdge(edge: GEdge[_, _]): Task[Unit] =
     super.deleteEdge(edge)
-  }
 
-  abstract override protected def createValue[T](_id: Long, _value: T, dt: DataType[T]): GValue[T] = {
-    val value = super.createValue(_id, _value, dt)
-    storeValue(value.asInstanceOf[GValue[_]])
-    value
-  }
+  abstract override protected def createValue[T](_id: Long, _value: T, dt: DataType[T]): Task[GValue[T]] =
+    for {
+      value <- super.createValue(_id, _value, dt)
+      u     <- storeValue(value.asInstanceOf[GValue[_]])
+    } yield value
 
-  override protected def deleteValue(value: GValue[_]): Unit = {
+  override protected def deleteValue(value: GValue[_]): Task[Unit] =
     super.deleteValue(value)
-  }
+
 }

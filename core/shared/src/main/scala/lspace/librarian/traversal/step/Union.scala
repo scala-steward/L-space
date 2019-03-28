@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.NS.types
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Union
@@ -36,17 +37,19 @@ object Union
     val traversalTraversal = keys.traversalTraversal
   }
 
-  implicit def toNode(union: Union[_ <: ClassType[_], _ <: ClassType[_]]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    union.traversals.map(_.toNode).foreach(node.addOut(keys.traversal, _))
-    node
+  implicit def toNode(step: Union[_ <: ClassType[_], _ <: ClassType[_]]): Task[Node] = {
+    for {
+      node       <- DetachedGraph.nodes.create(ontology)
+      traversals <- Task.gather(step.traversals.map(_.toNode))
+      _          <- Task.gather(traversals.map(node.addOut(keys.traversal, _)))
+    } yield node
   }
 }
 
 case class Union[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])
     extends BranchStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     "union(" + traversals.map(_.toString).map("_." + _).mkString(", ") + ")"
 }

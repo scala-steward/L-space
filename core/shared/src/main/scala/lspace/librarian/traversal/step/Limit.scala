@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 
 object Limit
     extends StepDef("Limit", "A limit-step limits the traversal to first n-results.", () => ClipStep.ontology :: Nil)
@@ -27,16 +28,17 @@ object Limit
     val maxInt = keys.maxInt
   }
 
-  implicit def toNode(limit: Limit): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.maxInt, limit.max)
-    node
+  implicit def toNode(limit: Limit): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.maxInt, limit.max)
+    } yield node
   }
 
 }
 
 case class Limit(max: Int) extends ClipStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "limit(" + max + ")"
 }

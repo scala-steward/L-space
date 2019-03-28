@@ -29,125 +29,6 @@ object Property {
       def ct: CT = urlType
     }
 
-//  implicit val defaultString: ClassTypeable.Aux[Property, Edge[Any, Any], EdgeURLType[Edge[Any, Any]]] =
-//    new ClassTypeable[Property] {
-//      type C  = Edge[Any, Any]
-//      type CT = EdgeURLType[Edge[Any, Any]]
-//      def ct: CT = EdgeURLType.apply[Edge[Any, Any]]
-//    }
-//  import scala.concurrent.duration._
-//  private def build(node: Node): Coeval[Property] = {
-////    println(s"building ${node.iri}")
-//    if (node.hasLabel(unknownProperty).nonEmpty)
-//      Coeval(UnknownProperty(node.iri))
-//        .map { p =>
-//          scribe.trace(s"builded unknown property ${p.iri}"); p
-//        }
-//        .onErrorHandle { f =>
-//          scribe.error("could not build unknown property? " + f.getMessage); throw f
-//        } else if (node.hasLabel(ontology).nonEmpty) {
-//      Coeval
-//        .delay {
-//          val range = Coeval.defer(
-//            Coeval
-//              .sequence(
-//                node
-//                  .out(default.`@range`)
-//                  .headOption
-//                  .collect {
-//                    case nodes: List[_] =>
-//                      nodes.collect {
-//                        case node: Node
-//                            if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
-//                          ClassType.classtypes
-//                            .get(node.iri)
-//                            .getOrElse {
-//                              ClassType.classtypes.getOrBuild(node)
-//                            } //orElse???
-//                        case iri: String =>
-//                          ClassType.classtypes
-//                            .get(iri)
-//                            .getOrElse(
-//                              throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
-//                      }
-//                    case node: Node
-//                        if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
-//                      List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getOrBuild(node)))
-//                  }
-//                  .toList
-//                  .flatten))
-//          val properties = Coeval.defer(
-//            Coeval
-//              .sequence(
-//                (node
-//                  .out(Property.default.typed.propertyProperty) ++ node
-//                  .in(lspace.NS.types.schemaDomainIncludes)
-//                  .collect { case node: Node => node }) //.filter(_.labels.contains(Property.ontology))
-//                  .map(p => Property.properties.getAndUpdate(p))))
-//          val extended = Coeval.defer(
-//            Coeval
-//              .sequence(
-//                node
-//                  .out(default.`@extends`)
-//                  .headOption
-//                  .collect {
-//                    case nodes: List[_] =>
-//                      nodes.collect {
-//                        case node: Node if node.hasLabel(Property.ontology).isDefined =>
-//                          Property.properties
-//                            .get(node.iri)
-//                            .getOrElse {
-//                              Property.properties.getAndUpdate(node)
-//                            } //orElse???
-//                        case iri: String =>
-//                          Property.properties
-//                            .get(iri)
-//                            .getOrElse(
-//                              throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-//                      }
-//                    case node: Node if node.hasLabel(Property.ontology).isDefined =>
-//                      List(Property.properties.get(node.iri).getOrElse(Property.properties.getAndUpdate(node)))
-//                  }
-//                  .toList
-//                  .flatten))
-//
-//          Property(
-//            node.iri,
-//            iris = node.iris,
-//            range = () => range.value(),
-//            label = node
-//              .outE(default.typed.labelString)
-//              .flatMap { edge =>
-//                val l = edge.out(Property.default.typed.languageString)
-//                if (l.nonEmpty) l.map(_ -> edge.to.value)
-//                else List("en"          -> edge.to.value)
-//              }
-//              .toMap,
-//            comment = node
-//              .outE(default.typed.commentString)
-//              .flatMap { edge =>
-//                val l = edge.out(Property.default.typed.languageString)
-//                if (l.nonEmpty) l.map(_ -> edge.to.value)
-//                else List("en"          -> edge.to.value)
-//              }
-//              .toMap,
-//            extendedClasses = () => extended.value(),
-//            properties = () => properties.value()
-//          )
-//        }
-//        .memoizeOnSuccess
-//        .map { p =>
-//          scribe.trace(s"builded property ${p.iri}"); p
-//        }
-//        .onErrorHandle { f =>
-//          scribe.error(f.getMessage); throw f
-//        }
-//    } else {
-//      scribe.warn(s"could not (yet) build ${node.iri}")
-//      Coeval.raiseError(new Exception(s"${node.iri} is not a property"))
-//    }
-//  }
-
   object properties {
     object default {
       import Property.default._
@@ -182,6 +63,11 @@ object Property {
       val byId    = (100l to 100l + properties.size - 1 toList).zip(properties).toMap
       val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
       val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+
+      lspace.librarian.traversal.Step.steps
+        .map(_.properties)
+      lspace.librarian.logic.predicate.P.predicates
+        .map(_.properties)
     }
     private[lspace] val byIri: concurrent.Map[String, Property] =
       new ConcurrentHashMap[String, Property]().asScala
@@ -235,6 +121,11 @@ object Property {
           else List("en"          -> edge.to.value)
         }
         .toMap
+//      println(
+//        node.iri + " @range " +
+//          node
+//            .out(Property.default.`@range`)
+//            .collect { case node: Node => node.iri })
       property.range ++ node
         .out(Property.default.`@range`)
         .headOption
@@ -503,7 +394,7 @@ object Property {
   * @param base base-iri of the outgoing resource
   */
 class Property(val iri: String,
-               val iris: Set[String] = Set()
+               val iris: Set[String] = Set() //TODO: make updateable
 //               _range: () => List[ClassType[_]] = () => List(),
 //               val containers: List[String] = List(),
 //               protected val labelMap: Map[String, String] = Map(),
@@ -523,13 +414,17 @@ class Property(val iri: String,
 
   object range {
     def apply(): List[ClassType[Any]] = rangeList()
-    def apply(iri: String): Option[ClassType[Any]] = rangeList().find(_.iris.contains(iri)).orElse {
-      var result: Option[ClassType[Any]] = None
-      val oIt                            = extendedClasses().reverseIterator
-      while (oIt.hasNext && result.isEmpty) {
-        result = oIt.next().range(iri)
+    def apply(iri: String): Option[ClassType[Any]] = {
+//      println(s"range find ${iri}")
+      rangeList().find(_.iris.contains(iri)).orElse {
+//        println(s"not found range ${iri} in ${apply().map(_.iris)}")
+        var result: Option[ClassType[Any]] = None
+        val oIt                            = extendedClasses().reverseIterator
+        while (oIt.hasNext && result.isEmpty) {
+          result = oIt.next().range(iri)
+        }
+        result
       }
-      result
     }
     def +(range: ClassType[Any]): this.type = this.synchronized {
       if (!rangeList().contains(range)) rangeList = rangeList.map(_ :+ range).map(_.distinct).memoizeOnSuccess

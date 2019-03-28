@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object OutMap extends StepDef("OutMap", "An outMap-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[OutMap] {
 
@@ -19,15 +20,16 @@ object OutMap extends StepDef("OutMap", "An outMap-step ..", () => MoveStep.onto
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  implicit def toNode(outMap: OutMap): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    outMap.label.foreach(label => node.addOut(MoveStep.keys.label, label))
-    node
-  }
+  implicit def toNode(step: OutMap): Task[Node] =
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- Task.gather(step.label.map(label => node.addOut(MoveStep.keys.label, label)))
+    } yield node
+
 }
 
 case class OutMap(label: Set[Property]) extends MapStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "outMap(" + label.map(_.iri).mkString(", ") + ")"
 }

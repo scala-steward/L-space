@@ -2,10 +2,11 @@ package lspace.structure
 
 import lspace.NS.types
 import lspace.datatype.DataType
+import monix.execution.Scheduler
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 
 trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
-  implicit val ec = monix.execution.Scheduler.global
+  import lspace.Implicits.Scheduler.global
 
   def nameSpaceGraphTests(graph: Graph) =
     "a namespace graph" must {
@@ -34,31 +35,30 @@ trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         unknownOntology.extendedClasses + DataType.ontology
         graph.ns.ontologies.cached(unknownOntology.iri).isDefined shouldBe true
 
-        graph.ns.ontologies
-          .store(unknownOntology)
-          .map { node =>
-            node.out(Property.default.`@extends`).size shouldBe 1
-            node.labels.size shouldBe 1
-            node.iri shouldBe unknownOntology.iri
-
-            graph.ns.ontologies.all.contains(unknownOntology) shouldBe true
-            graph.ns.nodes.hasIri(unknownOntology.iri).contains(node) shouldBe true
-          }
-          .runToFuture
+        (for {
+          node <- graph.ns.ontologies
+            .store(unknownOntology)
+          _ <- graph.ns.nodes.hasIri(unknownOntology.iri).toListL.map(_.contains(node) shouldBe true)
+        } yield {
+          node.out(Property.default.`@extends`).size shouldBe 1
+          node.labels.size shouldBe 1
+          node.iri shouldBe unknownOntology.iri
+          graph.ns.ontologies.all.contains(unknownOntology) shouldBe true
+        }).runToFuture
       }
       "store and retrieve a property" in {
         val unknownProperty = Property("new_property")
-        graph.ns.properties
-          .store(unknownProperty)
-          .map { node =>
-            node.labels.size shouldBe 1
-            node.iri shouldBe unknownProperty.iri
+        graph.ns.properties.cached(unknownProperty.iri).isDefined shouldBe true
 
-            graph.ns.properties.cached(unknownProperty.iri).isDefined shouldBe true
-            graph.ns.properties.all.contains(unknownProperty) shouldBe true
-            graph.ns.nodes.hasIri(unknownProperty.iri).contains(node) shouldBe true
-          }
-          .runToFuture
+        (for {
+          node <- graph.ns.properties
+            .store(unknownProperty)
+          _ <- graph.ns.nodes.hasIri(unknownProperty.iri).toListL.map(_.contains(node) shouldBe true)
+        } yield {
+          node.labels.size shouldBe 1
+          node.iri shouldBe unknownProperty.iri
+          graph.ns.properties.all.contains(unknownProperty) shouldBe true
+        }).runToFuture
       }
     }
 }

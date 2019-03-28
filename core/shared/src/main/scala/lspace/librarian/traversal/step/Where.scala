@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Where] {
@@ -35,15 +36,17 @@ object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontolo
     val traversalTraversal = keys.traversalTraversal
   }
 
-  implicit def toNode(where: Where): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.traversalTraversal, where.traversal.toNode)
-    node
+  implicit def toNode(step: Where): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.traversal.toNode
+      _         <- node.addOut(keys.traversalTraversal, traversal)
+    } yield node
   }
 }
 
 case class Where(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends FilterStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "where(_." + traversal.toString + ")"
 }

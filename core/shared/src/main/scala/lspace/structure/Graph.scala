@@ -1,5 +1,7 @@
 package lspace.structure
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.structure
 import monix.eval.Task
 import lspace.librarian.traversal._
@@ -99,9 +101,9 @@ trait Graph extends IriResource with GraphUtils { self =>
     */
   def transaction: Transaction
 
-  protected def nodeStore: NodeStore[this.type]
-  protected def edgeStore: EdgeStore[this.type]
-  protected def valueStore: ValueStore[this.type]
+  protected[lspace] def nodeStore: NodeStore[this.type]
+  protected[lspace] def edgeStore: EdgeStore[this.type]
+  protected[lspace] def valueStore: ValueStore[this.type]
 //  protected def `@idStore`: ValueStore[this.type]
 //  protected def `@typeStore`: ValueStore[String, _Value[String]]
 
@@ -109,90 +111,162 @@ trait Graph extends IriResource with GraphUtils { self =>
 
   sealed trait RApi[T <: Resource[_]] {
 
-    def apply(): Stream[T]
+    def apply(): Observable[T]
 
-    def hasIri(iri: String, iris: String*): List[T] = hasIri(iri :: iris.toList)
+    def hasIri(iri: String, iris: String*): Observable[T] = hasIri(iri :: iris.toList)
 
     /**
       *
       * @param iris a set of uri's to get T for
       * @return
       */
-    def hasIri(iris: List[String]): List[T]
+    def hasIri(iris: List[String]): Observable[T]
 
-    def hasId(id: Long): Option[T]
+    def hasId(id: Long): Task[Option[T]]
+    def cached: {
+      def hasId(id: Long): Option[T]
+      def dereferenceValue(t: Any): Any
+    }
 
   }
   trait Resources extends RApi[Resource[_]] {
-    def apply(): Stream[Resource[_]] = nodes() ++ edges() ++ values()
-    def count(): Long                = nodeStore.count() + edgeStore.count() + valueStore.count()
+    def apply(): Observable[Resource[_]] = nodes() ++ edges() ++ values()
+    def count(): Task[Long]              = Task.gather(List(nodeStore.count(), edgeStore.count(), valueStore.count())).map(_.sum)
 
-    def hasIri(iris: List[String]): List[Resource[_]] = {
+    def hasIri(iris: List[String]): Observable[Resource[_]] = {
       val validIris = iris.filter(_.nonEmpty)
       if (validIris.nonEmpty) {
-        validIris
+        Observable
+          .fromIterable(validIris)
           .flatMap(
             iri =>
               nodeStore
                 .hasIri(iri)
-                .toList
-                .asInstanceOf[List[Resource[_]]] ++ edgeStore.hasIri(iri).toList.asInstanceOf[List[Resource[_]]])
-          .asInstanceOf[List[Resource[_]]]
-      } else List[Resource[_]]()
+                .asInstanceOf[Observable[Resource[_]]] ++ edgeStore.hasIri(iri).asInstanceOf[Observable[Resource[_]]])
+          .asInstanceOf[Observable[Resource[_]]]
+      } else Observable[Resource[_]]()
     }
 
-    def upsert[V](resource: Resource[V]): Resource[V] = {
+    def upsert[V](resource: Resource[V]): Task[Resource[V]] = {
       upsertR(resource)
 //      value match {
 //        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
 //        case value                 => values.create(value).asInstanceOf[Resource[V]]
 //      }
     }
-    private def upsertR[V](value: Resource[V]): Resource[V] = {
+    private def upsertR[V](value: Resource[V]): Task[Resource[V]] = {
       value match {
 //        case resource: _Resource[V]       => resource
         case resource: WrappedResource[V] => upsertR(resource.self)
         case resource: Resource[V] =>
           resource match {
-            case node: _Node => node
+            case node: _Node =>
+              Task.now(node)
             case node: Node =>
-              nodes.upsert(node).asInstanceOf[Resource[V]]
-            case edge: _Edge[_, _] => edge
+              nodes.upsert(node).asInstanceOf[Task[Resource[V]]]
+            case edge: _Edge[_, _] => Task.now(edge)
             case edge: Edge[_, _] =>
-              edges.upsert(edge).asInstanceOf[Resource[V]]
+              edges.upsert(edge).asInstanceOf[Task[Resource[V]]]
             case value: _Value[V] =>
-              value
+              Task.now(value)
             case value: Value[V] =>
-              values.upsert(value).asInstanceOf[Resource[V]]
+              values.upsert(value).asInstanceOf[Task[Resource[V]]]
             case _ =>
               scribe.error(s"cannot upsert value with class ${value.getClass.toString}")
-              throw new Exception("???")
+              Task.raiseError(new Exception("???"))
           }
       }
     }
 
-    def hasId(id: Long): Option[Resource[_]] = nodes.hasId(id).orElse(edges.hasId(id)).orElse(values.hasId(id))
+    def hasId(id: Long): Task[Option[Resource[_]]] =
+      for {
+        nodeOption              <- nodes.hasId(id)
+        nodeOrEdgeOption        <- if (nodeOption.nonEmpty) Task.now(nodeOption) else edges.hasId(id)
+        nodeOrEdgeOrValueOption <- if (nodeOrEdgeOption.nonEmpty) Task.now(nodeOrEdgeOption) else values.hasId(id)
+      } yield nodeOrEdgeOrValueOption
+
+    lazy val cached = new {
+      def hasId(id: Long): Option[Resource[_]] =
+        nodeStore.cached.hasId(id).orElse(edgeStore.cached.hasId(id)).orElse(valueStore.cached.hasId(id))
+
+      def dereferenceValue(t: Any): Any = t match {
+        case v: Vector[_]  => v.map(dereferenceValue)
+        case v: ListSet[_] => v.map(dereferenceValue)
+        case v: List[_]    => v.map(dereferenceValue)
+        case v: Set[_]     => v.map(dereferenceValue)
+        case v: Map[_, _] =>
+          v.map {
+            case (key, value) =>
+              dereferenceValue(key) -> dereferenceValue(value)
+          }
+        case (v1, v2) =>
+          (dereferenceValue(v1), dereferenceValue(v2))
+        case (v1, v2, v3) =>
+          (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3))
+        case (v1, v2, v3, v4) =>
+          (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
+        case (v1, v2, v3, v4, v5) =>
+          (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
+        //      case v: Ontology    => nodes.upsert(v.iri, Ontology.ontology) //ns.ontologies.store(v))
+        //      case v: Property    => nodes.upsert(v.iri, Property.ontology) //(ns.properties.store(v))
+        //      case v: DataType[_] => nodes.upsert(v.iri, DataType.ontology) //ns.datatypes.store(v))
+        case v: _Node       => v
+        case v: Node        => nodeStore.cached.hasId(v.id).getOrElse(newNode(v.id))
+        case v: _Edge[_, _] => v
+        case v: Edge[_, _] =>
+          edgeStore.cached
+            .hasId(v.id)
+            .getOrElse(
+              newEdge[Any, Any](v.id,
+                                cache(v.from).asInstanceOf[GResource[Any]],
+                                v.key,
+                                cache(v.to).asInstanceOf[GResource[Any]]))
+        case v: _Value[_] => v
+        case v: Value[_]  => valueStore.cached.hasId(v.id).getOrElse(newValue(v.id, dereferenceValue(v.value), v.label))
+        case _            => t
+      }
+    }
+
+    protected[lspace] def cache[T](resource: Resource[T]): _Resource[T] = resource match {
+      case node: _Node       => node.asInstanceOf[_Resource[T]]
+      case node: Node        => newNode(node.id).asInstanceOf[_Resource[T]]
+      case edge: _Edge[_, _] => edge.asInstanceOf[_Resource[T]]
+      case edge: Edge[_, _] =>
+        newEdge[Any, Any](edge.id,
+                          cache(edge.from).asInstanceOf[GResource[Any]],
+                          edge.key,
+                          cache(edge.to).asInstanceOf[GResource[Any]]).asInstanceOf[_Resource[T]]
+      case value: _Value[_] => value.asInstanceOf[_Resource[T]]
+      case value: Value[_] =>
+        newValue(value.id, cached.dereferenceValue(value.value), value.label).asInstanceOf[_Resource[T]]
+    }
   }
 
   private lazy val _resources: Resources = new Resources {}
   def resources: Resources               = _resources
 
   trait Edges extends RApi[Edge[_, _]] {
-    def apply(): Stream[Edge[_, _]] = edgeStore.all()
-    def count(): Long               = edgeStore.count()
+    def apply(): Observable[Edge[_, _]] = edgeStore.all()
+    def count(): Task[Long]             = edgeStore.count()
 
-    def hasId(id: Long): Option[Edge[_, _]] = edgeStore.hasId(id)
-    override def hasIri(iris: List[String]): List[Edge[_, _]] = {
+    def hasId(id: Long): Task[Option[Edge[_, _]]] = edgeStore.hasId(id)
+    override def hasIri(iris: List[String]): Observable[Edge[_, _]] = {
       val validIris = iris.filter(_.nonEmpty)
       if (validIris.nonEmpty)
-        validIris
+        Observable
+          .fromIterable(validIris)
           .flatMap(
             iri =>
               edgeStore
                 .hasIri(iri)
-                .toList
-                .asInstanceOf[List[Edge[_, _]]]) distinct
-      else List[Edge[_, _]]()
+                .asInstanceOf[Observable[Edge[_, _]]]) // distinct
+      else Observable[Edge[_, _]]()
+    }
+
+    def cached = new {
+      def hasId(id: Long): Option[Edge[_, _]] =
+        edgeStore.cached.hasId(id)
+      def dereferenceValue(t: Any): Any = t
     }
 
     /**
@@ -204,37 +278,51 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam E
       * @return
       */
-    final def create[S, E](from: Resource[S], key: Property, to: Resource[E]): Edge[S, E] = {
+    final def create[S, E](from: Resource[S], key: Property, to: Resource[E]): Task[Edge[S, E]] = {
       val _from = from match {
-        case from: _Node       => from.asInstanceOf[GResource[S]]
-        case from: _Edge[_, _] => from.asInstanceOf[GResource[S]]
-        case from: _Value[_]   => from.asInstanceOf[GResource[S]]
+        case from: _Node       => Task.now(from.asInstanceOf[GResource[S]])
+        case from: _Edge[_, _] => Task.now(from.asInstanceOf[GResource[S]])
+        case from: _Value[_]   => Task.now(from.asInstanceOf[GResource[S]])
         case _ =>
           resources
             .hasIri(from.iri)
-            .headOption
-            .getOrElse(resources.upsert(from))
-            .asInstanceOf[GResource[S]]
+            .headOptionL
+            .flatMap(
+              _.map(Task.now)
+                .getOrElse(resources.upsert(from))
+                .asInstanceOf[Task[GResource[S]]])
       }
       val _to = to match {
-        case to: _Node       => to.asInstanceOf[GResource[E]]
-        case to: _Edge[_, _] => to.asInstanceOf[GResource[E]]
-        case to: _Value[_]   => to.asInstanceOf[GResource[E]]
+        case to: _Node       => Task.now(to.asInstanceOf[GResource[E]])
+        case to: _Edge[_, _] => Task.now(to.asInstanceOf[GResource[E]])
+        case to: _Value[_]   => Task.now(to.asInstanceOf[GResource[E]])
         case _ =>
           resources
             .hasIri(to.iri)
-            .headOption
-            .getOrElse(resources.upsert(to))
-            .asInstanceOf[GResource[E]]
+            .headOptionL
+            .flatMap(
+              _.map(Task.now)
+                .getOrElse(resources.upsert(to))
+                .asInstanceOf[Task[GResource[E]]])
       }
-      createEdge(idProvider.next, _from, key, _to)
+      for {
+        from <- _from
+        to   <- _to
+        id   <- idProvider.next
+        edge <- createEdge(id, from, key, to).onErrorHandle { f =>
+          println(f.getMessage); throw f
+        }
+      } yield edge
     }
 
-    def upsert[S, E](edge: Edge[S, E]): Edge[S, E] = {
+    def upsert[S, E](edge: Edge[S, E]): Task[Edge[S, E]] = {
       if (edge.graph != this) {
-        val newEdge = resources.upsert(edge.from).addOut(edge.key, resources.upsert(edge.to))
-        newEdge
-      } else edge
+        for {
+          from    <- resources.upsert(edge.from)
+          to      <- resources.upsert(edge.to)
+          newEdge <- from.addOut(edge.key, to)
+        } yield newEdge
+      } else Task.now(edge)
     }
 
     /**
@@ -245,17 +333,20 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam T
       * @return
       */
-    def post[S, E](edge: Edge[S, E]): Edge[S, E] = {
+    def post[S, E](edge: Edge[S, E]): Task[Edge[S, E]] = {
       if (edge.graph != this) {
-        val newEdge = resources.upsert(edge.from).addOut(edge.key, resources.upsert(edge.to))
-        addMeta(edge, newEdge)
-        newEdge
-      } else edge
+        for {
+          from    <- resources.upsert(edge.from)
+          to      <- resources.upsert(edge.to)
+          newEdge <- from.addOut(edge.key, to)
+          u       <- addMeta(edge, newEdge)
+        } yield newEdge
+      } else Task.now(edge)
     }
 
-    final def delete(edge: Edge[_, _]): Unit = edge match {
+    final def delete(edge: Edge[_, _]): Task[Unit] = edge match {
       case edge: _Edge[_, _] => deleteEdge(edge.asInstanceOf[GEdge[_, _]])
-      case _                 => //LOG???
+      case _                 => Task.unit //LOG???
     }
 
     /**
@@ -265,13 +356,13 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam E
       * @return
       */
-    final def +[S, E](edge: Edge[S, E]): Edge[S, E] = upsert(edge)
+    final def +[S, E](edge: Edge[S, E]): Task[Edge[S, E]] = upsert(edge)
 
     /**
       * deletes an edge
       * @param edge
       */
-    final def -(edge: Edge[_, _]): Unit = delete(edge)
+    final def -(edge: Edge[_, _]): Task[Unit] = delete(edge)
 
     /**
       * adds an edge by reference (from --- key --> to) and meta-properties (edge.outE())
@@ -280,7 +371,7 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam E
       * @return
       */
-    final def ++[S, E](edge: Edge[S, E]): Edge[S, E] = post(edge)
+    final def ++[S, E](edge: Edge[S, E]): Task[Edge[S, E]] = post(edge)
   }
 
   /**
@@ -292,36 +383,41 @@ trait Graph extends IriResource with GraphUtils { self =>
   def edges: Edges               = _edges
 
   trait Nodes extends RApi[Node] {
-    def apply(): Stream[Node] = nodeStore.all()
-    def count(): Long         = nodeStore.count()
+    def apply(): Observable[Node] = nodeStore.all()
+    def count(): Task[Long]       = nodeStore.count()
 
-    def hasId(id: Long): Option[Node]       = nodeStore.hasId(id)
-    def hasId(id: List[Long]): Stream[Node] = nodeStore.hasId(id)
-    override def hasIri(iris: List[String]): List[Node] = {
+    def hasId(id: Long): Task[Option[Node]] = nodeStore.hasId(id)
+    def cached = new {
+      def hasId(id: Long): Option[Node] =
+        nodeStore.cached.hasId(id)
+      def dereferenceValue(t: Any): Any = t
+    }
+    def hasId(id: List[Long]): Observable[Node] = nodeStore.hasId(id)
+    override def hasIri(iris: List[String]): Observable[Node] = {
       //    println(s"get nodes $iris")
       val validIris = iris.distinct.filter(_.nonEmpty)
       if (validIris.nonEmpty)
-        validIris.flatMap { iri =>
-          //        println(s"get $iri")
+        Observable.fromIterable(validIris).flatMap { iri =>
+//          println(s"get $iri")
           nodeStore
             .hasIri(iri)
-            .toList
-            .asInstanceOf[List[Node]] //        println(r.map(_.iri))
-        } distinct
-      else List[Node]()
-
+            .asInstanceOf[Observable[Node]] //        println(r.map(_.iri))
+        } else Observable[Node]()
     }
 
-    def create(ontology: Ontology*): Node = {
-      val node = getOrCreateNode(idProvider.next)
-      ontology.foreach(node.addLabel)
-      node
+    def create(ontology: Ontology*): Task[Node] = {
+      for {
+        id <- idProvider.next
+        node = newNode(id)
+        u <- Task.gatherUnordered(ontology.map(node.addLabel))
+      } yield node
     }
 
-    def upsert(iri: String, ontologies: Ontology*): Node = {
-      val node = upsert(iri, Set[String]())
-      ontologies.toList foreach node.addLabel
-      node
+    def upsert(iri: String, ontologies: Ontology*): Task[Node] = {
+      for {
+        node <- upsert(iri, Set[String]())
+        u    <- Task.gatherUnordered(ontologies.toList map node.addLabel)
+      } yield node
     }
 
     /**
@@ -330,45 +426,48 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @param iris a set of iri's which should all resolve to the same resource
       * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
       */
-    def upsert(iri: String, iris: Set[String]): Node = {
-      val nodes = hasIri(iris + iri toList)
-      val node: Node = if (nodes.isEmpty) {
-//        println(s"create node ${iri} ${iris}")
-        val node = create()
-        if (iri.nonEmpty) node.addOut(default.typed.iriUrlString, iri)
-        else if (iris.headOption.exists(_.nonEmpty))
-          node.addOut(default.typed.iriUrlString, iris.head)
-        //      node.addOut(default.typed.createdonDateTime, Instant.now())
-//        println("added iri")
-        node
-      } else if (nodes.size > 1) {
-        mergeNodes(nodes.toSet).runAsyncAndForget(monix.execution.Scheduler.global)
-        nodes.minBy(_.id)
-      } else {
-//        println(s"found existing $iri")
-//        try {
-//          throw new Exception(iri)
-//        } catch {
-//          case t => t.printStackTrace()
-//        }
-        nodes.head
-      }
-      val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty)
-      if (newIris.nonEmpty) newIris.foreach(node.addOut(default.`@ids`, _))
-      node
+    def upsert(iri: String, iris: Set[String]): Task[Node] = {
+      hasIri(iri :: iris.toList).toListL
+        .flatMap {
+          case Nil =>
+            for {
+              node <- create()
+              iriEdge <- if (iri.nonEmpty) node.addOut(default.typed.iriUrlString, iri)
+              else if (iris.headOption.exists(_.nonEmpty))
+                node.addOut(default.typed.iriUrlString, iris.head)
+              else Task.unit
+            } yield {
+              node
+            }
+          case List(node) => Task.now(node)
+          case nodes =>
+            mergeNodes(nodes.toSet)
+        }
+        .flatMap { node =>
+          node.out(lspace.Label.P.`@id`, lspace.Label.P.`@ids`)
+          val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty)
+          for {
+            iriEdges <- Task.sequence(newIris.map(node.addOut(default.`@ids`, _)))
+          } yield node
+        }
     }
 
-    def upsert(node: Node): Node = {
-      if (node.graph != this) { //
-        val edges = node.outE()
-        if (node.iri.nonEmpty) upsert(node.iri)
-        else {
-          val newNode = create()
-          node.labels.foreach(newNode.addLabel)
-          addMeta(node, newNode)
-          newNode
-        }
-      } else node
+    def upsert(node: Node): Task[Node] = {
+      if (node.graph != thisgraph) { //
+        for {
+          edges <- node.g.outE().withGraph(node.graph).toListF
+          newNode <- if (node.iri.nonEmpty) upsert(node.iri)
+          else {
+            for {
+              newNode <- create()
+              u       <- Task.gather(node.labels.map(newNode.addLabel))
+              v       <- addMeta(node, newNode)
+            } yield newNode
+          }
+        } yield newNode
+      } else {
+        Task.now(node)
+      }
     }
 
     /**
@@ -377,43 +476,43 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam T
       * @return
       */
-    def post(node: Node): Node = node match {
+    def post(node: Node): Task[Node] = node match {
       case node: _Node => //match on GNode does also accept _Node instances from other Graphs???? Why?
-        node
+        Task.now(node)
       case _ =>
-        val newNode =
-          if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create()
-        node.labels.foreach(newNode.addLabel)
-        addMeta(node, newNode)
-        newNode
+        for {
+          newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create()
+          u       <- Task.gather(node.labels.map(node.addLabel))
+          v       <- addMeta(node, newNode)
+        } yield node
     }
 
-    final def delete(node: Node): Unit = node match {
+    final def delete(node: Node): Task[Unit] = node match {
       case node: _Node => deleteNode(node.asInstanceOf[GNode])
-      case _           => //LOG???
+      case _           => Task.unit //LOG???
     }
 
-    final def +(label: Ontology): Node = create(label)
+    final def +(label: Ontology): Task[Node] = create(label)
 
     /**
       * adds a node by reference (iri(s))
       * @param node
       * @return
       */
-    final def +(node: Node): Node = upsert(node)
+    final def +(node: Node): Task[Node] = upsert(node)
 
     /**
       * deletes a node
       * @param node
       */
-    final def -(node: Node): Unit = delete(node)
+    final def -(node: Node): Task[Unit] = delete(node)
 
     /**
       * adds a node by every detail
       * @param node
       * @return
       */
-    final def ++(node: Node): Node = post(node)
+    final def ++(node: Node): Task[Node] = post(node)
   }
 
   /**
@@ -425,28 +524,31 @@ trait Graph extends IriResource with GraphUtils { self =>
   def nodes: Nodes               = _nodes
 
   trait Values extends RApi[Value[_]] {
-    def apply(): Stream[Value[_]] = valueStore.all()
-    def count(): Long             = valueStore.count()
+    def apply(): Observable[Value[_]] = valueStore.all()
+    def count(): Task[Long]           = valueStore.count()
 
-    def hasId(id: Long): Option[Value[_]] = valueStore.hasId(id)
-    def hasIri(iris: List[String]): List[Value[_]] = {
+    def hasId(id: Long): Task[Option[Value[_]]] = valueStore.hasId(id)
+    def cached = new {
+      def hasId(id: Long): Option[Value[_]] =
+        valueStore.cached.hasId(id)
+      def dereferenceValue(t: Any): Any = t
+    }
+    def hasIri(iris: List[String]): Observable[Value[_]] = {
       //    println(s"get nodes $iris")
       val validIris = iris.distinct.filter(_.nonEmpty)
       if (validIris.nonEmpty)
-        validIris.flatMap { iri =>
+        Observable.fromIterable(validIris).flatMap { iri =>
           //        println(s"get $iri")
           valueStore
             .hasIri(iri)
-            .toList
-            .asInstanceOf[List[Value[_]]] //        println(r.map(_.iri))
-        } distinct
-      else List[Value[_]]()
+            .asInstanceOf[Observable[Value[_]]] //        println(r.map(_.iri))
+        } else Observable[Value[_]]()
     }
 
     def byValue[T, TOut, CTOut <: ClassType[_]](value: T)(
-        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): List[Value[T]] =
-      valueStore.byValue(value, clsTpbl.ct.asInstanceOf[DataType[T]]).toList.asInstanceOf[List[Value[T]]]
-    def byValue[T](valueSet: List[(T, DataType[T])]): List[Value[T]] = {
+        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Observable[Value[T]] =
+      valueStore.byValue(value, clsTpbl.ct.asInstanceOf[DataType[T]]).asInstanceOf[Observable[Value[T]]]
+    def byValue[T](valueSet: List[(T, DataType[T])]): Observable[Value[T]] = {
 //      val valueList = valueSet.distinct.filter(_ != null)
 //      if (valueList.nonEmpty) values().filter(v => valueSet.map(_._2).contains(v.value)).toList
 //      //      or(
@@ -454,73 +556,120 @@ trait Graph extends IriResource with GraphUtils { self =>
 //      //      _.has(this.ids, p.Within(iriList))).toSet
 //      else List[Value[_]]()
 
-      valueSet.flatMap { value =>
-        valueStore.byValue(value._1, value._2).toList.asInstanceOf[List[Value[T]]]
-      } distinct
+      Observable.fromIterable(valueSet).flatMap { value =>
+        valueStore.byValue(value._1, value._2).asInstanceOf[Observable[Value[T]]]
+      } //distinct
     }
 
-    def dereferenceValue(t: Any): Any = t match {
-      case v: Vector[_]     => v.map(dereferenceValue)
-      case v: ListSet[_]    => v.map(dereferenceValue)
-      case v: List[_]       => v.map(dereferenceValue)
-      case v: Set[_]        => v.map(dereferenceValue)
-      case v: Map[_, _]     => v.map { case (key, value) => (dereferenceValue(key), dereferenceValue(value)) }
-      case (v1, v2)         => (dereferenceValue(v1), dereferenceValue(v2))
-      case (v1, v2, v3)     => (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3))
-      case (v1, v2, v3, v4) => (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
+    def dereferenceValue(t: Any): Task[Any] = t match {
+      case v: Vector[_] =>
+        Task.gather[Any, Vector](v.map(dereferenceValue)) //without type parameters it cannot be inferred
+      case v: ListSet[_] => Task.gather[Any, ListSet](v.map(dereferenceValue))
+      case v: List[_]    => Task.gather[Any, List](v.map(dereferenceValue))
+      case v: Set[_]     => Task.gather[Any, Set](v.map(dereferenceValue))
+      case v: Map[_, _] =>
+        Task
+          .gather(v.toList.map {
+            case (key, value) =>
+              for {
+                a <- dereferenceValue(key)
+                b <- dereferenceValue(value)
+              } yield (a, b)
+          })
+          .map(_.toMap)
+      case (v1, v2) =>
+        for {
+          a <- dereferenceValue(v1)
+          b <- dereferenceValue(v2)
+        } yield (a, b)
+      case (v1, v2, v3) =>
+        for {
+          a <- dereferenceValue(v1)
+          b <- dereferenceValue(v2)
+          c <- dereferenceValue(v3)
+        } yield (a, b, c)
+      case (v1, v2, v3, v4) =>
+        for {
+          a <- dereferenceValue(v1)
+          b <- dereferenceValue(v2)
+          c <- dereferenceValue(v3)
+          d <- dereferenceValue(v4)
+        } yield (a, b, c, d)
       case (v1, v2, v3, v4, v5) =>
-        (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4), dereferenceValue(v5))
+        for {
+          a <- dereferenceValue(v1)
+          b <- dereferenceValue(v2)
+          c <- dereferenceValue(v3)
+          d <- dereferenceValue(v4)
+          e <- dereferenceValue(v5)
+        } yield (a, b, c, d, e)
       case v: Ontology    => nodes.upsert(v.iri, Ontology.ontology) //ns.ontologies.store(v))
       case v: Property    => nodes.upsert(v.iri, Property.ontology) //(ns.properties.store(v))
       case v: DataType[_] => nodes.upsert(v.iri, DataType.ontology) //ns.datatypes.store(v))
       case v: Node        => nodes.upsert(v)
       case v: Edge[_, _]  => edges.upsert(v)
       case v: Value[_]    => values.upsert(v)
-      case _              => t
+      case _              => Task.now(t)
     }
 
     final def create[T, TOut, CTOut <: ClassType[_]](value: T)(
-        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Value[T] = { //add implicit DataType[T]
-      byValue(value).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
-        val dereferencedValue = dereferenceValue(value).asInstanceOf[T]
-        byValue(dereferencedValue)(clsTpbl).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
-          createValue(idProvider.next, dereferencedValue, ClassType.valueToOntologyResource(dereferencedValue))
-        }
-      }
+        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Task[Value[T]] = { //add implicit DataType[T]
+      byValue(value).headOptionL.flatMap(_.map(_.asInstanceOf[GValue[T]]).map(Task.now).getOrElse {
+        for {
+          dereferencedValue <- dereferenceValue(value).map(_.asInstanceOf[T])
+          b <- byValue(dereferencedValue)(clsTpbl).headOptionL
+            .flatMap(_.map(_.asInstanceOf[GValue[T]]).map(Task.now).getOrElse {
+              for {
+                id    <- idProvider.next
+                value <- createValue(id, dereferencedValue, ClassType.valueToOntologyResource(dereferencedValue))
+              } yield value
+            })
+        } yield b
+      })
     }
-    final def create[T](value: T, dt: DataType[T]): Value[T] = { //add implicit DataType[T]
-      val dereferencedValue = dereferenceValue(value).asInstanceOf[T]
-      byValue(dereferencedValue -> dt :: Nil).headOption.map(_.asInstanceOf[GValue[T]]).getOrElse {
-        createValue(idProvider.next, dereferencedValue, dt)
-      }
+    final def create[T](value: T, dt: DataType[T]): Task[Value[T]] = { //add implicit DataType[T]
+      for {
+        dereferencedValue <- dereferenceValue(value).map(_.asInstanceOf[T])
+        b <- byValue(dereferencedValue -> dt :: Nil).headOptionL
+          .flatMap(_.map(_.asInstanceOf[GValue[T]]).map(Task.now).getOrElse {
+            for {
+              id    <- idProvider.next
+              value <- createValue(id, dereferencedValue, dt)
+            } yield value
+          })
+      } yield { b }
     }
 
     def upsert[V, TOut, CTOut <: ClassType[_]](value: V)(
-        implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Value[V] = {
-      val values = byValue(value)
-
-      val _value: Value[V] = if (values.isEmpty) {
-        create(value)
-      } else if (values.size > 1) {
-        mergeValues(values.toSet).runAsyncAndForget(monix.execution.Scheduler.global)
-        values.minBy(_.id)
-      } else values.head
-      _value
+        implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Task[Value[V]] = {
+      byValue(value).toListL.flatMap {
+        case Nil         => create(value)
+        case List(value) => Task.now(value)
+        case values =>
+          mergeValues(values.toSet)
+      }
     }
 
-    final def upsert[V](value: V, dt: DataType[V]): Value[V] = {
-      val values = byValue(List(value -> dt))
-      val _value: Value[V] = if (values.isEmpty) {
-        create(value, dt)
-//      } else if (values.size > 1) {
-//        GraphUtils.mergeValues(values.toSet)
-      } else values.head
-      _value
+    final def upsert[V](value: V, dt: DataType[V]): Task[Value[V]] = {
+//      val values = byValue(List(value -> dt))
+//      values.headOptionL.flatMap(_.map(Task.now).getOrElse(create(value, dt)))
+      byValue(List(value -> dt)).toListL.flatMap {
+        case Nil         => create(value, dt)
+        case List(value) => Task.now(value)
+        case values =>
+          mergeValues(values.toSet)
+      }
+//      val _value: Value[V] = if (values.isEmpty) {
+//        create(value, dt)
+////      } else if (values.size > 1) {
+////        GraphUtils.mergeValues(values.toSet)
+//      } else values.head
+//      _value
     }
-    final def upsert[V](value: Value[V]): Value[V] = {
+    final def upsert[V](value: Value[V]): Task[Value[V]] = {
       if (value.graph != this) {
         upsert(value.value, value.label)
-      } else value
+      } else Task.now(value)
     }
 
     /**
@@ -530,23 +679,25 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam T
       * @return
       */
-    def post[V](value: Value[V]): Value[V] = {
+    def post[V](value: Value[V]): Task[Value[V]] = {
       if (value.graph != this) {
-        val newValue = hasIri(value.iri) match {
-          case List() => create(value.value, value.label)
-          case List(storedValue: Value[_]) if storedValue.value == value.value =>
-            storedValue.asInstanceOf[Value[V]]
-          case List(value: Value[_], _*) =>
-            throw new Exception("multiple values with the same iri, what should we do?! Dedup?")
-        }
-        addMeta(value, newValue)
-        newValue
-      } else value
+        hasIri(value.iri).toListL
+          .flatMap {
+            case List() => create(value.value, value.label)
+            case List(storedValue: Value[_]) if storedValue.value == value.value =>
+              Task.now(storedValue.asInstanceOf[Value[V]])
+            case List(value: Value[_], _*) =>
+              Task.raiseError(new Exception("multiple values with the same iri, what should we do?! Dedup?"))
+          }
+          .flatMap { newValue =>
+            for { u <- addMeta(value, newValue) } yield newValue
+          }
+      } else Task.now(value)
     }
 
-    final def delete(value: Value[_]): Unit = value match {
+    final def delete(value: Value[_]): Task[Unit] = value match {
       case value: _Value[_] => deleteValue(value.asInstanceOf[GValue[_]])
-      case _                => //LOG???
+      case _                => Task.unit //LOG???
     }
 
     /**
@@ -555,13 +706,13 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam V
       * @return
       */
-    final def +[V](value: Value[V]): Value[V] = upsert(value)
+    final def +[V](value: Value[V]): Task[Value[V]] = upsert(value)
 
     /**
       * deletes a value
       * @param value
       */
-    final def -(value: Value[_]): Unit = delete(value)
+    final def -(value: Value[_]): Task[Unit] = delete(value)
 
     /**
       * adds a value and meta-properties (value.outE())
@@ -569,153 +720,192 @@ trait Graph extends IriResource with GraphUtils { self =>
       * @tparam V
       * @return
       */
-    final def ++[V](value: Value[V]): Value[V] = post(value)
+    final def ++[V](value: Value[V]): Task[Value[V]] = post(value)
   }
 
   private lazy val _values: Values = new Values {}
   def values: Values               = _values
 
-  protected def newNode(id: Long): GNode
-  protected[lspace] def getOrCreateNode(id: Long): GNode = {
-    nodeStore.hasId(id).getOrElse {
-      val node = newNode(id)
-      storeNode(node)
-      node
-    }
+  protected[lspace] def newNode(id: Long): GNode
+  protected[lspace] def getOrCreateNode(id: Long): Task[GNode] = {
+    nodeStore
+      .hasId(id)
+      .flatMap(_.map(Task.now).getOrElse {
+        for {
+          node <- Task.now(newNode(id))
+          u    <- storeNode(node)
+        } yield node
+      })
   }
-  final def +(label: Ontology): Node         = nodes.create(label)
-  protected def storeNode(node: GNode): Unit = nodeStore.store(node)
+  final def +(label: Ontology): Task[Node]         = nodes.create(label)
+  protected def storeNode(node: GNode): Task[Unit] = nodeStore.store(node)
 
   protected def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E]
-  protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any]
-  protected def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+//  protected def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any]
+//  protected def createEdge(id: Long, from: Long, key: Property, to: Long): Task[GEdge[Any, Any]] = {
+////    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
+//    if (Property.properties.default.byIri.get(key.iri).isEmpty)
+//      ns.properties.store(key).runToFuture(monix.execution.Scheduler.global)
+//
+//    val _from = resources
+//      .hasId(from)
+//      .map(
+//        _.map(_.asInstanceOf[GResource[Any]])
+//          .getOrElse {
+//            throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
+//          })
+//    val _to =
+//      resources
+//        .hasId(to)
+//        .map(
+//          _.map(_.asInstanceOf[GResource[Any]])
+//            .getOrElse {
+//              throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
+//            })
+////    val edge = createEdge(idProvider.next, _from, key, _to)
+////    storeEdge(edge.asInstanceOf[GEdge[_, _]])
+////    edge
+//    for {
+//      from <- _from
+//      to   <- _to
+//      id   <- idProvider.next
+//      edge <- createEdge(id, from, key, to)
+//      u    <- storeEdge(edge.asInstanceOf[GEdge[_, _]]).forkAndForget //what if this fails?
+//    } yield edge
+//  }
+  protected def createEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): Task[GEdge[S, E]] = {
 //    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
     if (Property.properties.default.byIri.get(key.iri).isEmpty)
-      ns.properties.store(key).runToFuture(monix.execution.Scheduler.global)
+      ns.properties.store(key).runToFuture(lspace.Implicits.Scheduler.global)
 
-    val _from = resources
-      .hasId(from)
-      .map(_.asInstanceOf[GResource[Any]])
-      .getOrElse {
-        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
-      }
-    val _to =
-      resources
-        .hasId(to)
-        .map(_.asInstanceOf[GResource[Any]])
-        .getOrElse {
-          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
-        }
-    val edge = createEdge(idProvider.next, _from, key, _to)
-    storeEdge(edge.asInstanceOf[GEdge[_, _]])
-    edge
-  }
-  protected def createEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] = {
-//    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
-    if (Property.properties.default.byIri.get(key.iri).isEmpty)
-      ns.properties.store(key).runToFuture(monix.execution.Scheduler.global)
-
-    val edge = newEdge(id, from, key, to)
-    storeEdge(edge.asInstanceOf[GEdge[_, _]])
-    edge
+    for {
+      edge <- Task.now(newEdge(id, from, key, to))
+      u    <- storeEdge(edge.asInstanceOf[GEdge[_, _]]) //.forkAndForget //what if this fails?
+    } yield edge
   }
 
-  protected def storeEdge(edge: GEdge[_, _]): Unit = edgeStore.store(edge)
+  protected def storeEdge(edge: GEdge[_, _]): Task[Unit] = edgeStore.store(edge)
 
   protected def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T]
-  protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
+  protected def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
 //    if (ns.datatypes.get(dt.iri).isEmpty) ns.datatypes.store(dt)
 //    ns.datatypes.store(dt).runToFuture(monix.execution.Scheduler.global)
-    val _value = newValue(id, value, dt)
-    storeValue(_value.asInstanceOf[GValue[_]])
-    _value
+    for {
+      _value <- Task.now(newValue(id, value, dt))
+      u      <- storeValue(_value.asInstanceOf[GValue[_]])
+    } yield _value
   }
 
-  protected def storeValue(value: GValue[_]): Unit = valueStore.store(value)
+  protected def storeValue(value: GValue[_]): Task[Unit] = valueStore.store(value)
 
   /**
     * deletes the Node from the graph
     * @param value
     */
-  protected def deleteNode(node: GNode): Unit = {
-    deleteResource(node)
-    nodeStore.delete(node)
+  protected def deleteNode(node: GNode): Task[Unit] = {
+    for {
+      _ <- deleteResource(node)
+      _ <- nodeStore.delete(node)
+    } yield ()
   }
 
   /**
     * deletes the Edge from the graph
     * @param value
     */
-  protected def deleteEdge(edge: GEdge[_, _]): Unit = {
-    deleteResource(edge)
-    edgeStore.delete(edge)
+  protected def deleteEdge(edge: GEdge[_, _]): Task[Unit] = {
+    for {
+      _ <- deleteResource(edge)
+      _ <- edgeStore.delete(edge)
+    } yield ()
   }
 
   /**
     * deletes the Value from the graph
     * @param value
     */
-  protected def deleteValue(value: GValue[_]): Unit = {
-    deleteResource(value)
-    valueStore.delete(value)
+  protected def deleteValue(value: GValue[_]): Task[Unit] = {
+    for {
+      _ <- deleteResource(value)
+      _ <- valueStore.delete(value)
+    } yield ()
   }
 
   /**
     * TODO: rename to _deleteProperties/_deleteEdges?
     * @param resource
     */
-  protected def deleteResource[T <: _Resource[_]](resource: T): Unit
+  protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit]
 
-  private def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T): Unit =
-    source.outE().filterNot(p => Graph.baseKeys.contains(p.key)).foreach { edge =>
-      addMeta(edge, edges.create[Any, Any](target, edge.key, edge.to))
-    }
+  private def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T): Task[Unit] =
+    Observable
+      .fromIterable(source.outE().filterNot(p => Graph.baseKeys.contains(p.key)).map { edge =>
+        for {
+          t <- edges.create[Any, Any](target, edge.key, edge.to)
+          u <- addMeta(edge, t)
+        } yield u
+      })
+      .completedL
 
-  def add: Graph => Graph = (graph: Graph) => ++(graph)
-  val ++ : Graph => Graph = (graph: Graph) => {
+  def add: Graph => Task[Graph] = ++
+  val ++ : Graph => Task[Graph] = (graph: Graph) => {
     if (graph != this) {
-      val oldIdNewNodeMap = graph
-        .nodes()
-        .map { node =>
-          node.id -> (if (node.iri.nonEmpty) nodes.upsert(node.iri, node.labels: _*)
-                      else nodes.create(node.labels: _*))
-        }
-        .toMap
-      val oldIdNewValueMap = graph
-        .values()
-        .map { value =>
-          value.id -> values.upsert(value)
-        }
-        .toMap
-
-      graph
-        .edges()
-        .filterNot(e => e.key == Property.default.`@id` && e.to.hasLabel(TextType.datatype).isDefined)
-        .foldLeft(Map[Long, Edge[_, _]]()) {
-          case (oldIdNewEdgeMap, edge) =>
-//            if (edge.iri.nonEmpty) //TODO: find edge width
-            oldIdNewEdgeMap + (edge.id -> edges.create(
-              edge.from match {
-                case (resource: Node) =>
-                  oldIdNewNodeMap(resource.id)
-                case (resource: Edge[_, _]) =>
-                  oldIdNewEdgeMap(resource.id)
-                case (resource: Value[_]) =>
-                  oldIdNewValueMap(resource.id)
-              },
-              edge.key,
-              edge.to match {
-                case (resource: Node) =>
-                  oldIdNewNodeMap(resource.id)
-                case (resource: Edge[_, _]) =>
-                  oldIdNewEdgeMap(resource.id)
-                case (resource: Value[_]) =>
-                  oldIdNewValueMap(resource.id)
+      for {
+        oldIdNewNodeMap <- graph
+          .nodes()
+          .mapEval { node =>
+            nodes.create(node.labels: _*).map(node.id -> _)
+//            (if (node.iri.nonEmpty) nodes.upsert(node.iri, node.labels: _*)
+//             else nodes.create(node.labels: _*)).map(node.id -> _)
+          }
+          .toListL
+          .map(_.toMap)
+        oldIdNewValueMap <- graph
+          .values()
+          .mapEval { value =>
+            values.upsert(value).map(value.id -> _)
+          }
+          .toListL
+          .map(_.toMap)
+        r <- {
+          import scala.collection.JavaConverters._
+          val oldIdNewEdgeMap: scala.collection.concurrent.Map[Long, Edge[_, _]] =
+            new ConcurrentHashMap[Long, Edge[_, _]]().asScala
+          for {
+            edges <- graph
+              .edges()
+//              .filter(e => !(e.key == Property.default.`@id` && e.to.hasLabel(TextType.datatype).isDefined))
+              .mapEval { edge =>
+                //            if (edge.iri.nonEmpty) //TODO: find edge width
+                for {
+                  newEdge <- edges.create(
+                    edge.from match {
+                      case (resource: Node) =>
+                        oldIdNewNodeMap(resource.id)
+                      case (resource: Edge[_, _]) =>
+                        oldIdNewEdgeMap(resource.id)
+                      case (resource: Value[_]) =>
+                        oldIdNewValueMap(resource.id)
+                    },
+                    edge.key,
+                    edge.to match {
+                      case (resource: Node) =>
+                        oldIdNewNodeMap(resource.id)
+                      case (resource: Edge[_, _]) =>
+                        oldIdNewEdgeMap(resource.id)
+                      case (resource: Value[_]) =>
+                        oldIdNewValueMap(resource.id)
+                    }
+                  )
+                } yield {
+                  oldIdNewEdgeMap += (edge.id -> newEdge)
+                }
               }
-            ))
+              .toListL
+          } yield this
         }
-      this
-    } else this
+      } yield r
+    } else Task.now(this)
   }
 
 //  def g[Out](traversalObservable: TraversalTask[Out]): Out = traversalObservable.run(this)

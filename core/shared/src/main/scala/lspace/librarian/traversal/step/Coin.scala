@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 
 object Coin
     extends StepDef("Coin",
@@ -41,17 +42,18 @@ object Coin
     val seedInt: TypedProperty[Int]    = keys.seedInt
   }
 
-  implicit def toNode(coin: Coin): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.pDouble, coin.p)
-    node.addOut(keys.seedInt, coin.seed)
-    node
+  implicit def toNode(step: Coin): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.pDouble, step.p)
+      _    <- node.addOut(keys.seedInt, step.seed)
+    } yield node
   }
 
 }
 
 case class Coin(p: Double, seed: Int = 0) extends FilterStep {
 
-  def toNode: Node                 = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "coin(" + p + ")"
 }

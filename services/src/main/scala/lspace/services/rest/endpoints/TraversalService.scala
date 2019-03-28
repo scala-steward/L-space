@@ -41,7 +41,7 @@ trait TraversalService extends Api {
   implicit val decoder = lspace.codec.Decoder(DetachedGraph)
 //    .asInstanceOf[lspace.codec.Decoder[Any]] //todo JsonLD context per client-session
 
-  implicit val ec = monix.execution.Scheduler.global
+  import lspace.Implicits.Scheduler.global
 
   import lspace._
   import Implicits.AsyncGuide._
@@ -51,7 +51,7 @@ trait TraversalService extends Api {
     *
     * @return
     */
-  lazy val traverse: Endpoint[IO, Collection[Any]] = {
+  lazy val traverse: Endpoint[IO, Collection[Any, ClassType[Any]]] = {
     import io.finch.internal.HttpContent
     implicit val _graph = graph
     implicit val d1 = io.finch.Decode
@@ -68,7 +68,7 @@ trait TraversalService extends Api {
         traversalTask.flatMap { traversal =>
           val start = Instant.now()
           traversal.untyped.withGraph(graph).toListF.map { values =>
-            val collection: Collection[_] = Collection(start, Instant.now(), values)
+            val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values)
             collection.logger.debug("result count: " + values.size.toString)
             Ok(collection)
           }
@@ -83,7 +83,7 @@ trait TraversalService extends Api {
 //    ???
 //  }
 
-  lazy val getLabels: Endpoint[IO, Collection[Any]] = get("label") {
+  lazy val getLabels: Endpoint[IO, Collection[Any, ClassType[Any]]] = get("label") {
     val start = Instant.now()
     val traversal = g.N
       .union(_.hasLabel(Ontology.ontology), _.hasLabel(Property.ontology), _.hasLabel(DataType.ontology))
@@ -92,7 +92,7 @@ trait TraversalService extends Api {
       .withGraph(graph)
       .toListF
       .map { values =>
-        val collection: Collection[Any] = Collection(start, Instant.now(), values, traversal.ct)
+        val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values, traversal.ct)
         Ok(collection)
       }
       .toIO

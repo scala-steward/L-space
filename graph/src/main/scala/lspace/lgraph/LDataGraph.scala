@@ -25,6 +25,6 @@ trait LDataGraph extends LGraph with DataGraph {
           index.storeManager.persist
         ))
       .foreachL(f => Task.unit)
-      .runToFuture(monix.execution.Scheduler.global)
+      .runToFuture(lspace.Implicits.Scheduler.global)
   }
 }

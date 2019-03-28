@@ -5,6 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.NS.types
+import monix.eval.Task
 import shapeless.{HList, HNil, LUBConstraint}
 
 object Project
@@ -36,13 +37,16 @@ object Project
 //                                          (
 //      implicit
 //      lub: LUBConstraint[Traversals, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-    : Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    project.by.runtimeList
-      .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-      .map(_.toNode)
-      .foreach(node.addOut(keys.by, _))
-    node
+    : Task[Node] = {
+
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      traversals <- Task.gather(
+        project.by.runtimeList
+          .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
+          .map(_.toNode))
+      _ <- Task.gather(traversals.map(node.addOut(keys.byTraversal, _)))
+    } yield node
   }
 
 }
@@ -53,7 +57,7 @@ case class Project[Traversals <: HList](by: Traversals)
 //    lub: LUBConstraint[Traversals, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
     extends TraverseStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     "project(" + by.runtimeList
       .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])

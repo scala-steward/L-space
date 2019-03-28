@@ -20,8 +20,8 @@ trait TResource[T] extends MemResource[T] {
       .outE(key: _*)
       .filterNot(e => deletedEdges.contains(e.id))
       .map(_.to.asInstanceOf[graph.parent.GResource[Any]])
-      .map(graph.wrapTR(_))
-      .map(_.value)
+      .map(graph.wrapTR(_).map(_.value).value())
+
   override def outMap(key: Property*): Map[Property, List[Any]] =
     Seq(
       super.outMap(key: _*),
@@ -29,7 +29,7 @@ trait TResource[T] extends MemResource[T] {
         .outE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .groupBy(_.key)
-        .mapValues(_.map(_.to.asInstanceOf[graph.parent.GResource[Any]]).map(graph.wrapTR(_)).map(_.value))
+        .mapValues(_.map(_.to.asInstanceOf[graph.parent.GResource[Any]]).map(graph.wrapTR(_).map(_.value).value())) //wrapTR brings nested resources (aka within collections) in transaction context
     ).reduceLeft((r, m) =>
       m.foldLeft(r) {
         case (dict, (k, v)) => dict + (k -> (v ++ dict.getOrElse(k, List())))
@@ -39,7 +39,7 @@ trait TResource[T] extends MemResource[T] {
       .outE(key: _*)
       .filterNot(e => deletedEdges.contains(e.id))
       .map(_.asInstanceOf[graph.parent.GResource[Edge[T, Any]]])
-      .map(graph.wrapTR(_))
+      .map(graph.wrapTR(_).value())
       .asInstanceOf[List[Edge[T, Any]]]
   override def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] =
     Seq(
@@ -48,7 +48,7 @@ trait TResource[T] extends MemResource[T] {
         .outE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .map(_.asInstanceOf[graph.parent.GResource[Edge[T, Any]]])
-        .map(graph.wrapTR(_).asInstanceOf[Edge[T, Any]])
+        .map(graph.wrapTR(_).value().asInstanceOf[Edge[T, Any]])
         .groupBy(_.key)
     ).reduceLeft((r, m) =>
       m.foldLeft(r) {
@@ -59,8 +59,7 @@ trait TResource[T] extends MemResource[T] {
       .inE(key: _*)
       .filterNot(e => deletedEdges.contains(e.id))
       .map(_.from.asInstanceOf[graph.parent.GResource[Edge[Any, T]]])
-      .map(graph.wrapTR(_))
-      .map(_.value)
+      .map(graph.wrapTR(_).map(_.value).value())
   override def inMap(key: Property*): Map[Property, List[Any]] =
     Seq(
       super.inMap(key: _*),
@@ -68,7 +67,7 @@ trait TResource[T] extends MemResource[T] {
         .inE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .groupBy(_.key)
-        .mapValues(_.map(_.from.asInstanceOf[graph.parent.GResource[Any]]).map(graph.wrapTR(_)).map(_.value))
+        .mapValues(_.map(_.from.asInstanceOf[graph.parent.GResource[Any]]).map(graph.wrapTR(_).map(_.value).value()))
     ).reduceLeft((r, m) =>
       m.foldLeft(r) {
         case (dict, (k, v)) => dict + (k -> (v ++ dict.getOrElse(k, List())))
@@ -78,7 +77,7 @@ trait TResource[T] extends MemResource[T] {
       .inE(key: _*)
       .filterNot(e => deletedEdges.contains(e.id))
       .map(_.asInstanceOf[graph.parent.GResource[Edge[Any, T]]])
-      .map(graph.wrapTR(_))
+      .map(graph.wrapTR(_).value())
       .asInstanceOf[List[Edge[Any, T]]]
   override def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] =
     Seq(
@@ -87,7 +86,7 @@ trait TResource[T] extends MemResource[T] {
         .inE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .map(_.asInstanceOf[graph.parent.GResource[Edge[Any, T]]])
-        .map(graph.wrapTR(_).asInstanceOf[Edge[Any, T]])
+        .map(graph.wrapTR(_).value().asInstanceOf[Edge[Any, T]])
         .groupBy(_.key)
     ).reduceLeft((r, m) =>
       m.foldLeft(r) {

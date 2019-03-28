@@ -121,14 +121,16 @@ trait Encoder {
       edges.groupBy(p => p.to.labels.headOption).toList.maxBy(_._2.size)._1
 
     val newActiveContext =
-      if (edges.lengthCompare(4) == 1 && labelO.isDefined &&
-          activeContext.definitions.get(key.iri).exists(_.`@type`.isEmpty) && {
-            if (labelO.exists(l => key.range().headOption.contains(l))) false
-            else edges.size / edges.size.toDouble > 0.8
-          }) {
+//      if (edges.lengthCompare(4) == 1 && labelO.isDefined &&
+//          activeContext.definitions.get(key.iri).exists(_.`@type`.isEmpty) && {
+//            if (labelO.exists(l => key.range().headOption.contains(l))) false
+//            else edges.size / edges.size.toDouble > 0.8
+//          })
+      if (activeContext.definitions.get(key.iri).exists(_.`@type`.isEmpty)) {
         activeContext.copy(
           definitions = activeContext.definitions + activeContext.definitions
             .get(key.iri)
+            .map(_.copy(`@type` = labelO.get :: Nil))
             .map(ap => key.iri -> ap)
             .getOrElse(key.iri -> ActiveProperty(`@type` = labelO.get :: Nil, property = key)))
       } else activeContext
@@ -136,28 +138,30 @@ trait Encoder {
     edges match {
       case null | List() => JsonInProgress[Json](nullToJson)
       case List(property) /*if key.container.isEmpty*/ =>
-        edgeToAsJson(property)(activeContext)
+        edgeToAsJson(property)(newActiveContext)
       case edges =>
-        edges.foldLeft(List[Json]() -> activeContext) {
+        edges.foldLeft(List[Json]() -> newActiveContext) {
           case ((result, activeContext), edge) =>
             val jip = edgeToAsJson(edge)(activeContext)
             (result :+ jip.json) -> jip.activeContext
         } match {
-          case (result, activeContext) => JsonInProgress[Json](result.asJson)(activeContext)
+          case (result, activeContext) =>
+            JsonInProgress[Json](result.asJson)(activeContext) //probably add @container: @list ???
         }
     }
   }
 
   protected def edgeToAsJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
-    fromAny(edge.inV,
+    fromAny(edge.to,
             activeContext.definitions
               .get(edge.key.iri)
               .flatMap(_.`@type`.headOption)
-              .orElse(edge.key.range().headOption))
+//              .orElse(edge.key.range().headOption)
+    )
   }
 
   private def edgeFromAsJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
-    fromAny(edge.outV, None)(activeContext)
+    fromAny(edge.from, None)(activeContext)
   }
 
   def fromEdge(edge: Edge[_, _])(implicit activeContext: AC): JOIP = {
@@ -397,14 +401,33 @@ trait Encoder {
               )
             }
           case node: Node =>
-            if (node.iri.nonEmpty) JsonInProgress(node.iri.asJson)(activeContext)
-            else {
+            if (node.iri.nonEmpty) {
+              expectedType match {
+                case Some(ct: NodeURLType[_]) =>
+//                  scribe.trace("nodeurltype")
+                  JsonInProgress(node.iri.asJson)(activeContext)
+                case Some(o: Ontology) =>
+//                  scribe.trace(s"ontology $o")
+                  JsonInProgress(node.iri.asJson)(activeContext)
+                case None =>
+                  JsonInProgress(Map(types.`@id` -> node.iri.asJson).asJson)(activeContext)
+              }
+            } else {
               val joip = fromNode(node)
               JsonInProgress((ListMap[String, Json]() ++ joip.json).asJson)(joip.activeContext)
             }
           case edge: Edge[_, _] =>
-            if (edge.iri.nonEmpty) JsonInProgress(edge.iri.asJson)(activeContext)
-            else {
+            if (edge.iri.nonEmpty) {
+              expectedType match {
+                case Some(ct: EdgeURLType[_]) =>
+                  JsonInProgress(edge.iri.asJson)(activeContext)
+                case Some(o: Ontology) =>
+                  JsonInProgress(edge.iri.asJson)(activeContext)
+                case None =>
+                  JsonInProgress(Map(types.`@id` -> edge.iri.asJson, types.`@type` -> types.`@edgeURL`.asJson).asJson)(
+                    activeContext)
+              }
+            } else {
               val joip = fromEdge(edge)
               JsonInProgress((ListMap[String, Json]() ++ joip.json).asJson)(joip.activeContext)
             }

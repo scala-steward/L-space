@@ -11,6 +11,7 @@ import org.scalatest.{Assertion, AsyncWordSpec, BeforeAndAfterAll, Matchers}
 import lspace.structure._
 import lspace.types.vector.Point
 import lspace.util.SampleGraph
+import monix.execution.Scheduler
 import monix.reactive.Observable
 
 import scala.concurrent.Future
@@ -24,7 +25,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   val ontologies = SampleGraph.ontologies
   val namespaces = SampleGraph.namespaces
 
-  import monix.execution.Scheduler.Implicits.global
+  import lspace.Implicits.Scheduler.global
 
   def traverse = afterWord("traverse")
 

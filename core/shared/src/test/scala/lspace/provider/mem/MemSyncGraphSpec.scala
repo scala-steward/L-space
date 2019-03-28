@@ -11,5 +11,5 @@ class MemSyncGraphSpec extends SyncGuideSpec {
   sampleGraph.load
   def createGraph(iri: String): Graph = MemGraph("memgraphspec-" + iri)
 
-  sampledGraphComputerTests(sampleGraph)
+//  sampledGraphComputerTests(sampleGraph)
 }

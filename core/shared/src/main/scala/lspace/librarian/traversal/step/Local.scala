@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontology :: Nil) with StepWrapper[Local] {
@@ -34,16 +35,18 @@ object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontolo
     val traversalTraversal = keys.traversalTraversal
   }
 
-  implicit def toNode(local: Local): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.traversalTraversal, local.traversal.toNode)
-    node
+  implicit def toNode(local: Local): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- local.traversal.toNode
+      _         <- node.addOut(keys.traversalTraversal, traversal)
+    } yield node
   }
 
 }
 
 case class Local(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends BranchStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "local(_." + traversal.toString + ")"
 }

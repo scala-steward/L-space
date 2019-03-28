@@ -2,6 +2,7 @@ package lspace.librarian.logic.predicate
 
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Outside
     extends PredicateDef("Outside", `@extends` = () => RangeP.ontology :: Nil)
@@ -19,16 +20,17 @@ object Outside
   override lazy val properties: List[Property] = RangeP.properties
   trait Properties extends RangeP.Properties
 
-  implicit def toNode[T](outside: Outside[T]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(RangeP.keys.lower, ClassType.valueToOntologyResource(outside.lower), outside.lower)
-    node.addOut(RangeP.keys.upper, ClassType.valueToOntologyResource(outside.upper), outside.upper)
-    node
+  implicit def toNode[T](p: Outside[T]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.lower, ClassType.valueToOntologyResource(p.lower), p.lower)
+      _    <- node.addOut(keys.upper, ClassType.valueToOntologyResource(p.upper), p.upper)
+    } yield node
   }
 }
 
 case class Outside[+T](lower: T, upper: T) extends RangeP[T] {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"outside($lower, $upper)"
 }

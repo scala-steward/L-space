@@ -19,6 +19,6 @@ package lspace.librarian.logic.predicate
 //case class Without[T](pvalue: T)(implicit helper: CollectionHelper[T]) extends CollectionP[T] {
 //  def assert(avalue: Any): Boolean = !helper.within(avalue, pvalue)
 //
-//  lazy val toNode: Node            = this
+//  lazy val toNode: Task[Node]            = this
 //  override def prettyPrint: String = s"without(${pvalue.mkString(", ")})"
 //}

@@ -1,7 +1,9 @@
+import lspace.ExecutionHelper
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
 import lspace.librarian.task
 import lspace.structure.ClassType
 import lspace.structure.util.ClassTypeable
+import monix.execution.Scheduler
 import monix.reactive.Observable
 import shapeless.HList
 
@@ -36,6 +38,10 @@ package object lspace {
     }
     object SyncGuide {
       implicit val guide: task.Guide[Stream] = task.SyncGuide()(DefaultAssistent.assistent)
+    }
+
+    object Scheduler {
+      implicit def global: Scheduler = ExecutionHelper.scheduler
     }
   }
 }

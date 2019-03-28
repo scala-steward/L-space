@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
+import monix.eval.Task
 
 object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: Nil) with StepWrapper[Range] {
 
@@ -37,18 +38,18 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
     val highInt = keys.highInt
   }
 
-  implicit def toNode(range: Range): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-
-    node.addOut(keys.lowInt, range.low)
-    node.addOut(keys.highInt, range.high)
-    node
+  implicit def toNode(step: Range): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.lowInt, step.low)
+      _    <- node.addOut(keys.highInt, step.high)
+    } yield node
   }
 
 }
 
 case class Range(low: Int, high: Int) extends ClipStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"range($low, $high)"
 }

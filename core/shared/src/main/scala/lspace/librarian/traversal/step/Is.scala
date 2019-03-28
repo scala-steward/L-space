@@ -5,6 +5,7 @@ import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Is] {
 
@@ -26,16 +27,18 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
     val predicateUrl = keys.predicateUrl
   }
 
-  implicit def toNode(is: Is): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.predicate, is.predicate.toNode)
-    node
+  implicit def toNode(step: Is): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      predicate <- step.predicate.toNode
+      _         <- node.addOut(keys.predicate, predicate)
+    } yield node
   }
 
 }
 
 case class Is(predicate: P[_]) extends FilterStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "is(P." + predicate.prettyPrint + ")"
 }

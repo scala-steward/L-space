@@ -77,10 +77,11 @@ case class UntypedTraversal(segments: Vector[Segment[HList]] = Vector()) {
   def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F], mapper: Mapper[F, HNil, Any]): mapper.FT =
     mapper(segments.toList, graph).asInstanceOf[mapper.FT]
 
-  lazy val toNode: Node = {
-    val node0 = DetachedGraph.nodes.create(ontology)
-//    segments.map(_.toNode).foreach(node0.addOut(keys.segmentNode, _))
-    node0.addOut(keys.segmentNode, segments.map(_.toNode))
-    node0
+  lazy val toNode: Task[Node] = {
+    for {
+      node     <- DetachedGraph.nodes.create(ontology)
+      segments <- Task.gather(segments.map(_.toNode))
+      _        <- node.addOut(keys.segmentNode, segments)
+    } yield node
   }
 }

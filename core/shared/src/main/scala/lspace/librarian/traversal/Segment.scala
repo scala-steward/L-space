@@ -3,6 +3,7 @@ package lspace.librarian.traversal
 import lspace.datatype.VectorType
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 import shapeless.{HList, HNil, LUBConstraint}
 
 object Segment
@@ -55,10 +56,12 @@ case class Segment[Steps <: HList] protected[lspace] (steps: Steps) {
       stepsList == traversalSegment.stepsList
   }
 
-  lazy val toNode: Node = {
-    val node0 = DetachedGraph.nodes.create(Segment.ontology)
-    node0.addOut(Segment.keys.stepNode, stepsList.map(_.toNode).toVector)
-    node0
+  lazy val toNode: Task[Node] = {
+    for {
+      node  <- DetachedGraph.nodes.create(Segment.ontology)
+      steps <- Task.gather(stepsList.map(_.toNode).toVector)
+      e     <- node.addOut(Segment.keys.stepNode, steps)
+    } yield node
   }
 
   def prettyPrint: String = {

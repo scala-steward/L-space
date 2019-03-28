@@ -34,23 +34,28 @@ object DecodeJsonLD {
         (json: String) =>
           decoder
             .stringToLabeledNode(json, label)
-            .map { node =>
+            .flatMap { node =>
               if (allowedProperties.nonEmpty) {
                 val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                val fNode       = resultGraph.nodes.create()
-                node.outE(allowedProperties ++ additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
-                fNode
+                for {
+                  fNode <- resultGraph.nodes.create()
+                  _ <- Task.gatherUnordered(
+                    node.outE(allowedProperties ++ additionalProperties: _*).map(e => fNode --- e.key --> e.to))
+                } yield fNode
               } else if (additionalProperties.nonEmpty) {
                 val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                val fNode       = resultGraph.nodes.create()
-                node.outE(additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
-                fNode
+                for {
+                  fNode <- resultGraph.nodes.create()
+                  _     <- Task.gatherUnordered(node.outE(additionalProperties: _*).map(e => fNode --- e.key --> e.to))
+                } yield fNode
               } else if (forbiddenProperties.nonEmpty) {
                 val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                val fNode       = resultGraph.nodes.create()
-                node.outE().filterNot(forbiddenProperties.contains).foreach(e => fNode --- e.key --> e.to)
-                fNode
-              } else node
+                for {
+                  fNode <- resultGraph.nodes.create()
+                  _ <- Task.gatherUnordered(
+                    node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
+                } yield fNode
+              } else Task.now(node)
           }
     }
 
@@ -91,23 +96,28 @@ object DecodeJsonLD {
       def decode = { (json: String) =>
         decoder
           .stringToNode(json)
-          .map { node =>
+          .flatMap { node =>
             if (allowedProperties.nonEmpty) {
               val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-              val fNode       = resultGraph.nodes.create()
-              node.outE(allowedProperties ++ additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
-              fNode
+              for {
+                fNode <- resultGraph.nodes.create()
+                _ <- Task.gatherUnordered(
+                  node.outE(allowedProperties ++ additionalProperties: _*).map(e => fNode --- e.key --> e.to))
+              } yield fNode
             } else if (additionalProperties.nonEmpty) {
               val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-              val fNode       = resultGraph.nodes.create()
-              node.outE(additionalProperties: _*).foreach(e => fNode --- e.key --> e.to)
-              fNode
+              for {
+                fNode <- resultGraph.nodes.create()
+                _     <- Task.gatherUnordered(node.outE(additionalProperties: _*).map(e => fNode --- e.key --> e.to))
+              } yield fNode
             } else if (forbiddenProperties.nonEmpty) {
               val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-              val fNode       = resultGraph.nodes.create()
-              node.outE().filterNot(forbiddenProperties.contains).foreach(e => fNode --- e.key --> e.to)
-              fNode
-            } else node
+              for {
+                fNode <- resultGraph.nodes.create()
+                _ <- Task.gatherUnordered(
+                  node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
+              } yield fNode
+            } else Task.now(node)
           }
       }
     }

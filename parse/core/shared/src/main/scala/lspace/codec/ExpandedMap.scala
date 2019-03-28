@@ -15,5 +15,6 @@ class ExpandedMap[V](val obj: Map[String, V]) {
   def nonEmpty              = obj.nonEmpty
   def keys                  = obj.keys
 
-  def -(key: String): ExpandedMap[V] = new ExpandedMap[V](obj - key)
+  def filter(key: String*): ExpandedMap[V] = new ExpandedMap[V](obj.filter(kv => key.toSet.contains(kv._1)))
+  def -(key: String): ExpandedMap[V]       = new ExpandedMap[V](obj - key)
 }

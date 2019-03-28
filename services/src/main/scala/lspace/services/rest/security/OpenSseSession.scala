@@ -2,19 +2,21 @@ package lspace.services.rest.security
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
+import lspace.Label
 import lspace.client.session._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.Property
+import monix.eval.Task
 
 object OpenSseSession {
-  def apply(
-      iri: String,
-      expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant): OpenSseSession = {
-    val node = DetachedGraph.nodes.create(OpenSession.ontology)
-    node.addOut(Property.default.typed.iriUrlString, iri)
-    node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+  def apply(iri: String, expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant)
+    : Task[OpenSseSession] = {
 
-    new OpenSseSession(new OpenSession(node) {}) with WithSse
+    for {
+      node <- DetachedGraph.nodes.create(OpenSession.ontology)
+      _    <- node.addOut(Label.P.typed.iriUrlString, iri)
+      _    <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+    } yield new OpenSseSession(new OpenSession(node) {}) with WithSse
   }
 }
 

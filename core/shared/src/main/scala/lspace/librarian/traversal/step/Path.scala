@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
+import monix.eval.Task
 import shapeless.HList
 
 object Path
@@ -37,10 +38,12 @@ object Path
     val byTraversal = keys.byTraversal
   }
 
-  implicit def toNode[ET <: ClassType[_], Segments <: HList](path: Path[ET, Segments]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(keys.by, path.by.toNode)
-    node
+  implicit def toNode[ET <: ClassType[_], Segments <: HList](step: Path[ET, Segments]): Task[Node] = {
+    for {
+      node      <- DetachedGraph.nodes.create(ontology)
+      traversal <- step.by.toNode
+      _         <- node.addOut(keys.byTraversal, traversal)
+    } yield node
   }
 
 }
@@ -48,6 +51,6 @@ object Path
 case class Path[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
     extends MapStep {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = if (by.segmentList.nonEmpty) "path(" + by.toString + ")" else "path"
 }

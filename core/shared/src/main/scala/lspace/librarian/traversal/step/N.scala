@@ -5,6 +5,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.datatype.{DataType, ListType}
 import lspace.structure._
+import monix.eval.Task
 
 object N
     extends StepDef("N", "An n-step selects nodes to traverse from.", () => ResourceStep.ontology :: Nil)
@@ -28,15 +29,16 @@ object N
     val nodeUrl = keys.nodeUrl
   }
 
-  implicit def toNode(n: N): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    if (n.nodes.nonEmpty) node.addOut(keys.nodeUrl, n.nodes)
-    node
+  implicit def toNode(step: N): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.nodeUrl, step.nodes)
+    } yield node
   }
 }
 
 case class N(nodes: List[Node] = List()) extends ResourceStep {
 
-  def toNode: Node                 = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "N(" + nodes.map(_.iri).mkString(", ") + ")"
 }

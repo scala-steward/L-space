@@ -5,6 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.NS.types
 import lspace.datatype.DataType
+import monix.eval.Task
 
 object HasId
     extends StepDef("HasId", "A hasId-step filters resources by id.", () => HasStep.ontology :: Nil)
@@ -29,17 +30,18 @@ object HasId
     val idLong = keys.idLong
   }
 
-  implicit def toNode(hasId: HasId): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    hasId.ids.foreach(node.addOut(keys.id, _))
-    node
+  implicit def toNode(step: HasId): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- Task.gather(step.ids.map(node.addOut(keys.id, _)))
+    } yield node
   }
 
 }
 
 case class HasId(ids: Set[Long]) extends HasStep {
 
-  lazy val toNode: Node = this
+  lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
     s"hasId(${ids.mkString(", ")})"
 }

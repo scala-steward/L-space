@@ -2,26 +2,31 @@ package lspace.structure
 
 import lspace.structure.Property.default._
 import lspace.util.SampleGraph
+import monix.eval.Task
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 
 trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
 
+  import lspace.Implicits.Scheduler.global
+
   def transactionTests(graph: Graph) = {
     "a transaction" should {
       "support adding edges to existing nodes" in {
-        val node = graph.nodes.create(SampleGraph.Person.ontology)
-        node --- `@id` --> "support-transaction-to-add-edges"
-        node --- SampleGraph.Person.keys.name --> "Alice"
         val t = graph.transaction
-        t.nodes.hasId(node.id).foreach { node =>
-          node.outE(SampleGraph.Person.keys.name).foreach(_.remove())
-          node --- SampleGraph.Person.keys.balance --> 1.2
-          node --- SampleGraph.Person.keys.name --> "Ali"
-        }
-        t.commit()
-        node.out() should contain(1.2)
-        node.out() should not contain ("Alice")
-        node.out() should contain("Ali")
+        (for {
+          node  <- graph.nodes.create(SampleGraph.Person.ontology)
+          _     <- node --- `@id` --> "support-transaction-to-add-edges"
+          _     <- node --- SampleGraph.Person.keys.name --> "Alice"
+          node2 <- t.nodes.hasId(node.id).map(_.get)
+          _     <- Task.gather(node2.outE(SampleGraph.Person.keys.name).map(_.remove()))
+          _     <- node2 --- SampleGraph.Person.keys.balance --> 1.2
+          _     <- node2 --- SampleGraph.Person.keys.name --> "Ali"
+          _     <- t.commit()
+        } yield {
+          node.out() should contain(1.2)
+          node.out() should not contain ("Alice")
+          node.out() should contain("Ali")
+        }).runToFuture
       }
 
       "be merged to the graph only after it is committed" in {
@@ -29,25 +34,22 @@ trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll
         //      val graphFilled = createSampleGraph("graphspec-support-transactions-filled")
         val transaction = newGraph.transaction
 
-        newGraph.nodes().size shouldBe 0
-        newGraph.edges().size shouldBe 0
-        newGraph.values().size shouldBe 0
-
-        SampleGraph.loadSocial(transaction)
-
-        newGraph.nodes().size shouldBe 0
-        newGraph.edges().size shouldBe 0
-        newGraph.values().size shouldBe 0
-
-        transaction.commit()
-
-        val r = {
-          newGraph.nodes().size shouldBe graph.nodes.count
-          newGraph.edges().size shouldBe graph.edges.count
-          newGraph.values().size shouldBe graph.values.count
-        }
-        graph.close()
-        r
+        (for {
+          _ <- newGraph.nodes().toListL.map(_.size shouldBe 0)
+          _ <- newGraph.edges().toListL.map(_.size shouldBe 0)
+          _ <- newGraph.values().toListL.map(_.size shouldBe 0)
+          _ <- SampleGraph.loadSocial(transaction)
+          _ <- newGraph.nodes().toListL.map(_.size shouldBe 0)
+          _ <- newGraph.edges().toListL.map(_.size shouldBe 0)
+          _ <- newGraph.values().toListL.map(_.size shouldBe 0)
+          _ <- transaction.commit()
+          _ <- Task.parZip2(newGraph.nodes.count, graph.nodes.count).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.edges.count, graph.edges.count).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.values.count, graph.values.count).map { case (a, b) => a shouldBe b }
+        } yield {
+          graph.close()
+          succeed
+        }).runToFuture
       }
     }
   }

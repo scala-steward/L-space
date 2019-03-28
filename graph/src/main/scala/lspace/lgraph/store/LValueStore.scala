@@ -9,6 +9,8 @@ import lspace.structure.ClassType
 import lspace.structure.util.ClassTypeable
 import lspace.structure.store.ValueStore
 import lspace.types.vector.Point
+import monix.eval.Task
+import monix.reactive.Observable
 
 import scala.collection.immutable.ListSet
 import scala.collection.concurrent
@@ -52,131 +54,168 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
   protected lazy val vectorCache: concurrent.Map[Vector[Any], Set[graph.GValue[Vector[Any]]]] =
     new ConcurrentHashMap[Vector[Any], Set[graph.GValue[Vector[Any]]]]().asScala
 
-  override def hasId(id: Long): Option[T2] = cachedById(id).orElse(graph.storeManager.valueById(id).headOption)
+  override def hasId(id: Long): Task[Option[T2]] =
+    Task.defer {
+      if (isDeleted(id)) Task.now(None)
+      else
+        cachedById(id) match {
+          case Some(e) => Task.now(Some(e))
+          case None    => graph.storeManager.valueById(id).map(_.map(_.asInstanceOf[T2]))
+        }
+    }
 
-  def hasId(ids: List[Long]): Stream[T2] = {
+  def hasId(ids: List[Long]): Observable[T2] = {
     val (deleted, tryable) = ids.partition(isDeleted)
     val byCache            = tryable.map(id => id -> cachedById(id))
     val (noCache, cache)   = byCache.partition(_._2.isEmpty)
-    (cache.flatMap(_._2) toStream) ++ (if (noCache.nonEmpty) graph.storeManager.valuesById(noCache.map(_._1))
-                                       else Stream())
+    Observable.fromIterable(cache.flatMap(_._2)) ++ (if (noCache.nonEmpty)
+                                                       graph.storeManager
+                                                         .valuesById(noCache.map(_._1))
+                                                         .asInstanceOf[Observable[T2]]
+                                                         .executeOn(LStore.ec)
+                                                     else Observable.empty[T2])
   }
 
-  override def hasIri(iri: String): Stream[T2] =
-    cachedByIri(iri).filterNot(v => isDeleted(v.id)) ++ graph.storeManager.valueByIri(iri) distinct
+  override def hasIri(iri: String): Observable[T2] = {
+    val cachedResult = cachedByIri(iri).filterNot(e => isDeleted(e.id))
+    Observable.fromIterable(cachedResult) ++
+      graph.storeManager
+        .valueByIri(iri)
+        .asInstanceOf[Observable[T2]]
+        .filter(!cachedResult.toSet.contains(_))
+        .executeOn(LStore.ec)
+  }
+
+  def hasIri(iri: Set[String]): Observable[T2] = {
+    val cachedResult = iri.flatMap(iri => cachedByIri(iri).filterNot(e => isDeleted(e.id)))
+    Observable.fromIterable(cachedResult) ++
+      graph.storeManager
+        .valuesByIri(iri.toList)
+        .asInstanceOf[Observable[T2]]
+        .filter(!cachedResult.contains(_))
+        .executeOn(LStore.ec)
+  }
 
   def byValue[V, VOut, CVOut <: DataType[VOut]](value: V)(
-      implicit clsTpbl: ClassTypeable.Aux[V, VOut, CVOut]): Stream[graph.GValue[V]] =
+      implicit clsTpbl: ClassTypeable.Aux[V, VOut, CVOut]): Observable[graph.GValue[V]] =
     byValue(value, clsTpbl.ct.asInstanceOf[DataType[V]])
-  def byValue[V](value: V, dt: DataType[V]): Stream[graph.GValue[V]] =
+  def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] =
     (value match {
       case value: Int =>
         intCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Double =>
         doubleCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Long =>
         longCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: String =>
         stringCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Boolean =>
         booleanCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Instant =>
         datetimeCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: LocalDateTime =>
         localdatetimeCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: LocalDate =>
         dateCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: LocalTime =>
         timeCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Point =>
         geopointCache
           .get(value)
-          .map(_.toStream)
+          .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Map[Any, Any] =>
         mapCache
           .get(value)
-          .map(_.toStream.filter(_.label == dt))
+          .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: ListSet[Any] =>
         listsetCache
           .get(value)
-          .map(_.toStream.filter(_.label == dt))
+          .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Set[Any] =>
         setCache
           .get(value)
-          .map(_.toStream.filter(_.label == dt))
+          .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: List[Any] =>
         listCache
           .get(value)
-          .map(_.toStream.filter(_.label == dt))
+          .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case value: Vector[Any] =>
         vectorCache
           .get(value)
-          .map(_.toStream.filter(_.label == dt))
+          .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Stream[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph.GValue[V]]]
       case _ =>
         throw new Exception(s"unsupported valuestore-type, cannot find store for datatype-class ${value.getClass}")
-    }).filterNot(v => isDeleted(v.id))
+    }).filter(v => !isDeleted(v.id))
 
-  override def store(value: T): Unit = {
-    super.store(value)
-    graph.storeManager
-      .storeValues(List(value))
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+  override def store(value: T): Task[Unit] = {
+    for {
+      _ <- super.store(value)
+      _ <- graph.storeManager
+        .storeValues(List(value))
+        .executeOn(LStore.ec)
+        .forkAndForget
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  override def store(values: List[T]): Unit = {
-    values.foreach(super.store)
-    graph.storeManager
-      .storeValues(values)
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+  override def store(values: List[T]): Task[Unit] = {
+    for {
+      _ <- Task.gatherUnordered(values.map(super.store))
+      _ <- graph.storeManager
+        .storeValues(values)
+        .executeOn(LStore.ec)
+        .forkAndForget
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
@@ -300,12 +339,16 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     }
   }
 
-  override def delete(value: T): Unit = {
+  override def delete(value: T): Task[Unit] = Task.defer {
     _deleted += value.id -> Instant.now()
-    super.delete(value)
-    graph.storeManager
-      .deleteValues(List(value))
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+    for {
+      _ <- super.delete(value)
+      _ <- graph.storeManager
+        .deleteValues(List(value))
+        .executeOn(LStore.ec)
+        .forkAndForget
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
@@ -424,17 +467,25 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     }
   }
 
-  override def delete(values: List[T]): Unit = {
+  override def delete(values: List[T]): Task[Unit] = Task.defer {
     val delTime = Instant.now()
     values.foreach(value => _deleted += value.id -> delTime)
-    values.foreach(super.delete)
-    graph.storeManager
-      .deleteValues(values)
-      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
+    for {
+      _ <- Task.gatherUnordered(values.map(super.delete))
+      _ <- graph.storeManager
+        .deleteValues(values)
+        .executeOn(LStore.ec)
+        .forkAndForget
+    } yield ()
+//      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
 
-  def all(): Stream[T2] =
-    _cache.toStream.map(_._2).filterNot(v => isDeleted(v.id)) ++ graph.storeManager.values distinct
-  def count(): Long = graph.storeManager.valueCount()
+  def all(): Observable[T2] = {
+    val cached = _cache.values
+    Observable.fromIterable(cached).filter(n => !isDeleted(n.id)) ++ graph.storeManager.values
+      .filter(!cached.toSet.contains(_))
+      .executeOn(LStore.ec)
+  }
+  def count(): Task[Long] = graph.storeManager.valueCount()
 }

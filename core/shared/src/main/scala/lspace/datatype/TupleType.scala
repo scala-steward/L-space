@@ -6,7 +6,7 @@ import lspace.structure.util.ClassTypeable
 import lspace.structure._
 
 //TODO: type construction without nested types should default to @tuple, @tuple2, @tuple3 or @tuple4 (example at @list)
-object TupleType extends DataTypeDef[TupleType[Any]] {
+object TupleType extends DataTypeDef[TupleType[_]] {
 
   def apply[T](rangeTypes: List[List[ClassType[Any]]] = List()): TupleType[T] = new TupleType[T](rangeTypes)
 //  def apply[T](rangeTypes: List[List[ClassType[Any]]] = List()): TupleType[T] = new TupleType[T] {

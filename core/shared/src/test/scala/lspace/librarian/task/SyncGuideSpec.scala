@@ -49,13 +49,7 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
       g.N.outMap().withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
     }
     """N.outMap().hasLabel(`@int`)""" in {
-      try {
-        g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
-      } catch {
-        case e =>
-          e.printStackTrace()
-          throw e
-      }
+      g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
     }
     """N.has("name", P.eqv("Garrison")).outMap()""" in {
       g.N.has("name", P.eqv("Garrison")).outMap().withGraph(sampleGraph).headF.map(_.size shouldBe 5).value

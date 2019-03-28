@@ -22,8 +22,8 @@ trait LIndexGraph extends LGraph with IndexGraph {
   protected def `@typeIndex`: Index = LIndex(__[Any, Any].has(Property.default.`@type`).untyped)
 //  protected val `@patternIndex`: Index = createIndex(Vector(Set()))
 
-  def getIndex(traversal: UntypedTraversal): Option[Index] = None //indexes.get(pattern)
-  protected def createIndex(traversal: UntypedTraversal): Index = {
+  def getIndex(traversal: UntypedTraversal): Task[Option[Index]] = Task.now(None) //indexes.get(pattern)
+  protected def createIndex(traversal: UntypedTraversal): Task[Index] = Task {
 //    val indexNode = graph.nodes.create(Index.ontology)
 //    val patterns = pattern.map { p =>
 //      val node = graph.nodes.create(Traversal.Segment.ontology)
@@ -38,7 +38,7 @@ trait LIndexGraph extends LGraph with IndexGraph {
     index
   }
 
-  def deleteIndex(index: Index): Unit = {
+  def deleteIndex(index: Index): Task[Unit] = Task {
 //    indexes.remove(pattern)
   }
 //  override def _storeEdge[S, E](edge: _Edge[S, E]): Unit = super._storeEdge(edge)

@@ -8,6 +8,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.provider.wrapped.WrappedNode
 import lspace.structure.OntologyDef
 import lspace.structure._
+import monix.eval.Task
 
 object OpenSession
     extends OntologyDef(
@@ -19,12 +20,13 @@ object OpenSession
       () => Session.ontology :: Nil
     ) {
 
-  def apply(iri: String, expiration: Instant, startTime: Instant): OpenSession = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(Property.default.typed.iriUrlString, iri)
-    node.addOut(keys.`lspace:OpenSession/expiration@Instant`, expiration)
-    node.addOut(keys.`lspace:OpenSession/startTime@Instant`, startTime)
-    new OpenSession(node) {}
+  def apply(iri: String, expiration: Instant, startTime: Instant): Task[OpenSession] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(Property.default.typed.iriUrlString, iri)
+      _    <- node.addOut(keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      _    <- node.addOut(keys.`lspace:OpenSession/startTime@Instant`, startTime)
+    } yield new OpenSession(node) {}
   }
 
   def wrap(node: Node): OpenSession = node match {

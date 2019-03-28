@@ -40,17 +40,17 @@ trait Decoder {
   def graph: Graph
   def nsDecoder: Decoder
 
-  protected lazy val blankNodes: concurrent.Map[String, Node] =
-    new ConcurrentHashMap[String, Node](16, 0.9f, 32).asScala
-  protected lazy val blankEdges: concurrent.Map[String, Edge[_, _]] =
-    new ConcurrentHashMap[String, Edge[_, _]](16, 0.9f, 32).asScala
-  protected lazy val blankValues: concurrent.Map[String, Value[_]] =
-    new ConcurrentHashMap[String, Value[_]](16, 0.9f, 32).asScala
+  protected lazy val blankNodes: concurrent.Map[String, Task[Node]] =
+    new ConcurrentHashMap[String, Task[Node]](16, 0.9f, 32).asScala
+  protected lazy val blankEdges: concurrent.Map[String, Task[Edge[_, _]]] =
+    new ConcurrentHashMap[String, Task[Edge[_, _]]](16, 0.9f, 32).asScala
+  protected lazy val blankValues: concurrent.Map[String, Task[Value[_]]] =
+    new ConcurrentHashMap[String, Task[Value[_]]](16, 0.9f, 32).asScala
 
   implicit class WithString(s: String) {
     def stripLtGt: String = s.stripPrefix("<").stripSuffix(">")
 
-    def toResource(implicit activeContext: ActiveContext): Resource[_] = {
+    def toResource(implicit activeContext: ActiveContext): Task[Resource[_]] = {
       s match {
         case nodeLike if nodeLike.startsWith("<") && nodeLike.endsWith(">") =>
           activeContext.expandIri(nodeLike.stripLtGt) match {
@@ -73,36 +73,50 @@ trait Decoder {
 
   implicit class WithTurtle(turtle: Turtle) {
     implicit val activeContext = turtle.context
-    def process: Graph = {
-      turtle.statements.map { statement =>
-        val subject = statement.subject match {
-          case Iri(iri)   => graph.nodes.upsert(iri)
-          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
-        }
-        statement.predicates.process.foreach { case (property, resource) => subject --- property --> resource }
-      }
-      graph
+    def process: Task[Graph] = {
+      for {
+        _ <- Task.gather(turtle.statements.map { statement =>
+          for {
+            subject <- statement.subject match {
+              case Iri(iri)   => graph.nodes.upsert(iri)
+              case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+            }
+            p <- statement.predicates.process
+            _ <- Task.gather(p.map { case (property, resource) => subject --- property --> resource })
+          } yield ()
+        })
+      } yield graph
     }
   }
 
   implicit class WithPredicates(predicates: Predicates)(implicit activeContext: ActiveContext) {
-    def process: List[(Property, Resource[_])] = {
-      predicates.pv.flatMap {
-        case (p, Single(o)) => List(Property.properties.getOrCreate(p.iri, Set()) -> o.toResource)
-        case (p, Multi(os)) =>
-          val property = Property.properties.getOrCreate(p.iri, Set())
-          os.map {
-            case Single(o) => property -> o.toResource
-            case predicates: Predicates =>
-              val node = graph.nodes.create()
-              predicates.process.foreach { case (property, resource) => node --- property --> resource }
-              property -> node
-          }
-        case (p, predicates: Predicates) =>
-          val node = graph.nodes.create()
-          predicates.process.foreach { case (property, resource) => node --- property --> resource }
-          List(Property.properties.getOrCreate(p.iri, Set()) -> node)
-      }
+    def process: Task[List[(Property, Resource[_])]] = {
+      Task
+        .gather(predicates.pv.map {
+          case (p, Single(o)) => o.toResource.map(r => List(Property.properties.getOrCreate(p.iri, Set()) -> r))
+          case (p, Multi(os)) =>
+            val property = Property.properties.getOrCreate(p.iri, Set())
+            Task.gather(os.map {
+              case Single(o) => o.toResource.map(property -> _)
+              case predicates: Predicates =>
+                for {
+                  node <- graph.nodes.create()
+                  p    <- predicates.process
+                  _ <- Task.gather(p.map {
+                    case (property, resource) => node --- property --> resource
+                  })
+                } yield property -> node
+            })
+          case (p, predicates: Predicates) =>
+            for {
+              node <- graph.nodes.create()
+              p2   <- predicates.process
+              _ <- Task.gather(p2.map {
+                case (property, resource) => node --- property --> resource
+              })
+            } yield List(Property.properties.getOrCreate(p.iri, Set()) -> node)
+        })
+        .map(_.flatten)
     }
   }
 

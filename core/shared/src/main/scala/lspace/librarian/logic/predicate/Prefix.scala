@@ -1,9 +1,8 @@
 package lspace.librarian.logic.predicate
 
-import lspace.librarian.logic.predicate.P._
-import lspace.librarian.logic.predicate.{PredicateDef, PredicateWrapper, SeqP}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import monix.eval.Task
 
 object Prefix extends PredicateDef("Prefix", `@extends` = () => List(SeqP.ontology)) with PredicateWrapper[Prefix[_]] {
 
@@ -17,15 +16,16 @@ object Prefix extends PredicateDef("Prefix", `@extends` = () => List(SeqP.ontolo
   override lazy val properties: List[Property] = SeqP.properties
   trait Properties extends SeqP.Properties
 
-  implicit def toNode[T](prefix: Prefix[T]): Node = {
-    val node = DetachedGraph.nodes.create(ontology)
-    node.addOut(SeqP.keys.value, ClassType.valueToOntologyResource(prefix.pvalue), prefix.pvalue)
-    node
+  implicit def toNode[T](p: Prefix[T]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+    } yield node
   }
 }
 
 case class Prefix[+T](pvalue: T) extends SeqP[T] {
 
-  lazy val toNode: Node            = this
+  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"prefix($pvalue)"
 }

@@ -10,6 +10,7 @@ import lspace.provider.transaction.Transaction
 import lspace.structure._
 import lspace.structure.util.IdProvider
 import monix.execution.{Cancelable, CancelableFuture}
+import monix.reactive.Observable
 import shapeless.HList
 
 object LGraph {
@@ -19,7 +20,10 @@ object LGraph {
     * @param cacheLevel fraction of resources to populate the cache, 0 for nothing 1 for everything (if memory allows for it)
     */
   case class Options(cacheLevel: Double = 1.0)
-  def apply(storeProvider: StoreProvider, indexProvider: IndexProvider, options: Options = Options()): LGraph = {
+  def apply(storeProvider: StoreProvider,
+            indexProvider: IndexProvider,
+            options: Options = Options(),
+            noinit: Boolean = false): LGraph = {
     val _iri           = storeProvider.iri
     val _storeProvider = storeProvider
     val _indexProvider = indexProvider
@@ -41,7 +45,7 @@ object LGraph {
             ))
           .foreachL(f => Task.unit)
           .memoize
-          .runToFuture(monix.execution.Scheduler.global)
+          .runToFuture(lspace.Implicits.Scheduler.global)
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 
@@ -114,7 +118,7 @@ object LGraph {
         stateManager.close()
       }
     }
-    graph.init
+    if (!noinit) graph.init
     graph
   }
 }
@@ -128,12 +132,12 @@ trait LGraph extends Graph {
 
   def ns: LNSGraph
 
-  override protected[lgraph] lazy val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
-  override protected[lgraph] lazy val edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
-  override protected[lgraph] lazy val valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
+  override protected[lspace] lazy val nodeStore: LNodeStore[this.type]   = LNodeStore("@node", thisgraph)
+  override protected[lspace] lazy val edgeStore: LEdgeStore[this.type]   = LEdgeStore("@edge", thisgraph)
+  override protected[lspace] lazy val valueStore: LValueStore[this.type] = LValueStore("@value", thisgraph)
 
   object writenode
-  protected[lgraph] def newNode(id: Long): GNode = writenode.synchronized {
+  protected[lspace] def newNode(id: Long): GNode = writenode.synchronized {
     nodeStore
       .cachedById(id)
       .getOrElse {
@@ -143,24 +147,25 @@ trait LGraph extends Graph {
           val id            = _id
           val graph: LGraph = thisgraph
         }
-//        nodeStore.cache(node.asInstanceOf[GNode])
+        nodeStore.cache(node.asInstanceOf[GNode])
         node
       }
       .asInstanceOf[GNode]
   }
 
-  override protected[lspace] def getOrCreateNode(id: Long): GNode = synchronized {
-    val node       = super.getOrCreateNode(id)
-    val lastaccess = LResource.getLastAccessStamp()
-    node._lastoutsync = Some(lastaccess)
-    node._lastinsync = Some(lastaccess)
-    node
+  override protected[lspace] def getOrCreateNode(id: Long): Task[GNode] = synchronized {
+    for { node <- super.getOrCreateNode(id) } yield {
+      val lastaccess = LResource.getLastAccessStamp()
+      node._lastoutsync = Some(lastaccess)
+      node._lastinsync = Some(lastaccess)
+      node
+    }
   }
 
-  override protected[lgraph] def storeNode(node: GNode): Unit = super.storeNode(node)
+  override protected[lgraph] def storeNode(node: GNode): Task[Unit] = super.storeNode(node)
 
   object writeedge
-  protected[lgraph] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
+  protected[lspace] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
     writeedge.synchronized {
       edgeStore
         .cachedById(id)
@@ -180,44 +185,45 @@ trait LGraph extends Graph {
             val to: GResource[E]   = _to
             val graph: LGraph      = thisgraph
           }
-//          edgeStore.cache(edge.asInstanceOf[GEdge[_, _]])
+          edgeStore.cache(edge.asInstanceOf[GEdge[_, _]])
           edge
         }
         .asInstanceOf[GEdge[S, E]]
     }
 
-  protected[lgraph] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
-    val _from = resources
-      .hasId(from)
-      .map(_.asInstanceOf[GResource[Any]])
-      .getOrElse {
-        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
-      }
-    val _to =
-      resources
-        .hasId(to)
-        .map(_.asInstanceOf[GResource[Any]])
-        .getOrElse {
-          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
-        }
-
-    val edge = createEdge(id, _from, key, _to)
-    edge.asInstanceOf[GEdge[Any, Any]]
-  }
+//  protected[lgraph] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+//    val _from = resources
+//      .hasId(from)
+//      .map(_.asInstanceOf[GResource[Any]])
+//      .getOrElse {
+//        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
+//      }
+//    val _to =
+//      resources
+//        .hasId(to)
+//        .map(_.asInstanceOf[GResource[Any]])
+//        .getOrElse {
+//          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
+//        }
+//
+//    val edge = createEdge(id, _from, key, _to)
+//    edge.asInstanceOf[GEdge[Any, Any]]
+//  }
 
   override protected def createEdge[S, E](id: Long,
                                           from: GResource[S],
                                           key: Property,
-                                          to: GResource[E]): GEdge[S, E] = {
-    val edge       = super.createEdge(id, from, key, to)
-    val lastaccess = LResource.getLastAccessStamp()
-    edge._lastoutsync = Some(lastaccess)
-    edge._lastinsync = Some(lastaccess)
-    edge
+                                          to: GResource[E]): Task[GEdge[S, E]] = {
+    for { edge <- super.createEdge(id, from, key, to) } yield {
+      val lastaccess = LResource.getLastAccessStamp()
+      edge._lastoutsync = Some(lastaccess)
+      edge._lastinsync = Some(lastaccess)
+      edge
+    }
   }
 
   object writevalue
-  protected[lgraph] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
+  protected[lspace] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
     writevalue
       .synchronized {
         valueStore.cachedById(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
@@ -230,29 +236,29 @@ trait LGraph extends Graph {
             val label: DataType[T] = _label
             val graph: LGraph      = thisgraph
           }
-//          valueStore.cache(gValue.asInstanceOf[GValue[_]])
+          valueStore.cache(gValue.asInstanceOf[GValue[_]])
           gValue
         }
       }
       .asInstanceOf[GValue[T]]
 
-  override protected def createValue[T](id: Long, value: T, dt: DataType[T]): GValue[T] = {
-    val rv         = super.createValue(id, value, dt)
-    val lastaccess = LResource.getLastAccessStamp()
-    rv._lastoutsync = Some(lastaccess)
-    rv._lastinsync = Some(lastaccess)
-    rv
+  override protected def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
+    for { rv <- super.createValue(id, value, dt) } yield {
+      val lastaccess = LResource.getLastAccessStamp()
+      rv._lastoutsync = Some(lastaccess)
+      rv._lastinsync = Some(lastaccess)
+      rv
+    }
   }
 
-  protected def deleteResource[T <: _Resource[_]](resource: T): Unit = {
-    resource.asInstanceOf[LResource[Any]].outEMap().foreach {
+  protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] = {
+    Observable.fromIterable(resource.asInstanceOf[LResource[Any]].outEMap()).flatMap {
       case (key, properties) =>
-        properties.foreach(edge => edge.to.removeIn(edge))
-    }
-    resource.asInstanceOf[LResource[Any]].inEMap().foreach {
+        Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
+    } ++ Observable.fromIterable(resource.asInstanceOf[LResource[Any]].inEMap()).flatMap {
       case (key, properties) =>
-        properties.foreach(edge => edge.from.removeOut(edge))
-    }
+        Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
+    } completedL
   }
 
   override def transaction: Transaction = LTransaction(thisgraph)
@@ -263,7 +269,7 @@ trait LGraph extends Graph {
     super
       .close()
       .flatMap { u =>
-        storeManager.close().runToFuture(monix.execution.Scheduler.global)
-      }(monix.execution.Scheduler.global)
+        storeManager.close().runToFuture(lspace.Implicits.Scheduler.global)
+      }(lspace.Implicits.Scheduler.global)
   }
 }

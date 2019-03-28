@@ -1,10 +1,5 @@
 package lspace.librarian.logic.predicate
 
-import lspace.librarian.logic.predicate.P._
-import lspace.librarian.logic.predicate.{P, PredicateDef, PredicateWrapper, SeqP}
-import lspace.provider.detached.DetachedGraph
-import lspace.structure._
-
 //object StartsWithPattern
 //    extends PredicateDef("StartsWithPattern", `@extends` = () => List(SeqP.ontology))
 //    with PredicateWrapper[StartsWithPattern[_]] {
@@ -29,6 +24,6 @@ import lspace.structure._
 //case class StartsWithPattern[T](pvalue: List[P[T]])(implicit helper: SeqHelper[List[P[T]]]) extends SeqP[List[P[T]]] {
 //  def assert(avalue: Any): Boolean = helper.startsWith(avalue, pvalue.toList)
 //
-//  lazy val toNode: Node            = this
+//  lazy val toNode: Task[Node]            = this
 //  override def prettyPrint: String = s"prefix($pvalue)"
 //}
