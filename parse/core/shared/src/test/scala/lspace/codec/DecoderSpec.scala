@@ -33,7 +33,7 @@ trait DecoderSpec extends AsyncWordSpec with Matchers {
             .exists(_.range(lspace.Label.D.`@string`.iri).isDefined) shouldBe true
           ontology.properties("https://schema.org/colleagues").isDefined shouldBe true
         }
-        .timeout(10.seconds)
+        .timeout(15.seconds)
         .runToFuture
     }
   }

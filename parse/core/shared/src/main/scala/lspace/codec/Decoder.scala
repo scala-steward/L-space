@@ -885,7 +885,7 @@ trait Decoder {
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
             .get(types.`@extends`)
-            .orElse(expandedJson.get(types.rdfsSubClassOf))
+            .orElse(expandedJson.get(types.rdfsSubPropertyOf))
             .toList
             .flatMap(extractIris(_))
 
