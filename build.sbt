@@ -79,7 +79,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= coreJvmDeps
   )
   .jsSettings(
-    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     libraryDependencies ++= coreJsDeps.value
   )
 
@@ -96,7 +96,7 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= parseJvmDeps
   )
   .jsSettings(
-    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     libraryDependencies ++= parseJsDeps.value
   )
 
@@ -112,7 +112,7 @@ lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .jvmSettings(
   )
   .jsSettings(
-    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv()
+    jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv()
   )
 
 lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
@@ -127,7 +127,7 @@ lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .jvmSettings(
   )
   .jsSettings(
-    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv()
+    jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv()
   )
 
 lazy val client =
@@ -144,7 +144,7 @@ lazy val client =
       libraryDependencies ++= clientJvmDeps
     )
     .jsSettings(
-      jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+      jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
       libraryDependencies ++= clientJsDeps.value
     )
 

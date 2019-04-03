@@ -20,6 +20,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
   import SampleGraph.properties._
 
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
   implicit def guide: Guide[Observable]
 
 //  def take = afterWord("take")
@@ -289,7 +290,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             garrison <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/56789").headL
             a = garrison.labels shouldBe List(person)
             b <- sampleGraph.nodes.count().map(_ shouldBe 10)
-          } yield succeed).timeout(400.millis).runToFuture
+          } yield succeed).timeout(4000.millis).runToFuture
         }
         "contains certain edges" in {
           (for {
@@ -297,7 +298,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             _      <- sampleGraph.edges().find(e => e.key == name.property).headL.map(_.key shouldBe name.property)
             _      <- sampleGraph.nodes.count().map(_ shouldBe 10)
             _      <- sampleGraph.edges.count().map(_ shouldBe 58)
-          } yield succeed).timeout(400.millis).runToFuture
+          } yield succeed).timeout(4000.millis).runToFuture
         }
         "contains certain values" in {
           sampleGraph.values.count().map(_ shouldBe 38).timeout(400.millis).runToFuture
@@ -325,7 +326,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
         } yield {
           newGraph.close()
           succeed
-        }).timeout(400.millis).runToFuture
+        }).timeout(4000.millis).runToFuture
       }
     }
   }

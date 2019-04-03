@@ -54,7 +54,7 @@ object MemGraph {
           lazy val index: MemIndexGraph = this
         }
       }
-      init
+      init.runToFuture(lspace.Implicits.Scheduler.global)
     }
 
     graph
@@ -63,10 +63,14 @@ object MemGraph {
 }
 
 trait MemGraph extends Graph {
+//  type _Resource[T] = _Resource[T] with MemResource[T]
+//  type GNode        = _Node with MemNode //with _Resource[Node]
+//  type GEdge[S, E]  = _Edge[S, E] with MemEdge[S, E] //with _Resource[Edge[S, E]]
+//  type GValue[T]    = _Value[T] with MemValue[T] //with _Resource[T]
   type GResource[T] = _Resource[T] with MemResource[T]
-  type GNode        = _Node with MemNode //with GResource[Node]
-  type GEdge[S, E]  = _Edge[S, E] with MemEdge[S, E] //with GResource[Edge[S, E]]
-  type GValue[T]    = _Value[T] with MemValue[T] //with GResource[T]
+  type GNode        = _Node with MemNode
+  type GEdge[S, E]  = _Edge[S, E] with MemEdge[S, E]
+  type GValue[T]    = _Value[T] with MemValue[T]
 
   def transaction: Transaction = MemTransaction(thisgraph)
 
@@ -87,16 +91,16 @@ trait MemGraph extends Graph {
           val id              = _id
           val graph: MemGraph = thisgraph
         }
-        nodeStore.cache(node.asInstanceOf[GNode])
+        nodeStore.cache(node.asInstanceOf[_Node])
         node
       }
       .asInstanceOf[GNode]
   }
 
-  override protected[mem] def storeNode(node: GNode): Task[Unit] = super.storeNode(node)
+  override protected[lspace] def storeNode(node: _Node): Task[Unit] = super.storeNode(node)
 
   protected[this] val newEdgeLock = new Object
-  protected[lspace] def newEdge[S, E](id: Long, from: GResource[S], key: Property, to: GResource[E]): GEdge[S, E] =
+  protected[lspace] def newEdge[S, E](id: Long, from: _Resource[S], key: Property, to: _Resource[E]): GEdge[S, E] =
     newEdgeLock
       .synchronized {
         edgeStore.cached.hasId(id).getOrElse {
@@ -106,44 +110,44 @@ trait MemGraph extends Graph {
           def _to   = to
           val edge = new _Edge[S, E] with MemEdge[S, E] {
             val id: Long           = _id
-            val from: GResource[S] = _from
+            val from: _Resource[S] = _from
             val key: Property      = _key
-            val to: GResource[E]   = _to
+            val to: _Resource[E]   = _to
             val graph: MemGraph    = thisgraph
           }
-          edgeStore.cache(edge.asInstanceOf[GEdge[_, _]])
+          edgeStore.cache(edge.asInstanceOf[_Edge[_, _]])
           edge
         }
       }
       .asInstanceOf[GEdge[S, E]]
 
-//  protected[mem] def newEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] = {
+//  protected[mem] def newEdge(id: Long, from: Long, key: Property, to: Long): _Edge[Any, Any] = {
 //    val _from = resources
 //      .hasId(from)
-//      .map(_.asInstanceOf[GResource[Any]])
+//      .map(_.asInstanceOf[_Resource[Any]])
 //      .getOrElse {
 //        throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
 //      }
 //    val _to =
 //      resources
 //        .hasId(to)
-//        .map(_.asInstanceOf[GResource[Any]])
+//        .map(_.asInstanceOf[_Resource[Any]])
 //        .getOrElse {
 //          throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
 //        }
 //
 //    val edge = createEdge(id, _from, key, _to)
-//    edge.asInstanceOf[GEdge[Any, Any]]
+//    edge.asInstanceOf[_Edge[Any, Any]]
 //  }
 
-//  override protected[mem] def createEdge(id: Long, from: Long, key: Property, to: Long): GEdge[Any, Any] =
-//    super.createEdge(id, from, key, to).asInstanceOf[GEdge[Any, Any]]
+//  override protected[mem] def createEdge(id: Long, from: Long, key: Property, to: Long): _Edge[Any, Any] =
+//    super.createEdge(id, from, key, to).asInstanceOf[_Edge[Any, Any]]
 
   protected[this] val newValueLock = new Object
   protected[lspace] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
     newValueLock
       .synchronized {
-        valueStore.cached.hasId(id).map(_.asInstanceOf[GValue[T]]).getOrElse {
+        valueStore.cached.hasId(id).map(_.asInstanceOf[_Value[T]]).getOrElse {
           def _id    = id
           def _value = value
           def _label = label

@@ -14,11 +14,6 @@ import monix.eval.Task
 import scribe._
 import shapeless.{CNil, HList}
 
-//object TraversalService {
-//  type Aux[Json0] = TraversalService { type Json = Json0 }
-//  def apply[Json0](graph: Graph)(implicit baseDecoder: NativeTypeDecoder.Aux[Json0]): TraversalService.Aux[Json0] =
-//    new TraversalService(graph) { type Json = Json0 }
-//}
 object TraversalService {
   def apply[Json0](graph0: Graph)(implicit baseDecoder0: NativeTypeDecoder.Aux[Json0],
                                   baseEncoder0: NativeTypeEncoder.Aux[Json0]): TraversalService =

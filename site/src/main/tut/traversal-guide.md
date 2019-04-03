@@ -71,10 +71,11 @@ position: 3
   
 ```tut:invisible
 import lspace._
-import Label.D._
+import Implicits.Scheduler.global
 import Implicits.SyncGuide.guide
 import lspace.provider.mem.MemGraph
 import lspace.structure._
+import Label.D._
 import lspace.util.SampleGraph
 ```
 ## Overview
@@ -106,7 +107,8 @@ Graph-selection step to point the librarian to a specific part of the L-space
 (we would not want to defy the large quantity of knowledge from the whole multiverse has to offer).
 ```tut:book
 val graph: Graph = MemGraph("librarian-doc")
-SampleGraph.loadSocial(graph)
+import scala.concurrent.duration._
+scala.concurrent.Await.ready(lspace.util.SampleGraph.loadSocial(graph).runToFuture, 5.seconds)
 val labels = SampleGraph.ontologies
 val keys = SampleGraph.properties
 ```

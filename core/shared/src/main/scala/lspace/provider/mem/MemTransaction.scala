@@ -84,25 +84,25 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
           parent.newEdge[Any, Any](
             edge.id,
             edge.from match {
-              case r: _TNode       => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TEdge[_, _] => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TValue[_]   => r.self.asInstanceOf[parent.GResource[Any]]
+              case r: _TNode       => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TEdge[_, _] => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TValue[_]   => r.self.asInstanceOf[parent._Resource[Any]]
               case r =>
                 parent.resources.cached
                   .hasId(r.id)
                   .get
-                  .asInstanceOf[parent.GResource[Any]]
+                  .asInstanceOf[parent._Resource[Any]]
             },
             edge.key,
             edge.to match {
-              case r: _TNode       => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TEdge[_, _] => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TValue[_]   => r.self.asInstanceOf[parent.GResource[Any]]
+              case r: _TNode       => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TEdge[_, _] => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TValue[_]   => r.self.asInstanceOf[parent._Resource[Any]]
               case r =>
                 parent.resources.cached
                   .hasId(r.id)
                   .get
-                  .asInstanceOf[parent.GResource[Any]]
+                  .asInstanceOf[parent._Resource[Any]]
             }
           )
         }

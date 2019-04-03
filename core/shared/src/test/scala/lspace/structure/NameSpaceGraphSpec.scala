@@ -7,13 +7,14 @@ import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 
 trait NameSpaceGraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   def nameSpaceGraphTests(graph: Graph) =
     "a namespace graph" must {
-      "have an ontologies API" which {}
-      "have an properties API" which {}
-      "have a datatypes API" which {}
-      "have a classtypes API" which {}
+//      "have an ontologies API" which {}
+//      "have an properties API" which {}
+//      "have a datatypes API" which {}
+//      "have a classtypes API" which {}
 
       "be provided with default ontologies, properties and datatypes" in {
         graph.ns.ontologies.cached(types.`@class`).isDefined shouldBe true

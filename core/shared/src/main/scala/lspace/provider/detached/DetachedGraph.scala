@@ -41,19 +41,19 @@ object DetachedGraph extends MemDataGraph {
     }
   }
 
-  override protected[provider] def storeNode(node: GNode): Task[Unit] = Task.unit
+  override protected[lspace] def storeNode(node: _Node): Task[Unit] = Task.unit
 
-  override protected def storeEdge(edge: GEdge[_, _]): Task[Unit] = Task {
+  override protected[lspace] def storeEdge(edge: _Edge[_, _]): Task[Unit] = Task {
     edge.from
       .asInstanceOf[MemResource[Any]]
       ._addOut(edge.asInstanceOf[Edge[Any, _]])
   }
 
-  override protected def _indexEdge[S, E](edge: GEdge[S, E]): Task[Unit] = Task.unit
+  override protected[lspace] def indexEdge[S, E](edge: _Edge[S, E]): Task[Unit] = Task.unit
 
-  override protected def storeValue(value: GValue[_]): Task[Unit] = Task.unit
+  override protected[lspace] def storeValue(value: _Value[_]): Task[Unit] = Task.unit
 
-//  override protected def _indexValue(value: GValue[_]): Unit = {}
+//  override protected def _indexValue(value: _Value[_]): Unit = {}
 
 //  override def nodes.upsert(uri: String, uris: Set[String] = Set()): Node = {
 //    val node = createNode()

@@ -2,7 +2,9 @@ package lspace.lgraph.store
 
 import java.time.Instant
 
+import lspace.Label
 import lspace.lgraph.LGraph
+import lspace.structure.Node
 import lspace.structure.store.NodeStore
 import monix.eval.Task
 import monix.reactive.Observable
@@ -39,9 +41,13 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     val cachedResult = cachedByIri(iri).filterNot(e => isDeleted(e.id))
     Observable.fromIterable(cachedResult) ++
       graph.storeManager
-        .nodeByIri(iri)
+        .valueByValue(iri, Label.D.`@string`)
+        .map(_.id)
+        .flatMap(graph.storeManager.edgesByToIdAndKey(_, Label.P.`@id`).asInstanceOf[Observable[graph.GEdge[Any, Any]]])
+        .map(_.from)
+        .collect { case node: Node => node }
         .asInstanceOf[Observable[T2]]
-        .filter(!cachedResult.toSet.contains(_))
+        .filter(v => !cachedResult.toSet.contains(v) && !isDeleted(v.id))
         .executeOn(LStore.ec)
   }
 
@@ -49,9 +55,13 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     val cachedResult = iri.flatMap(iri => cachedByIri(iri).filterNot(e => isDeleted(e.id)))
     Observable.fromIterable(cachedResult) ++
       graph.storeManager
-        .nodesByIri(iri.toList)
+        .valuesByValue(iri.toList.map(_ -> Label.D.`@string`))
+        .map(_.id)
+        .flatMap(graph.storeManager.edgesByToIdAndKey(_, Label.P.`@id`).asInstanceOf[Observable[graph.GEdge[Any, Any]]])
+        .map(_.from)
+        .collect { case node: Node => node }
         .asInstanceOf[Observable[T2]]
-        .filter(!cachedResult.contains(_))
+        .filter(v => !cachedResult.contains(v) && !isDeleted(v.id))
         .executeOn(LStore.ec)
   }
 

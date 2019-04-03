@@ -111,6 +111,12 @@ trait LStore[G <: LGraph] extends Store[G] {
     uncache(resource)
   }
 
+  def purge: Task[Unit] = Task.delay {
+    _cache.clear()
+    _cacheByIri.clear()
+    _deleted.clear()
+  }
+
   def all(): Observable[T2]
 
   def cached = new {

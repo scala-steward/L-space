@@ -34,7 +34,7 @@ trait Node extends Resource[Node] {
 
   def labels: List[Ontology]
 
-  protected def _addLabel(ontology: Ontology): Task[Unit] = {
+  protected[lspace] def _addLabel(ontology: Ontology): Task[Unit] = {
     graph.ns.ontologies.store(ontology).forkAndForget //.runToFuture(monix.execution.Scheduler.global)
 //    graph.ns.ontologies
 //      .get(ontology.iri)

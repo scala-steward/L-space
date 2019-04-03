@@ -11,6 +11,8 @@ trait DecoderSpec extends AsyncWordSpec with Matchers {
   def decoder: lspace.codec.Decoder
 
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
+
   scribe.Logger.root
     .clearHandlers()
     .clearModifiers()

@@ -15,8 +15,8 @@ jobs:
     - stage: test
       scala: 2.11.12
       install:
-        - npm install jsdom
-      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+      script: sbt ++$TRAVIS_SCALA_VERSION test #core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
       cache:
         directories:
           - $HOME/.ivy2/cache
@@ -25,8 +25,8 @@ jobs:
           - node_modules
     - scala: 2.12.8
       install:
-        - npm install jsdom
-      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+      script: sbt ++$TRAVIS_SCALA_VERSION test #core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
       cache:
         directories:
           - $HOME/.ivy2/cache
@@ -37,7 +37,7 @@ jobs:
       name: "Publish to Codecov"
       scala: 2.12.8
       install:
-        - npm install jsdom
+        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script:
         - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
         - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
@@ -48,34 +48,34 @@ jobs:
           - $HOME/.ivy2/cache
           - $HOME/.sbt
           - $HOME/.coursier
-#    - stage: publish pages
-#      name: "Publish to GitHub"
-#      scala: 2.12.8
-#      before_install:
-#        - export PATH=${PATH}:./vendor/bundle
-#      install:
-#        - gem update --system
-#        - gem install sass
-#        - gem install jekyll -v 3.8.5
-#      script: sbt ++$TRAVIS_SCALA_VERSION site/makeMicrosite
-#      cache:
-#        - bundler
-#        - directories:
-#          - $HOME/.ivy2/cache
-#          - $HOME/.sbt
-#          - $HOME/.coursier
-#          - node_modules
-#          - /home/travis/.rvm/
-#      deploy:
-#        provider: pages
-#        skip-cleanup: true
-#        keep-history: true
-#        fqdn: docs.l-space.eu
-#        github-token: $GITHUB_TOKEN
-#        on:
-#          branch: master
-#        local-dir: site/target/jekyll
-#        target-branch: gh-pages
+    - stage: publish pages
+      name: "Publish to GitHub"
+      scala: 2.12.8
+      before_install:
+        - export PATH=${PATH}:./vendor/bundle
+      install:
+        - gem update --system
+        - gem install sass
+        - gem install jekyll -v 3.8.5
+      script: sbt ++$TRAVIS_SCALA_VERSION site/makeMicrosite
+      cache:
+        - bundler
+        - directories:
+          - $HOME/.ivy2/cache
+          - $HOME/.sbt
+          - $HOME/.coursier
+          - node_modules
+          - /home/travis/.rvm/
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        keep-history: true
+        fqdn: docs.l-space.eu
+        github-token: $GITHUB_TOKEN
+        on:
+          branch: master
+        local-dir: site/target/jekyll
+        target-branch: gh-pages
     - stage: release
       name: "Cross-publish to Sonatype"
       before_install: git fetch --tags

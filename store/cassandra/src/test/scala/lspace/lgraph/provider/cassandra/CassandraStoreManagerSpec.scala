@@ -2,71 +2,77 @@ package lspace.lgraph.provider.cassandra
 
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.MemIndexProvider
-import lspace.librarian.process.computer.TaskSpec
-import lspace.structure.{Graph, GraphSpec, NodeSpec}
-import lspace.structure.Property.default._
+import lspace.librarian.task.AsyncGuideSpec
+import lspace.structure.{Graph, GraphSpec, NameSpaceGraphSpec, NodeSpec, SampledGraph}
+import monix.eval.Task
+import org.scalatest.FutureOutcome
 
-class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with TaskSpec {
+class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec {
 
-  val store = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", 9042)
-  store.deleteAll()
-  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", 9042)
-  sampleStore.deleteAll()
+  implicit val guide = lspace.Implicits.AsyncGuide.guide
+  import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
-  val graph: LGraph =
-    LGraph(store, new MemIndexProvider)
-  val sampleGraph: LGraph =
-    LGraph(sampleStore, new MemIndexProvider)
+  implicit val baseEncoder = lspace.codec.argonaut.nativeEncoder
+  implicit val baseDecoder = lspace.codec.argonaut.nativeDecoder
+
   def createGraph(iri: String): Graph = {
     val storage = LCassandraStoreProvider(iri, "localhost", 9042)
-    storage.deleteAll()
-    LGraph(storage, new MemIndexProvider)
+    LGraph(storage, new MemIndexProvider, noinit = true)
   }
 
-  override def beforeAll: Unit = {
-    super.beforeAll
+  val store       = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", 9042)
+  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", 9042)
+
+  val initTask = (for {
+    _ <- Task.gatherUnordered(
+      Seq(
+        for {
+          _ <- graph.init
+          _ <- graph.purge
+        } yield (),
+        for {
+          _ <- sampleGraph.graph.init
+          _ <- sampleGraph.graph.purge
+          _ <- sampleGraph.load
+        } yield (),
+        for {
+          _ <- graphToPersist.graph.init
+          _ <- graphToPersist.graph.purge
+          _ <- graphToPersist.load
+          _ <- graphToPersist.graph.persist
+          _ <- graphToPersist.graph.close()
+          _ = Thread.sleep(10000)
+          _ <- samplePersistedGraph.graph.init
+        } yield ()
+      ))
+  } yield ()).memoize //OnSuccess
+
+  val graph: LGraph =
+    LGraph(store, new MemIndexProvider, noinit = true)
+  lazy val sampleGraph          = SampledGraph(createGraph("CassandraStorageManagerSpec-sample"))
+  lazy val graphToPersist       = SampledGraph(createGraph("CassandraStorageManagerSpec-persisted-sample"))
+  lazy val samplePersistedGraph = SampledGraph(createGraph("CassandraStorageManagerSpec-persisted-sample"))
+
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
+    new FutureOutcome(initTask.runToFuture flatMap { result =>
+      super.withFixture(test).toFuture
+    })
   }
 
-  override def afterAll(): Unit = {
-    super.afterAll()
-  }
-
-  "CassandraStoreManagerSpec" should {
-    "get 10,000 times from store" ignore {
-      val start = java.time.Instant.now().toEpochMilli
-      val id    = sampleGraph.nodes.hasIri("place-san_jose_de_maipo").head.id
-      (1 to 10000).foreach(_ => sampleGraph.nodes.hasId(id))
-      val end      = java.time.Instant.now().toEpochMilli
-      val duration = end - start
-      scribe.info(s"get 10,000 times from store took ${duration} milli-seconds")
+  "CassandraStoreManagerSpec" when {
+    "new" should {
+//      nameSpaceGraphTests(graph)
+//      graphTests(graph)
+//      nodeTests(graph)
+//      sampledGraphTests(sampleGraph)
+//      sampledNodeTests(sampleGraph)
+//      sampledGraphComputerTests(sampleGraph)
     }
-    "create 10,000 nodes with an iri" ignore {
-      val start       = java.time.Instant.now().toEpochMilli
-      val transaction = graph.transaction
-      (1 to 10000).foreach { i =>
-        val node = transaction.nodes.create()
-        node --- `@id` --> s"some-iri-10,000-$i"
-      }
-      transaction
-        .commit()
-
-      val end      = java.time.Instant.now().toEpochMilli
-      val duration = end - start
-      scribe.info(s"create 10,000 nodes took ${duration} milli-seconds")
-    }
-    "create 20,000 nodes with an iri" ignore {
-      val start       = java.time.Instant.now().toEpochMilli
-      val transaction = graph.transaction
-      (1 to 20000).foreach { i =>
-        val node = transaction.nodes.create()
-        node --- `@id` --> s"some-iri-20,000-$i"
-      }
-      transaction
-        .commit()
-
-      val end      = java.time.Instant.now().toEpochMilli
-      val duration = end - start
-      scribe.info(s"create 20,000 nodes took ${duration} milli-seconds")
+    "persisted" should {
+      sampledGraphTests(samplePersistedGraph)
+      sampledNodeTests(samplePersistedGraph)
+      sampledGraphComputerTests(samplePersistedGraph)
     }
   }
 }

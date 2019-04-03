@@ -4,6 +4,7 @@ import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.structure.util.IdProvider
 import lspace.structure.{DataGraph, History, NameSpaceGraph}
+import monix.eval.Task
 import monix.execution.CancelableFuture
 
 object LHistory {
@@ -31,7 +32,7 @@ object LHistory {
           lazy val index: LIndexGraph = this
 
           lazy val storeManager: StoreManager[this.type] = storeProvider.nsIndexManager(this)
-          lazy val indexManager: IndexManager[this.type] = indexProvider.nsIndexManager(this)
+          lazy val indexManager: IndexManager[this.type] = indexProvider.nsManager(this)
         }
         lazy val storeManager: StoreManager[this.type] = storeProvider.nsManager(this)
       }
@@ -53,13 +54,13 @@ object LHistory {
 //        }
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.indexManager(this)
-        lazy val indexManager: IndexManager[this.type] = indexProvider.indexManager(this)
+        lazy val indexManager: IndexManager[this.type] = indexProvider.dataManager(this)
       }
 
-      val stateManager: GraphManager[this.type] = storeProvider.stateManager(this)
-      override def idProvider: IdProvider       = stateManager.idProvider
+      val stateManager: GraphManager[this.type]             = storeProvider.stateManager(this)
+      override protected[lspace] def idProvider: IdProvider = stateManager.idProvider
 
-      override def close(): CancelableFuture[Unit] = CancelableFuture.unit
+      override def close(): Task[Unit] = Task.unit
 //      {
 //        super
 //          .close()

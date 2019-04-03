@@ -1,10 +1,12 @@
 package lspace.lgraph
 
-import monix.execution.CancelableFuture
+import monix.eval.Task
 
 abstract class GraphManager[G <: LGraph](val graph: G) {
 
   def idProvider: LGraphIdProvider
 
-  def close(): CancelableFuture[Unit]
+  def purge: Task[Unit]
+
+  def close(): Task[Unit]
 }

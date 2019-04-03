@@ -540,7 +540,7 @@ trait Decoder {
       case _                 => None
     }).map(_.asInstanceOf[T])
       .map(Task.now)
-      .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown LiteralType ${label.iri}")))
+      .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown LiteralType ${label.iri} for $json")))
 
   def toStructured[T](json: Json, label: StructuredType[T])(implicit activeContext: AC): Task[T] =
     label match {
@@ -1334,7 +1334,7 @@ trait Decoder {
                               .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
                           })
                       .flatMap { list =>
-                        Task.gatherUnordered {
+                        Task.sequence {
                           list.map {
                             case (ac, obj) =>
                               val expandedJson = obj.expand(ac)
@@ -1342,7 +1342,9 @@ trait Decoder {
                                 .extractId(ac)
                                 .map(_.iri)
                                 .map { iri =>
-                                  prepareClassType(expandedJson - types.`@context`).memoizeOnSuccess
+                                  prepareClassType(expandedJson - types.`@context`)
+                                    .timeout(5000.millis)
+                                    .memoizeOnSuccess
                                 }
                                 .get
                           }
@@ -1394,7 +1396,7 @@ trait Decoder {
                               .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
                           })
                       .flatMap { list =>
-                        Task.gatherUnordered {
+                        Task.sequence {
                           list.map {
                             case (ac, obj) =>
                               val expandedJson = obj.expand(ac)
@@ -1402,7 +1404,9 @@ trait Decoder {
                                 .extractId(ac)
                                 .map(_.iri)
                                 .map { iri =>
-                                  prepareClassType(expandedJson - types.`@context`).memoizeOnSuccess
+                                  prepareClassType(expandedJson - types.`@context`)
+                                    .timeout(5000.millis)
+                                    .memoizeOnSuccess
                                 }
                                 .get
                           }
@@ -1450,6 +1454,7 @@ trait Decoder {
           scribe.trace(s"adding remove task, $iri is build")
           Task.delay(fetchingInProgress.remove(iri)).delayExecution(30 seconds).forkAndForget
         case Some(e) =>
+          e.printStackTrace()
           scribe.error(s"failure? : ${e.getMessage}")
           Task.now(fetchingInProgress.remove(iri))
       }.memoizeOnSuccess

@@ -16,5 +16,7 @@ class MemGraphManager[G <: LGraph](override val graph: G) extends GraphManager[G
     override def next: Task[Long]          = Task.now(id.incrementAndGet())
   }
 
-  override def close(): CancelableFuture[Unit] = CancelableFuture.unit
+  def purge: Task[Unit] = Task.unit
+
+  override def close(): Task[Unit] = Task.unit
 }

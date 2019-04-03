@@ -371,7 +371,7 @@ object DataType
 trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
-  val iris: Set[String]                           = Set() + iri
+  def iris: Set[String]                           = Set() + iri
   def _extendedClasses: () => List[DataType[Any]] = () => List()
   def _properties: () => List[Property]           = () => List()
 
@@ -379,6 +379,7 @@ trait DataType[+T] extends ClassType[T] { self =>
 //  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
   object extendedClasses {
     def apply(): List[DataType[Any]] = extendedClassesList()
+    def all(): Set[DataType[Any]]    = extendedClasses().toSet ++ extendedClasses().flatMap(_.extendedClasses.all())
     def apply(iri: String): Boolean =
       extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
 

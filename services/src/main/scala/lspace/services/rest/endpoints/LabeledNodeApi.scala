@@ -35,7 +35,7 @@ class LabeledNodeApi(
   //  import monix.execution.Scheduler.global
 
   import lspace.Implicits.Scheduler.global
-  val label = ontology.label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
+  val label = ontology.iri.reverse.takeWhile(_ != '/').reverse.toLowerCase() //label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
 
   import lspace._
   import Implicits.AsyncGuide._
@@ -64,32 +64,12 @@ class LabeledNodeApi(
     idToNodeTask(id).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
   }
 
-//  def list: Endpoint[IO, PagedResult] = get(param[Int Refined Positive]("low") :: param[Int Refined Positive]("high")) {
-//    (low: Int Refined Positive, high: Int Refined Positive) =>
-//      graph.g.N.hasLabel(ontology).range(low.value, high.value).toObservable.toListL.map(PagedResult)
-//  }
   /**
     * GET /
     */
   def list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
     g.N.hasLabel(ontology).withGraph(graph).toListF.map(Ok).toIO
   }
-
-//  val create2: Endpoint[IO, Node] =
-//    post(bodyJson(ontology.properties.toList)).mapOutputAsync { node: Node =>
-//      Task {
-//        val t       = graph.transaction
-//        val newNode = t.nodes.create(ontology)
-//        newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-//        node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-//        newNode.addLabel(ontology)
-//        t ++ node.graph
-//        t.commit()
-//        Created(graph.nodes.hasId(newNode.id).get)
-//      }.onErrorHandle { f =>
-//        f.printStackTrace(); throw f
-//      }.toIO
-//    }
 
   def create: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
@@ -211,6 +191,51 @@ class LabeledNodeApi(
     } yield
       NoContent[Node]).onErrorHandle(f => NotFound(new Exception("cannot DELETE a resource which does not exist"))).toIO
   }
+
+  trait SparqlApi extends ExecutionApi {
+    def query: Endpoint[IO, List[Node]] = ???
+//    {
+//      import io.finch.internal.HttpContent
+//      implicit val decoder = Decoder(DetachedGraph)
+//      implicit val d1 = io.finch.Decode
+//        .instance[lspace.sparql.Select, lspace.services.codecs.Application.SPARQL] { (b, cs) =>
+//          Right(
+//            DecodeJsonLD.jsonldToTraversal
+//              .decode(b.asString(cs)))
+//        }
+//      get(body[lspace.sparql.Select, lspace.services.codecs.Application.SPARQL]) {
+//        traversalTask: Task[lspace.sparql.Select] =>
+//          traversalTask.flatMap { traversal =>
+//            traversal.untyped
+//              .withGraph(graph)
+//              .toListF
+//              .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
+//              .map(_.toList)
+//              .map(Ok)
+//          }.toIO
+//      }
+//    }
+    def mutate: Endpoint[IO, Unit]             = ???
+    def ask: Endpoint[IO, Boolean]             = ???
+    def subscription: Endpoint[IO, List[Node]] = ???
+  }
+  object sparql extends SparqlApi
+
+  trait GraphqlApi extends ExecutionApi {
+    def query: Endpoint[IO, List[Node]]        = ???
+    def mutate: Endpoint[IO, Unit]             = ???
+    def ask: Endpoint[IO, Boolean]             = ???
+    def subscription: Endpoint[IO, List[Node]] = ???
+  }
+  object graphql extends GraphqlApi
+
+  trait LibrarianApi extends ExecutionApi {
+    def query: Endpoint[IO, List[Node]]        = ???
+    def mutate: Endpoint[IO, Unit]             = ???
+    def ask: Endpoint[IO, Boolean]             = ???
+    def subscription: Endpoint[IO, List[Node]] = ???
+  }
+  object librarian extends LibrarianApi
 
   /**
     * GET /

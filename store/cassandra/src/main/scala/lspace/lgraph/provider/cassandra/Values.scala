@@ -6,12 +6,14 @@ import com.outworkers.phantom.dsl._
 import scala.concurrent.Future
 
 abstract class Values extends Table[Values, Value] {
-  object id    extends LongColumn with PartitionKey
-  object iri   extends LongColumn
-  object iris  extends SetColumn[Long]
-  object label extends LongColumn
-  object value extends StringColumn
-  object props extends MapColumn[Long, List[Long]]
+  object id        extends LongColumn with PartitionKey
+  object iri       extends OptionalStringColumn
+  object iriEdge   extends OptionalCol[(Long, Long)]
+  object iris      extends SetColumn[String]
+  object irisEdges extends ListColumn[(Long, Long)]
+  object label     extends StringColumn
+  object context0  extends StringColumn
+  object value     extends StringColumn
 
   def findById(id: Long) = {
     select.where(_.id eqs id).fetchRecord()
@@ -26,12 +28,14 @@ abstract class Values extends Table[Values, Value] {
 }
 
 abstract class ValuesByValue extends Table[ValuesByValue, Value] {
-  object id    extends LongColumn with PrimaryKey
-  object iri   extends LongColumn
-  object iris  extends SetColumn[Long]
-  object label extends LongColumn
-  object value extends StringColumn with PartitionKey
-  object props extends MapColumn[Long, List[Long]]
+  object id        extends LongColumn with PrimaryKey
+  object iri       extends OptionalStringColumn
+  object iriEdge   extends OptionalCol[(Long, Long)]
+  object iris      extends SetColumn[String]
+  object irisEdges extends ListColumn[(Long, Long)]
+  object label     extends StringColumn
+  object context0  extends StringColumn
+  object value     extends StringColumn with PartitionKey
 
   def findByValue(value: String, pagingState: Option[PagingState] = None) = {
     select.where(_.value eqs value).paginateRecord(pagingState)
@@ -44,23 +48,25 @@ abstract class ValuesByValue extends Table[ValuesByValue, Value] {
   def delete(id: Long, value: String) = super.delete.where(_.id eqs id).and(_.value eqs value)
 //  def delete(values: List[String]) = delete.where(_.value in values)
 }
-
-abstract class ValuesByIri extends Table[ValuesByIri, Value] {
-  object id    extends LongColumn with PrimaryKey
-  object iri   extends LongColumn with PartitionKey
-  object iris  extends SetColumn[Long]
-  object label extends LongColumn
-  object value extends StringColumn
-  object props extends MapColumn[Long, List[Long]]
-
-  def findByIri(iri: Long, pagingState: Option[PagingState] = None) = {
-    select.where(_.iri eqs iri).paginateRecord(pagingState)
-  }
-
-  def findByIris(iris: List[Long], pagingState: Option[PagingState] = None) = {
-    select.where(_.iri in iris).paginateRecord(pagingState)
-  }
-
-  def delete(id: Long, iri: Long) = super.delete.where(_.id eqs id).and(_.iri eqs iri)
-//  def delete(iris: List[Long]) = delete.where(_.iri in iris)
-}
+//
+//abstract class ValuesByIri extends Table[ValuesByIri, Value] {
+//  object id        extends LongColumn with PrimaryKey
+//  object iri       extends OptionalStringColumn with PartitionKey
+//  object iriEdge   extends OptionalCol[(Long, Long)]
+//  object iris      extends SetColumn[String]
+//  object irisEdges extends ListColumn[(Long, Long)]
+//  object label     extends StringColumn
+//  object context0  extends StringColumn
+//  object value     extends StringColumn
+//
+//  def findByIri(iri: String, pagingState: Option[PagingState] = None) = {
+//    select.where(_.iri eqs Some(iri)).paginateRecord(pagingState)
+//  }
+//
+//  def findByIris(iris: List[String], pagingState: Option[PagingState] = None) = {
+//    select.where(_.iri in iris.map(Some(_))).paginateRecord(pagingState)
+//  }
+//
+//  def delete(id: Long) = super.delete.where(_.id eqs id)
+////  def delete(iris: List[Long]) = delete.where(_.iri in iris)
+//}

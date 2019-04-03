@@ -9,6 +9,7 @@ class MemStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
   implicit lazy val guide = lspace.Implicits.AsyncGuide.guide
   import lspace._
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   def createGraph(iri: String): Graph = {
     val storage = MemStoreProvider(iri)

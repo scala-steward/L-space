@@ -325,4 +325,26 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
           throw new Exception(s"unsupported valuestore-type, @type to valuestore on is ${value.label.iri}")
       }
     }
+
+  override def purge: Task[Unit] =
+    for {
+      _ <- super.purge
+      _ <- Task {
+        intCache.clear()
+        doubleCache.clear()
+        longCache.clear()
+        stringCache.clear()
+        booleanCache.clear()
+        datetimeCache.clear()
+        localdatetimeCache.clear()
+        dateCache.clear()
+        timeCache.clear()
+        geopointCache.clear()
+        mapCache.clear()
+        listsetCache.clear()
+        setCache.clear()
+        listCache.clear()
+        vectorCache.clear()
+      }
+    } yield ()
 }

@@ -1,3 +1,3 @@
 package lspace.lgraph.provider.cassandra
 
-case class State(name: String, last: Long)
+case class State(name: String, last: Long, iri: String)

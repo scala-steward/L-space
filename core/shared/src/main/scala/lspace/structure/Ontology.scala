@@ -254,11 +254,6 @@ object Ontology {
   *
   * @param iri
   * @param iris
-  * @param _properties common meta-properties
-  * @param label a human-readable name
-  * @param comment a human-readable description
-  * @param _extendedClasses inherited ontologies
-  * @param base base-iri of the resource typed with this ontology
   */
 class Ontology(val iri: String,
                val iris: Set[String] = Set()
@@ -276,6 +271,7 @@ class Ontology(val iri: String,
     : Coeval[List[Ontology]] = Coeval.now(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
   object extendedClasses {
     def apply(): List[Ontology] = extendedClassesList.value()
+    def all(): Set[Ontology]    = extendedClasses().toSet ++ extendedClasses().flatMap(_.extendedClasses.all())
     def apply(iri: String): Boolean =
       extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
 

@@ -20,6 +20,8 @@ position: 2
  
  ```tut:invisible
  import lspace._
+ import lspace.Implicits.Scheduler.global
+ import lspace.Implicits.SyncGuide.guide
  import lspace.provider.mem.MemGraph
  import lspace.structure._
  import Label.D._
@@ -41,7 +43,8 @@ Values have a data-value and values can have edges.
 create a graph
  ```tut:book
  val graph: Graph = MemGraph("graph-doc")
- SampleGraph.loadSocial(graph)
+ import scala.concurrent.duration._
+ scala.concurrent.Await.ready(lspace.util.SampleGraph.loadSocial(graph).runToFuture, 5.seconds)
  val labels = SampleGraph.ontologies
  val keys = SampleGraph.properties
  ```
@@ -50,7 +53,8 @@ create a graph
 First steps:
 ```
 import lspace._ //easy access to common object (types)
-import lspace.Implicits.SyncGuide.guide 
+import lspace.Implicits.Scheduler.global //default scheduler (execution context)
+import lspace.Implicits.SyncGuide.guide //graph-engine
 //import lspace.Implicits.AsyncGuide.guide //async execution of traversals
 //import lspace.Implicits.RemoteGuide.guide //async remote execution of traversals (w.i.p.)
 ```
@@ -62,7 +66,7 @@ A graph always has a name, ideally this would be a url so it can be referenced.
 
 Before continuing reading and learning, first load some sample-data:
 ```
-lspace.util.SampleGraph.loadSocial(graph)
+lspace.util.SampleGraph.loadSocial(graph).runToFuture
 ```
 
 Graphs have a some basis API's which allows for reading from and writing to the graph. 
@@ -80,16 +84,17 @@ hasIri
 graph.resources.hasIri("graph-doc/place/123")
 graph.resources.hasIri("graph-doc/place/123", "graph-doc/person/123")
 ```
+
 hasId
 ```tut:book
-val id = graph.resources.hasIri("graph-doc/place/123").head.id
-graph.resources.hasId(id)
+graph.resources.hasId(1001L).id
 ```
+
 upsert
 ```tut:book
-graph.values.create("some-literal").id
-graph.values.create("some-literal").id //should be equal because values are deduplicated
-graph.values.create("some-literal2").id //new value, hence new id
+graph.values.create("some-literal")
+graph.values.create("some-literal") //should be equal because values are deduplicated
+graph.values.create("some-literal2") //new value, hence new id
 ```
 count:
 ```tut:book
@@ -104,14 +109,13 @@ Nodes can be:
 
 Retrieved by Iri(s)/Uri(s):
 ```tut:book
-graph.resources.hasIri("graph-doc/place/123")
-graph.resources.hasIri("graph-doc/place/123", "graph-doc/person/123")
+graph.nodes.hasIri("graph-doc/place/123")
+graph.nodes.hasIri("graph-doc/place/123", "graph-doc/person/123")
 ```
  
 Retrieved by Id(s):
 ```tut:book
-val id = graph.resources.hasIri("graph-doc/place/123").head.id
-graph.resources.hasId(id)
+graph.nodes.hasId(1002L)
 ```
 
 Counted:

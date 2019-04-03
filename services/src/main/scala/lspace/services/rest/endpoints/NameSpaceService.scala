@@ -37,7 +37,6 @@ trait NameSpaceService extends Api {
 
   /**
     * retrieve a single resource
-    * @param uri
     * @return
     */
   val getResource: Endpoint[IO, String] = get(paths[String]) { (paths: List[String]) =>

@@ -11,6 +11,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
   import SampleGraph.ontologies._
   import SampleGraph.properties._
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   def nodeTests(graph: Graph) = {
     "Nodes" can {

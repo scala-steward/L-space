@@ -7,7 +7,8 @@ import lspace.datatype.DataType.default.{`@double`, `@int`, `@string`}
 import lspace.{g, P}
 import lspace.structure._
 import lspace.util.SampleGraph
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import monix.eval.Task
+import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 
 //trait GuideSpec[F[_]] extends Matchers {
 //  implicit def guide: Guide[F]
@@ -29,7 +30,9 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 //    )
 //  }
 //}
-trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
+trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
+
+  import lspace.Implicits.Scheduler.global
 
   implicit def guide: Guide[Stream]
 
@@ -46,25 +49,28 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
 //      g.N.out().withGraph(sampleGraph)
 
     """N.outMap()""" in {
-      g.N.outMap().withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
+      g.N.outMap().withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).task.runToFuture
     }
     """N.outMap().hasLabel(`@int`)""" in {
-      g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).value
+      g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).task.runToFuture
     }
     """N.has("name", P.eqv("Garrison")).outMap()""" in {
-      g.N.has("name", P.eqv("Garrison")).outMap().withGraph(sampleGraph).headF.map(_.size shouldBe 5).value
+      g.N.has("name", P.eqv("Garrison")).outMap().withGraph(sampleGraph).headF.map(_.size shouldBe 5).task.runToFuture
     }
     "N.out().hasLabel(ontologies.person)" in {
-      g.N.out().hasLabel(ontologies.person).withGraph(sampleGraph).toListF
-      val nodes = g.N.withGraph(sampleGraph).toListF.value
-      nodes.nonEmpty shouldBe true
-      nodes.forall(_.isInstanceOf[Node]) should be(true)
+//      g.N.out().hasLabel(ontologies.person).withGraph(sampleGraph).toListF.task.runToFuture
+      (for {
+        nodes <- g.N.withGraph(sampleGraph).toListF
+      } yield {
+        nodes.nonEmpty shouldBe true
+        nodes.forall(_.isInstanceOf[Node]) should be(true)
+      }).task.runToFuture
     }
     "N.has(properties.birthDate)" in {
       import lspace.librarian.traversal._
       (sampleGraph *> g.N
         .has(properties.birthDate)
-        .count()).headF.value shouldBe 6
+        .count()).headF.map(_ shouldBe 6).task.runToFuture
     }
     """N.has(properties.birthDate, P.gt(LocalDate.parse("2002-06-13")))""" in {
       g.N
@@ -72,7 +78,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2
+        .map(_ shouldBe 2)
+        .task
+        .runToFuture
     }
     """N.has(properties.birthDate, P.gte(LocalDate.parse("2002-06-13")))""" in {
       g.N
@@ -80,7 +88,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
     }
     """N.has(properties.birthDate, P.lt(LocalDate.parse("2002-06-13")))""" in {
       g.N
@@ -88,7 +98,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
     }
     """N.has(properties.birthDate, P.lte(LocalDate.parse("2002-06-13")))""" in {
       g.N
@@ -96,7 +108,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 4
+        .map(_ shouldBe 4)
+        .task
+        .runToFuture
     }
     """N.has(properties.birthDate, P.inside(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))""" in {
       g.N
@@ -104,7 +118,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2
+        .map(_ shouldBe 2)
+        .task
+        .runToFuture
     }
     """N.has(properties.birthDate, P.outside(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))""" in {
       g.N
@@ -112,7 +128,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
     }
     """N.has(properties.birthDate, P.between(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))""" in {
       g.N
@@ -120,7 +138,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
     }
     "N.where(_.has(properties.balance)).out(properties.name)" in {
       g.N
@@ -128,8 +148,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out(properties.name)
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .toSet shouldBe Set("Yoshio", "Levi", "Gray", "Kevin", "Stan")
+        .map(_.toSet shouldBe Set("Yoshio", "Levi", "Gray", "Kevin", "Stan"))
+        .task
+        .runToFuture
     }
     "N.and(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(3000))).count" in {
       g.N
@@ -137,7 +158,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2
+        .map(_ shouldBe 2)
+        .task
+        .runToFuture
 
     }
     "N.or(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(-200))).count" in {
@@ -146,7 +169,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
 
     }
     "N.union(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(-200))).count" in {
@@ -155,7 +180,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
       //      Traversal.WithTraversalStream(g.V.hasLabel(listType[Double])).toList
       //      g.N.out().hasLabel(listType[Double]).toList
       //      g.N.out().hasLabel(listType[Double], listType[Int]).toList.head
@@ -172,7 +199,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .local(_.out(properties.name).count)
         .withGraph(sampleGraph)
         .toListF
-        .value shouldBe List(1, 1, 1, 1, 1, 1)
+        .map(_ shouldBe List(1, 1, 1, 1, 1, 1))
+        .task
+        .runToFuture
 
     }
     "N.coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200))).count" in {
@@ -181,7 +210,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 3
+        .map(_ shouldBe 3)
+        .task
+        .runToFuture
 
     }
     "N.not(_.has(Property.default.`@label`))" in {
@@ -189,8 +220,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .not(_.has(Property.default.`@label`))
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .nonEmpty shouldBe true
+        .map(_.nonEmpty shouldBe true)
+        .task
+        .runToFuture
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
       val x = g.N
@@ -200,16 +232,17 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .withGraph(sampleGraph)
         .toMap
 
-      x shouldBe Map((List(ontologies.person) -> List((List("Levi"), List()))))
+      Task(x shouldBe Map((List(ontologies.person) -> List((List("Levi"), List()))))).runToFuture
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
-      g.N
-        .hasIri(sampleGraph.iri + "/person/12345")
-        .group(_.out(properties.knows).count())
-        .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
-        .withGraph(sampleGraph)
-        .head shouldBe ((2, List((List("Levi"), List()))))
+      Task(
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .group(_.out(properties.knows).count())
+          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
+          .withGraph(sampleGraph)
+          .head shouldBe ((2, List((List("Levi"), List()))))).runToFuture
     }
 //    """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)""" in {
 //      g.N
@@ -228,7 +261,7 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .withGraph(sampleGraph)
         .toList
 
-      x.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List()))
+      Task(x.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List()))).runToFuture
 
     }
     "N.union(_.has(properties.balance, P.lt(0.0)), _.has(properties.balance, P.gt(2000.0)))" in {
@@ -241,8 +274,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out(properties.name)
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .toSet shouldBe Set("Levi", "Gray")
+        .map(_.toSet shouldBe Set("Levi", "Gray"))
+        .task
+        .runToFuture
 
     }
     "N.group(_.label())" in {
@@ -250,8 +284,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .group(_.label())
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .nonEmpty shouldBe true
+        .map(_.nonEmpty shouldBe true)
+        .task
+        .runToFuture
 
     }
     "N.group(_.label()).outMap()" in {
@@ -260,8 +295,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .outMap()
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .nonEmpty shouldBe true
+        .map(_.nonEmpty shouldBe true)
+        .task
+        .runToFuture
 
     }
     "N.group(_.label()).outMap().outMap()" in {
@@ -271,8 +307,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .outMap()
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .nonEmpty shouldBe true
+        .map(_.nonEmpty shouldBe true)
+        .task
+        .runToFuture
 
     }
     //      "a Drop-step" ignore {
@@ -289,8 +326,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .union(_.out().limit(1), _.out().limit(1))
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .size shouldBe 2
+        .map(_.size shouldBe 2)
+        .task
+        .runToFuture
 
     }
     "N.limit(1).union(_.out().limit(1), _.out().limit(1)).dedup()" in {
@@ -300,8 +338,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .dedup()
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .size shouldBe 1
+        .map(_.size shouldBe 1)
+        .task
+        .runToFuture
 
     }
     "N.limit(1).union(_.out().limit(2), _.out().limit(2))" in {
@@ -310,8 +349,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .union(_.out().limit(2), _.out().limit(2))
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .size shouldBe 4
+        .map(_.size shouldBe 4)
+        .task
+        .runToFuture
 
     }
     "N.limit(1).union(_.out().limit(2), _.out().limit(2)).dedup()" in {
@@ -321,8 +361,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .dedup()
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .size shouldBe 2
+        .map(_.size shouldBe 2)
+        .task
+        .runToFuture
 
     }
     """N.order(_.out("name").hasLabel(`@string`)).local(_.out("name").limit(1))""" in {
@@ -332,7 +373,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .local(_.out("name").limit(1))
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe "Crystal Springs"
+        .map(_ shouldBe "Crystal Springs")
+        .task
+        .runToFuture
 
     }
     """N.order(_.out("balance").hasLabel(`@double`), false).limit(1).out("balance")""" in {
@@ -342,7 +385,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("balance")
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2230.30
+        .map(_ shouldBe 2230.30)
+        .task
+        .runToFuture
 
     }
     //      g.N.order(_.out("balance").hasLabel[Double], false).limit(1).out("balance").head shouldBe 2230.30
@@ -353,7 +398,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("balance")
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe -245.05
+        .map(_ shouldBe -245.05)
+        .task
+        .runToFuture
 
     }
     """N.order(_.out("balance").hasLabel(`@double`), false).limit(1).out("name")""" in {
@@ -363,7 +410,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe "Gray"
+        .map(_ shouldBe "Gray")
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@int`).max""" in {
@@ -373,7 +422,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .max
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 300
+        .map(_ shouldBe 300)
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@double`).max""" in {
@@ -383,7 +434,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .max
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2230.30
+        .map(_ shouldBe 2230.30)
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@number`).max""" in {
@@ -393,7 +446,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .max
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2230.30
+        .map(_ shouldBe 2230.30)
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@double`).max.in("balance").count()""" in {
@@ -405,7 +460,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .count()
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 1
+        .map(_ shouldBe 1)
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@double`).max.in("balance").out("name")""" in {
@@ -417,7 +474,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe "Gray"
+        .map(_ shouldBe "Gray")
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@double`).min""" in {
@@ -427,7 +486,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .min
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe -245.05
+        .map(_ shouldBe -245.05)
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@double`).min.in("balance").out("name")""" in {
@@ -439,7 +500,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe "Levi"
+        .map(_ shouldBe "Levi")
+        .task
+        .runToFuture
 
     }
     """N.out("balance").hasLabel(DataType.default.`@double`).sum""" in {
@@ -449,7 +512,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .sum
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 2496.09
+        .map(_ shouldBe 2496.09)
+        .task
+        .runToFuture
 
       //      val maxBalanceAll = g.N.out("balance").hasLabel(graph.intType, graph.doubleType, graph.longType).sum().head
       //      maxBalanceAll shouldBe 2796.09
@@ -462,7 +527,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .mean
         .withGraph(sampleGraph)
         .headF
-        .value shouldBe 624.0225
+        .map(_ shouldBe 624.0225)
+        .task
+        .runToFuture
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://schema.org/knows")), max = 2).dedup().out("name")""" in {
@@ -473,8 +540,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .toSet shouldBe Set("Yoshio", "Gray", "Garrison", "Stan")
+        .map(_.toSet shouldBe Set("Yoshio", "Gray", "Garrison", "Stan"))
+        .task
+        .runToFuture
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://schema.org/knows")), max = 3, collect = true).dedup().out("name")""" in {
@@ -485,8 +553,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .toSet shouldBe Set("Yoshio", "Gray", "Garrison", "Stan", "Levi", "Kevin")
+        .map(_.toSet shouldBe Set("Yoshio", "Gray", "Garrison", "Stan", "Levi", "Kevin"))
+        .task
+        .runToFuture
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://schema.org/knows")), 3)""" +
@@ -499,8 +568,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .toSet shouldBe Set("Levi", "Kevin")
+        .map(_.toSet shouldBe Set("Levi", "Kevin"))
+        .task
+        .runToFuture
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://schema.org/knows"), 3, true)""" +
@@ -512,8 +582,9 @@ trait SyncGuideSpec extends WordSpec with Matchers with BeforeAndAfterAll with G
         .out("name")
         .withGraph(sampleGraph)
         .toListF
-        .value
-        .toSet shouldBe Set("Gray", "Yoshio", "Levi")
+        .map(_.toSet shouldBe Set("Gray", "Yoshio", "Levi"))
+        .task
+        .runToFuture
 
     }
   }

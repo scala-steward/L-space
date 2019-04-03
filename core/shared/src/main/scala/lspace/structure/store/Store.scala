@@ -9,7 +9,7 @@ trait Store[G <: Graph] {
   def iri: String
   val graph: G
   type T <: graph._Resource[_]
-  type T2 <: graph._Resource[_]
+  type T2 <: graph._Resource[Any]
 
   lazy val id: Long = iri.hashCode()
 
@@ -31,6 +31,8 @@ trait Store[G <: Graph] {
   def -(resource: T): Task[Unit] = delete(resource)
   def delete(resource: T): Task[Unit]
   def delete(resources: List[T]): Task[Unit]
+
+  def purge: Task[Unit]
 
   def all(): Observable[T2]
   def count(): Task[Long]

@@ -40,15 +40,21 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
 //    SampleGraph.loadSocial(graph)
 //  }
 
-  scala.concurrent.Await.ready((for {
+  val initTask = (for {
     _ <- SampleGraph.loadSocial(graph)
-  } yield ()).runToFuture, 15.seconds)
+  } yield ()).memoizeOnSuccess
 
   override def afterAll(): Unit = {
     (for {
-      _ <- Task.fromFuture(server.service.close())
-      _ <- Task.fromFuture(graph.close())
-    } yield (println("afterAll done"))).timeout(5.seconds).runToFuture
+      _ <- Task.deferFuture(server.service.close())
+      _ <- graph.close()
+    } yield ()).timeout(5.seconds).runToFuture
+  }
+
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
+    new FutureOutcome(initTask.runToFuture flatMap { result =>
+      super.withFixture(test).toFuture
+    })
   }
 
   import lspace.services.util._
@@ -67,7 +73,7 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
           .post("/traverse")
           .withBody[lspace.services.codecs.Application.JsonLD](node)
           .withHeaders("Accept" -> "application/ld+json")
-        response <- Task.fromFuture(server.service(input.request))
+        response <- Task.deferFuture(server.service(input.request))
         _ <- {
           val headers = response.headerMap
           response.status shouldBe Status.Ok
@@ -96,7 +102,7 @@ class SimpleGraphServerSpec extends AsyncWordSpec with Matchers with BeforeAndAf
       val res = server.service(input.request)
 
       Task
-        .fromFuture(res.map { response =>
+        .deferFuture(res.map { response =>
           response.status shouldBe Status.Ok
         })
         .timeout(5.seconds)

@@ -27,22 +27,22 @@ trait History extends Graph {
     } yield createdNode
   }
 
-  override protected def createEdge[S, E](id: Long,
-                                          from: GResource[S],
-                                          key: Property,
-                                          to: GResource[E]): Task[GEdge[S, E]] = {
+  override protected[lspace] def createEdge[S, E](id: Long,
+                                                  from: _Resource[S],
+                                                  key: Property,
+                                                  to: _Resource[E]): Task[GEdge[S, E]] = {
     for {
       createdEdge <- super.createEdge(id, from, key, to)
       id          <- idProvider.next
-      time        <- createValue(id, Instant.now(), DateTimeType.datatype).map(_.asInstanceOf[GResource[Instant]])
+      time        <- createValue(id, Instant.now(), DateTimeType.datatype).map(_.asInstanceOf[_Resource[Instant]])
       timeEdge <- super.createEdge[Edge[S, E], Instant](id,
-                                                        createdEdge.asInstanceOf[GResource[Edge[S, E]]],
+                                                        createdEdge.asInstanceOf[_Resource[Edge[S, E]]],
                                                         Property.default.`@createdon`,
                                                         time)
     } yield createdEdge
   }
 
-  abstract override protected def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
+  abstract override protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
     for {
       createdValue <- super.createValue(id, value, dt)
       id           <- idProvider.next
@@ -51,19 +51,19 @@ trait History extends Graph {
     } yield createdValue
   }
 
-  override protected def deleteNode(node: GNode): Task[Unit] =
+  override protected[lspace] def deleteNode(node: _Node): Task[Unit] =
     for {
       deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
       deleteTimeEdge <- edges.create(node, Property.default.`@deletedon`, deleteTime)
     } yield Unit
 
-  override protected def deleteEdge(edge: GEdge[_, _]): Task[Unit] =
+  override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =
     for {
       deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
       deleteTimeEdge <- edges.create(edge, Property.default.`@deletedon`, deleteTime)
     } yield Unit
 
-  override protected def deleteValue(value: GValue[_]): Task[Unit] =
+  override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] =
     for {
       deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
       deleteTimeEdge <- edges.create(value, Property.default.`@deletedon`, deleteTime)

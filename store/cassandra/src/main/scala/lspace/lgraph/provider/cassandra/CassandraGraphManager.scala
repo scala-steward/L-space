@@ -2,6 +2,7 @@ package lspace.lgraph.provider.cassandra
 
 import com.outworkers.phantom.dsl._
 import lspace.lgraph.{GraphManager, LGraph, LGraphIdProvider}
+import monix.eval.Task
 import monix.execution.atomic.AtomicLong
 
 import scala.concurrent.{Await, Future}
@@ -12,7 +13,6 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
     extends GraphManager[G](graph)
     with DatabaseProvider[CassandraGraph]
     /*with DatabaseProvider[LGraphDatabase] */ {
-  val random = Math.random()
 
   Await.result(Future.sequence(
                  Seq(
@@ -20,7 +20,7 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
                  )),
                60 seconds)
 
-  private var idState = State("all", 1000l)
+  private var idState = State("all", 1000l, graph.iri)
   lazy val idProvider: LGraphIdProvider = new LGraphIdProvider {
     protected def newIdRange: Vector[Long] = {
       val idStates = Await
@@ -29,26 +29,28 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
       idStates.headOption
         .map { idSpace =>
           if (idSpace.last >= idState.last) {
-            idState = State("all", idSpace.last + 50000)
-            Await.result(database.states.storeRecord(State("all", idState.last)), 10 seconds)
+            idState = State("all", idSpace.last + 50000, graph.iri)
+            Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10 seconds)
             (idSpace.last to (idState.last - 1) toVector)
           } else {
-            idState = State("all", idState.last + 50000)
-            Await.result(database.states.storeRecord(State("all", idState.last)), 10 seconds)
+            idState = State("all", idState.last + 50000, graph.iri)
+            Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10 seconds)
             (idSpace.last to (idState.last - 1) toVector)
           }
         }
         .getOrElse {
-          idState = State("all", idState.last + 50000)
-          Await.result(database.states.storeRecord(State("all", idState.last)), 10 seconds)
+          idState = State("all", idState.last + 50000, graph.iri)
+          Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10 seconds)
           (idState.last - 50000) to (idState.last - 1) toVector
         }
     }
   }
 
-  def close(): Unit = {
-    Await
-      .result(database.states.storeRecord(State("all", graph.idProvider.next)), 5 seconds)
-    database.shutdown()
-  }
+  def purge: Task[Unit] = for { _ <- Task.deferFuture(database.truncateAsync()) } yield ()
+
+  def close(): Task[Unit] =
+    for {
+      id <- graph.idProvider.next
+      _  <- Task.deferFuture(database.states.storeRecord(State("all", id, graph.iri)))
+    } yield database.shutdown()
 }

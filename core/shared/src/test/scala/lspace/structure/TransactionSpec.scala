@@ -8,6 +8,7 @@ import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
 
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   def transactionTests(graph: Graph) = {
     "a transaction" should {

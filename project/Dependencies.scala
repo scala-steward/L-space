@@ -6,8 +6,8 @@ object Version {
   val finch     = "0.28.0"
   val monix     = "3.0.0-RC2"
   val sttp      = "1.5.11"
-  val elastic4s = "6.5.0"
-  val phantom   = "2.30.0"
+  val elastic4s = "6.5.1"
+  val phantom   = "2.37.0"
 }
 
 object Dependencies {
@@ -55,7 +55,9 @@ object Dependencies {
   )
 
   val storeCassandraDeps = Seq(
-    "com.outworkers" %% "phantom-dsl" % Version.phantom
+    "com.outworkers"             %% "phantom-dsl"    % Version.phantom,
+    "ch.qos.logback"             % "logback-classic" % "1.2.3",
+    "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
   )
 
   val storeKafkaDeps = Seq(
@@ -73,7 +75,7 @@ object Dependencies {
     "com.github.finagle" %% "finchx-generic"  % Version.finch,
     "com.github.finagle" %% "finchx-argonaut" % Version.finch,
     "com.github.finagle" %% "finchx-refined"  % Version.finch,
-    "com.twitter"        %% "twitter-server"  % "19.1.0",
+    "com.twitter"        %% "twitter-server"  % "19.3.0",
     "com.vmunier"        %% "scalajs-scripts" % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi"   %% "scalatags" % "0.6.7",

@@ -19,15 +19,16 @@ object Transaction {}
   * A transaction is build using an in-memory graph
   */
 abstract class Transaction(val parent: Graph) extends MemDataGraph {
-//  override type GNode       = TNode
-//  override type GEdge[S, E] = TEdge[S, E]
-//  override type GValue[T]   = TValue[T]
+//  override type GResource[T] = TResource[T]
+//  override type GNode        = TNode
+//  override type GEdge[S, E]  = TEdge[S, E]
+//  override type GValue[T]    = TValue[T]
 
-  trait _TResource[T] extends _Resource[T] with TResource[T]
+  trait _TResource[T] extends _Resource[T] with MemResource[T] with TResource[T]
   object _TNode {
     def apply(self: parent._Node): Coeval[_TNode] = Coeval { new _TNode(self) }
   }
-  class _TNode(override val self: parent._Node) extends _Node with TNode {
+  class _TNode(override val self: parent._Node) extends _Node with _TResource[Node] with MemNode with TNode {
     val graph: Transaction = thisgraph
   }
   object _TEdge {
@@ -37,17 +38,19 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
           .hasId(self.from.id)
           .map(_.asInstanceOf[Resource[S]])
           .map(Coeval.now)
-          .getOrElse(wrapTR(self.from.asInstanceOf[parent.GResource[S]]).map(_.asInstanceOf[Resource[S]]))
+          .getOrElse(wrapTR(self.from.asInstanceOf[parent._Resource[S]]).map(_.asInstanceOf[Resource[S]]))
         to <- resources.cached
           .hasId(self.to.id)
           .map(_.asInstanceOf[Resource[E]])
           .map(Coeval.now)
-          .getOrElse(wrapTR(self.to.asInstanceOf[parent.GResource[E]]).map(_.asInstanceOf[Resource[E]]))
+          .getOrElse(wrapTR(self.to.asInstanceOf[parent._Resource[E]]).map(_.asInstanceOf[Resource[E]]))
       } yield new _TEdge(self, from, to)
     }
   }
   class _TEdge[S, E](override val self: parent._Edge[S, E], val from: Resource[S], val to: Resource[E])
       extends _Edge[S, E]
+      with MemEdge[S, E]
+      with _TResource[Edge[S, E]]
       with TEdge[S, E] {
     val graph: Transaction = thisgraph
     def key                = self.key
@@ -82,24 +85,28 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
       case _                     => t
     }
   }
-  class _TValue[T](override val self: parent._Value[T]) extends _Value[T] with TValue[T] {
+  class _TValue[T](override val self: parent._Value[T])
+      extends _Value[T]
+      with MemValue[T]
+      with _TResource[T]
+      with TValue[T] {
     val graph: Transaction = thisgraph
 
     def value = _TValue.dereferenceValue(self.value).asInstanceOf[T]
     def label = self.label
   }
 
-  def wrapTR[T <: parent.GResource[_]](resource: T): Coeval[_Resource[_]] = resource match {
+  def wrapTR[T <: parent._Resource[_]](resource: T): Coeval[GResource[_]] = resource match {
     case n: parent._Node =>
       nodeStore.cached.hasId(n.id) match {
-        case Some(node) => Coeval.now(node.asInstanceOf[_Node])
-        case None       => _TNode(n)
+        case Some(node) => Coeval.now(node /*.asInstanceOf[GNode]*/ )
+        case None       => _TNode(n).asInstanceOf[Coeval[GResource[_]]]
       }
     case e: parent._Edge[Any, Any] =>
       edgeStore.cached
         .hasId(e.id) match {
-        case Some(edge) => Coeval.now(edge.asInstanceOf[_Edge[_, _]])
-        case None       => _TEdge[Any, Any](e.asInstanceOf[parent._Edge[Any, Any]])
+        case Some(edge) => Coeval.now(edge /*.asInstanceOf[GEdge[_, _]]*/ )
+        case None       => _TEdge[Any, Any](e.asInstanceOf[parent._Edge[Any, Any]]).asInstanceOf[Coeval[GResource[_]]]
       }
 //      super.edgeStore.cached //compiler-error <refinement>.type (of class scala.reflect.internal.Types$UniqueSuperType)
 //        .hasId(e.id)
@@ -109,8 +116,8 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     case v: parent._Value[Any] =>
       valueStore.cached
         .hasId(v.id) match {
-        case Some(value) => Coeval.now(value.asInstanceOf[_Value[Any]])
-        case None        => _TValue[Any](v.asInstanceOf[parent.GValue[Any]])
+        case Some(value) => Coeval.now(value /*.asInstanceOf[GValue[Any]]*/ )
+        case None        => _TValue[Any](v.asInstanceOf[parent.GValue[Any]]).asInstanceOf[Coeval[GResource[_]]]
       }
 //        .map(_.asInstanceOf[_Value[Any]])
 //        .map(Coeval.now)
@@ -119,245 +126,19 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
 
   lazy val ns: NameSpaceGraph = parent.ns
 
-  lazy val idProvider: IdProvider = parent.idProvider
+  protected[lspace] lazy val idProvider: IdProvider = parent.idProvider
 
-  trait Resources extends super.Resources {
-    override def apply(): Observable[Resource[_]] = {
-      val tresources = super.apply()
-      import scala.collection.JavaConverters._
-      val idResourceMap: scala.collection.concurrent.Map[Long, Resource[_]] =
-        new ConcurrentHashMap[Long, Resource[_]]().asScala
-      tresources.map { resource =>
-        idResourceMap += resource.id -> resource; resource
-      } ++ parent.resources().filter(n => !idResourceMap.contains(n.id))
-    }
+  private lazy val _resources: TResources[this.type] = new TResources[this.type](this) {}
+  override def resources: TResources[this.type]      = _resources
 
-    override def hasIri(iris: List[String]): Observable[Resource[_]] = {
-      val fromTransaction = super.hasIri(iris)
-      val fromParent = parent.resources
-        .hasIri(iris)
-        .mapEval {
-          case n: parent._Node           => _TNode(n).task
-          case e: parent._Edge[Any, Any] => _TEdge(e).task
-          case v: parent._Value[Any]     => _TValue(v).task
-        }
-        .filter(n => nodes.deleted.contains(n.id) || edges.deleted.contains(n.id) || values.deleted.contains(n.id))
-      val ids = fromTransaction.map(_.id)
+  private lazy val _nodes: TNodes[this.type] = new TNodes[this.type](this) {}
+  override def nodes: TNodes[this.type]      = _nodes
 
-      val idResourceMap: scala.collection.concurrent.Map[Long, Resource[_]] =
-        new ConcurrentHashMap[Long, Resource[_]]().asScala
-      fromTransaction.map { resource =>
-        idResourceMap += resource.id -> resource; resource
-      } ++ fromParent.filter(n => !idResourceMap.contains(n.id))
-    }
+  private lazy val _edges: TEdges[this.type] = new TEdges[this.type](this) {}
+  override def edges: TEdges[this.type]      = _edges
 
-    override def hasId(id: Long): Task[Option[Resource[_]]] = {
-      if (nodes.deleted.contains(id) || edges.deleted.contains(id) || values.deleted.contains(id)) Task.now(None)
-      else {
-        for {
-          r <- super
-            .hasId(id)
-          r1 <- if (r.nonEmpty) Task.now(r)
-          else
-            parent.resources
-              .hasId(id)
-              .flatMap {
-                case Some(value) =>
-                  (value match {
-                    case n: parent._Node           => _TNode(n).task
-                    case e: parent._Edge[Any, Any] => _TEdge(e).task
-                    case v: parent._Value[Any]     => _TValue(v).task
-                  }) map (Some(_))
-                case None => Task.now(None)
-              }
-        } yield r1
-      }
-    }
-  }
-  private lazy val _resources: Resources = new Resources {}
-  override def resources: Resources      = _resources
-
-  trait Nodes extends super.Nodes {
-    val added: scala.collection.concurrent.Map[Long, GNode] = new ConcurrentHashMap[Long, GNode]().asScala
-    val deleted: scala.collection.concurrent.Map[Long, parent.GNode] =
-      new ConcurrentHashMap[Long, parent.GNode]().asScala
-
-    override def apply(): Observable[Node] = {
-      val tnodes = super.apply()
-      val idSet: scala.collection.concurrent.Map[Long, Node] =
-        new ConcurrentHashMap[Long, Node]().asScala
-      tnodes.map { node =>
-        idSet += node.id -> node; node
-      } ++ parent.nodes().filter(n => !idSet.contains(n.id))
-    }
-
-    override def hasIri(iris: List[String]): Observable[Node] = {
-      val fromTransaction = super.hasIri(iris)
-      val fromParent =
-        parent.nodes
-          .hasIri(iris)
-          .asInstanceOf[Observable[parent.GNode]]
-          .mapEval(_TNode(_).task)
-          .filter(n => !deleted.contains(n.id))
-      val idSet: scala.collection.concurrent.Map[Long, Node] =
-        new ConcurrentHashMap[Long, Node]().asScala
-      fromTransaction.map { node =>
-        idSet += node.id -> node; node
-      } ++ fromParent.filter(n => !idSet.contains(n.id))
-    }
-
-    override def hasId(id: Long): Task[Option[Node]] = {
-      if (deleted.contains(id)) Task.now(None)
-      else
-        for {
-          r <- super
-            .hasId(id)
-          r1 <- if (r.nonEmpty) Task.now(r)
-          else
-            parent.nodes
-              .hasId(id)
-              .flatMap {
-                case Some(node) => _TNode(node.asInstanceOf[parent.GNode]).task.map(Some(_))
-                case None       => Task.now(None)
-              }
-        } yield r1
-    }
-
-    override def hasId(id: List[Long]): Observable[Node] = {
-      Observable
-        .fromIterable(id)
-        .filter(!deleted.contains(_))
-        .flatMap { id =>
-          Observable
-            .fromTask(for {
-              nodeOption <- super.hasId(id)
-              nodeOrEdgeOption <- if (nodeOption.nonEmpty) Task.now(nodeOption)
-              else
-                parent.nodes.hasId(id).flatMap {
-                  case Some(node) => _TNode(node.asInstanceOf[parent.GNode]).task.map(Some(_))
-                  case None       => Task.now(None)
-                }
-            } yield nodeOrEdgeOption)
-            .map(_.toList)
-            .flatMap(Observable.fromIterable(_))
-        }
-    }
-  }
-  private lazy val _nodes: Nodes = new Nodes {}
-  override def nodes: Nodes      = _nodes
-
-  trait Edges extends super.Edges {
-    val added: mutable.HashSet[GEdge[_, _]] = mutable.HashSet[GEdge[_, _]]()
-    val deleted: scala.collection.concurrent.Map[Long, parent.GEdge[_, _]] =
-      new ConcurrentHashMap[Long, parent.GEdge[_, _]]().asScala
-
-    override def apply(): Observable[Edge[_, _]] = {
-      val tedges = super.apply()
-      val idSet: scala.collection.concurrent.Map[Long, Edge[_, _]] =
-        new ConcurrentHashMap[Long, Edge[_, _]]().asScala
-      tedges.map { edge =>
-        idSet += edge.id -> edge; edge
-      } ++ parent.edges().filter(n => !idSet.contains(n.id))
-    }
-
-    override def hasIri(iris: List[String]): Observable[Edge[_, _]] = {
-      val fromTransaction = super.hasIri(iris)
-      val fromParent = parent.edges
-        .hasIri(iris)
-        .asInstanceOf[Observable[parent.GEdge[Any, Any]]]
-        .mapEval(_TEdge(_).task)
-        .filter(n => !deleted.contains(n.id))
-      val idSet: scala.collection.concurrent.Map[Long, Edge[_, _]] =
-        new ConcurrentHashMap[Long, Edge[_, _]]().asScala
-      fromTransaction.map { edge =>
-        idSet += edge.id -> edge; edge
-      } ++ fromParent.filter(n => idSet.contains(n.id))
-    }
-
-    override def hasId(id: Long): Task[Option[Edge[_, _]]] = {
-      if (deleted.contains(id)) Task.now(None)
-      else
-        for {
-          r <- super
-            .hasId(id)
-          r1 <- if (r.nonEmpty) Task.now(r)
-          else
-            parent.edges
-              .hasId(id)
-              .flatMap {
-                case Some(edge) => _TEdge(edge.asInstanceOf[parent.GEdge[Any, Any]]).task.map(Some(_))
-                case None       => Task.now(None)
-              }
-        } yield r1
-    }
-  }
-  private lazy val _edges: Edges = new Edges {}
-  override def edges: Edges      = _edges
-
-  trait Values extends super.Values {
-    val added: mutable.HashSet[GValue[_]]                    = mutable.HashSet[GValue[_]]()
-    val deleted: mutable.OpenHashMap[Long, parent.GValue[_]] = mutable.OpenHashMap[Long, parent.GValue[_]]()
-
-    override def apply(): Observable[Value[_]] = {
-      val tvalues = super.apply()
-      val idSet: scala.collection.concurrent.Map[Long, Value[_]] =
-        new ConcurrentHashMap[Long, Value[_]]().asScala
-      tvalues.map { value =>
-        idSet += value.id -> value; value
-      } ++ parent.values().filter(n => !idSet.contains(n.id))
-    }
-
-    override def hasIri(iris: List[String]): Observable[Value[_]] = {
-      val fromTransaction = super.hasIri(iris)
-      val fromParent = parent.values
-        .hasIri(iris)
-        .asInstanceOf[Observable[parent.GValue[Any]]]
-        .mapEval(_TValue(_).task)
-        .filter(n => !deleted.contains(n.id))
-      val idSet: scala.collection.concurrent.Map[Long, Value[_]] =
-        new ConcurrentHashMap[Long, Value[_]]().asScala
-      fromTransaction.map { value =>
-        idSet += value.id -> value; value
-      } ++ fromParent.filter(n => !idSet.contains(n.id))
-    }
-
-    override def byValue[T, TOut, CTOut <: ClassType[_]](value: T)(
-        implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Observable[Value[T]] =
-      byValue(List(value -> clsTpbl.ct.asInstanceOf[DataType[T]]))
-    override def byValue[T](valueSet: List[(T, DataType[T])]): Observable[Value[T]] = {
-      val fromTransaction = super.byValue(valueSet)
-      val fromParent = parent.values
-        .byValue(valueSet)
-        .asInstanceOf[Observable[parent.GValue[T]]]
-        .mapEval(_TValue(_).task)
-        .filter(n => !deleted.contains(n.id))
-      val idSet: scala.collection.concurrent.Map[Long, Value[_]] =
-        new ConcurrentHashMap[Long, Value[_]]().asScala
-      fromTransaction.map { value =>
-        idSet += value.id -> value; value
-      } ++ fromParent.filter(n => !idSet.contains(n.id))
-    }
-
-    override def hasId(id: Long): Task[Option[Value[_]]] = {
-      if (deleted.contains(id)) Task.now(None)
-      else
-        for {
-          r <- super
-            .hasId(id)
-          r1 <- if (r.nonEmpty) Task.now(r)
-          else
-            for {
-              v <- parent.values
-                .hasId(id)
-              v1 <- if (v.nonEmpty) {
-                _TValue(v.get.asInstanceOf[parent.GValue[Any]]).map(Some(_)).task
-              } else Task.now(v)
-            } yield v1
-        } yield r1
-    }
-  }
-  private lazy val _values: Values = new Values {}
-  override def values: Values      = _values
+  private lazy val _values: TValues[this.type] = new TValues[this.type](this) {}
+  override def values: TValues[this.type]      = _values
 
   protected var open: Boolean = true
 
@@ -383,17 +164,17 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
   }
 
   override protected[lspace] def newEdge[S, E](id: Long,
-                                               from: GResource[S],
+                                               from: _Resource[S],
                                                key: Property,
-                                               to: GResource[E]): GEdge[S, E] = {
+                                               to: _Resource[E]): GEdge[S, E] = {
     val edge = super.newEdge(id, from, key, to)
     edges.added += edge
     edge
   }
-  override protected def createEdge[S, E](id: Long,
-                                          from: GResource[S],
-                                          key: Property,
-                                          to: GResource[E]): Task[GEdge[S, E]] = {
+  override protected[lspace] def createEdge[S, E](id: Long,
+                                                  from: _Resource[S],
+                                                  key: Property,
+                                                  to: _Resource[E]): Task[GEdge[S, E]] = {
     for {
       edge <- super.createEdge(id, from, key, to)
     } yield edge
@@ -404,13 +185,13 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     values.added += value0
     value0
   }
-  override protected def createValue[T](_id: Long, _value: T, dt: DataType[T]): Task[GValue[T]] = {
+  override protected[lspace] def createValue[T](_id: Long, _value: T, dt: DataType[T]): Task[GValue[T]] = {
     for {
       value <- super.createValue(_id, _value, dt)
     } yield value
   }
 
-  override protected def deleteNode(node: GNode): Task[Unit] = Task.defer {
+  override protected[lspace] def deleteNode(node: _Node): Task[Unit] = Task.defer {
     node match {
       case node: _TNode =>
         nodes.deleted += node.id -> node.self.asInstanceOf[parent.GNode]
@@ -420,7 +201,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     super.deleteNode(node)
   }
 
-  override protected def deleteEdge(edge: GEdge[_, _]): Task[Unit] = Task.defer {
+  override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] = Task.defer {
     edge match {
       case edge: _TEdge[_, _] =>
         edges.deleted += edge.id -> edge.self.asInstanceOf[parent.GEdge[_, _]]
@@ -432,9 +213,9 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
           case tr: TResource[_] => tr.deletedEdges += edge.id
           case _                =>
         }
-      case _ =>
+      case edge: GEdge[_, _] =>
+        edges.added -= edge
     }
-    edges.added -= edge
     super.deleteEdge(edge)
   }
 
@@ -442,13 +223,13 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     * deletes the Value from the transaction and marks the id as deleted
     * @param value
     */
-  override protected def deleteValue(value: GValue[_]): Task[Unit] = Task.defer {
+  override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] = Task.defer {
     value match {
       case value: _TValue[_] =>
         values.deleted += value.id -> value.self.asInstanceOf[parent.GValue[_]]
-      case _ =>
+      case value: GValue[_] =>
+        values.added -= value
     }
-    values.added -= value
     super.deleteValue(value)
   }
 }

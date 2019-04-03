@@ -10,6 +10,7 @@ import org.scalatest.FutureOutcome
 class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec {
   implicit val guide = lspace.Implicits.AsyncGuide.guide
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   implicit val baseEncoder = lspace.codec.argonaut.nativeEncoder
   implicit val baseDecoder = lspace.codec.argonaut.nativeDecoder
@@ -42,15 +43,15 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
     }
     _ <- sampleGraph.load
     _ <- graphToPersist.load
-    _ <- Task.fromFuture(graphToPersist.graph.persist)
-    _ <- Task.fromFuture(graphToPersist.graph.close())
+    _ <- graphToPersist.graph.persist
+    _ <- graphToPersist.graph.close()
     _ = {
       lspace.structure.Ontology.ontologies.byIri.clear()
       lspace.structure.Property.properties.byIri.clear()
       lspace.datatype.DataType.datatypes.byIri.clear()
       lspace.datatype.DataType.datatypes.building.clear()
     }
-    _ <- Task.fromFuture(samplePersistedGraph.graph.init)
+    _ <- samplePersistedGraph.graph.init
   } yield ()).memoizeOnSuccess
 
   lazy val graph: Graph         = createGraph("FileStoreManagerSpec")

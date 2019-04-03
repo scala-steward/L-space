@@ -8,7 +8,7 @@ case class LspaceKafkaProducer(topic: String) {
   import monix.reactive.Observable
   import org.apache.kafka.clients.producer.ProducerRecord
 
-  implicit val scheduler: Scheduler = monix.execution.Scheduler.global
+  import lspace.Implicits.Scheduler.global
 
   private val producer: KafkaProducerSink[String, String] =
     KafkaProducerSink[String, String](producerCfg(), scheduler)

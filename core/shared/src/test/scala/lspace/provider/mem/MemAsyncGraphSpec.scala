@@ -16,13 +16,13 @@ class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with
   def createGraph(iri: String): Graph = MemGraph("memgraphspec-" + iri)
 
   val initTask = (for {
-    u  <- sampleGraph.load
-    n  <- sampleGraph.graph.nodes().toListL
-    n1 <- lspace.g.N.withGraph(sampleGraph.graph).toListF
-    e  <- sampleGraph.graph.edges().toListL
-    e1 <- lspace.g.E.withGraph(sampleGraph.graph).toListF
-    v  <- sampleGraph.graph.values().toListL
-    v1 <- lspace.g.V.withGraph(sampleGraph.graph).toListF
+    u <- sampleGraph.load
+//    n  <- sampleGraph.graph.nodes().toListL
+//    n1 <- lspace.g.N.withGraph(sampleGraph.graph).toListF
+//    e  <- sampleGraph.graph.edges().toListL
+//    e1 <- lspace.g.E.withGraph(sampleGraph.graph).toListF
+//    v  <- sampleGraph.graph.values().toListL
+//    v1 <- lspace.g.V.withGraph(sampleGraph.graph).toListF
   } yield ()).memoizeOnSuccess
 
   override def withFixture(test: NoArgAsyncTest): FutureOutcome = {

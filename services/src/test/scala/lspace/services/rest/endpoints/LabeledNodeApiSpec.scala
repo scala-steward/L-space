@@ -242,7 +242,7 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
           .post("/")
           .withBody[Application.Json](alice2)
           .withHeaders("Accept" -> "application/json")
-        _ <- Task.fromFuture(service(input.request)).map { r =>
+        _ <- Task.deferFuture(service(input.request)).map { r =>
           r.status shouldBe Status.Created
         }
       } yield succeed).runToFuture

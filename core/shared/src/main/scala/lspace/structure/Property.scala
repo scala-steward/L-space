@@ -385,26 +385,9 @@ object Property {
   * //TODO: create inverse-link if any
   * @param iri
   * @param iris
-  * @param _range common class-types for the outgoing resource, the first type is implicit for de-/serialization
-  * @param containers cardinality w.r.t. the incoming resource, is not used anymore, cardinality is a responsibility of an API, no restrictions at the data-layer
-  * @param label a human-readable name
-  * @param comment a human-readable description
-  * @param _extendedClasses inherited properties
-  * @param _properties common meta-properties
-  * @param base base-iri of the outgoing resource
   */
-class Property(val iri: String,
-               val iris: Set[String] = Set() //TODO: make updateable
-//               _range: () => List[ClassType[_]] = () => List(),
-//               val containers: List[String] = List(),
-//               protected val labelMap: Map[String, String] = Map(),
-//               protected val commentMap: Map[String, String] = Map(),
-//               protected val _extendedClasses: () => List[Property] = () => List(),
-//               protected val _properties: () => List[Property] = () => List(),
-//               val base: Option[String] = None
+class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updateable
 ) extends ClassType[Edge[_, _]] { self =>
-//  type Out = Edge[_, _]
-//  type CT  = Property
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
   def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
@@ -458,6 +441,12 @@ class Property(val iri: String,
 //  override def extendedClasses: List[Property] = extendedClassesList.value()
   object extendedClasses {
     def apply(): List[Property] = extendedClassesList()
+
+    /**
+      * recursively fetches all extended classes (parent of parents)
+      * @return
+      */
+    def all(): Set[Property] = extendedClasses().toSet ++ extendedClasses().flatMap(_.extendedClasses.all())
     def apply(iri: String): Boolean =
       extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
 

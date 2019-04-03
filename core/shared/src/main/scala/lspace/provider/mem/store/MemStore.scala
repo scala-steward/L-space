@@ -49,6 +49,10 @@ trait MemStore[G <: MemGraph] extends Store[G] {
       }
     } yield ()
 
+  def purge: Task[Unit] = Task {
+    data.clear()
+  }
+
   def all(): Observable[T2] = Observable.fromIterable(data).map(_._2)
   def count(): Task[Long]   = all().countL
 }

@@ -53,7 +53,7 @@ trait Index {
 
   /** TODO: add edge??? as pointer to changed datapoint to be used for incremental updates?
     * adds value-path to resources-path
-    * @param pattern
+    * @param shape
     */
   def store(shape: Shape): Task[Unit]
 
@@ -66,7 +66,7 @@ trait Index {
 
   /**
     * removes value-paths and purges resource-path when it is incomplete
-    * @param path
+    * @param shape
     */
   def delete(shape: Shape): Task[Unit]
 }

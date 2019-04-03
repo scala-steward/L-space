@@ -13,7 +13,7 @@ class MemNodeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       .map(
         _.in(`@id`, `@ids`)
           .filter(_.isInstanceOf[Node])
-          .asInstanceOf[List[T]]
+          .asInstanceOf[List[T2]]
           .distinct)
       .flatMap(Observable.fromIterable(_))
 
@@ -24,7 +24,7 @@ class MemNodeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
           .fromIterable(iri)
           .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).filter(_.isInstanceOf[Node]))
           .toListL
-          .map(_.asInstanceOf[List[T]].distinct))
+          .map(_.asInstanceOf[List[T2]].distinct))
       .flatMap(Observable.fromIterable(_))
 }
 

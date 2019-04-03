@@ -3,9 +3,10 @@ package lspace.lgraph.store
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.ConcurrentHashMap
 
+import lspace.Label
 import lspace.lgraph.LGraph
 import lspace.datatype._
-import lspace.structure.ClassType
+import lspace.structure.{ClassType, Value}
 import lspace.structure.util.ClassTypeable
 import lspace.structure.store.ValueStore
 import lspace.types.vector.Point
@@ -23,36 +24,36 @@ object LValueStore {
 
 class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] with ValueStore[G] {
 
-  protected lazy val intCache: concurrent.Map[Int, Set[graph.GValue[Int]]] =
-    new ConcurrentHashMap[Int, Set[graph.GValue[Int]]]().asScala
-  protected lazy val doubleCache: concurrent.Map[Double, Set[graph.GValue[Double]]] =
-    new ConcurrentHashMap[Double, Set[graph.GValue[Double]]]().asScala
-  protected lazy val longCache: concurrent.Map[Long, Set[graph.GValue[Long]]] =
-    new ConcurrentHashMap[Long, Set[graph.GValue[Long]]]().asScala
-  protected lazy val stringCache: concurrent.Map[String, Set[graph.GValue[String]]] =
-    new ConcurrentHashMap[String, Set[graph.GValue[String]]]().asScala
-  protected lazy val booleanCache: concurrent.Map[Boolean, Set[graph.GValue[Boolean]]] =
-    new ConcurrentHashMap[Boolean, Set[graph.GValue[Boolean]]]().asScala
-  protected lazy val datetimeCache: concurrent.Map[Instant, Set[graph.GValue[Instant]]] =
-    new ConcurrentHashMap[Instant, Set[graph.GValue[Instant]]]().asScala
-  protected lazy val localdatetimeCache: concurrent.Map[LocalDateTime, Set[graph.GValue[LocalDateTime]]] =
-    new ConcurrentHashMap[LocalDateTime, Set[graph.GValue[LocalDateTime]]]().asScala
-  protected lazy val dateCache: concurrent.Map[LocalDate, Set[graph.GValue[LocalDate]]] =
-    new ConcurrentHashMap[LocalDate, Set[graph.GValue[LocalDate]]]().asScala
-  protected lazy val timeCache: concurrent.Map[LocalTime, Set[graph.GValue[LocalTime]]] =
-    new ConcurrentHashMap[LocalTime, Set[graph.GValue[LocalTime]]]().asScala
-  protected lazy val geopointCache: concurrent.Map[Point, Set[graph.GValue[Point]]] =
-    new ConcurrentHashMap[Point, Set[graph.GValue[Point]]]().asScala
-  protected lazy val mapCache: concurrent.Map[Map[Any, Any], Set[graph.GValue[Map[Any, Any]]]] =
-    new ConcurrentHashMap[Map[Any, Any], Set[graph.GValue[Map[Any, Any]]]]().asScala
-  protected lazy val listsetCache: concurrent.Map[ListSet[Any], Set[graph.GValue[ListSet[Any]]]] =
-    new ConcurrentHashMap[ListSet[Any], Set[graph.GValue[ListSet[Any]]]]().asScala
-  protected lazy val setCache: concurrent.Map[Set[Any], Set[graph.GValue[Set[Any]]]] =
-    new ConcurrentHashMap[Set[Any], Set[graph.GValue[Set[Any]]]]().asScala
-  protected lazy val listCache: concurrent.Map[List[Any], Set[graph.GValue[List[Any]]]] =
-    new ConcurrentHashMap[List[Any], Set[graph.GValue[List[Any]]]]().asScala
-  protected lazy val vectorCache: concurrent.Map[Vector[Any], Set[graph.GValue[Vector[Any]]]] =
-    new ConcurrentHashMap[Vector[Any], Set[graph.GValue[Vector[Any]]]]().asScala
+  protected lazy val intCache: concurrent.Map[Int, Set[graph._Value[Int]]] =
+    new ConcurrentHashMap[Int, Set[graph._Value[Int]]]().asScala
+  protected lazy val doubleCache: concurrent.Map[Double, Set[graph._Value[Double]]] =
+    new ConcurrentHashMap[Double, Set[graph._Value[Double]]]().asScala
+  protected lazy val longCache: concurrent.Map[Long, Set[graph._Value[Long]]] =
+    new ConcurrentHashMap[Long, Set[graph._Value[Long]]]().asScala
+  protected lazy val stringCache: concurrent.Map[String, Set[graph._Value[String]]] =
+    new ConcurrentHashMap[String, Set[graph._Value[String]]]().asScala
+  protected lazy val booleanCache: concurrent.Map[Boolean, Set[graph._Value[Boolean]]] =
+    new ConcurrentHashMap[Boolean, Set[graph._Value[Boolean]]]().asScala
+  protected lazy val datetimeCache: concurrent.Map[Instant, Set[graph._Value[Instant]]] =
+    new ConcurrentHashMap[Instant, Set[graph._Value[Instant]]]().asScala
+  protected lazy val localdatetimeCache: concurrent.Map[LocalDateTime, Set[graph._Value[LocalDateTime]]] =
+    new ConcurrentHashMap[LocalDateTime, Set[graph._Value[LocalDateTime]]]().asScala
+  protected lazy val dateCache: concurrent.Map[LocalDate, Set[graph._Value[LocalDate]]] =
+    new ConcurrentHashMap[LocalDate, Set[graph._Value[LocalDate]]]().asScala
+  protected lazy val timeCache: concurrent.Map[LocalTime, Set[graph._Value[LocalTime]]] =
+    new ConcurrentHashMap[LocalTime, Set[graph._Value[LocalTime]]]().asScala
+  protected lazy val geopointCache: concurrent.Map[Point, Set[graph._Value[Point]]] =
+    new ConcurrentHashMap[Point, Set[graph._Value[Point]]]().asScala
+  protected lazy val mapCache: concurrent.Map[Map[Any, Any], Set[graph._Value[Map[Any, Any]]]] =
+    new ConcurrentHashMap[Map[Any, Any], Set[graph._Value[Map[Any, Any]]]]().asScala
+  protected lazy val listsetCache: concurrent.Map[ListSet[Any], Set[graph._Value[ListSet[Any]]]] =
+    new ConcurrentHashMap[ListSet[Any], Set[graph._Value[ListSet[Any]]]]().asScala
+  protected lazy val setCache: concurrent.Map[Set[Any], Set[graph._Value[Set[Any]]]] =
+    new ConcurrentHashMap[Set[Any], Set[graph._Value[Set[Any]]]]().asScala
+  protected lazy val listCache: concurrent.Map[List[Any], Set[graph._Value[List[Any]]]] =
+    new ConcurrentHashMap[List[Any], Set[graph._Value[List[Any]]]]().asScala
+  protected lazy val vectorCache: concurrent.Map[Vector[Any], Set[graph._Value[Vector[Any]]]] =
+    new ConcurrentHashMap[Vector[Any], Set[graph._Value[Vector[Any]]]]().asScala
 
   override def hasId(id: Long): Task[Option[T2]] =
     Task.defer {
@@ -80,9 +81,13 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     val cachedResult = cachedByIri(iri).filterNot(e => isDeleted(e.id))
     Observable.fromIterable(cachedResult) ++
       graph.storeManager
-        .valueByIri(iri)
+        .valueByValue(iri, Label.D.`@string`)
+        .map(_.id)
+        .flatMap(graph.storeManager.edgesByToIdAndKey(_, Label.P.`@id`).asInstanceOf[Observable[graph.GEdge[Any, Any]]])
+        .map(_.from)
+        .collect { case value: Value[_] => value }
         .asInstanceOf[Observable[T2]]
-        .filter(!cachedResult.toSet.contains(_))
+        .filter(v => !cachedResult.toSet.contains(v) && !isDeleted(v.id))
         .executeOn(LStore.ec)
   }
 
@@ -90,107 +95,111 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     val cachedResult = iri.flatMap(iri => cachedByIri(iri).filterNot(e => isDeleted(e.id)))
     Observable.fromIterable(cachedResult) ++
       graph.storeManager
-        .valuesByIri(iri.toList)
+        .valuesByValue(iri.toList.map(_ -> Label.D.`@string`))
+        .map(_.id)
+        .flatMap(graph.storeManager.edgesByToIdAndKey(_, Label.P.`@id`).asInstanceOf[Observable[graph.GEdge[Any, Any]]])
+        .map(_.from)
+        .collect { case value: Value[_] => value }
         .asInstanceOf[Observable[T2]]
-        .filter(!cachedResult.contains(_))
+        .filter(v => !cachedResult.contains(v) && !isDeleted(v.id))
         .executeOn(LStore.ec)
   }
 
   def byValue[V, VOut, CVOut <: DataType[VOut]](value: V)(
-      implicit clsTpbl: ClassTypeable.Aux[V, VOut, CVOut]): Observable[graph.GValue[V]] =
+      implicit clsTpbl: ClassTypeable.Aux[V, VOut, CVOut]): Observable[graph._Value[V]] =
     byValue(value, clsTpbl.ct.asInstanceOf[DataType[V]])
-  def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] =
+  def byValue[V](value: V, dt: DataType[V]): Observable[graph._Value[V]] =
     (value match {
       case value: Int =>
         intCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Double =>
         doubleCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Long =>
         longCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: String =>
         stringCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Boolean =>
         booleanCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Instant =>
         datetimeCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: LocalDateTime =>
         localdatetimeCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: LocalDate =>
         dateCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: LocalTime =>
         timeCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Point =>
         geopointCache
           .get(value)
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Map[Any, Any] =>
         mapCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: ListSet[Any] =>
         listsetCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Set[Any] =>
         setCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: List[Any] =>
         listCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Vector[Any] =>
         vectorCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
-          .asInstanceOf[Observable[graph.GValue[V]]]
+          .asInstanceOf[Observable[graph._Value[V]]]
       case _ =>
         throw new Exception(s"unsupported valuestore-type, cannot find store for datatype-class ${value.getClass}")
     }).filter(v => !isDeleted(v.id))
@@ -247,92 +256,92 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
         intCacheLock.synchronized {
           intCache += value.value
             .asInstanceOf[Int] -> (intCache.getOrElse(value.value.asInstanceOf[Int], Set()) + value
-            .asInstanceOf[graph.GValue[Int]])
+            .asInstanceOf[graph._Value[Int]])
         }
       case dt: DoubleType[_] =>
         doubleCacheLock.synchronized {
           doubleCache += value.value
             .asInstanceOf[Double] -> (doubleCache.getOrElse(value.value.asInstanceOf[Double], Set()) + value
-            .asInstanceOf[graph.GValue[Double]])
+            .asInstanceOf[graph._Value[Double]])
         }
       case dt: LongType[_] =>
         longCacheLock.synchronized {
           longCache += value.value
             .asInstanceOf[Long] -> (longCache.getOrElse(value.value.asInstanceOf[Long], Set()) + value
-            .asInstanceOf[graph.GValue[Long]])
+            .asInstanceOf[graph._Value[Long]])
         }
       case dt: TextType[_] =>
         textCacheLock.synchronized {
           stringCache += value.value
             .asInstanceOf[String] -> (stringCache.getOrElse(value.value.asInstanceOf[String], Set()) + value
-            .asInstanceOf[graph.GValue[String]])
+            .asInstanceOf[graph._Value[String]])
         }
       case dt: BoolType[Boolean] =>
         boolCacheLock.synchronized {
           booleanCache += value.value
             .asInstanceOf[Boolean] -> (booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set()) + value
-            .asInstanceOf[graph.GValue[Boolean]])
+            .asInstanceOf[graph._Value[Boolean]])
         }
       case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
         datetimeCacheLock.synchronized {
           datetimeCache += value.value
             .asInstanceOf[Instant] -> (datetimeCache
-            .getOrElse(value.value.asInstanceOf[Instant], Set()) + value.asInstanceOf[graph.GValue[Instant]])
+            .getOrElse(value.value.asInstanceOf[Instant], Set()) + value.asInstanceOf[graph._Value[Instant]])
         }
       case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
         localdatetimeCacheLock.synchronized {
           localdatetimeCache += value.value
             .asInstanceOf[LocalDateTime] -> (localdatetimeCache
             .getOrElse(value.value.asInstanceOf[LocalDateTime], Set()) + value
-            .asInstanceOf[graph.GValue[LocalDateTime]])
+            .asInstanceOf[graph._Value[LocalDateTime]])
         }
       case dt: LocalDateType[_] =>
         localdateCacheLock.synchronized {
           dateCache += value.value
             .asInstanceOf[LocalDate] -> (dateCache.getOrElse(value.value.asInstanceOf[LocalDate], Set()) + value
-            .asInstanceOf[graph.GValue[LocalDate]])
+            .asInstanceOf[graph._Value[LocalDate]])
         }
       case dt: LocalTimeType[_] =>
         localtimeCacheLock.synchronized {
           timeCache += value.value
             .asInstanceOf[LocalTime] -> (timeCache.getOrElse(value.value.asInstanceOf[LocalTime], Set()) + value
-            .asInstanceOf[graph.GValue[LocalTime]])
+            .asInstanceOf[graph._Value[LocalTime]])
         }
       case dt: GeopointType[_] =>
         geopointCacheLock.synchronized {
           geopointCache += value.value
             .asInstanceOf[Point] -> (geopointCache.getOrElse(value.value.asInstanceOf[Point], Set()) + value
-            .asInstanceOf[graph.GValue[Point]])
+            .asInstanceOf[graph._Value[Point]])
         }
       case dt: MapType[_, _] =>
         mapCacheLock.synchronized {
           mapCache += value.value
             .asInstanceOf[Map[Any, Any]] -> (mapCache.getOrElse(value.value.asInstanceOf[Map[Any, Any]], Set()) + value
-            .asInstanceOf[graph.GValue[Map[Any, Any]]])
+            .asInstanceOf[graph._Value[Map[Any, Any]]])
         }
       case dt: ListSetType[_] =>
         listsetCacheLock.synchronized {
           listsetCache += value.value
             .asInstanceOf[ListSet[Any]] -> (listsetCache.getOrElse(value.value.asInstanceOf[ListSet[Any]], Set()) + value
-            .asInstanceOf[graph.GValue[ListSet[Any]]])
+            .asInstanceOf[graph._Value[ListSet[Any]]])
         }
       case dt: SetType[_] =>
         setCacheLock.synchronized {
           setCache += value.value
             .asInstanceOf[Set[Any]] -> (setCache.getOrElse(value.value.asInstanceOf[Set[Any]], Set()) + value
-            .asInstanceOf[graph.GValue[Set[Any]]])
+            .asInstanceOf[graph._Value[Set[Any]]])
         }
       case dt: ListType[_] =>
         listCacheLock.synchronized {
           listCache += value.value
             .asInstanceOf[List[Any]] -> (listCache.getOrElse(value.value.asInstanceOf[List[Any]], Set()) + value
-            .asInstanceOf[graph.GValue[List[Any]]])
+            .asInstanceOf[graph._Value[List[Any]]])
         }
       case dt: VectorType[_] =>
         vectorCacheLock.synchronized {
           vectorCache += value.value
             .asInstanceOf[Vector[Any]] -> (vectorCache.getOrElse(value.value.asInstanceOf[Vector[Any]], Set()) + value
-            .asInstanceOf[graph.GValue[Vector[Any]]])
+            .asInstanceOf[graph._Value[Vector[Any]]])
         }
       case _ =>
         throw new Exception(s"unsupported valuestore-type, @type to valuestore on is ${value.label.iri}")
@@ -364,38 +373,38 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
         intCacheLock.synchronized {
           val values = intCache.getOrElse(value.value.asInstanceOf[Int], Set())
           if (values.exists(_ == value)) intCache -= value.value.asInstanceOf[Int]
-          else intCache += value.value.asInstanceOf[Int] -> (values - value.asInstanceOf[graph.GValue[Int]])
+          else intCache += value.value.asInstanceOf[Int] -> (values - value.asInstanceOf[graph._Value[Int]])
         }
       case dt: DoubleType[_] =>
         doubleCacheLock.synchronized {
           val values = doubleCache.getOrElse(value.value.asInstanceOf[Double], Set())
           if (values.exists(_ == value)) doubleCache -= value.value.asInstanceOf[Double]
-          else doubleCache += value.value.asInstanceOf[Double] -> (values - value.asInstanceOf[graph.GValue[Double]])
+          else doubleCache += value.value.asInstanceOf[Double] -> (values - value.asInstanceOf[graph._Value[Double]])
         }
       case dt: LongType[_] =>
         longCacheLock.synchronized {
           val values = longCache.getOrElse(value.value.asInstanceOf[Long], Set())
           if (values.exists(_ == value)) longCache -= value.value.asInstanceOf[Long]
-          else longCache += value.value.asInstanceOf[Long] -> (values - value.asInstanceOf[graph.GValue[Long]])
+          else longCache += value.value.asInstanceOf[Long] -> (values - value.asInstanceOf[graph._Value[Long]])
         }
       case dt: TextType[_] =>
         textCacheLock.synchronized {
           val values = stringCache.getOrElse(value.value.asInstanceOf[String], Set())
           if (values.exists(_ == value)) stringCache -= value.value.asInstanceOf[String]
-          else stringCache += value.value.asInstanceOf[String] -> (values - value.asInstanceOf[graph.GValue[String]])
+          else stringCache += value.value.asInstanceOf[String] -> (values - value.asInstanceOf[graph._Value[String]])
         }
       case dt: BoolType[Boolean] =>
         boolCacheLock.synchronized {
           val values = booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set())
           if (values.exists(_ == value)) booleanCache -= value.value.asInstanceOf[Boolean]
-          else booleanCache += value.value.asInstanceOf[Boolean] -> (values - value.asInstanceOf[graph.GValue[Boolean]])
+          else booleanCache += value.value.asInstanceOf[Boolean] -> (values - value.asInstanceOf[graph._Value[Boolean]])
         }
       case dt: DateTimeType[_] if dt.iri == DateTimeType.datatype.iri =>
         datetimeCacheLock.synchronized {
           val values = datetimeCache.getOrElse(value.value.asInstanceOf[Instant], Set())
           if (values.exists(_ == value)) datetimeCache -= value.value.asInstanceOf[Instant]
           else
-            datetimeCache += value.value.asInstanceOf[Instant] -> (values - value.asInstanceOf[graph.GValue[Instant]])
+            datetimeCache += value.value.asInstanceOf[Instant] -> (values - value.asInstanceOf[graph._Value[Instant]])
         }
       case dt: DateTimeType[_] if dt.iri == LocalDateTimeType.datatype.iri =>
         localdatetimeCacheLock.synchronized {
@@ -403,27 +412,27 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) localdatetimeCache -= value.value.asInstanceOf[LocalDateTime]
           else
             localdatetimeCache += value.value
-              .asInstanceOf[LocalDateTime] -> (values - value.asInstanceOf[graph.GValue[LocalDateTime]])
+              .asInstanceOf[LocalDateTime] -> (values - value.asInstanceOf[graph._Value[LocalDateTime]])
         }
       case dt: LocalDateType[_] =>
         localdateCacheLock.synchronized {
           val values = dateCache.getOrElse(value.value.asInstanceOf[LocalDate], Set())
           if (values.exists(_ == value)) dateCache -= value.value.asInstanceOf[LocalDate]
           else
-            dateCache += value.value.asInstanceOf[LocalDate] -> (values - value.asInstanceOf[graph.GValue[LocalDate]])
+            dateCache += value.value.asInstanceOf[LocalDate] -> (values - value.asInstanceOf[graph._Value[LocalDate]])
         }
       case dt: LocalTimeType[_] =>
         localtimeCacheLock.synchronized {
           val values = timeCache.getOrElse(value.value.asInstanceOf[LocalTime], Set())
           if (values.exists(_ == value)) timeCache -= value.value.asInstanceOf[LocalTime]
           else
-            timeCache += value.value.asInstanceOf[LocalTime] -> (values - value.asInstanceOf[graph.GValue[LocalTime]])
+            timeCache += value.value.asInstanceOf[LocalTime] -> (values - value.asInstanceOf[graph._Value[LocalTime]])
         }
       case dt: GeopointType[_] =>
         geopointCacheLock.synchronized {
           val values = geopointCache.getOrElse(value.value.asInstanceOf[Point], Set())
           if (values.exists(_ == value)) geopointCache -= value.value.asInstanceOf[Point]
-          else geopointCache += value.value.asInstanceOf[Point] -> (values - value.asInstanceOf[graph.GValue[Point]])
+          else geopointCache += value.value.asInstanceOf[Point] -> (values - value.asInstanceOf[graph._Value[Point]])
         }
       case dt: MapType[_, _] =>
         mapCacheLock.synchronized {
@@ -431,7 +440,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) mapCache -= value.value.asInstanceOf[Map[Any, Any]]
           else
             mapCache += value.value
-              .asInstanceOf[Map[Any, Any]] -> (values - value.asInstanceOf[graph.GValue[Map[Any, Any]]])
+              .asInstanceOf[Map[Any, Any]] -> (values - value.asInstanceOf[graph._Value[Map[Any, Any]]])
         }
       case dt: ListSetType[_] =>
         listsetCacheLock.synchronized {
@@ -439,20 +448,20 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) listsetCache -= value.value.asInstanceOf[ListSet[Any]]
           else
             listsetCache += value.value
-              .asInstanceOf[ListSet[Any]] -> (values - value.asInstanceOf[graph.GValue[ListSet[Any]]])
+              .asInstanceOf[ListSet[Any]] -> (values - value.asInstanceOf[graph._Value[ListSet[Any]]])
         }
       case dt: SetType[_] =>
         setCacheLock.synchronized {
           val values = setCache.getOrElse(value.value.asInstanceOf[Set[Any]], Set())
           if (values.exists(_ == value)) setCache -= value.value.asInstanceOf[Set[Any]]
-          else setCache += value.value.asInstanceOf[Set[Any]] -> (values - value.asInstanceOf[graph.GValue[Set[Any]]])
+          else setCache += value.value.asInstanceOf[Set[Any]] -> (values - value.asInstanceOf[graph._Value[Set[Any]]])
         }
       case dt: ListType[_] =>
         listCacheLock.synchronized {
           val values = listCache.getOrElse(value.value.asInstanceOf[List[Any]], Set())
           if (values.exists(_ == value)) listCache -= value.value.asInstanceOf[List[Any]]
           else
-            listCache += value.value.asInstanceOf[List[Any]] -> (values - value.asInstanceOf[graph.GValue[List[Any]]])
+            listCache += value.value.asInstanceOf[List[Any]] -> (values - value.asInstanceOf[graph._Value[List[Any]]])
         }
       case dt: VectorType[_] =>
         vectorCacheLock.synchronized {
@@ -460,7 +469,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) vectorCache -= value.value.asInstanceOf[Vector[Any]]
           else
             vectorCache += value.value
-              .asInstanceOf[Vector[Any]] -> (values - value.asInstanceOf[graph.GValue[Vector[Any]]])
+              .asInstanceOf[Vector[Any]] -> (values - value.asInstanceOf[graph._Value[Vector[Any]]])
         }
       case _ =>
         throw new Exception(s"unsupported valuestore-type, @type to valuestore on is ${value.label.iri}")
@@ -480,6 +489,28 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
+
+  override def purge: Task[Unit] =
+    for {
+      _ <- super.purge
+      _ <- Task {
+        intCache.clear()
+        doubleCache.clear()
+        longCache.clear()
+        stringCache.clear()
+        booleanCache.clear()
+        datetimeCache.clear()
+        localdatetimeCache.clear()
+        dateCache.clear()
+        timeCache.clear()
+        geopointCache.clear()
+        mapCache.clear()
+        listsetCache.clear()
+        setCache.clear()
+        listCache.clear()
+        vectorCache.clear()
+      }
+    } yield ()
 
   def all(): Observable[T2] = {
     val cached = _cache.values

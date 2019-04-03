@@ -23,9 +23,9 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   override def nodesById(ids: List[Long]): Observable[graph._Node with LNode] = Observable()
 
-  override def nodeByIri(iri: String): Observable[graph._Node with LNode] = Observable()
+//  override def nodeByIri(iri: String): Observable[graph._Node with LNode] = Observable()
 
-  override def nodesByIri(iri: List[String]): Observable[graph._Node with LNode] = Observable()
+//  override def nodesByIri(iri: List[String]): Observable[graph._Node with LNode] = Observable()
 
   override def edgeById(id: Long): Task[Option[graph._Edge[Any, Any] with LEdge[Any, Any]]] = Task.now(None)
 
@@ -50,41 +50,39 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
                                           toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
     Observable()
 
-  override def edgeByIri(iri: String): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
+//  override def edgeByIri(iri: String): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def edgesByIri(iri: List[String]): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
+//  override def edgesByIri(iri: List[String]): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
   override def valueById(id: Long): Task[Option[graph._Value[Any] with LValue[Any]]] = Task.now(None)
 
   override def valuesById(ids: List[Long]): Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def valueByIri(iri: String): Observable[graph._Value[Any] with LValue[Any]] = Observable()
+//  override def valueByIri(iri: String): Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def valuesByIri(iri: List[String]): Observable[graph._Value[Any] with LValue[Any]] = Observable()
+//  override def valuesByIri(iri: List[String]): Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
   override def valueByValue[T](value: T, dt: DataType[T]): Observable[graph._Value[T] with LValue[T]] = Observable()
 
   override def valuesByValue[T](values: List[(T, DataType[T])]): Observable[graph._Value[T] with LValue[T]] =
     Observable()
 
-  override def storeNodes(nodes: List[graph._Node with LNode]): Task[_] = Task.unit
+  override def storeNodes(nodes: List[graph._Node]): Task[_] = Task {}
 
-  override def storeEdges(
-      edges: List[(graph._Edge[_$1, _$2] with LEdge[_$1, _$2]) forSome { type _$1; type _$2 }]): Task[_] =
-    Task.unit
+  override def storeEdges(edges: List[graph._Edge[_, _]]): Task[_] =
+    Task {}
 
-  override def storeValues(values: List[(graph._Value[_$1] with LValue[_$1]) forSome { type _$1 }]): Task[_] =
-    Task.unit
+  override def storeValues(values: List[graph._Value[_]]): Task[_] =
+    Task {}
 
-  override def deleteNodes(nodes: List[graph._Node with LNode]): Task[_] =
-    Task.unit
+  override def deleteNodes(nodes: List[graph._Node]): Task[_] =
+    Task {}
 
-  override def deleteEdges(
-      edges: List[(graph._Edge[_$1, _$2] with LEdge[_$1, _$2]) forSome { type _$1; type _$2 }]): Task[_] =
-    Task.unit
+  override def deleteEdges(edges: List[graph._Edge[_, _]]): Task[_] =
+    Task {}
 
-  override def deleteValues(values: List[(graph._Value[_$1] with LValue[_$1]) forSome { type _$1 }]): Task[_] =
-    Task.unit
+  override def deleteValues(values: List[graph._Value[_]]): Task[_] =
+    Task {}
 
   override def nodes: Observable[graph._Node with LNode] = Observable()
 
@@ -101,6 +99,8 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
   lazy val init: Task[Unit] = Task.unit
 
   def persist: Task[Unit] = Task.unit
+
+  def purge: Task[Unit] = Task.unit
 
   /**
     * finishes write-queue(s) and closes connection

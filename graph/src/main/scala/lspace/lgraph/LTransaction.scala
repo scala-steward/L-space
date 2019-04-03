@@ -90,25 +90,25 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
           parent.newEdge(
             edge.id,
             edge.from match {
-              case r: _TNode       => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TEdge[_, _] => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TValue[_]   => r.self.asInstanceOf[parent.GResource[Any]]
+              case r: _TNode       => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TEdge[_, _] => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TValue[_]   => r.self.asInstanceOf[parent._Resource[Any]]
               case r =>
                 parent.resources.cached
                   .hasId(r.id)
                   .get
-                  .asInstanceOf[parent.GResource[Any]]
+                  .asInstanceOf[parent._Resource[Any]]
             },
             edge.key,
             edge.to match {
-              case r: _TNode       => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TEdge[_, _] => r.self.asInstanceOf[parent.GResource[Any]]
-              case r: _TValue[_]   => r.self.asInstanceOf[parent.GResource[Any]]
+              case r: _TNode       => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TEdge[_, _] => r.self.asInstanceOf[parent._Resource[Any]]
+              case r: _TValue[_]   => r.self.asInstanceOf[parent._Resource[Any]]
               case r =>
                 parent.resources.cached
                   .hasId(r.id)
                   .get
-                  .asInstanceOf[parent.GResource[Any]]
+                  .asInstanceOf[parent._Resource[Any]]
             }
         ))
         _             = parent.edgeStore.cache(newEdges.asInstanceOf[List[parent.edgeStore.T]])
@@ -152,9 +152,9 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
             Task.unit
         }
         .map(f => Unit)
-//      addedValues.asInstanceOf[List[parent.GValue[_]]].foreach(parent.valueStore.cache)
+//      addedValues.asInstanceOf[List[parent._Value[_]]].foreach(parent.valueStore.cache)
 //      addedNodes.foreach(parent.nodeStore.cache)
-//      addedEdges.asInstanceOf[List[parent.GEdge[_, _]]].foreach(parent.edgeStore.cache)
+//      addedEdges.asInstanceOf[List[parent._Edge[_, _]]].foreach(parent.edgeStore.cache)
 
 //        .runSyncUnsafe(3000 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
     } else {
@@ -174,10 +174,10 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
     */
   override def rollback(): Task[Unit] = Task.now { open = false } //return claimed id's?
 
-  override def deleteNode(node: GNode): Task[Unit] = {
+  override protected[lspace] def deleteNode(node: _Node): Task[Unit] = {
     //1st prepare statements to remove objects from store/index (or remove first and then cache?)
     super.deleteNode(node)
   }
-  override def deleteEdge(edge: GEdge[_, _]): Task[Unit] = super.deleteEdge(edge)
-  override def deleteValue(value: GValue[_]): Task[Unit] = super.deleteValue(value)
+  override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] = super.deleteEdge(edge)
+  override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] = super.deleteValue(value)
 }

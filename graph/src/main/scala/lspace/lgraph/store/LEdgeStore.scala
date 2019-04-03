@@ -2,6 +2,7 @@ package lspace.lgraph.store
 
 import java.time.Instant
 
+import lspace.Label
 import lspace.lgraph.{LGraph, LResource}
 import lspace.structure.store.EdgeStore
 import lspace.structure.{Edge, Property}
@@ -52,11 +53,11 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
 
     if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
       case node: graph._Node =>
-        graph.nodeStore.cache(node.asInstanceOf[graph.GNode])
+        graph.nodeStore.cache(node.asInstanceOf[graph._Node])
       case edge: graph._Edge[_, _] =>
-        cache(edge.asInstanceOf[graph.GEdge[_, _]])
+        cache(edge.asInstanceOf[graph._Edge[_, _]])
       case value: graph._Value[_] =>
-        graph.valueStore.cache(value.asInstanceOf[graph.GValue[_]])
+        graph.valueStore.cache(value.asInstanceOf[graph._Value[_]])
     }
   }
 
@@ -85,9 +86,13 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     val cachedResult = cachedByIri(iri).filterNot(e => isDeleted(e.id))
     Observable.fromIterable(cachedResult) ++
       graph.storeManager
-        .edgeByIri(iri)
+        .valueByValue(iri, Label.D.`@string`)
+        .map(_.id)
+        .flatMap(graph.storeManager.edgesByToIdAndKey(_, Label.P.`@id`).asInstanceOf[Observable[T2]])
+        .map(_.from)
+        .collect { case edge: Edge[_, _] => edge }
         .asInstanceOf[Observable[T2]]
-        .filter(!cachedResult.toSet.contains(_))
+        .filter(v => !cachedResult.toSet.contains(v) && !isDeleted(v.id))
         .executeOn(LStore.ec)
   }
 
@@ -95,9 +100,13 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     val cachedResult = iri.flatMap(iri => cachedByIri(iri).filterNot(e => isDeleted(e.id)))
     Observable.fromIterable(cachedResult) ++
       graph.storeManager
-        .edgesByIri(iri.toList)
+        .valuesByValue(iri.toList.map(_ -> Label.D.`@string`))
+        .map(_.id)
+        .flatMap(graph.storeManager.edgesByToIdAndKey(_, Label.P.`@id`).asInstanceOf[Observable[T2]])
+        .map(_.from)
+        .collect { case edge: Edge[_, _] => edge }
         .asInstanceOf[Observable[T2]]
-        .filter(!cachedResult.contains(_))
+        .filter(v => !cachedResult.contains(v) && !isDeleted(v.id))
         .executeOn(LStore.ec)
   }
 

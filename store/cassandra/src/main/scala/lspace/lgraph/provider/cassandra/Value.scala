@@ -1,3 +1,10 @@
 package lspace.lgraph.provider.cassandra
 
-case class Value(id: Long, iri: Long, iris: Set[Long], label: Long, value: String, props: Map[Long, List[Long]] = Map())
+case class Value(id: Long,
+                 iri: Option[String],
+                 iriEdge: Option[(Long, Long)],
+                 iris: Set[String],
+                 irisEdges: List[(Long, Long)],
+                 label: String,
+                 context0: String,
+                 value: String)
