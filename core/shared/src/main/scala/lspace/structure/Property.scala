@@ -103,6 +103,8 @@ object Property {
       }
     }
     def getAndUpdate(node: Node): Property = {
+      if (node.hasLabel(Property.ontology).isEmpty)
+        throw new Exception("cannot create Property from node without label @property")
       val property = getOrCreate(node.iri, node.iris)
 
       property.label ++ node

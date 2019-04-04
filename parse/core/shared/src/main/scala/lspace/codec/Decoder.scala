@@ -833,7 +833,7 @@ trait Decoder {
                         else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
                     }))
             } yield {
-              Property.properties.getAndUpdate(node)
+              Ontology.ontologies.getAndUpdate(node)
             }).forkAndForget
           } yield ontology
         })

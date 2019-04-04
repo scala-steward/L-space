@@ -162,6 +162,8 @@ object Ontology {
       }
     }
     def getAndUpdate(node: Node): Ontology = {
+      if (node.hasLabel(Ontology.ontology).isEmpty)
+        throw new Exception("cannot create Ontology from node without label @class")
       val ontology = getOrCreate(node.iri, node.iris)
 
       ontology.label ++ node
