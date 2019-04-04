@@ -39,12 +39,12 @@ Supported types are:
           </li>
           <li>Temporal
             <ul>
-              <li>(java.time): Instant, LocalDate, LocalTime</li>
+              <li>(java.time): Instant, LocalDateTime, LocalDate, LocalTime</li>
             </ul>
           </li>
           <li>Structured
             <ul>
-              <li>Geo: L-space geometric types (work-in-progress, open-for-suggestions)</li>
+              <li>Geo: L-space geometric types (work-in-progress)</li>
               <li>Collection
                 <ul>
                   <li>List, Vector, Set, Map, ListSet</li>
@@ -60,8 +60,12 @@ Supported types are:
   </li>
 </ul>
 
-<p>A note on collection types: 
-A collection can contain any type of supported data. Collections can be nested and they can contain resources.</p>
+<p><em>A note on collection types:</em><br />
+A collection can contain any type of supported data. Collections can be nested and they can contain resources.
+L-space brings nested collections to json-ld. A collection-type can be represented by a parsable, non-resolvable iri. 
+E.g. a list of lists of any <code class="highlighter-rouge">@list(@list)</code>, a list of integers <code class="highlighter-rouge">list(@int)</code>, a list of list of integers <code class="highlighter-rouge">@list(@list(@int))</code>, 
+a map of stings vs list of dates <code class="highlighter-rouge">@map(@string)(@list(@date))</code>, a list of persons <code class="highlighter-rouge">@list(https://schema.org/Person</code> or assumed 
+there is ‘schema’ prefix <code class="highlighter-rouge">@list(schema:Person)</code>, a polymorphic list of persons or organizations <code class="highlighter-rouge">@list(schema:Person+schema:Organization)</code> etc.</p>
 
 <h2 id="graph-model">Graph model</h2>
 <p>A graph exists of a data-space, name-space and index-space.</p>

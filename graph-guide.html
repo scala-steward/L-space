@@ -32,6 +32,12 @@
 <pre><code class="language-tut:invisible">scala&gt;  import lspace._
 import lspace._
 
+scala&gt;  import lspace.Implicits.Scheduler.global
+import lspace.Implicits.Scheduler.global
+
+scala&gt;  import lspace.Implicits.SyncGuide.guide
+import lspace.Implicits.SyncGuide.guide
+
 scala&gt;  import lspace.provider.mem.MemGraph
 import lspace.provider.mem.MemGraph
 
@@ -66,22 +72,28 @@ Values have a data-value and values can have edges.</p>
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
 graph: lspace.structure.Graph = graph:graph-doc
 
-scala&gt;  SampleGraph.loadSocial(graph)
+scala&gt;  import scala.concurrent.duration._
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
+import scala.concurrent.duration._
+
+scala&gt;  scala.concurrent.Await.ready(lspace.util.SampleGraph.loadSocial(graph).runToFuture, 5.seconds)
+warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
+res0: monix.execution.CancelableFuture[Unit] = Async(Future(Success(())),monix.eval.internal.TaskConnection$Impl$$anon$1@660789de)
 
 scala&gt;  val labels = SampleGraph.ontologies
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-labels: lspace.util.SampleGraph.ontologies.type = lspace.util.SampleGraph$ontologies$@3b93881f
+labels: lspace.util.SampleGraph.ontologies.type = lspace.util.SampleGraph$ontologies$@48ae164f
 
 scala&gt;  val keys = SampleGraph.properties
 warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-keys: lspace.util.SampleGraph.properties.type = lspace.util.SampleGraph$properties$@dcb4d87
+keys: lspace.util.SampleGraph.properties.type = lspace.util.SampleGraph$properties$@5282f1dc
 </code></pre>
 
 <h2 id="how-to-use">How to use</h2>
 <p>First steps:</p>
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>import lspace._ //easy access to common object (types)
-import lspace.Implicits.SyncGuide.guide 
+import lspace.Implicits.Scheduler.global //default scheduler (execution context)
+import lspace.Implicits.SyncGuide.guide //graph-engine
 //import lspace.Implicits.AsyncGuide.guide //async execution of traversals
 //import lspace.Implicits.RemoteGuide.guide //async remote execution of traversals (w.i.p.)
 </code></pre></div></div>
@@ -91,7 +103,7 @@ import lspace.Implicits.SyncGuide.guide
 <p>A graph always has a name, ideally this would be a url so it can be referenced.</p>
 
 <p>Before continuing reading and learning, first load some sample-data:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>lspace.util.SampleGraph.loadSocial(graph)
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>lspace.util.SampleGraph.loadSocial(graph).runToFuture
 </code></pre></div></div>
 
 <p>Graphs have a some basis API’s which allows for reading from and writing to the graph.</p>
@@ -107,38 +119,36 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>hasIri</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res1: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822)
+// res1: monix.reactive.Observable[lspace.structure.Resource[Any]] = monix.reactive.internal.operators.ConcatMapObservable@587a4d09
 </span>
 <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res2: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822, lspace.provider.mem.MemGraph$$anon$7@b9f9686d)
+// res2: monix.reactive.Observable[lspace.structure.Resource[Any]] = monix.reactive.internal.operators.ConcatMapObservable@393c707a
 </span></code></pre></div></div>
+
 <p>hasId</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="mi">1001L</span><span class="o">).</span><span class="n">id</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// id: Long = 1001
-</span>
-<span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="n">id</span><span class="o">)</span>
-<span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res3: Option[lspace.structure.Resource[_]] = Some(lspace.provider.mem.MemGraph$$anon$7@b9f96822)
+// res3: monix.eval.Task[Option[Long]] = Task.Map$383175584
 </span></code></pre></div></div>
+
 <p>upsert</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res4: Long = 1229
+// res4: monix.eval.Task[lspace.structure.Value[String]] = Task.FlatMap$1846624860
 </span>
-<span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//should be equal because values are deduplicated
+<span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal"</span><span class="o">)</span> <span class="c1">//should be equal because values are deduplicated
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res5: Long = 1229
+// res5: monix.eval.Task[lspace.structure.Value[String]] = Task.FlatMap$1088497274
 </span>
-<span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal2"</span><span class="o">).</span><span class="n">id</span> <span class="c1">//new value, hence new id
+<span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">create</span><span class="o">(</span><span class="s">"some-literal2"</span><span class="o">)</span> <span class="c1">//new value, hence new id
 // warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res6: Long = 1230
+// res6: monix.eval.Task[lspace.structure.Value[String]] = Task.FlatMap$625874622
 </span></code></pre></div></div>
 <p>count:</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res7: Long = 108
+// res7: monix.eval.Task[Long] = Task.Map$291141569
 </span></code></pre></div></div>
 
 <h4 id="resource">Resource</h4>
@@ -148,29 +158,25 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>Nodes can be:</p>
 
 <p>Retrieved by Iri(s)/Uri(s):</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res8: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822)
+// res8: monix.reactive.Observable[lspace.structure.Node] = monix.reactive.internal.operators.ConcatMapObservable@d0e7100
 </span>
-<span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
+<span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">,</span> <span class="s">"graph-doc/person/123"</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res9: List[lspace.structure.Resource[_]] = List(lspace.provider.mem.MemGraph$$anon$7@b9f96822, lspace.provider.mem.MemGraph$$anon$7@b9f9686d)
+// res9: monix.reactive.Observable[lspace.structure.Node] = monix.reactive.internal.operators.ConcatMapObservable@5a354f9e
 </span></code></pre></div></div>
 
 <p>Retrieved by Id(s):</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">id</span> <span class="k">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasIri</span><span class="o">(</span><span class="s">"graph-doc/place/123"</span><span class="o">).</span><span class="n">head</span><span class="o">.</span><span class="n">id</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="mi">1002L</span><span class="o">)</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// id: Long = 1001
-</span>
-<span class="n">graph</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">hasId</span><span class="o">(</span><span class="n">id</span><span class="o">)</span>
-<span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res10: Option[lspace.structure.Resource[_]] = Some(lspace.provider.mem.MemGraph$$anon$7@b9f96822)
+// res10: monix.eval.Task[Option[lspace.structure.Node]] = Task.Eval$1603821630
 </span></code></pre></div></div>
 
 <p>Counted:</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res11: Long = 10
+// res11: monix.eval.Task[Long] = Task.Async$684196382
 </span></code></pre></div></div>
 
 <h4 id="node">Node</h4>
@@ -182,7 +188,7 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>Counted:</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res12: Long = 58
+// res12: monix.eval.Task[Long] = Task.Async$1892233294
 </span></code></pre></div></div>
 
 <h4 id="edge">Edge</h4>
@@ -193,7 +199,7 @@ There are API’s on each structure-level (resource, value, edge and node).</p>
 <p>Counted:</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">graph</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">count</span><span class="o">()</span>
 <span class="c1">// warning: there was one feature warning; for details, enable `:setting -feature' or `:replay -feature'
-// res13: Long = 40
+// res13: monix.eval.Task[Long] = Task.Async$1781854519
 </span></code></pre></div></div>
 
 <h4 id="value">Value</h4>
