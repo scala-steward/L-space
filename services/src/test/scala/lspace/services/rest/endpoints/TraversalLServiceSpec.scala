@@ -8,13 +8,14 @@ import lspace.provider.mem.MemGraph
 import lspace.services.util
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
 
 import scala.concurrent.duration._
 
 class TraversalLServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
+//  override def executionContext = lspace.Implicits.Scheduler.global
 
   implicit val graph    = MemGraph("GraphServiceSpec")
   implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
@@ -25,12 +26,20 @@ class TraversalLServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAf
 //  override def beforeAll(): Unit = {
 //    SampleGraph.loadSocial(graph)
 //  }
-  scala.concurrent.Await.ready((for {
+  val initTask = (for {
     _ <- SampleGraph.loadSocial(graph)
-  } yield ()).runToFuture, 5.seconds)
+  } yield ()).memoizeOnSuccess
 
-  override def afterAll(): Unit = {
-    graph.close()
+//  override def afterAll(): Unit = {
+//    (for {
+//      _ <- graph.close()
+//    } yield ()).timeout(5.seconds).runToFuture
+//  }
+
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
+    new FutureOutcome(initTask.runToFuture flatMap { result =>
+      super.withFixture(test).toFuture
+    })
   }
 
   import util._

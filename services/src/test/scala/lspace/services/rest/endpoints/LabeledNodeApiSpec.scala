@@ -12,25 +12,38 @@ import lspace.structure._
 import lspace.structure.Property.default.`@id`
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
 import shapeless.{:+:, CNil}
 import lspace.services.util._
+
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object LabeledNodeApiSpec {}
-class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
+//  override def executionContext = lspace.Implicits.Scheduler.global
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
   implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder
   implicit val encoder        = lspace.codec.Encoder(nencoder)
   implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
 
-  override def beforeAll(): Unit = {}
-  scala.concurrent.Await.ready((for {
+  val initTask = (for {
     _ <- SampleGraph.loadSocial(sampleGraph)
-  } yield ()).runToFuture, 5.seconds)
+  } yield ()).memoizeOnSuccess
+
+//  override def afterAll(): Unit = {
+//    (for {
+//      _ <- sampleGraph.close()
+//    } yield ()).timeout(5.seconds).runToFuture
+//  }
+
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
+    new FutureOutcome(initTask.runToFuture flatMap { result =>
+      super.withFixture(test).toFuture
+    })
+  }
 
   val person     = SampleGraph.Person
   val personKeys = SampleGraph.Person.keys
@@ -64,29 +77,31 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "An LabeledNodeApi" should {
     "support GET with application/ld+json" in {
-      val input = Input
-        .get("/123")
-      personApiService
-        .byId(input)
-        .awaitOutput()
-        .map { output =>
-          output.isRight shouldBe true
-          val response = output.right.get
-          response.status shouldBe Status.Ok
-          val node = response.value
-          node.out(person.keys.nameString).head shouldBe "Yoshio"
-        }
-        .getOrElse(fail("endpoint does not match"))
-      personApiService
-        .byId(Input
-          .get("/0000"))
-        .awaitOutput()
-        .map { output =>
-          output.isRight shouldBe true
-          val response = output.right.get
-          response.status shouldBe Status.NotFound
-        }
-        .getOrElse(fail("endpoint does not match"))
+      Task {
+        val input = Input
+          .get("/123")
+        personApiService
+          .byId(input)
+          .awaitOutput()
+          .map { output =>
+            output.isRight shouldBe true
+            val response = output.right.get
+            response.status shouldBe Status.Ok
+            val node = response.value
+            node.out(person.keys.nameString).head shouldBe "Yoshio"
+          }
+          .getOrElse(fail("endpoint does not match"))
+        personApiService
+          .byId(Input
+            .get("/0000"))
+          .awaitOutput()
+          .map { output =>
+            output.isRight shouldBe true
+            val response = output.right.get
+            response.status shouldBe Status.NotFound
+          }
+          .getOrElse(fail("endpoint does not match"))
+      }.runToFuture
     }
     "support POST with application/ld+json" in {
       (for {
@@ -353,4 +368,6 @@ class LabeledNodeApiSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       }).runToFuture
     }
   }
+
+  "A LabeledNodeApi service" should {}
 }

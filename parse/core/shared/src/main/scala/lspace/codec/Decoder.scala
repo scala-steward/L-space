@@ -100,7 +100,6 @@ trait Decoder {
 
     /**
       * https://www.w3.org/2018/jsonld-cg-reports/json-ld-api/#context-processing-algorithms
-      * @param obj
       * @param activeContext
       * @return
       */
@@ -227,11 +226,7 @@ trait Decoder {
   }
 
   /**
-    * @param resource
-    * @param property
-    * @param obj
     * @param activeContext
-    * @tparam T
     * @return
     */
   def toResource(expandedJson: ExpandedMap[Json], expectedType: Option[ClassType[_]])(

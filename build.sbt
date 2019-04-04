@@ -163,7 +163,7 @@ lazy val cassandra = (project in file("store/cassandra"))
   .settings(
     name := "lspace-store-cassandra",
     libraryDependencies ++= storeCassandraDeps,
-    Test / parallelExecution := false
+    Test / parallelExecution := true
   )
 
 lazy val kafka = (project in file("store/kafka"))
@@ -172,7 +172,7 @@ lazy val kafka = (project in file("store/kafka"))
   .settings(
     name := "lspace-store-kafka",
     libraryDependencies ++= storeKafkaDeps,
-    Test / parallelExecution := false
+    Test / parallelExecution := true
   )
 
 lazy val elasticsearch = (project in file("index/elasticsearch"))
@@ -181,9 +181,8 @@ lazy val elasticsearch = (project in file("index/elasticsearch"))
   .settings(
     name := "lspace-index-elasticsearch",
     libraryDependencies ++= indexElasticsearchDeps,
-    Test / parallelExecution := false
+    Test / parallelExecution := true
   )
-
 
 lazy val services = (project in file("services"))
   .dependsOn(client.jvm % "compile->compile;test->test", parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test")
@@ -191,7 +190,7 @@ lazy val services = (project in file("services"))
   .settings(
     name := "lspace-services",
     libraryDependencies ++= servicesDeps,
-    Test / parallelExecution := false
+    Test / parallelExecution := true
   )
 
 val makeSettingsYml = Def.task {

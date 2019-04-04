@@ -93,11 +93,12 @@ class LabeledNodeApi(
           for {
             newNode <- t.nodes.create(ontology)
             _       <- newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-            _       <- node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-            _       <- newNode.addLabel(ontology)
-            _       <- t ++ node.graph
-            _       <- t.commit()
-            r       <- graph.nodes.hasId(newNode.id)
+//            _       <- node --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+            _ <- newNode.addLabel(ontology)
+//            _       <- t ++ node.graph //Detached graph does not work here, it does not persist resources
+            _ <- Task.sequence(node.outE().map(e => newNode --- e.key --> e.to))
+            _ <- t.commit()
+            r <- graph.nodes.hasId(newNode.id)
           } yield Created(r.get)
         }.toIO //(catsEffect(global))
     }
@@ -128,9 +129,10 @@ class LabeledNodeApi(
                 .hasIri(graph.iri + "/" + label + "/" + id)
                 .headL
               _ <- Task.sequence(node.outE(`@id`).map(_.remove()))
-              _ <- node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+//              _ <- node --- `@id` --> (graph.iri + "/" + label + "/" + id)
               _ <- Task.sequence(existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).map(_.remove()))
-              _ <- t ++ node.graph
+//              _ <- t ++ node.graph
+              _ <- Task.sequence(node.outE().map(e => existingNode --- e.key --> e.to))
               _ <- t.commit()
               r <- graph.nodes.hasId(existingNode.id)
             } yield Ok(r.get)
@@ -165,14 +167,15 @@ class LabeledNodeApi(
                 .hasIri(graph.iri + "/" + label + "/" + id)
                 .headL
               _ <- Task.sequence(node.outE(`@id`).map(_.remove()))
-              _ <- node --- `@id` --> (graph.iri + "/" + label + "/" + id)
+//              _ <- node --- `@id` --> (graph.iri + "/" + label + "/" + id)
               _ <- Task.sequence(
                 existingNode
                   .outE()
                   .filterNot(e => e.key == `@id` || e.key == `@ids`)
                   .filter(e => node.outMap().keySet.contains(e.key))
                   .map(_.remove()))
-              _ <- t ++ node.graph
+//              _ <- t ++ node.graph
+              _ <- Task.sequence(node.outE().map(e => existingNode --- e.key --> e.to))
               _ <- t.commit()
               r <- graph.nodes.hasId(existingNode.id)
             } yield Ok(r.get)
