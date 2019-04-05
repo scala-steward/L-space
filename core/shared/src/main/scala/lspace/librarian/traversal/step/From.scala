@@ -10,13 +10,13 @@ case object From
     with StepWrapper[From]
     with From {
 
-  def toStep(node: Node): From = this
+  def toStep(node: Node): Task[From] = Task.now(this)
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
   override def prettyPrint: String = "from"
 }
 

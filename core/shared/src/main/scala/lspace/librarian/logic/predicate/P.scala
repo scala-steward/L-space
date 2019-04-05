@@ -13,6 +13,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
 //  implicit def nodeToP(node: Node): P[_] = P.toP(node)
 
+  //TODO: migrate to Task[P[_]], this way we can start building resolvers for remote nodes (reusing published predicates)
   def toP(node: Node): P[_] = node match {
     case p: P[_] => p
     case _ =>

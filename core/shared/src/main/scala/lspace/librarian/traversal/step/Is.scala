@@ -9,7 +9,7 @@ import monix.eval.Task
 
 object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Is] {
 
-  def toStep(node: Node): Is = Is(node.out(Is.keys.predicateUrl).map(P.toP).head)
+  def toStep(node: Node): Task[Is] = Task.now(Is(node.out(Is.keys.predicateUrl).map(P.toP).head))
 
   object keys {
     object predicate
@@ -33,7 +33,7 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
       predicate <- step.predicate.toNode
       _         <- node.addOut(keys.predicate, predicate)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

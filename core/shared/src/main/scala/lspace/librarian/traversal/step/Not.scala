@@ -9,16 +9,17 @@ import shapeless.{HList, HNil}
 
 object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Not] {
 
-  def toStep(node: Node): Not = Not(
-    node
-      .out(keys.traversalTraversal)
-      .take(1)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-      .head
-  )
+  def toStep(node: Node): Task[Not] =
+    for {
+      traversal <- node
+        .out(keys.traversalTraversal)
+        .take(1)
+        .map(
+          Traversal
+            .toTraversal(_)
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+        .head
+    } yield Not(traversal)
 
   object keys extends FilterStep.Properties {
     object traversal
@@ -42,7 +43,7 @@ object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: 
       traversal <- step.traversal.toNode
       _         <- node.addOut(keys.traversalTraversal, traversal)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

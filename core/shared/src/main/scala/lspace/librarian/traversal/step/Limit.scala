@@ -10,7 +10,7 @@ object Limit
     extends StepDef("Limit", "A limit-step limits the traversal to first n-results.", () => ClipStep.ontology :: Nil)
     with StepWrapper[Limit] {
 
-  def toStep(node: Node): Limit = Limit(node.out(Limit.keys.maxInt).head)
+  def toStep(node: Node): Task[Limit] = Task.now(Limit(node.out(Limit.keys.maxInt).head))
 
   object keys extends ClipStep.Properties {
     object max
@@ -33,7 +33,7 @@ object Limit
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.maxInt, limit.max)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

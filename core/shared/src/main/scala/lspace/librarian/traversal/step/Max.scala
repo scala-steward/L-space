@@ -3,6 +3,7 @@ package lspace.librarian.traversal.step
 import lspace.datatype._
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
+import lspace.provider.mem.MemResource
 import lspace.structure._
 import monix.eval.Task
 import shapeless.{HList, HNil}
@@ -22,14 +23,15 @@ object Max
     implicit def IsColor[T <: ColorType[_]]: Maxable[T]       = new Maxable[T] {}
   }
 
-  def toStep(node: Node): Max = Max(
-    node
-      .out(Order.keys.byTraversal)
-      .map(Traversal.toTraversal(_))
-      .filter(_.et.isInstanceOf[DataType[_]])
-      .map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])
-      .head
-  )
+  def toStep(node: Node): Task[Max] =
+    for {
+      by <- Task
+        .gather(
+          node
+            .out(Max.keys.byTraversal)
+            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
+        .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
+    } yield Max(by)
 
   object keys extends FilterBarrierStep.Properties {
     object by
@@ -49,11 +51,11 @@ object Max
 
   implicit def toNode(step: Max): Task[Node] = {
     for {
-      node      <- DetachedGraph.nodes.create(ontology)
-      traversal <- step.by.toNode
-      _         <- node.addOut(keys.byTraversal, traversal)
+      node <- DetachedGraph.nodes.create(ontology)
+      by   <- step.by.toNode
+      _    <- node.addOut(keys.byTraversal, by)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Max(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList]) extends FilterBarrierStep {

@@ -5,31 +5,36 @@ import lspace.provider.detached.DetachedGraph
 import lspace.datatype.DataType
 import lspace.structure._
 import monix.eval.Task
+import monix.reactive.Observable
 import shapeless.HList
 
 object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]] {
 
-  def toStep(node: Node): Repeat[ClassType[Any]] = Repeat(
-    node
-      .out(keys.traversalTraversal)
-      .take(1)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-      .head,
-    node
-      .out(keys.untilTraversal)
-      .take(1)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-      .headOption,
-    node.out(keys.maxInt).headOption,
-    node.out(keys.collectBoolean).headOption.getOrElse(false),
-    node.out(keys.noloopBoolean).headOption.getOrElse(false)
-  )
+  def toStep(node: Node): Task[Repeat[ClassType[Any]]] =
+    for {
+      by <- node
+        .out(keys.traversalTraversal)
+        .take(1)
+        .map(
+          Traversal
+            .toTraversal(_)
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+        .head
+      until <- Task.gather(
+        node
+          .out(keys.untilTraversal)
+          .take(1)
+          .map(Traversal
+            .toTraversal(_)
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
+    } yield
+      Repeat(
+        by,
+        until.headOption,
+        node.out(keys.maxInt).headOption,
+        node.out(keys.collectBoolean).headOption.getOrElse(false),
+        node.out(keys.noloopBoolean).headOption.getOrElse(false)
+      )
 
   object keys {
     object traversal
@@ -90,14 +95,14 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
       _         <- if (step.collect) node.addOut(keys.collectBoolean, step.collect) else Task.unit
       _         <- if (step.noloop) node.addOut(keys.collectBoolean, step.noloop) else Task.unit
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Repeat[E0 <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],
                                       until: Option[Traversal[E0, _ <: ClassType[_], _ <: HList]],
-                                      max: Option[Int],
-                                      collect: Boolean,
-                                      noloop: Boolean)
+                                      max: Option[Int] = None,
+                                      collect: Boolean = false,
+                                      noloop: Boolean = false)
     extends BranchStep {
 
   lazy val toNode: Task[Node] = this

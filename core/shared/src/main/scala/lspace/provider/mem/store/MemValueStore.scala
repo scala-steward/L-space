@@ -11,6 +11,7 @@ import lspace.structure.store.ValueStore
 import lspace.types.vector.Point
 import monix.eval.{Coeval, Task}
 import monix.reactive.Observable
+import squants.time.Time
 
 import scala.collection.immutable.ListSet
 import scala.collection.concurrent
@@ -59,6 +60,8 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
     new ConcurrentHashMap[LocalDate, Set[graph.GValue[LocalDate]]]().asScala
   protected lazy val timeCache: concurrent.Map[LocalTime, Set[graph.GValue[LocalTime]]] =
     new ConcurrentHashMap[LocalTime, Set[graph.GValue[LocalTime]]]().asScala
+  protected lazy val durationCache: concurrent.Map[Time, Set[graph.GValue[Time]]] =
+    new ConcurrentHashMap[Time, Set[graph.GValue[Time]]]().asScala
   protected lazy val geopointCache: concurrent.Map[Point, Set[graph.GValue[Point]]] =
     new ConcurrentHashMap[Point, Set[graph.GValue[Point]]]().asScala
 //  protected lazy val ontologyCache: concurrent.Map[Ontology, Set[graph.GValue[Ontology]]] =
@@ -90,6 +93,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
         case value: LocalDateTime => localdatetimeCache.get(value).toStream.flatMap(_.toList)
         case value: LocalDate     => dateCache.get(value).toStream.flatMap(_.toList)
         case value: LocalTime     => timeCache.get(value).toStream.flatMap(_.toList)
+        case value: Time          => durationCache.get(value).toStream.flatMap(_.toList)
         case value: Point         => geopointCache.get(value).toStream.flatMap(_.toList)
         case value: Map[Any, Any] => mapCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
         case value: ListSet[Any]  => listsetCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
@@ -161,6 +165,12 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
           timeCache += value.value
             .asInstanceOf[LocalTime] -> (timeCache.getOrElse(value.value.asInstanceOf[LocalTime], Set()) + value
             .asInstanceOf[graph.GValue[LocalTime]])
+        }
+      case dt: DurationType =>
+        durationCache.synchronized {
+          durationCache += value.value
+            .asInstanceOf[Time] -> (durationCache.getOrElse(value.value.asInstanceOf[Time], Set()) + value
+            .asInstanceOf[graph.GValue[Time]])
         }
       case dt: GeopointType[_] =>
         geopointCache.synchronized {
@@ -278,6 +288,13 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
             else
               timeCache += value.value.asInstanceOf[LocalTime] -> (values - value.asInstanceOf[graph.GValue[LocalTime]])
           }
+        case dt: DurationType =>
+          durationCache.synchronized {
+            val values = durationCache.getOrElse(value.value.asInstanceOf[Time], Set())
+            if (values.exists(_ == value)) durationCache -= value.value.asInstanceOf[Time]
+            else
+              durationCache += value.value.asInstanceOf[Time] -> (values - value.asInstanceOf[graph.GValue[Time]])
+          }
         case dt: GeopointType[_] =>
           geopointCache.synchronized {
             val values = geopointCache.getOrElse(value.value.asInstanceOf[Point], Set())
@@ -339,6 +356,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
         localdatetimeCache.clear()
         dateCache.clear()
         timeCache.clear()
+        durationCache.clear()
         geopointCache.clear()
         mapCache.clear()
         listsetCache.clear()

@@ -215,6 +215,26 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .runToFuture
 
     }
+    """N.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))""" in {
+      g.N
+        .hasIri(sampleGraph.iri + "/place/123")
+        .choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))
+        .withGraph(sampleGraph)
+        .headF
+        .map(_ shouldBe true)
+        .task
+        .runToFuture
+    }
+    """.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(2)), _.constant(true), _.constant(false))""" in {
+      g.N
+        .hasIri(sampleGraph.iri + "/place/123")
+        .choose(_.count.is(P.eqv(2)), _.constant(true), _.constant(false))
+        .withGraph(sampleGraph)
+        .headF
+        .map(_ shouldBe false)
+        .task
+        .runToFuture
+    }
     "N.not(_.has(Property.default.`@label`))" in {
       g.N
         .not(_.has(Property.default.`@label`))

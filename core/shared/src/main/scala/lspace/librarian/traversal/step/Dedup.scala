@@ -12,13 +12,13 @@ case object Dedup
     with StepWrapper[Dedup]
     with Dedup {
 
-  def toStep(node: Node): Dedup = this
+  def toStep(node: Node): Task[Dedup] = Task.now(this)
 
   object keys extends GlobalFilterStep.Properties
   override lazy val properties: List[Property] = GlobalFilterStep.properties
   trait Properties extends GlobalFilterStep.Properties
 
-  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
   override def prettyPrint: String = "dedup()"
 }
 

@@ -11,7 +11,7 @@ object R
     extends StepDef("R", "An r-step selects resources to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[R] {
 
-  def toStep(node: Node): R = R(node.outE(R.keys.resource).map(_.to))
+  def toStep(node: Node): Task[R] = Task.now(R(node.outE(R.keys.resource).map(_.to)))
 
   object keys extends ResourceStep.Properties {
     object resource
@@ -34,7 +34,7 @@ object R
       node <- DetachedGraph.nodes.create(ontology)
       _    <- if (step.resources.nonEmpty) node.addOut(keys.resourceUrl, step.resources) else Task.unit
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class R(resources: List[Resource[_]]) extends ResourceStep {

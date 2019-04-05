@@ -248,6 +248,9 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "N.coin(1.0)" in {
         g.N.coin(1.0).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).runToFuture
       }
+      """N.constant("abc")""" in {
+        g.N.constant("abc").head.withGraph(sampleGraph).headF.map(_ shouldBe "abc").runToFuture
+      }
       """N.hasIri(sampleGraph.iri + "/person/12345").out("https://schema.org/knows").out("https://schema.org/knows").path(_.out("name").head)""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
@@ -336,6 +339,24 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 3)
+          .runToFuture
+      }
+      """N.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/place/123")
+          .choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe true)
+          .runToFuture
+      }
+      """.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(2)), _.constant(true), _.constant(false))""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/place/123")
+          .choose(_.count.is(P.eqv(2)), _.constant(true), _.constant(false))
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe false)
           .runToFuture
       }
       "N.not(_.has(Property.default.`@label`))" in {

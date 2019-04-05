@@ -12,13 +12,13 @@ case object Sum
     with StepWrapper[Sum]
     with Sum {
 
-  def toStep(node: Node): Sum = this
+  def toStep(node: Node): Task[Sum] = Task.now(this)
 
   object keys extends ReducingBarrierStep.Properties
   override lazy val properties: List[Property] = ReducingBarrierStep.properties
   trait Properties extends ReducingBarrierStep.Properties
 
-  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node]      = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
   override def prettyPrint: String = "sum"
 }
 

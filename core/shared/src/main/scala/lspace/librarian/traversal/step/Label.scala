@@ -7,13 +7,20 @@ import monix.eval.Task
 
 object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[Label] {
 
-  def toStep(node: Node): Label = Label(
-    node
-      .out(MoveStep.keys.labelUrl)
-      .map(_.iri)
-      .flatMap(node.graph.ns.classtypes.cached(_)) //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
-      .toSet
-  )
+  def toStep(node: Node): Task[Label] =
+    for {
+      labels <- Task.gather(
+        node
+          .out(keys.`ns.l-space.eu/librarian/MoveStep/label`)
+          .collect {
+            case node: Node => node.iri
+          }
+          .map(node.graph.ns.classtypes.get(_).map(_.get)))
+    } yield
+      Label(
+        labels //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
+        .toSet
+      )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
@@ -31,10 +38,10 @@ object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology
           node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, classtype)
       })
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
-case class Label(label: Set[ClassType[_]]) extends MoveStep {
+case class Label(label: Set[ClassType[_]] = Set()) extends MoveStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "label(" + label.map(_.iri).mkString(", ") + ")"

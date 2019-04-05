@@ -15,16 +15,17 @@ object Or
                     () => FilterStep.ontology :: Nil)
     with StepWrapper[Or] {
 
-  def toStep(node: Node): Or = Or(
-    node
-      .out(keys.traversalTraversal)
-      .take(1)
-      .flatten
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-  )
+  def toStep(node: Node): Task[Or] =
+    for {
+      traversals <- Task.gather(
+        node
+          .out(keys.traversalTraversal)
+          .map(
+            _.map(Traversal
+              .toTraversal(_)
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
+          .head)
+    } yield Or(traversals)
 
   object keys extends FilterStep.Properties {
     object traversal
@@ -47,9 +48,9 @@ object Or
     for {
       node       <- DetachedGraph.nodes.create(ontology)
       traversals <- Task.gather(step.traversals.map(_.toNode))
-      _          <- Task.gather(traversals.map(node.addOut(keys.traversal, _)))
+      _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

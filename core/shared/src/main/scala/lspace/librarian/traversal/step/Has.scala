@@ -15,20 +15,21 @@ object Has
     )
     with StepWrapper[Has] {
 
-  def toStep(node: Node): Has =
-    Has(
-      node
-        .outE(keys.key)
-        .take(1)
-        .map { i =>
-          node.graph.ns.properties.cached(i.to.iri).get
-        }
-        .head,
-      node
+  def toStep(node: Node): Task[Has] =
+    for {
+      key <- node.graph.ns.properties
+        .get(
+          node
+            .outE(keys.key)
+            .head
+            .to
+            .iri)
+        .map(_.get)
+      p = node
         .out(keys.predicateUrl)
-        .headOption
         .map(P.toP)
-    )
+        .headOption
+    } yield Has(key, p)
 
   object keys {
     object key
@@ -64,7 +65,7 @@ object Has
       predicates <- Task.gather(step.predicate.toList.map(_.toNode))
       _          <- Task.gather(predicates.map(node.addOut(keys.predicateUrl, _)))
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

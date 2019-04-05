@@ -426,6 +426,9 @@ trait AsyncGuide extends Guide[Observable] {
                 List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
               case v => List()
             })))
+      case step: Constant[_, _, _] =>
+        obs: Observable[Librarian[Any]] =>
+          nextStep(obs.map(librarian => librarian.copy(step.value)))
     }
   }
 
@@ -628,6 +631,19 @@ trait AsyncGuide extends Guide[Observable] {
                   case true  => obs
                   case false => coalObs(librarian)
                 }
+            }
+          }
+      case step: Choose[_, _] =>
+        val byObs    = traversalToF(step.by.segmentList)
+        val rightObs = traversalToF(step.right.segmentList)
+        val leftObs  = traversalToF(step.left.segmentList)
+        obs: Observable[Librarian[Any]] =>
+          obs.flatMap { librarian =>
+            byObs(librarian).nonEmpty.flatMap {
+              case true =>
+                rightObs(librarian)
+              case false =>
+                leftObs(librarian)
             }
           }
       case step: Local =>

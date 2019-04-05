@@ -5,6 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.NS.types
+import lspace.datatype.ListType
 import monix.eval.Task
 import shapeless.{HList, HNil, LUBConstraint}
 
@@ -12,12 +13,17 @@ object Project
     extends StepDef("Project", "A project-step ..", () => TraverseStep.ontology :: Nil)
     with StepWrapper[Project[HList]] {
 
-  def toStep(node: Node): Project[HList] =
-    Project[HList](
-      node
-        .out(Project.keys.byTraversal)
-        .map(Traversal.toTraversal(_))
-        .foldLeft[HList](HNil) { case (hlist, traversal) => traversal :: hlist })
+  def toStep(node: Node): Task[Project[HList]] =
+    for {
+      by <- Task.gather(
+        node
+          .out(keys.byTraversal)
+          .map(
+            _.map(Traversal
+              .toTraversal(_)
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
+          .head)
+    } yield Project[HList](by.reverse.foldLeft[HList](HNil) { case (hlist, traversal) => traversal :: hlist })
 
   object keys extends TraverseStep.Properties {
     object by
@@ -28,7 +34,7 @@ object Project
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    val byTraversal: TypedProperty[List[Node]] = by.property + ListType(Traversal.ontology :: Nil)
   }
   override lazy val properties: List[Property] = keys.by :: TraverseStep.properties
   trait Properties extends TraverseStep.Properties
@@ -45,9 +51,9 @@ object Project
         project.by.runtimeList
           .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
           .map(_.toNode))
-      _ <- Task.gather(traversals.map(node.addOut(keys.byTraversal, _)))
+      _ <- node.addOut(keys.byTraversal, traversals)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

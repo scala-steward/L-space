@@ -13,19 +13,19 @@ object And
                     () => FilterStep.ontology :: Nil)
     with StepWrapper[And] {
 
-  def toStep(node: Node): And = node match {
-    case node: And => node
+  def toStep(node: Node): Task[And] = node match {
+    case node: And => Task.now(node)
     case _ =>
-      And(
-        node
-          .out(keys.traversalTraversal)
-          .take(1)
-          .flatten
-          .map(
-            Traversal
-              .toTraversal(_)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-      )
+      for {
+        traversals <- Task.gather(
+          node
+            .out(keys.traversalTraversal)
+            .map(
+              _.map(Traversal
+                .toTraversal(_)
+                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
+            .head)
+      } yield And(traversals)
   }
 
   object keys extends FilterStep.Properties {
@@ -51,7 +51,7 @@ object And
       traversals <- Task.gather(and.traversals.map(_.toNode))
       _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class And(traversals: List[Traversal[_, _, _ <: HList]]) extends FilterStep {

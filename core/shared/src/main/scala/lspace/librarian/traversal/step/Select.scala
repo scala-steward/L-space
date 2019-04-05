@@ -1,6 +1,6 @@
 package lspace.librarian.traversal.step
 
-import lspace.datatype.DataType
+import lspace.datatype.{DataType, ListType}
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
@@ -40,7 +40,7 @@ object Select
 //    implicit def as[T] = at[As[T, Label]](s => s)
 //  }
 
-  def toStep(node: Node): Select[Any] = Select[Any](node.out(Select.keys.nameString))
+  def toStep(node: Node): Task[Select[Any]] = Task.now(Select[Any](node.out(Select.keys.nameString).head))
 
   object keys {
     object name
@@ -51,16 +51,16 @@ object Select
           container = types.`@listset` :: Nil,
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val nameString: TypedProperty[String] = name.property + DataType.default.`@string`
+    val nameString: TypedProperty[List[String]] = name.property + ListType(DataType.default.`@string` :: Nil)
   }
   override lazy val properties: List[Property] = keys.name :: Nil
 
   implicit def toNode(step: Select[_]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- Task.gather(step.names.map(node.addOut(keys.name, _)))
+      _    <- node.addOut(keys.nameString, step.names)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Select[E](names: List[String]) extends TraverseStep {

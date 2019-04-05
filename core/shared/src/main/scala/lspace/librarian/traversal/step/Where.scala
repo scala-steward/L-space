@@ -8,16 +8,17 @@ import shapeless.{HList, HNil}
 
 object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Where] {
 
-  def toStep(node: Node): Where = Where(
-    node
-      .out(keys.traversalTraversal)
-      .take(1)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
-      .head
-  )
+  def toStep(node: Node): Task[Where] =
+    for {
+      traversal <- node
+        .out(keys.traversalTraversal)
+        .take(1)
+        .map(
+          Traversal
+            .toTraversal(_)
+            .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]]))
+        .head
+    } yield Where(traversal)
 
   object keys extends FilterStep.Properties {
     object traversal
@@ -42,7 +43,7 @@ object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontolo
       traversal <- step.traversal.toNode
       _         <- node.addOut(keys.traversalTraversal, traversal)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Where(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends FilterStep {

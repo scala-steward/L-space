@@ -10,13 +10,14 @@ object Group
     extends StepDef("Group", "A group-step groups traversers.", () => CollectingBarrierStep.ontology :: Nil)
     with StepWrapper[Group[ClassType[Any], HList]] {
 
-  def toStep(node: Node): Group[ClassType[Any], HList] =
-    Group[ClassType[Any], HList](
-      node
-        .out(keys.byTraversal)
-        .take(1)
-        .map(Traversal.toTraversal(_))
-        .head)
+  def toStep(node: Node): Task[Group[ClassType[Any], HList]] =
+    for {
+      by <- Traversal.toTraversal(
+        node
+          .out(keys.byTraversal)
+          .take(1)
+          .head)
+    } yield Group[ClassType[Any], HList](by)
 
   object keys extends CollectingBarrierStep.Properties {
     object by
@@ -41,7 +42,7 @@ object Group
       traversal <- step.by.toNode
       _         <- node.addOut(keys.byTraversal, traversal)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

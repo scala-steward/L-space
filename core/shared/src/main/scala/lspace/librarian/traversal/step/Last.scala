@@ -11,18 +11,16 @@ case object Last
     with StepWrapper[Last]
     with Last {
 
-  def toStep(node: Node): Last = this
+  def toStep(node: Node): Task[Last] = Task.now(this)
 
   object keys extends ClipStep.Properties
   override lazy val properties: List[Property] = ClipStep.properties
   trait Properties extends ClipStep.Properties
 
-  implicit def toNode(last: Last): Task[Node] = DetachedGraph.nodes.create(ontology)
-
+  implicit lazy val toNode: Task[Node] = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
 }
 
 trait Last extends ClipStep {
 
-  lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "last"
 }

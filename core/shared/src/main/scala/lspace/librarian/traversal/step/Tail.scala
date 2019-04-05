@@ -10,7 +10,7 @@ object Tail
     extends StepDef("Tail", "A tail-step limits the traversal to last n-results.", () => ClipStep.ontology :: Nil)
     with StepWrapper[Tail] {
 
-  def toStep(node: Node): Tail = Tail(node.out(Tail.keys.maxInt).head)
+  def toStep(node: Node): Task[Tail] = Task.now(Tail(node.out(Tail.keys.maxInt).head))
 
   object keys extends ClipStep.Properties {
     object max
@@ -33,7 +33,7 @@ object Tail
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.maxInt, step.max)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Tail(max: Int) extends ClipStep {

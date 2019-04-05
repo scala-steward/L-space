@@ -12,6 +12,7 @@ import lspace.structure.store.ValueStore
 import lspace.types.vector.Point
 import monix.eval.Task
 import monix.reactive.Observable
+import squants.time.Time
 
 import scala.collection.immutable.ListSet
 import scala.collection.concurrent
@@ -42,6 +43,8 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     new ConcurrentHashMap[LocalDate, Set[graph._Value[LocalDate]]]().asScala
   protected lazy val timeCache: concurrent.Map[LocalTime, Set[graph._Value[LocalTime]]] =
     new ConcurrentHashMap[LocalTime, Set[graph._Value[LocalTime]]]().asScala
+  protected lazy val durationCache: concurrent.Map[Time, Set[graph._Value[Time]]] =
+    new ConcurrentHashMap[Time, Set[graph._Value[Time]]]().asScala
   protected lazy val geopointCache: concurrent.Map[Point, Set[graph._Value[Point]]] =
     new ConcurrentHashMap[Point, Set[graph._Value[Point]]]().asScala
   protected lazy val mapCache: concurrent.Map[Map[Any, Any], Set[graph._Value[Map[Any, Any]]]] =
@@ -164,6 +167,12 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Observable[graph._Value[V]]]
+      case value: Time =>
+        durationCache
+          .get(value)
+          .map(Observable.fromIterable)
+          .getOrElse(graph.storeManager.valueByValue(value, dt))
+          .asInstanceOf[Observable[graph._Value[V]]]
       case value: Point =>
         geopointCache
           .get(value)
@@ -242,6 +251,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
   private[this] val localdatetimeCacheLock = new Object
   private[this] val localdateCacheLock     = new Object
   private[this] val localtimeCacheLock     = new Object
+  private[this] val durationCacheLock      = new Object
   private[this] val geopointCacheLock      = new Object
   private[this] val mapCacheLock           = new Object
   private[this] val listsetCacheLock       = new Object
@@ -306,6 +316,12 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           timeCache += value.value
             .asInstanceOf[LocalTime] -> (timeCache.getOrElse(value.value.asInstanceOf[LocalTime], Set()) + value
             .asInstanceOf[graph._Value[LocalTime]])
+        }
+      case dt: DurationType =>
+        durationCacheLock.synchronized {
+          durationCache += value.value
+            .asInstanceOf[Time] -> (durationCache.getOrElse(value.value.asInstanceOf[Time], Set()) + value
+            .asInstanceOf[graph._Value[Time]])
         }
       case dt: GeopointType[_] =>
         geopointCacheLock.synchronized {
@@ -428,6 +444,13 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           else
             timeCache += value.value.asInstanceOf[LocalTime] -> (values - value.asInstanceOf[graph._Value[LocalTime]])
         }
+      case dt: DurationType =>
+        durationCacheLock.synchronized {
+          val values = durationCache.getOrElse(value.value.asInstanceOf[Time], Set())
+          if (values.exists(_ == value)) durationCache -= value.value.asInstanceOf[Time]
+          else
+            durationCache += value.value.asInstanceOf[Time] -> (values - value.asInstanceOf[graph._Value[Time]])
+        }
       case dt: GeopointType[_] =>
         geopointCacheLock.synchronized {
           val values = geopointCache.getOrElse(value.value.asInstanceOf[Point], Set())
@@ -503,6 +526,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
         localdatetimeCache.clear()
         dateCache.clear()
         timeCache.clear()
+        durationCache.clear()
         geopointCache.clear()
         mapCache.clear()
         listsetCache.clear()

@@ -1,7 +1,7 @@
 package lspace.librarian.traversal
 
 import lspace.datatype._
-import lspace.librarian.logic.predicate.P
+import lspace.librarian.logic.predicate.{Eqv, P}
 import lspace.librarian.task._
 import lspace.librarian.traversal.Traversal.{keys, ontology}
 import lspace.structure.util.{ClassTypeable, Selector}
@@ -41,107 +41,112 @@ object Traversal
   private val defaultdatatypestub = new DataType[Any] {
     override def iri: String = ""
   }
-  def toTraversal(node: Node): Traversal[ClassType[Any], ClassType[Any], HList] = {
+  def toTraversal(node: Node): Task[Traversal[ClassType[Any], ClassType[Any], HList]] = {
     val types = node.labels
 
     //    import shapeless.syntax.std.product._
     //    val steps0 = value0.out(Traversal.keys.stepNode).map(Step.toStep).toHList[Step :: HNil]
-    val traversalSegments = node.out(Traversal.keys.segmentNode).take(1).flatten.foldLeft[HList](HNil) {
-      case (hlist, node) =>
-        Segment.toTraversalSegment(node) :: hlist
-    }
+    for {
+      traversalSegments <- Task
+        .gather(node.out(Traversal.keys.segmentNode).take(1).flatten.map(Segment.toTraversalSegment))
+        .map(_.foldLeft[HList](HNil) {
+          case (hlist, step) => step :: hlist
+        })
+    } yield {
 
-    def findNearestParent(labels: List[ClassType[_]], starttype: ClassType[Any]): ClassType[_] = {
-      if (labels.isEmpty) starttype
-      else if (labels.toSet.size == 1) labels.head
-      else
-        labels.toSet match {
-//          case set if set.forall(_.`extends`(DataType.default.`@int`))           => DataType.default.`@int`
-//          case set if set.forall(_.`extends`(DataType.default.`@double`))        => DataType.default.`@double`
-//          case set if set.forall(_.`extends`(DataType.default.`@long`))          => DataType.default.`@long`
-          case set if set.forall(_.`extends`(DataType.default.`@number`)) => DataType.default.`@number`
-//          case set if set.forall(_.`extends`(DataType.default.`@datetime`))      => DataType.default.`@datetime`
-//          case set if set.forall(_.`extends`(DataType.default.`@localdatetime`)) => DataType.default.`@localdatetime`
-//          case set if set.forall(_.`extends`(DataType.default.`@date`))          => DataType.default.`@date`
-//          case set if set.forall(_.`extends`(DataType.default.`@time`))          => DataType.default.`@time`
-          case set if set.forall(_.`extends`(DataType.default.`@temporal`)) => DataType.default.`@temporal`
-//          case set if set.forall(_.`extends`(DataType.default.`@geopoint`))      => DataType.default.`@geopoint`
-//          case set if set.forall(_.`extends`(DataType.default.`@geomultipoint`)) => DataType.default.`@geomultipoint`
-//          case set if set.forall(_.`extends`(DataType.default.`@geoline`))       => DataType.default.`@geoline`
-//          case set if set.forall(_.`extends`(DataType.default.`@geomultiline`))  => DataType.default.`@geomultiline`
-//          case set if set.forall(_.`extends`(DataType.default.`@geopolygon`))    => DataType.default.`@geopolygon`
-//          case set if set.forall(_.`extends`(DataType.default.`@geomultipolygon`)) =>
-//            DataType.default.`@geomultipolygon`
-//          case set if set.forall(_.`extends`(DataType.default.`@geomultigeo`)) => DataType.default.`@geomultigeo`
-          case set if set.forall(_.`extends`(DataType.default.`@geo`)) => DataType.default.`@geo`
-          case _ =>
-            defaultdatatypestub
-        }
-    }
-
-    def stepsToContainerStructure(steps: List[Any], starttype: ClassType[Any] = defaultdatatypestub): ClassType[_] = {
-      import scala.collection.immutable.::
-      steps.collect {
-        case step: OutMap      => step
-        case step: OutEMap     => step
-        case step: InMap       => step
-        case step: InEMap      => step
-        case step: Group[_, _] => step
-        case step: Path[_, _]  => step
-        case step: Project[_]  => step
-        case step: HasLabel    => step
-        //case step: Union => //collect differentiating HasLabel steps
-      } match {
-        case Nil =>
-          starttype
-        case step :: steps =>
-          step match {
-            case step: HasLabel =>
-              if (steps.nonEmpty)
-                stepsToContainerStructure(
-                  steps,
-                  findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype))
-              else findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype)
-            case step: OutMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-            case step: OutEMap => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-            case step: InMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-            case step: InEMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-            case step: Group[_, _] =>
-              MapType(List(stepsToContainerStructure(step.by.segmentList)),
-                      List(stepsToContainerStructure(steps), starttype))
-            case step: Path[_, _] => ListType(List(stepsToContainerStructure(step.by.segmentList)))
-            case step: Project[_] =>
-              val traversals = step.by.runtimeList.asInstanceOf[List[Traversal[ClassType[Any], ClassType[Any], HList]]]
-              TupleType(traversals.map(_.segmentList).map(stepsToContainerStructure(_)).map(List(_)))
-//              traversals.size match {
-//                case 2 =>
-//                  Tuple2Type(List(stepsToContainerStructure(traversals(0).segmentList)),
-//                             List(stepsToContainerStructure(traversals(1).segmentList)))
-//                case 3 =>
-//                  Tuple3Type(
-//                    List(stepsToContainerStructure(traversals(0).segmentList)),
-//                    List(stepsToContainerStructure(traversals(1).segmentList)),
-//                    List(stepsToContainerStructure(traversals(2).segmentList))
-//                  )
-//                case 4 =>
-//                  Tuple4Type(
-//                    List(stepsToContainerStructure(traversals(0).segmentList)),
-//                    List(stepsToContainerStructure(traversals(1).segmentList)),
-//                    List(stepsToContainerStructure(traversals(2).segmentList)),
-//                    List(stepsToContainerStructure(traversals(3).segmentList))
-//                  )
-//              }
+      def findNearestParent(labels: List[ClassType[_]], starttype: ClassType[Any]): ClassType[_] = {
+        if (labels.isEmpty) starttype
+        else if (labels.toSet.size == 1) labels.head
+        else
+          labels.toSet match {
+            //          case set if set.forall(_.`extends`(DataType.default.`@int`))           => DataType.default.`@int`
+            //          case set if set.forall(_.`extends`(DataType.default.`@double`))        => DataType.default.`@double`
+            //          case set if set.forall(_.`extends`(DataType.default.`@long`))          => DataType.default.`@long`
+            case set if set.forall(_.`extends`(DataType.default.`@number`)) => DataType.default.`@number`
+            //          case set if set.forall(_.`extends`(DataType.default.`@datetime`))      => DataType.default.`@datetime`
+            //          case set if set.forall(_.`extends`(DataType.default.`@localdatetime`)) => DataType.default.`@localdatetime`
+            //          case set if set.forall(_.`extends`(DataType.default.`@date`))          => DataType.default.`@date`
+            //          case set if set.forall(_.`extends`(DataType.default.`@time`))          => DataType.default.`@time`
+            case set if set.forall(_.`extends`(DataType.default.`@temporal`)) => DataType.default.`@temporal`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geopoint`))      => DataType.default.`@geopoint`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geomultipoint`)) => DataType.default.`@geomultipoint`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geoline`))       => DataType.default.`@geoline`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geomultiline`))  => DataType.default.`@geomultiline`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geopolygon`))    => DataType.default.`@geopolygon`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geomultipolygon`)) =>
+            //            DataType.default.`@geomultipolygon`
+            //          case set if set.forall(_.`extends`(DataType.default.`@geomultigeo`)) => DataType.default.`@geomultigeo`
+            case set if set.forall(_.`extends`(DataType.default.`@geo`)) => DataType.default.`@geo`
+            case _ =>
+              defaultdatatypestub
           }
       }
-    }
 
-    new Traversal[ClassType[Any], ClassType[Any], HList](traversalSegments)(
-      defaultdatatypestub,
-      stepsToContainerStructure(
-        traversalSegments.runtimeList
-          .asInstanceOf[List[Segment[HList]]]
-          .flatMap(_.stepsList))
-    )
+      def stepsToContainerStructure(steps: List[Any], starttype: ClassType[Any] = defaultdatatypestub): ClassType[_] = {
+        import scala.collection.immutable.::
+        steps.collect {
+          case step: OutMap      => step
+          case step: OutEMap     => step
+          case step: InMap       => step
+          case step: InEMap      => step
+          case step: Group[_, _] => step
+          case step: Path[_, _]  => step
+          case step: Project[_]  => step
+          case step: HasLabel    => step
+          //case step: Union => //collect differentiating HasLabel steps
+        } match {
+          case Nil =>
+            starttype
+          case step :: steps =>
+            step match {
+              case step: HasLabel =>
+                if (steps.nonEmpty)
+                  stepsToContainerStructure(
+                    steps,
+                    findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype))
+                else findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype)
+              case step: OutMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+              case step: OutEMap => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+              case step: InMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+              case step: InEMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
+              case step: Group[_, _] =>
+                MapType(List(stepsToContainerStructure(step.by.segmentList)),
+                        List(stepsToContainerStructure(steps), starttype))
+              case step: Path[_, _] => ListType(List(stepsToContainerStructure(step.by.segmentList)))
+              case step: Project[_] =>
+                val traversals =
+                  step.by.runtimeList.asInstanceOf[List[Traversal[ClassType[Any], ClassType[Any], HList]]]
+                TupleType(traversals.map(_.segmentList).map(stepsToContainerStructure(_)).map(List(_)))
+              //              traversals.size match {
+              //                case 2 =>
+              //                  Tuple2Type(List(stepsToContainerStructure(traversals(0).segmentList)),
+              //                             List(stepsToContainerStructure(traversals(1).segmentList)))
+              //                case 3 =>
+              //                  Tuple3Type(
+              //                    List(stepsToContainerStructure(traversals(0).segmentList)),
+              //                    List(stepsToContainerStructure(traversals(1).segmentList)),
+              //                    List(stepsToContainerStructure(traversals(2).segmentList))
+              //                  )
+              //                case 4 =>
+              //                  Tuple4Type(
+              //                    List(stepsToContainerStructure(traversals(0).segmentList)),
+              //                    List(stepsToContainerStructure(traversals(1).segmentList)),
+              //                    List(stepsToContainerStructure(traversals(2).segmentList)),
+              //                    List(stepsToContainerStructure(traversals(3).segmentList))
+              //                  )
+              //              }
+            }
+        }
+      }
+
+      new Traversal[ClassType[Any], ClassType[Any], HList](traversalSegments)(
+        defaultdatatypestub,
+        stepsToContainerStructure(
+          traversalSegments.runtimeList
+            .asInstanceOf[List[Segment[HList]]]
+            .flatMap(_.stepsList))
+      )
+    }
   }
 
   object keys {
@@ -200,6 +205,11 @@ object Traversal
       : Traversal[ST[Start], Out, Segment[step.V :: HNil] :: Segment[Steps] :: Segments] =
       add(step.V(value :: values.toList), st, cls.ct)
 
+    //FIX: within MoveStepsHelper the result type (ET1) freaks-out the compiler, it has trouble calculating it (IDEA shows correct types)
+    def out[V, End1, ET1 <: ClassType[End1]](key: TypedProperty[V])(implicit et: ClassTypeable.Aux[V, End1, ET1])
+      : Traversal[ST[Start], ET1, Segment[HasLabel :: Out :: HNil] :: Segment[Steps] :: Segments] =
+      add(Out(Set(key.key)), st, ClassType.stubAny).hasLabel[V](et)
+
     //    def R[T <: Resource[T]: DefaultsToAny]: Traversal[Start, T, step.R :: Steps] = R()
     //    def R[T <: Resource[T]: DefaultsToAny](value: T*): Traversal[Start, T, step.R :: Steps] =
     //      Traversal[Start, T, step.R :: Steps](step.R(value.toList.asInstanceOf[List[Resource[Any]]]) :: _traversal.steps)
@@ -240,6 +250,11 @@ object Traversal
     def V[T, OutC, Out <: ClassType[OutC]](value: T, values: T*)(
         implicit cls: ClassTypeable.Aux[T, OutC, Out]): Traversal[ST[Start], Out, Segment[step.V :: HNil] :: HNil] =
       add(step.V(value :: values.toList), st, cls.ct)
+
+    //FIX: within MoveStepsHelper the result type (ET1) freaks-out the compiler, it has trouble calculating it (IDEA shows correct types)
+    def out[V, End1, ET1 <: ClassType[End1]](key: TypedProperty[V])(implicit et: ClassTypeable.Aux[V, End1, ET1])
+      : Traversal[ST[Start], ET1, Segment[HasLabel :: Out :: HNil] :: HNil] =
+      add(Out(Set(key.key)), st, ClassType.stubAny).hasLabel[V](et)
 
     //    def R[T <: Resource[T]: DefaultsToAny]: Traversal[Start, T, step.R :: Steps] = R()
     //    def R[T <: Resource[T]: DefaultsToAny](value: T*): Traversal[Start, T, step.R :: Steps] =
@@ -397,7 +412,6 @@ object Traversal
     /**
       * has at least one of the provided iris
       *
-      * @param uri
       * @param uris
       * @return
       */
@@ -410,8 +424,6 @@ object Traversal
       * has at least one of the provided labels
       *
       * @param label
-      * @param labels
-      * @tparam T
       * @return
       */
     //    def hasLabel[ET0 <: ClassType[_], End1, ET1 <: ClassType[End1]](label0: ET0, labels: ET0*)(
@@ -489,6 +501,13 @@ object Traversal
       add(HasLabel(DataType.default.`@color` :: Nil), st, DataType.default.`@color`)
 
     def coin(p: Double): Traversal[ST[Start], ET[End], Segment[Coin :: Steps] :: Segments] = add(Coin(p))
+//    def coin(traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], DoubleType[Double], _ <: HList])
+//    : Traversal[ST[Start], ET[End], Segment[Coin :: Steps] :: Segments] =
+//      add(Coin(traversal(Traversal[ET[End], ET[End]](et, et))))
+
+    def constant[T, T0, TT0 <: ClassType[_]](p: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0])
+      : Traversal[ST[Start], TT0, Segment[Constant[T, T0, TT0] :: HNil] :: Segments1] =
+      add(Constant(p), st, ct.ct)
   }
 
   trait MoveMapStepsHelper[
@@ -593,11 +612,11 @@ object Traversal
       add(Out((f :: ff.toList).map(_.apply(Property.default)).toSet), st, ClassType.stubAny)
     def out(key: Property*) = add(Out(key.toSet), st, ClassType.stubAny)
 
-    def out[V, End1, ET1 <: ClassType[End1]](key: TypedProperty[V])(implicit et: ClassTypeable.Aux[V, End1, ET1]) =
-      add(Out(Set(key.key)), st, ClassType.stubAny).hasLabel[V](et)
+//    def out[V, End1, ET1 <: ClassType[End1]](key: TypedProperty[V])(implicit et: ClassTypeable.Aux[V, End1, ET1]) =
+//      add(Out(Set(key.key)), st, ClassType.stubAny).hasLabel[V](et)
     def out[V, End1, ET1 <: ClassType[End1]](key: TypedProperty[V], p: P[V])(
         implicit et: ClassTypeable.Aux[V, End1, ET1]) =
-      add(Out(Set(key.key)), st, ClassType.stubAny).is(p)
+      add(Out(Set(key.key)), st, ClassType.stubAny).hasLabel[V](et).is(p.asInstanceOf[P[End1]])
 
     def outE(key: String, keys: String*) =
       add(OutE(
@@ -914,6 +933,32 @@ object Traversal
       )
     }
 
+    def choose[ET0 <: ClassType[_],
+               End1,
+               ET1 <: ClassType[End1],
+               Steps1 <: HList,
+               Steps2 <: HList,
+               Labels1 <: HList,
+               Labels2 <: HList](
+        by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList],
+        right: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps1],
+        left: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps2])(
+        implicit
+        f1: Collect.Aux[Steps1, LabelSteps.type, Labels1],
+        f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
+        ev2: Labels1 =:= Labels2,
+        et0: ClassTypeable.Aux[ET0, End1, ET1])
+      : Traversal[ST[Start], ET1, Segment[Choose[ET[End], ET0] :: Steps] :: Segments] = {
+      val byTraversal    = by(Traversal[ET[End], ET[End]](et, et))
+      val rightTraversal = right(Traversal[ET[End], ET[End]](et, et))
+      val leftTraversal  = left(Traversal[ET[End], ET[End]](et, et))
+      add(
+        Choose[ET[End], ET0](byTraversal, rightTraversal, leftTraversal),
+        st,
+        et0.ct
+      )
+    }
+
     def coalesce[ET0 <: ClassType[_],
                  End1,
                  ET1 <: ClassType[End1],
@@ -950,7 +995,6 @@ object Traversal
     /**
       * TODO: result of path is a List[ET0]
       *
-      * @param et0
       * @return
       */
     def path: Traversal[ST[Start], ClassType[Nothing], Segment[Path[ClassType[Any], HNil] :: HNil] :: Segments1] =
@@ -965,9 +1009,10 @@ object Traversal
       add(Path(t), st, ClassType.stubNothing)
     }
 
-    //    def is(value: End): Traversal[Start, Boolean, Is[End], Containers] =
-    //      Traversal[Start, Boolean, Is[End], Containers](_traversal.step :+ Is(P.eq(value)))
-
+//    def is[T, T0, TT0 <: ClassType[_]](value: T)(
+//        implicit ev: T <:!< P[_],
+//        ct: ClassTypeable.Aux[T, T0, TT0]): Traversal[ST[Start], ET[End], Segment[Is :: Steps] :: Segments] =
+//      is(P.eqv(value)(ct))
     def is(predicate: P[End]): Traversal[ST[Start], ET[End], Segment[Is :: Steps] :: Segments] =
       add(Is(predicate))
   }
@@ -1764,7 +1809,7 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
       segments <- Task.gather(segmentList.map(_.toNode).toVector)
       _        <- if (segments.nonEmpty) node.addOut(keys.segmentNode, segments) else Task.unit
     } yield node
-  }
+  }.memoizeOnSuccess
 
   def prettyPrint: String = {
     segmentList.map(_.prettyPrint).mkString(".")

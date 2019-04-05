@@ -11,7 +11,7 @@ object HasIri
     extends StepDef("HasIri", "A hasIri-step filters resources by iri.", () => HasStep.ontology :: Nil)
     with StepWrapper[HasIri] {
 
-  def toStep(node: Node): HasIri = HasIri(node.out(HasIri.keys.iriString).toSet)
+  def toStep(node: Node): Task[HasIri] = Task.now(HasIri(node.out(HasIri.keys.iriString).toSet))
 
   object keys {
     object iri
@@ -35,7 +35,7 @@ object HasIri
       node <- DetachedGraph.nodes.create(ontology)
       _    <- Task.gather(step.iris.map(node.addOut(keys.iri, _)))
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

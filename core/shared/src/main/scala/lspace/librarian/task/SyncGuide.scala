@@ -364,6 +364,9 @@ trait SyncGuide extends Guide[Stream] {
                 List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
               case v => List()
           }))
+      case step: Constant[_, _, _] =>
+        obs: Stream[Librarian[Any]] =>
+          nextStep(obs.map(librarian => librarian.copy(step.value)))
     }
   }
 
@@ -535,6 +538,19 @@ trait SyncGuide extends Guide[Stream] {
         obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>
             coalObs.map(t => Coeval.evalOnce(t(librarian))).find(_.value().nonEmpty).toList
+          }
+      case step: Choose[_, _] =>
+        val byObs    = traversalToF(step.by.segmentList)
+        val rightObs = traversalToF(step.right.segmentList)
+        val leftObs  = traversalToF(step.left.segmentList)
+        obs: Stream[Librarian[Any]] =>
+          obs.flatMap { librarian =>
+            byObs(librarian).nonEmpty match {
+              case true =>
+                rightObs(librarian)
+              case false =>
+                leftObs(librarian)
+            }
           }
       case step: Local =>
         val traveralObservable = traversalToF(step.traversal.segmentList)

@@ -4,6 +4,7 @@ import lspace.datatype.DataType
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
+import lspace.util.types.DefaultsToAny
 import monix.eval.Task
 
 object As
@@ -23,7 +24,7 @@ object As
 //    def apply(name: String)               = new NamedLabel(name.narrow)
   }*/
 
-  def toStep(node: Node): As[_ <: Any, String] = {
+  def toStep(node: Node): Task[As[Any, String]] = Task.now {
     As[Any, String](node.out(As.keys.nameString).head)
   }
 
@@ -48,10 +49,10 @@ object As
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.nameString, as.label)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
-case class As[T, name <: String](label: name) extends Step {
+case class As[T: DefaultsToAny, name <: String](label: name) extends Step {
   def _maphelper: T = List[T]().head
 
   lazy val toNode: Task[Node]      = this

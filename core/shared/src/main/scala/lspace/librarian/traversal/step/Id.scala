@@ -12,13 +12,13 @@ case object Id
     with StepWrapper[Id]
     with Id {
 
-  def toStep(node: Node): Id = this
+  def toStep(node: Node): Task[Id] = Task.now(this)
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
   trait Properties extends MoveStep.Properties
 
-  lazy val toNode: Task[Node] = DetachedGraph.nodes.create(ontology)
+  lazy val toNode: Task[Node] = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
 
   override def prettyPrint: String = "id"
 }

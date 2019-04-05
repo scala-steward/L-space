@@ -8,16 +8,17 @@ import shapeless.{HList, HNil}
 
 object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontology :: Nil) with StepWrapper[Local] {
 
-  def toStep(node: Node): Local = Local(
-    node
-      .out(keys.traversalTraversal)
-      .take(1)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-      .head
-  )
+  def toStep(node: Node): Task[Local] =
+    for {
+      traversal <- node
+        .out(keys.traversalTraversal)
+        .take(1)
+        .map(
+          Traversal
+            .toTraversal(_)
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+        .head
+    } yield Local(traversal)
 
   object keys extends BranchStep.Properties {
     object traversal
@@ -41,7 +42,7 @@ object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontolo
       traversal <- local.traversal.toNode
       _         <- node.addOut(keys.traversalTraversal, traversal)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

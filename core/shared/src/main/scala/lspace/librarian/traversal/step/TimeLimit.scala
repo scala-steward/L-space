@@ -12,7 +12,8 @@ object TimeLimit
                     () => EnvironmentStep.ontology :: Nil)
     with StepWrapper[TimeLimit] {
 
-  def toStep(node: Node): TimeLimit = TimeLimit(node.out(TimeLimit.keys.durationTime).take(1).headOption)
+  def toStep(node: Node): Task[TimeLimit] =
+    Task.now(TimeLimit(node.out(TimeLimit.keys.durationTime).take(1).headOption))
 
   object keys extends EnvironmentStep.Properties {
     object duration
@@ -35,7 +36,7 @@ object TimeLimit
       node <- DetachedGraph.nodes.create(ontology)
       _    <- if (step.time.isDefined) node.addOut(keys.durationTime, step.time.get) else Task.unit
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class TimeLimit(time: Option[squants.time.Time] = None) extends EnvironmentStep {

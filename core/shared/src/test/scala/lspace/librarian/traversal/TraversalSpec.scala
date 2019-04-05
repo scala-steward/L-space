@@ -10,11 +10,20 @@ import lspace.librarian.logic.{predicate => p}
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure._
-import org.scalatest.{Matchers, WordSpec}
+import monix.eval.Task
+import org.scalatest.{AsyncWordSpec, Matchers}
 import shapeless._
 
-class TraversalSpec extends WordSpec with Matchers {
+class TraversalSpec extends AsyncWordSpec with Matchers {
   val graph = MemGraph("TraversalSpec")
+
+  import lspace.Implicits.Scheduler.global
+
+  def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], HList]](traversal: S)(toTraversal: Node => Task[S]) =
+    (for {
+      node         <- traversal.toNode
+      newTraversal <- toTraversal(node)
+    } yield traversal shouldBe newTraversal).runToFuture
 
   "A traversal" which {
     "starts empty" in {
@@ -32,10 +41,10 @@ class TraversalSpec extends WordSpec with Matchers {
       g.hasLabel(Property.default.`@label`).segmentList.flatMap(_.stepsList).size shouldBe 1
       g.hasLabel(DataType.default.`@string`).segmentList.flatMap(_.stepsList).size shouldBe 1
     }
-    "resolve a class-type for .hasLabel(name: String)" in {
-      g.N.hasLabel("Officer")
-//      g.N.repeat(_.out("knows"), _.hasLabel(Ontology("Officer")), 3, true)
-    }
+//    "resolve a class-type for .hasLabel(name: String)" in {
+//      g.N.hasLabel("Officer")
+////      g.N.repeat(_.out("knows"), _.hasLabel(Ontology("Officer")), 3, true)
+//    }
     "end-type is numeric" can {
       "be summed up" in {
         "g.V.hasLabel[Int].sum" should compile
@@ -148,12 +157,12 @@ class TraversalSpec extends WordSpec with Matchers {
     "consist of multiple steps" in {
       val traversal = lspace.g.N().out().out().in()
       traversal.segmentList.flatMap(_.stepsList).size shouldBe 4
-      val pDouble = Property("schema/x")
-      pDouble.range + DataType.default.`@double`
-      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
-      val test                                = lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
-      test.sum
-      lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
+//      val pDouble = Property("schema/x")
+//      pDouble.range + DataType.default.`@double`
+//      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
+//      val test                                = lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
+//      test.sum
+//      lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
     "contains labels (as-steps)" can {
       "be selected by valid name" ignore {
@@ -218,13 +227,15 @@ class TraversalSpec extends WordSpec with Matchers {
         .ct shouldBe Some(TupleType(List(List(ListType(List())), List(ListType(List(IntType.datatype))))))
     }
     """a Map[List[Ontology],List[(List[Any],List[Double])]]""" in {
-      g.N
-        .hasIri("/person/12345")
-        .group(_.label())
-        .project(_.out("name"), _.out("balance").hasLabel[Double].is(P.gt(200.0)))
-        .ct shouldBe Some(
-        TupleType(List(ListType(List(Ontology.urlType))) ::
-          List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil))
+      Task {
+        g.N
+          .hasIri("/person/12345")
+          .group(_.label())
+          .project(_.out("name"), _.out("balance").hasLabel[Double].is(P.gt(200.0)))
+          .ct shouldBe Some(
+          TupleType(List(ListType(List(Ontology.urlType))) ::
+            List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil))
+      }.runToFuture
     }
     """a ([List[Any],List[Any])""" in {
       g.N.project(_.out(), _.in()).ct shouldBe Some(TupleType(List(List(ListType()), List(ListType()))))
@@ -246,6 +257,10 @@ class TraversalSpec extends WordSpec with Matchers {
 
       g.N.has("abc").and(_.out(), _.in()) shouldBe g.N.has("abc").and(_.out(), _.in())
       g.N.has("abc").and(_.out(), _.in()) should not be g.N.has("abc").and(_.out(), _.in().out())
+    }
+    "be serialized" in {
+      testToNode(g.N.has("abc").and(_.out(), _.in()).asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])(
+        Traversal.toTraversal)
     }
   }
 }

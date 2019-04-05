@@ -11,16 +11,18 @@ object Path
     extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: Nil)
     with StepWrapper[Path[ClassType[Any], HList]] {
 
-  def toStep(node: Node): Path[ClassType[Any], HList] = Path[ClassType[Any], HList](
-    node
-      .out(keys.byTraversal)
-      .take(1)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
-      .head
-  )
+  def toStep(node: Node): Task[Path[ClassType[Any], HList]] =
+    for {
+      by <- Traversal
+        .toTraversal(
+          node
+            .out(keys.byTraversal)
+            .take(1)
+            .head)
+    } yield
+      Path[ClassType[Any], HList](
+        by.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]]
+      )
 
   object keys {
     object by
@@ -44,7 +46,7 @@ object Path
       traversal <- step.by.toNode
       _         <- node.addOut(keys.byTraversal, traversal)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

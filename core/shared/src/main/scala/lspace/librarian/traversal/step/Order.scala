@@ -21,15 +21,15 @@ object Order
     implicit def IsColor[T <: ColorType[_]]: Orderable[T]       = new Orderable[T] {}
   }
 
-  def toStep(node: Node): Order = Order(
-    node
-      .out(Order.keys.byTraversal)
-      .map(Traversal.toTraversal(_))
-      .filter(_.et.isInstanceOf[DataType[_]])
-      .map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])
-      .head,
-    node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true)
-  )
+  def toStep(node: Node): Task[Order] =
+    for {
+      by <- Task
+        .gather(
+          node
+            .out(Order.keys.byTraversal)
+            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
+        .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
+    } yield Order(by, node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true))
 
   object keys extends CollectingBarrierStep.Properties {
     object by
@@ -65,7 +65,7 @@ object Order
       _         <- node.addOut(keys.byTraversal, traversal)
       _         <- if (!step.increasing) node.addOut(keys.increasingBoolean, step.increasing) else Task.unit
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

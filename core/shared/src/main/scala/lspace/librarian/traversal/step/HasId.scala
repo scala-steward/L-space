@@ -11,7 +11,7 @@ object HasId
     extends StepDef("HasId", "A hasId-step filters resources by id.", () => HasStep.ontology :: Nil)
     with StepWrapper[HasId] {
 
-  def toStep(node: Node): HasId = HasId(node.out(HasId.keys.idLong).toSet)
+  def toStep(node: Node): Task[HasId] = Task.now(HasId(node.out(HasId.keys.idLong).toSet))
 
   object keys {
     object id
@@ -35,7 +35,7 @@ object HasId
       node <- DetachedGraph.nodes.create(ontology)
       _    <- Task.gather(step.ids.map(node.addOut(keys.id, _)))
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

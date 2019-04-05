@@ -11,13 +11,16 @@ object In
                     () => MoveStep.ontology :: Nil)
     with StepWrapper[In] {
 
-  def toStep(node: Node): In = In(
-    node
-      .out(MoveStep.keys.labelUrl)
-      .map(_.iri)
-      .map(iri => node.graph.ns.properties.cached(iri).getOrElse(Property(iri))) //TODO: get from target graph(s) or download if not found?
-      .toSet
-  )
+  def toStep(node: Node): Task[In] =
+    for {
+      properties <- Task.gatherUnordered(
+        node
+          .outE(MoveStep.keys.label)
+          .map(_.to.iri)
+          .filter(_.nonEmpty)
+          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))) //TODO: get from target graph(s) or download if not found?
+      out = In(properties.toSet)
+    } yield out
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties
@@ -28,7 +31,7 @@ object In
       node <- DetachedGraph.nodes.create(ontology)
       _    <- Task.gather(step.label.map(label => node.addOut(MoveStep.keys.label, label)))
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class In(label: Set[Property]) extends MoveStep {

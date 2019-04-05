@@ -6,6 +6,7 @@ import lspace.datatype._
 import lspace.structure.util.ClassTypeable
 import lspace.types.vector._
 import monix.eval.{Coeval, Task}
+import squants.time.Time
 
 import scala.collection.immutable.ListSet
 
@@ -28,6 +29,7 @@ object ClassType {
       case v: LocalDateTime => DataType.default.`@localdatetime`
       case v: LocalDate     => DataType.default.`@date`
       case v: LocalTime     => DataType.default.`@time`
+      case v: Time          => DataType.default.`@duration`
       case v: Boolean       => DataType.default.`@boolean`
       case v: Geometry =>
         v match {

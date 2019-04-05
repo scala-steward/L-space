@@ -11,21 +11,29 @@ object HasLabel
     extends StepDef("HasLabel", "A hasLabel-step filters resources by label.", () => HasStep.ontology :: Nil)
     with StepWrapper[HasLabel] {
 
-  def toStep(node: Node): HasLabel =
-    HasLabel(
-      node
-        .out(keys.label)
-        .collect {
-          case node: Node => node
-        }
-        .flatMap(node => node.graph.ns.classtypes.cached(node.iri))
-        .collect {
-          case ct if ct == DataType.ontology => DataType.default.`@datatype`
-          case ct if ct == Ontology.ontology => DataType.default.`@class`
-          case ct if ct == Property.ontology => DataType.default.`@property`
-          case ct                            => ct
-          //TODO:           .getOrElse(throw new Exception("HasLabel with unknown/uncached ontology")))
-        })
+  def toStep(node: Node): Task[HasLabel] =
+    for {
+      labels <- Task.gather(
+        node
+          .out(keys.label)
+          .collect {
+            case node: Node => node.iri
+          }
+          .map(node.graph.ns.classtypes.get(_).map(_.get)))
+    } yield HasLabel(labels)
+//      node
+//        .out(keys.label)
+//        .collect {
+//          case node: Node => node
+//        }
+//        .flatMap(node => node.graph.ns.classtypes.cached(node.iri))
+//        .collect {
+//          case ct if ct == DataType.ontology => DataType.default.`@datatype`
+//          case ct if ct == Ontology.ontology => DataType.default.`@class`
+//          case ct if ct == Property.ontology => DataType.default.`@property`
+//          case ct                            => ct
+//          //TODO:           .getOrElse(throw new Exception("HasLabel with unknown/uncached ontology")))
+//        })
 
   object keys {
     object label
@@ -60,7 +68,7 @@ object HasLabel
           node.addOut(keys.label, classtype)
       })
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class HasLabel(label: List[ClassType[_]]) extends HasStep {

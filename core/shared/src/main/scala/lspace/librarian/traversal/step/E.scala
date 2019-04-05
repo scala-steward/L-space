@@ -11,9 +11,9 @@ object E
     extends StepDef("E", "An e-step selects edges to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[E] {
 
-  def toStep(node: Node): E = node match {
-    case node: E => node
-    case _       => E(node.out(keys.edgeUrl).take(1).flatten)
+  def toStep(node: Node): Task[E] = node match {
+    case node: E => Task.now(node)
+    case _       => Task.now(E(node.out(keys.edgeUrl).take(1).flatten))
   }
 
   object keys extends ResourceStep.Properties {
@@ -37,7 +37,7 @@ object E
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.edgeUrl, step.edges)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

@@ -24,14 +24,15 @@ object Min
     implicit def IsColor[T <: ColorType[_]]: Minable[T]       = new Minable[T] {}
   }
 
-  def toStep(node: Node): Min = Min(
-    node
-      .out(Order.keys.byTraversal)
-      .map(Traversal.toTraversal(_))
-      .filter(_.et.isInstanceOf[DataType[_]])
-      .map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])
-      .head
-  )
+  def toStep(node: Node): Task[Min] =
+    for {
+      by <- Task
+        .gather(
+          node
+            .out(Min.keys.byTraversal)
+            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
+        .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
+    } yield Min(by)
 
   object keys extends FilterBarrierStep.Properties {
     object by
@@ -55,7 +56,7 @@ object Min
       traversal <- step.by.toNode
       _         <- node.addOut(keys.byTraversal, traversal)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Min(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList]) extends FilterBarrierStep {

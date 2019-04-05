@@ -129,7 +129,7 @@ object DecodeJsonLD {
         (string: String) =>
           decoder
             .stringToLabeledNode(string, Traversal.ontology)
-            .map { node =>
+            .flatMap { node =>
               Traversal.toTraversal(node)
           }
     }

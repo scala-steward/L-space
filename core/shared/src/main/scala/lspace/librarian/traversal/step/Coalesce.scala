@@ -1,6 +1,7 @@
 package lspace.librarian.traversal.step
 
 import lspace.NS.types
+import lspace.datatype.ListType
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
@@ -13,16 +14,19 @@ object Coalesce
                     () => BranchStep.ontology :: Nil)
     with StepWrapper[Coalesce[_, _]] {
 
-  def toStep(node: Node): Coalesce[ClassType[Any], ClassType[Any]] = node match {
+  def toStep(node: Node): Task[Coalesce[ClassType[Any], ClassType[Any]]] = node match {
     //    case node: Union[Any, Any, F] => node
     case _ =>
-      Coalesce[ClassType[Any], ClassType[Any]](
-        node
-          .out(keys.traversalTraversal)
-          .map(
-            Traversal
-              .toTraversal(_)
-              .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+      for {
+        traversals <- Task.gather(
+          node
+            .out(keys.traversalTraversal)
+            .map(
+              _.map(Traversal
+                .toTraversal(_)
+                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
+            .head)
+      } yield Coalesce[ClassType[Any], ClassType[Any]](traversals)
   }
 
   object keys extends BranchStep.Properties {
@@ -34,13 +38,13 @@ object Coalesce
           container = types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
   }
   override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
 
   trait Properties extends BranchStep.Properties {
     lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal`: Property = Coalesce.keys.traversal
-    lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal @Traversal`: TypedKey[Node] =
+    lazy val `ns.l-space.eu/librarian/step/Coalesce/traversal @Traversal`: TypedKey[List[Node]] =
       Coalesce.keys.traversalTraversal
   }
 
@@ -48,9 +52,9 @@ object Coalesce
     for {
       node       <- DetachedGraph.nodes.create(ontology)
       traversals <- Task.gather(step.traversals.map(_.toNode))
-      _          <- Task.gather(traversals.map(node.addOut(keys.traversal, _)))
+      _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Coalesce[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])

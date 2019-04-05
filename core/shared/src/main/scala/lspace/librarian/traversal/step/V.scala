@@ -10,7 +10,7 @@ object V
     extends StepDef("V", "An v-step selects values to traverse from.", () => ResourceStep.ontology :: Nil)
     with StepWrapper[V] {
 
-  def toStep(node: Node): V = V(node.out(keys.valueUrl).take(1).flatten)
+  def toStep(node: Node): Task[V] = Task.now(V(node.out(keys.valueUrl).take(1).flatten))
 
   object keys extends ResourceStep.Properties {
     object value
@@ -33,7 +33,7 @@ object V
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.valueUrl, step.values)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class V(values: List[_] = List()) extends ResourceStep {

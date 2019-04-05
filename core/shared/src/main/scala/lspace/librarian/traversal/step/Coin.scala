@@ -12,7 +12,8 @@ object Coin
                     () => FilterStep.ontology :: Nil)
     with StepWrapper[Coin] {
 
-  def toStep(node: Node): Coin = new Coin(node.out(Coin.keys.pDouble).head, node.out(Coin.keys.seedInt).head)
+  def toStep(node: Node): Task[Coin] =
+    Task.now(new Coin(node.out(Coin.keys.pDouble).head, node.out(Coin.keys.seedInt).head))
 
   object keys extends FilterStep.Properties {
     object p
@@ -48,7 +49,7 @@ object Coin
       _    <- node.addOut(keys.pDouble, step.p)
       _    <- node.addOut(keys.seedInt, step.seed)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

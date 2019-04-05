@@ -10,7 +10,7 @@ object G
     extends StepDef("G", "A g-step selects graphs to traverse on.", () => GraphStep.ontology :: Nil)
     with StepWrapper[G] {
 
-  def toStep(node: Node): G = G(node.out(G.keys.graphUrl).take(1).flatten)
+  def toStep(node: Node): Task[G] = Task.now(G(node.out(G.keys.graphUrl).take(1).flatten))
 
   object keys extends GraphStep.Properties {
     object graph
@@ -33,7 +33,7 @@ object G
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.graphUrl, g.graphSource)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class G(graphSource: List[IriResource]) extends GraphStep {

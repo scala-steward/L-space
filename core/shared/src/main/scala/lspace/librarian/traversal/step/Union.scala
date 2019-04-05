@@ -4,6 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.NS.types
+import lspace.datatype.ListType
 import monix.eval.Task
 import shapeless.{HList, HNil}
 
@@ -11,14 +12,17 @@ object Union
     extends StepDef("Union", "A union-step ..", () => BranchStep.ontology :: Nil)
     with StepWrapper[Union[ClassType[Any], ClassType[Any]]] {
 
-  def toStep(node: Node): Union[ClassType[Any], ClassType[Any]] = Union(
-    node
-      .out(keys.traversalTraversal)
-      .map(
-        Traversal
-          .toTraversal(_)
-          .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
-  )
+  def toStep(node: Node): Task[Union[ClassType[Any], ClassType[Any]]] =
+    for {
+      traversals <- Task.gather(
+        node
+          .out(keys.traversalTraversal)
+          .map(
+            _.map(Traversal
+              .toTraversal(_)
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
+          .head)
+    } yield Union(traversals)
 
   object keys extends BranchStep.Properties {
     object traversal
@@ -29,7 +33,7 @@ object Union
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
   }
   override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
   trait Properties extends BranchStep.Properties {
@@ -41,9 +45,9 @@ object Union
     for {
       node       <- DetachedGraph.nodes.create(ontology)
       traversals <- Task.gather(step.traversals.map(_.toNode))
-      _          <- Task.gather(traversals.map(node.addOut(keys.traversal, _)))
+      _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class Union[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])

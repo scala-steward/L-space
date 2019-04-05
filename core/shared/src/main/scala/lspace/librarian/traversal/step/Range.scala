@@ -8,8 +8,8 @@ import monix.eval.Task
 
 object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: Nil) with StepWrapper[Range] {
 
-  def toStep(node: Node): Range =
-    Range(node.out(Range.keys.lowInt).take(1).head, node.out(Range.keys.highInt).take(1).head)
+  def toStep(node: Node): Task[Range] =
+    Task.now(Range(node.out(Range.keys.lowInt).take(1).head, node.out(Range.keys.highInt).take(1).head))
 
   object keys extends FilterStep.Properties {
     object low
@@ -44,7 +44,7 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
       _    <- node.addOut(keys.lowInt, step.low)
       _    <- node.addOut(keys.highInt, step.high)
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

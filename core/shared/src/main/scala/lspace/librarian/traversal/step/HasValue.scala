@@ -12,7 +12,7 @@ object HasValue
                     () => HasStep.ontology :: Nil)
     with StepWrapper[HasValue] {
 
-  def toStep(node: Node): HasValue = HasValue(node.out(Has.keys.predicateUrl).map(P.toP).head)
+  def toStep(node: Node): Task[HasValue] = Task.now(HasValue(node.out(Has.keys.predicateUrl).map(P.toP).head))
 
   object keys {
     val predicate = Has.keys.predicate
@@ -28,7 +28,7 @@ object HasValue
       predicate <- step.predicate.toNode
       _         <- node.addOut(keys.predicate, predicate)
     } yield node
-  }
+  }.memoizeOnSuccess
 }
 
 case class HasValue(predicate: P[_]) extends HasStep {

@@ -16,16 +16,20 @@ object HasNot
     )
     with StepWrapper[HasNot] {
 
-  def toStep(node: Node): HasNot =
-    HasNot(node
-             .outE(keys.key)
-             .take(1)
-             .map(i => node.graph.ns.properties.cached(i.inV.iri).get)
-             .head,
-           node
-             .out(keys.predicateUrl)
-             .headOption
-             .map(P.toP))
+  def toStep(node: Node): Task[HasNot] =
+    for {
+      key <- node.graph.ns.properties
+        .get(
+          node
+            .outE(keys.key)
+            .head
+            .iri)
+        .map(_.get)
+      p = node
+        .out(keys.predicateUrl)
+        .map(P.toP)
+        .headOption
+    } yield HasNot(key, p)
 
   object keys {
     object key
@@ -62,7 +66,7 @@ object HasNot
       predicates <- Task.gather(step.predicate.toList.map(_.toNode))
       _          <- Task.gather(predicates.map(node.addOut(keys.predicateUrl, _)))
     } yield node
-  }
+  }.memoizeOnSuccess
 
 }
 

@@ -11,13 +11,13 @@ case object Head
     with StepWrapper[Head]
     with Head {
 
-  def toStep(node: Node): Head = this
+  def toStep(node: Node): Task[Head] = Task.now(this)
 
   object keys extends ClipStep.Properties
   override lazy val properties: List[Property] = ClipStep.properties
   trait Properties extends ClipStep.Properties
 
-  implicit def toNode(head: Head): Task[Node] = DetachedGraph.nodes.create(ontology)
+  implicit def toNode(head: Head): Task[Node] = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
 
 }
 

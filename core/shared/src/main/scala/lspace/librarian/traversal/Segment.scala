@@ -36,14 +36,16 @@ object Segment
   def apply[Steps <: HList](steps: Steps)(implicit lub: LUBConstraint[Steps, Step]): Segment[Steps] =
     new Segment(steps)
 
-  def toTraversalSegment(node: Node): Segment[HList] = {
+  def toTraversalSegment(node: Node): Task[Segment[HList]] = {
     val types = node.labels
 
-    val steps0 = node.out(Segment.keys.stepNode).take(1).flatMap(_.toList).foldLeft[HList](HNil) {
-      case (hlist, node) => Step.toStep(node) :: hlist
-    }
-
-    new Segment(steps0)
+    for {
+      steps0 <- Task
+        .gather(node.out(Segment.keys.stepNode).take(1).flatMap(_.toList).map(Step.toStep))
+        .map(_.foldLeft[HList](HNil) {
+          case (hlist, step) => step :: hlist
+        })
+    } yield new Segment(steps0)
   }
 }
 
