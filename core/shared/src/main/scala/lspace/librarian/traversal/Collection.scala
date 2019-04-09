@@ -66,13 +66,6 @@ object Collection
 
   def apply[T](node: Node, ct: Option[ClassType[T]]): Collection[T, ClassType[T]] =
     wrap(node).asInstanceOf[Collection[T, ClassType[T]]]
-  def apply[T, CT <: ClassType[T]](start: Instant,
-                                   end: Instant,
-                                   items: List[T],
-                                   ct: Option[CT] = None): Collection[T, ClassType[T]] = {
-
-    new Collection[T, ClassType[T]](start, end, items, ct)
-  }
 
   implicit def toNode[T, CT <: ClassType[_]](collection: Collection[T, CT]): Task[Node] = {
     for {
@@ -89,9 +82,9 @@ object Collection
   }.memoizeOnSuccess
 }
 
-case class Collection[+T, CT <: ClassType[_]] private (startDateTime: Instant,
-                                                       endDateTime: Instant,
-                                                       item: List[T],
-                                                       ct: Option[CT]) {
+case class Collection[+T, CT <: ClassType[_]](startDateTime: Instant,
+                                              endDateTime: Instant,
+                                              item: List[T],
+                                              ct: Option[CT] = None) {
   lazy val toNode: Task[Node] = this
 }

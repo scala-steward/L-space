@@ -91,7 +91,7 @@ trait TraversalService extends Api {
               .toReactivePublisher
               .toStream[IO]()
           }
-          .map(Ok)
+          .map(Ok(_))
           .toIO
 //          .flatten
     }
