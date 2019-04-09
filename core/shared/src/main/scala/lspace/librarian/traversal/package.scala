@@ -21,13 +21,14 @@ package object traversal {
   //  }
 
   object ContainerSteps extends Poly1 {
-    implicit def count                                       = at[Count](s => s)
-    implicit def head                                        = at[Head](s => s)
-    implicit def last                                        = at[Last](s => s)
-    implicit def max                                         = at[Max](s => s)
-    implicit def min                                         = at[Min](s => s)
-    implicit def project[Traversals <: HList]                = at[Project[Traversals]](s => s)
-    implicit def group[T <: ClassType[_], Segments <: HList] = at[Group[T, Segments]](s => s)
+    implicit def count                        = at[Count](s => s)
+    implicit def head                         = at[Head](s => s)
+    implicit def last                         = at[Last](s => s)
+    implicit def max                          = at[Max](s => s)
+    implicit def min                          = at[Min](s => s)
+    implicit def project[Traversals <: HList] = at[Project[Traversals]](s => s)
+    implicit def group[T <: ClassType[_], Segments <: HList, Tv <: ClassType[_], SegmentsV <: HList] =
+      at[Group[T, Segments, Tv, SegmentsV]](s => s)
     //  implicit def caseMap[T <: MapStep] = at[T](s => s)
     implicit def outmap                                      = at[OutMap](s => s)
     implicit def outemap                                     = at[OutEMap](s => s)
@@ -192,26 +193,41 @@ package object traversal {
     implicit def groupStep[L <: HList,
                            CT <: ClassType[_],
                            AT <: ClassType[_],
+                           ATv <: ClassType[_],
                            Segments <: HList,
+                           SegmentsV <: HList,
                            Steps <: HList,
+                           StepsV <: HList,
                            RSteps <: HList,
-                           Containers <: HList](
+                           RStepsV <: HList,
+                           Containers <: HList,
+                           ContainersV <: HList](
         implicit
         flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+        flatV: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, SegmentsV, StepsV],
         reverse: Reverse.Aux[Steps, RSteps],
+        reverseV: Reverse.Aux[StepsV, RStepsV],
         f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
+        fV: Collect.Aux[RStepsV, ContainerSteps.type, ContainersV],
         innerKey: StructureCalculator[Containers, AT],
-        inner: StructureCalculator[L, CT])
-      : Aux[Group[AT, Segments] :: L, CT, Map[innerKey.Out, inner.Out], CollectionType[Map[innerKey.Out, inner.Out]]] =
-      new Impl[Group[AT, Segments] :: L, CT, Map[innerKey.Out, inner.Out], CollectionType[Map[innerKey.Out, inner.Out]]] {
-        override def convert(hlist: Group[AT, Segments] :: L,
-                             value: CT): List[CollectionType[Map[innerKey.Out, inner.Out]]] = {
+        innerValue: StructureCalculator[ContainersV, ATv],
+        inner: StructureCalculator[L, CT]): Aux[Group[AT, Segments, ATv, SegmentsV] :: L,
+                                                CT,
+                                                Map[innerKey.Out, innerValue.Out],
+                                                CollectionType[Map[innerKey.Out, innerValue.Out]]] =
+      new Impl[Group[AT, Segments, ATv, SegmentsV] :: L,
+               CT,
+               Map[innerKey.Out, innerValue.Out],
+               CollectionType[Map[innerKey.Out, innerValue.Out]]] {
+        override def convert(hlist: Group[AT, Segments, ATv, SegmentsV] :: L,
+                             value: CT): List[CollectionType[Map[innerKey.Out, innerValue.Out]]] = {
           val ik = innerKey.convert(f(reverse(flat(hlist.head.by.segments))), hlist.head.by.et)
-          val iv = inner.convert(hlist.tail, value)
+          val iv = innerValue.convert(fV(reverseV(flatV(hlist.head.value.segments))), hlist.head.value.et)
+          val it = inner.convert(hlist.tail, value)
           List(
             MapType(ik.asInstanceOf[List[ClassType[innerKey.Out]]].filter(_.iri.nonEmpty),
-                    iv.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
-              .asInstanceOf[CollectionType[Map[innerKey.Out, inner.Out]]]
+                    iv.asInstanceOf[List[ClassType[innerValue.Out]]].filter(_.iri.nonEmpty))
+              .asInstanceOf[CollectionType[Map[innerKey.Out, innerValue.Out]]]
           )
         }
       }

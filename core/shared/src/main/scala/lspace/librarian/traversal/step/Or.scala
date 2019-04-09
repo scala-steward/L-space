@@ -54,7 +54,7 @@ object Or
 
 }
 
-case class Or(traversals: List[Traversal[_, _, _ <: HList]]) extends FilterStep {
+case class Or(traversals: List[Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]]) extends FilterStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =

@@ -4,9 +4,8 @@ import java.time.Instant
 
 import lspace.datatype.{DataType, ListType}
 import lspace.provider.detached.DetachedGraph
-import lspace.provider.wrapped.WrappedNode
-import lspace.structure.OntologyDef
-import lspace.structure._
+import lspace.structure.{OntologyDef, _}
+import monix.eval.Task
 
 object Collection
     extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Collection",
@@ -17,8 +16,8 @@ object Collection
     case node: Collection[Any, ClassType[Any]] => node
     case _ =>
       Collection[Any, ClassType[Any]](
-        node.out(Collection.keys.startDateTime),
-        node.out(Collection.keys.endDateTime),
+        node.out(Collection.keys.startDateTime).head,
+        node.out(Collection.keys.endDateTime).head,
         node.out(Collection.keys.itemList).take(1).flatten.toList,
         Some(ClassType.stubAny)
       ) //(node)
@@ -71,26 +70,28 @@ object Collection
                                    end: Instant,
                                    items: List[T],
                                    ct: Option[CT] = None): Collection[T, ClassType[T]] = {
-//    val node = DetachedGraph.nodes.create(ontology)
-//    node.addOut(keys.start, start)
-//    node.addOut(keys.end, end)
-//    //    items.foreach(item => node.addOut(keys.item, item))
-//    //    node.addOuts(keys.item, items.map(item => ClassType.valueToOntologyResource(item) -> item))
-//    //    items.map(item => node.---(keys.item).-->(item)(ClassType.valueToOntologyResource(item)))
-//
-//    ct match {
-////      case Some(ct) => items.map(item => node.addOut(keys.item, ct, item))
-//      case Some(ct) => node.addOut(keys.item, ListType(ct :: Nil).asInstanceOf[ClassType[List[T]]], items)
-////      case None     => items.map(item => node.addOut(keys.item, ClassType.valueToOntologyResource(item), item))
-//      case None => node.addOut(keys.item, ClassType.valueToOntologyResource(items), items)
-//    }
 
-    Collection[T, ClassType[T]](List(start), List(end), items, ct) //(node)
+    new Collection[T, ClassType[T]](start, end, items, ct)
   }
+
+  implicit def toNode[T, CT <: ClassType[_]](collection: Collection[T, CT]): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(keys.startDateTime, collection.startDateTime)
+      _    <- node.addOut(keys.endDateTime, collection.endDateTime)
+      _ <- collection.ct
+        .asInstanceOf[Option[ClassType[T]]]
+        .map(ct =>
+          node.addOut(keys.item.property, ListType(ct :: Nil).asInstanceOf[ClassType[List[T]]], collection.item))
+        .getOrElse(
+          node.addOut(keys.itemList, collection.item.asInstanceOf[List[Any]]).asInstanceOf[Task[Edge[Node, Any]]])
+    } yield node
+  }.memoizeOnSuccess
 }
 
-case class Collection[+T, CT <: ClassType[_]] private (startDateTime: List[Instant],
-                                                       endDateTime: List[Instant],
+case class Collection[+T, CT <: ClassType[_]] private (startDateTime: Instant,
+                                                       endDateTime: Instant,
                                                        item: List[T],
-                                                       ct: Option[CT]) //(override val value: Node)
-//    extends WrappedNode(value) {}
+                                                       ct: Option[CT]) {
+  lazy val toNode: Task[Node] = this
+}

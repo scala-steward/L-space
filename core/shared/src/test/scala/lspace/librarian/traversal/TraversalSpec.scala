@@ -188,8 +188,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     """a Map[List[Any],Node]""" in {
       g.N
         .hasIri("/person/12345")
-        .group(_.out())
-        .head
+        .group(_.out())(_.head)
         .ct shouldBe Some(TupleType(List(List(ListType(List())), List(Node.nodeUrl))))
     }
     """a Map[List[Any],List[Node]]""" in {
@@ -201,8 +200,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     """a Map[List[Any],Edge[_,_]]""" in {
       g.E
         .hasIri("/person/12345")
-        .group(_.out())
-        .head
+        .group(_.out())(_.head)
         .ct shouldBe Some(TupleType(List(List(ListType(List())), List(Edge.edgeUrl))))
     }
     """a Map[List[Any],List[Edge[_,_]]]""" in {
@@ -214,34 +212,30 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     """a Map[List[Any],Int]""" in {
       g.V
         .hasIri("/person/12345")
-        .group(_.out())
-        .hasLabel[Int]
-        .head
+        .group(_.out())(_.hasLabel[Int].head)
         .ct shouldBe Some(TupleType(List(List(ListType(List())), List(IntType.datatype))))
     }
     """a Map[List[Any],List[Int]]""" in {
       g.V
         .hasIri("/person/12345")
-        .group(_.out())
-        .hasLabel[Int]
+        .group(_.out())(_.hasLabel[Int])
         .ct shouldBe Some(TupleType(List(List(ListType(List())), List(ListType(List(IntType.datatype))))))
     }
     """a Map[List[Ontology],List[(List[Any],List[Double])]]""" in {
       Task {
         g.N
           .hasIri("/person/12345")
-          .group(_.label())
-          .project(_.out("name"), _.out("balance").hasLabel[Double].is(P.gt(200.0)))
+          .group(_.label())(_.project(_.out("name"))(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
           .ct shouldBe Some(
           TupleType(List(ListType(List(Ontology.urlType))) ::
             List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil))
       }.runToFuture
     }
     """a ([List[Any],List[Any])""" in {
-      g.N.project(_.out(), _.in()).ct shouldBe Some(TupleType(List(List(ListType()), List(ListType()))))
+      g.N.project(_.out())(_.in()).ct shouldBe Some(TupleType(List(List(ListType()), List(ListType()))))
     }
     """a ([List[Any],Map[Property,List[Any]])""" in {
-      g.N.project(_.out(), _.inMap()).ct shouldBe Some(
+      g.N.project(_.out())(_.inMap()).ct shouldBe Some(
         TupleType(List(List(ListType()), List(MapType(List(Property.urlType), List(ListType()))))))
     }
   }
@@ -259,8 +253,16 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.has("abc").and(_.out(), _.in()) should not be g.N.has("abc").and(_.out(), _.in().out())
     }
     "be serialized" in {
-      testToNode(g.N.has("abc").and(_.out(), _.in()).asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])(
-        Traversal.toTraversal)
+      for {
+        _ <- testToNode(
+          g.N.has("abc").and(_.out(), _.in()).asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])(
+          Traversal.toTraversal)
+        _ <- testToNode(
+          g.N
+            .has("abc")
+            .and(_.union(_.out(), _.in(Label.P.`@createdon`)), _.id)
+            .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])(Traversal.toTraversal)
+      } yield succeed
     }
   }
 }

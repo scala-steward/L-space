@@ -76,12 +76,13 @@ trait DataGraph extends Graph {
       index.indexes.`@idIndex`.store(Shape(from))
     } else {
       Observable
-        .fromTask(index.indexes.getOrCreate(__[Any, Any].has(key).untyped))
+        .fromTask(index.indexes.getOrCreate(lspace.__[Any, Any].has(key).untyped))
         .flatMap { kvIndex =>
           Observable.fromTask(kvIndex.store(Shape(from))) ++
             (if (from.labels.nonEmpty) {
                Observable
-                 .fromTask(index.indexes.getOrCreate(__[Any, Any].has(Property.default.`@type`).has(key).untyped))
+                 .fromTask(
+                   index.indexes.getOrCreate(lspace.__[Any, Any].has(Property.default.`@type`).has(key).untyped))
                  .mapEval { lkvIndex =>
                    lkvIndex.store(Shape(from, edge))
                  }

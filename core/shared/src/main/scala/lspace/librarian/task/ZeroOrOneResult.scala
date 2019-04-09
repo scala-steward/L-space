@@ -1,9 +1,8 @@
 package lspace.librarian.task
 
-import lspace.librarian.traversal.Segment
+import lspace.librarian.traversal.{step, Segment, Traversal}
 import lspace.librarian.traversal
-import lspace.librarian.traversal.step
-import lspace.structure.Graph
+import lspace.structure.{ClassType, Graph}
 import monix.eval.{Coeval, Task}
 import monix.reactive.Observable
 import shapeless.HList
@@ -15,7 +14,7 @@ object Result {
   }
 }
 trait Result[+F[_], O[_], Out] {
-  def segments: List[Segment[HList]]
+  def traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]
   def graph: Graph
 
   def map[T](f: Out => T): O[T]
@@ -64,7 +63,7 @@ trait ListResult[+F[_], O[_], Out] extends ZeroOrOneResult[F, O, Out] {
 object GroupedResult {
   sealed trait IsGrouped[T] extends Result.Is[T]
   object IsGrouped {
-    implicit def Group[T <: step.Group[_, _]] = new IsGrouped[T] {}
+    implicit def Group[T <: step.Group[_, _, _, _]] = new IsGrouped[T] {}
   }
 }
 trait GroupedResult[+F[_], O[_], OutK, OutV] extends ListResult[F, O, (OutK, OutV)] {
@@ -72,130 +71,141 @@ trait GroupedResult[+F[_], O[_], OutK, OutV] extends ListResult[F, O, (OutK, Out
 }
 
 object AsyncGroupedResult {
-  def apply[OutK, OutV](segments: List[Segment[HList]], graph: Graph)(
+  def apply[OutK, OutV](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
       implicit guide: Guide[Observable]): AsyncGroupedResult[OutK, OutV] =
-    new AsyncGroupedResult[OutK, OutV](segments, graph)
+    new AsyncGroupedResult[OutK, OutV](traversal, graph)
 }
-class AsyncGroupedResult[OutK, OutV](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Observable])
-    extends AsyncListResult[(OutK, OutV)](segments, graph)(guide)
+class AsyncGroupedResult[OutK, OutV](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+                                     graph: Graph)(implicit guide: Guide[Observable])
+    extends AsyncListResult[(OutK, OutV)](traversal, graph)(guide)
     with GroupedResult[Task, Observable, OutK, OutV] {
 
-  def toMapF: Task[Map[OutK, OutV]] = guide.buildTraversal[(OutK, OutV)](segments)(graph).toListL.map(_.toMap)
+  def toMapF: Task[Map[OutK, OutV]] = guide.executeTraversal[(OutK, OutV)](traversal)(graph).toListL.map(_.toMap)
 }
 
 object AsyncListResult {
-  def apply[Out](segments: List[Segment[HList]], graph: Graph)(
+  def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
       implicit guide: Guide[Observable]): AsyncListResult[Out] =
-    new AsyncListResult(segments, graph)
+    new AsyncListResult(traversal, graph)
 }
-class AsyncListResult[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Observable])
-    extends AsyncZeroOrOneResult[Out](segments, graph)(guide)
+class AsyncListResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
+    implicit guide: Guide[Observable])
+    extends AsyncZeroOrOneResult[Out](traversal, graph)(guide)
     with ListResult[Task, Observable, Out] {
 
   def lastF: Task[Out] =
-    guide.buildTraversal[Out](segments)(graph).lastL
+    guide.executeTraversal[Out](traversal)(graph).lastL
   def lastOptionF: Task[Option[Out]] =
-    guide.buildTraversal[Out](segments)(graph).lastOptionL
+    guide.executeTraversal[Out](traversal)(graph).lastOptionL
 
   def toListF: Task[List[Out]] =
-    guide.buildTraversal[Out](segments)(graph).toListL
-  def toSetF: Task[Set[Out]] = guide.buildTraversal[Out](segments)(graph).toListL.map(_.toSet)
+    guide.executeTraversal[Out](traversal)(graph).toListL
+  def toSetF: Task[Set[Out]] = guide.executeTraversal[Out](traversal)(graph).toListL.map(_.toSet)
 }
-//case class TraversalAsyncTask[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Observable])
+//case class TraversalAsyncTask[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(implicit guide: Guide[Observable])
 object AsyncZeroOrOneResult {
-  def apply[Out](segments: List[Segment[HList]], graph: Graph)(
+  def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
       implicit guide: Guide[Observable]): AsyncZeroOrOneResult[Out] =
-    new AsyncZeroOrOneResult(segments, graph)
+    new AsyncZeroOrOneResult(traversal, graph)
 }
-class AsyncZeroOrOneResult[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Observable])
-    extends AsyncOneResult[Out](segments, graph)(guide)
+class AsyncZeroOrOneResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+                                graph: Graph)(implicit guide: Guide[Observable])
+    extends AsyncOneResult[Out](traversal, graph)(guide)
     with ZeroOrOneResult[Task, Observable, Out] {
 
   def headOptionF: Task[Option[Out]] =
-    guide.buildTraversal[Out](segments)(graph).headOptionL
+    guide.executeTraversal[Out](traversal)(graph).headOptionL
 }
 
 object AsyncOneResult {
-  def apply[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Observable]): AsyncOneResult[Out] =
-    new AsyncOneResult(segments, graph)
+  def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
+      implicit guide: Guide[Observable]): AsyncOneResult[Out] =
+    new AsyncOneResult(traversal, graph)
 }
-class AsyncOneResult[Out](val segments: List[Segment[HList]], val graph: Graph)(implicit guide: Guide[Observable])
+class AsyncOneResult[Out](val traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+                          val graph: Graph)(implicit guide: Guide[Observable])
     extends OneResult[Task, Observable, Out] {
 
   def apply(): Observable[Out] =
-    guide.buildTraversal[Out](segments)(graph)
+    guide.executeTraversal[Out](traversal)(graph)
 
   def headF: Task[Out] =
-    guide.buildTraversal[Out](segments)(graph).headL
+    guide.executeTraversal[Out](traversal)(graph).headL
 
-  def map[T](f: Out => T): Observable[T]                 = guide.buildTraversal[Out](segments)(graph).map(f)
-  def flatMap[T](f: Out => Observable[T]): Observable[T] = guide.buildTraversal[Out](segments)(graph).flatMap(f)
+  def map[T](f: Out => T): Observable[T]                 = guide.executeTraversal[Out](traversal)(graph).map(f)
+  def flatMap[T](f: Out => Observable[T]): Observable[T] = guide.executeTraversal[Out](traversal)(graph).flatMap(f)
 }
 
 object SyncGroupedResult {
-  def apply[OutK, OutV](segments: List[Segment[HList]], graph: Graph)(
+  def apply[OutK, OutV](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
       implicit guide: Guide[Stream]): SyncGroupedResult[OutK, OutV] =
-    new SyncGroupedResult[OutK, OutV](segments, graph)
+    new SyncGroupedResult[OutK, OutV](traversal, graph)
 }
-class SyncGroupedResult[OutK, OutV](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Stream])
-    extends SyncListResult[(OutK, OutV)](segments, graph)(guide)
+class SyncGroupedResult[OutK, OutV](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+                                    graph: Graph)(implicit guide: Guide[Stream])
+    extends SyncListResult[(OutK, OutV)](traversal, graph)(guide)
     with GroupedResult[Coeval, Stream, OutK, OutV] {
 
-  def toMapF: Coeval[Map[OutK, OutV]] = Coeval(guide.buildTraversal[(OutK, OutV)](segments)(graph).toMap)
+  def toMapF: Coeval[Map[OutK, OutV]] = Coeval(guide.executeTraversal[(OutK, OutV)](traversal)(graph).toMap)
   def toMap: Map[OutK, OutV]          = toMapF.value()
 }
 object SyncListResult {
-  def apply[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Stream]): SyncListResult[Out] =
-    new SyncListResult(segments, graph)
+  def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
+      implicit guide: Guide[Stream]): SyncListResult[Out] =
+    new SyncListResult(traversal, graph)
 }
-class SyncListResult[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Stream])
-    extends SyncZeroOrOneResult[Out](segments, graph)(guide)
+class SyncListResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
+    implicit guide: Guide[Stream])
+    extends SyncZeroOrOneResult[Out](traversal, graph)(guide)
     with ListResult[Coeval, Stream, Out] {
 
   def lastF: Coeval[Out] =
-    Coeval(guide.buildTraversal[Out](segments)(graph).last)
+    Coeval(guide.executeTraversal[Out](traversal)(graph).last)
   def last: Out = lastF.value()
   def lastOptionF: Coeval[Option[Out]] =
-    Coeval(guide.buildTraversal[Out](segments)(graph).lastOption)
+    Coeval(guide.executeTraversal[Out](traversal)(graph).lastOption)
   def lastOption: Option[Out] = lastOptionF.value()
 
   def toListF: Coeval[List[Out]] =
-    Coeval(guide.buildTraversal[Out](segments)(graph).toList)
+    Coeval(guide.executeTraversal[Out](traversal)(graph).toList)
   def toList: List[Out] = toListF.value()
   def toSetF: Coeval[Set[Out]] =
-    Coeval(guide.buildTraversal[Out](segments)(graph).toSet)
+    Coeval(guide.executeTraversal[Out](traversal)(graph).toSet)
   def toSet: Set[Out] = toSetF.value()
 }
 
 object SyncZeroOrOneResult {
-  def apply[Out](segments: List[Segment[HList]], graph: Graph)(
+  def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
       implicit guide: Guide[Stream]): SyncZeroOrOneResult[Out] =
-    new SyncZeroOrOneResult(segments, graph)
+    new SyncZeroOrOneResult(traversal, graph)
 }
-//case class TraversalSyncTask[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Stream])
-class SyncZeroOrOneResult[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Stream])
-    extends SyncOneResult[Out](segments, graph)(guide)
+//case class TraversalSyncTask[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(implicit guide: Guide[Stream])
+class SyncZeroOrOneResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
+    implicit guide: Guide[Stream])
+    extends SyncOneResult[Out](traversal, graph)(guide)
     with ZeroOrOneResult[Coeval, Stream, Out] {
 
   def headOptionF: Coeval[Option[Out]] =
-    Coeval(guide.buildTraversal[Out](segments)(graph).headOption)
+    Coeval(guide.executeTraversal[Out](traversal)(graph).headOption)
   def headOption: Option[Out] = headOptionF.value()
 }
 
 object SyncOneResult {
-  def apply[Out](segments: List[Segment[HList]], graph: Graph)(implicit guide: Guide[Stream]): SyncOneResult[Out] =
-    new SyncOneResult(segments, graph)
+  def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
+      implicit guide: Guide[Stream]): SyncOneResult[Out] =
+    new SyncOneResult(traversal, graph)
 }
-class SyncOneResult[Out](val segments: List[Segment[HList]], val graph: Graph)(implicit guide: Guide[Stream])
+class SyncOneResult[Out](val traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+                         val graph: Graph)(implicit guide: Guide[Stream])
     extends OneResult[Coeval, Stream, Out] {
 
   def apply(): Stream[Out] =
-    guide.buildTraversal[Out](segments)(graph)
+    guide.executeTraversal[Out](traversal)(graph)
 
   def headF: Coeval[Out] =
-    Coeval(guide.buildTraversal[Out](segments)(graph).head)
+    Coeval(guide.executeTraversal[Out](traversal)(graph).head)
   def head: Out = headF.value()
 
-  def map[T](f: Out => T): Stream[T]             = guide.buildTraversal[Out](segments)(graph).map(f)
-  def flatMap[T](f: Out => Stream[T]): Stream[T] = guide.buildTraversal[Out](segments)(graph).flatMap(f)
+  def map[T](f: Out => T): Stream[T]             = guide.executeTraversal[Out](traversal)(graph).map(f)
+  def flatMap[T](f: Out => Stream[T]): Stream[T] = guide.executeTraversal[Out](traversal)(graph).flatMap(f)
 }

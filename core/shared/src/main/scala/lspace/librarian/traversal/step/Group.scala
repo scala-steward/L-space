@@ -8,16 +8,21 @@ import shapeless.{HList, HNil}
 
 object Group
     extends StepDef("Group", "A group-step groups traversers.", () => CollectingBarrierStep.ontology :: Nil)
-    with StepWrapper[Group[ClassType[Any], HList]] {
+    with StepWrapper[Group[ClassType[Any], HList, ClassType[Any], HList]] {
 
-  def toStep(node: Node): Task[Group[ClassType[Any], HList]] =
+  def toStep(node: Node): Task[Group[ClassType[Any], HList, ClassType[Any], HList]] =
     for {
       by <- Traversal.toTraversal(
         node
           .out(keys.byTraversal)
           .take(1)
           .head)
-    } yield Group[ClassType[Any], HList](by)
+      value <- Traversal.toTraversal(
+        node
+          .out(keys.valueTraversal)
+          .take(1)
+          .head)
+    } yield Group[ClassType[Any], HList, ClassType[Any], HList](by, value)
 
   object keys extends CollectingBarrierStep.Properties {
     object by
@@ -28,6 +33,14 @@ object Group
           `@range` = () => Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    object value
+        extends PropertyDef(
+          lspace.NS.vocab.Lspace + "librarian/step/Group/value",
+          "value",
+          "A traversal ..",
+          `@range` = () => Traversal.ontology :: Nil
+        )
+    val valueTraversal: TypedProperty[Node] = value.property + Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.by :: CollectingBarrierStep.properties
 
@@ -36,17 +49,22 @@ object Group
     lazy val `ns.l-space.eu/librarian/step/Group/by @Traversal`: TypedKey[Node] = keys.byTraversal
   }
 
-  implicit def toNode[ET <: ClassType[_], Segments <: HList](step: Group[ET, Segments]): Task[Node] = {
+  implicit def toNode[ET <: ClassType[_], Segments <: HList, ETv <: ClassType[_], SegmentsV <: HList](
+      step: Group[ET, Segments, ETv, SegmentsV]): Task[Node] = {
     for {
-      node      <- DetachedGraph.nodes.create(ontology)
-      traversal <- step.by.toNode
-      _         <- node.addOut(keys.byTraversal, traversal)
+      node  <- DetachedGraph.nodes.create(ontology)
+      by    <- step.by.toNode
+      value <- step.value.toNode
+      _     <- node.addOut(keys.byTraversal, by)
+      _     <- node.addOut(keys.valueTraversal, value)
     } yield node
   }.memoizeOnSuccess
 
 }
 
-case class Group[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
+case class Group[+ET <: ClassType[_], Segments <: HList, +ETv <: ClassType[_], SegmentsV <: HList](
+    by: Traversal[_ <: ClassType[_], ET, Segments],
+    value: Traversal[_ <: ClassType[_], ETv, SegmentsV])
     extends CollectingBarrierStep {
 
   lazy val toNode: Task[Node]      = this

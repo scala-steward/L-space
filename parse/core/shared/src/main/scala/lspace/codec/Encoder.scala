@@ -1,6 +1,6 @@
 package lspace.codec
 
-import java.time.{Instant, LocalDate, LocalTime}
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.NS.types
 import lspace.codec.exception.ToJsonException
@@ -28,26 +28,30 @@ trait Encoder {
   type JOIP = JsonObjectInProgress[Json]
   type JIP  = JsonInProgress[Json]
 
-  implicit def nullToJson: Json                   = baseEncoder.jNull
-  implicit def textToJson(text: String): Json     = baseEncoder.encode(text)
-  implicit def boolToJson(boolean: Boolean): Json = baseEncoder.encode(boolean)
-  implicit def intToJson(int: Int): Json          = baseEncoder.encode(int)
-  implicit def doubleToJson(double: Double): Json = baseEncoder.encode(double)
-  implicit def longToJson(long: Long): Json       = baseEncoder.encode(long)
-  implicit def geoToJson(geo: Geometry): Json     = baseEncoder.encode(geo)
+  implicit def nullToJson          = baseEncoder.jNull
+  implicit val textToJson          = (text: String) => baseEncoder.encode(text)
+  implicit val boolToJson          = (boolean: Boolean) => baseEncoder.encode(boolean)
+  implicit val intToJson           = (int: Int) => baseEncoder.encode(int)
+  implicit val doubleToJson        = (double: Double) => baseEncoder.encode(double)
+  implicit val longToJson          = (long: Long) => baseEncoder.encode(long)
+  implicit val geoToJson           = (geo: Geometry) => baseEncoder.encode(geo)
+  implicit val dateToJson          = (date: Instant) => date.toString.asJson
+  implicit val localdatetimeToJson = (date: LocalDateTime) => date.toString.asJson
+  implicit val localdateToJson     = (date: LocalDate) => date.toString.asJson
+  implicit val localtimeToJson     = (date: LocalTime) => date.toString.asJson
 
-  implicit def mapToJson(map: Map[String, Json]): Json              = baseEncoder.encode(map)
-  implicit def listmapToJson(map: ListMap[String, Json]): Json      = baseEncoder.encode(map)
-  implicit def listToJson(list: List[Json]): Json                   = baseEncoder.encode(list)
-  implicit def tuple2ToJson(tuples: (Json, Json)): Json             = baseEncoder.encode(tuples)
-  implicit def tuple3ToJson(tuples: (Json, Json, Json)): Json       = baseEncoder.encode(tuples)
-  implicit def tuple4ToJson(tuples: (Json, Json, Json, Json)): Json = baseEncoder.encode(tuples)
-  implicit def tuple2ListToJson(tuples: List[(Json, Json)]): Json   = baseEncoder.encodeTupleList(tuples)
+  implicit val mapToJson        = (map: Map[String, Json]) => baseEncoder.encode(map)
+  implicit val listmapToJson    = (map: ListMap[String, Json]) => baseEncoder.encode(map)
+  implicit val listToJson       = (list: List[Json]) => baseEncoder.encode(list)
+  implicit val tuple2ToJson     = (tuples: (Json, Json)) => baseEncoder.encode(tuples)
+  implicit val tuple3ToJson     = (tuples: (Json, Json, Json)) => baseEncoder.encode(tuples)
+  implicit val tuple4ToJson     = (tuples: (Json, Json, Json, Json)) => baseEncoder.encode(tuples)
+  implicit val tuple2ListToJson = (tuples: List[(Json, Json)]) => baseEncoder.encodeTupleList(tuples)
 
   def jsonToNoSpacesString(json: Json): String = baseEncoder.jsonToNoSpacesString(json)
 
   implicit class WithT[T](v: T)(implicit f: T => Json) {
-    def asJson = f(v)
+    val asJson = f(v)
   }
 
   implicit class WithEJson(json: Json) {
@@ -207,8 +211,9 @@ trait Encoder {
 
   def fromDateTime(value: Any, expectedType: DateTimeType[_])(implicit activeContext: AC): JIP = {
     value match {
-      case v: Instant => JsonInProgress(v.toString())
-      case _          => throw ToJsonException(s"datetime expected ${value.getClass} found")
+      case v: Instant       => JsonInProgress(v.toString())
+      case v: LocalDateTime => JsonInProgress(v.toString())
+      case _                => throw ToJsonException(s"datetime expected ${value.getClass} found")
     }
   }
 

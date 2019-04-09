@@ -69,7 +69,9 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
     else {
       val iri =
         if (prefix != "") {
-          `@prefix`.get(prefix).map(_ + suffix).getOrElse(suffix)
+          `@prefix`.get(prefix)
+            .map(_ + suffix)
+            .getOrElse(term) //throw FromJsonException(s"prefix not found ${prefix}"))
         } else
           `@prefix`.get(term)
             .orElse(

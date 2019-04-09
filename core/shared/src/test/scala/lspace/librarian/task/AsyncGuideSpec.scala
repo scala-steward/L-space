@@ -370,8 +370,8 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.label())
-          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
+          .group(_.label())(
+            _.project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
           .withGraph(sampleGraph)
           .headF
           .map(r =>
@@ -382,8 +382,8 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.out(properties.knows).count())
-          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))
+          .group(_.out(properties.knows).count())(
+            _.project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe ((2, List((List("Levi"), List())))))
@@ -392,19 +392,23 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).head).head.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.out(properties.knows).hasLabel[Int].head)
-          .head()
-          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)
+          .group(_.out(properties.knows).hasLabel[Int].head)(_.head()
+            .project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head))
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe ((None, Some((List("Levi"), None)))))
           .runToFuture
       }
       """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(Property.default.`@id`), _.out(Property.default.`@type`))""" in {
+        new Traversal.WithProjectStepHelper(
+          g.N
+            .hasIri(sampleGraph.iri + "/person/12345")
+            .out(properties.knows)
+            .project(_.out(properties.name)))(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .out(properties.knows)
-          .project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
+          .project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List())))
@@ -429,14 +433,24 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toListF
           .map { groupedNodes =>
-            groupedNodes.nonEmpty shouldBe true
+            groupedNodes.size shouldBe 2
+          }
+          .runToFuture
+      }
+      "N.group(_.label()).head" in {
+        g.N
+          .group(_.label())
+          .head
+          .withGraph(sampleGraph)
+          .toListF
+          .map { groupedNodes =>
+            groupedNodes.size shouldBe 1
           }
           .runToFuture
       }
       "N.group(_.label()).outMap()" in {
         g.N
-          .group(_.label())
-          .outMap()
+          .group(_.label())(_.outMap())
           .withGraph(sampleGraph)
           .toListF
           .map { doubleGroupedNodes =>
@@ -446,9 +460,8 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       }
       "N.group(_.label()).outMap().outMap()" in {
         g.N
-          .group(_.label())
-          .outMap()
-          .outMap()
+          .group(_.label())(_.outMap()
+            .outMap())
           .withGraph(sampleGraph)
           .toListF
           .map { doubledoubleGroupedNodes =>

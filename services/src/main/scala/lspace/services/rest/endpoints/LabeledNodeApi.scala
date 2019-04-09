@@ -218,25 +218,25 @@ class LabeledNodeApi(
 //          }.toIO
 //      }
 //    }
-    def mutate: Endpoint[IO, Unit]             = ???
-    def ask: Endpoint[IO, Boolean]             = ???
-    def subscription: Endpoint[IO, List[Node]] = ???
+    def mutate: Endpoint[IO, Unit]          = ???
+    def ask: Endpoint[IO, Boolean]          = ???
+    def subscribe: Endpoint[IO, List[Node]] = ???
   }
   object sparql extends SparqlApi
 
   trait GraphqlApi extends ExecutionApi {
-    def query: Endpoint[IO, List[Node]]        = ???
-    def mutate: Endpoint[IO, Unit]             = ???
-    def ask: Endpoint[IO, Boolean]             = ???
-    def subscription: Endpoint[IO, List[Node]] = ???
+    def query: Endpoint[IO, List[Node]]     = ???
+    def mutate: Endpoint[IO, Unit]          = ???
+    def ask: Endpoint[IO, Boolean]          = ???
+    def subscribe: Endpoint[IO, List[Node]] = ???
   }
   object graphql extends GraphqlApi
 
   trait LibrarianApi extends ExecutionApi {
-    def query: Endpoint[IO, List[Node]]        = ???
-    def mutate: Endpoint[IO, Unit]             = ???
-    def ask: Endpoint[IO, Boolean]             = ???
-    def subscription: Endpoint[IO, List[Node]] = ???
+    def query: Endpoint[IO, List[Node]]     = ???
+    def mutate: Endpoint[IO, Unit]          = ???
+    def ask: Endpoint[IO, Boolean]          = ???
+    def subscribe: Endpoint[IO, List[Node]] = ???
   }
   object librarian extends LibrarianApi
 

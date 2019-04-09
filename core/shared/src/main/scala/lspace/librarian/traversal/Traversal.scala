@@ -85,14 +85,14 @@ object Traversal
       def stepsToContainerStructure(steps: List[Any], starttype: ClassType[Any] = defaultdatatypestub): ClassType[_] = {
         import scala.collection.immutable.::
         steps.collect {
-          case step: OutMap      => step
-          case step: OutEMap     => step
-          case step: InMap       => step
-          case step: InEMap      => step
-          case step: Group[_, _] => step
-          case step: Path[_, _]  => step
-          case step: Project[_]  => step
-          case step: HasLabel    => step
+          case step: OutMap            => step
+          case step: OutEMap           => step
+          case step: InMap             => step
+          case step: InEMap            => step
+          case step: Group[_, _, _, _] => step
+          case step: Path[_, _]        => step
+          case step: Project[_]        => step
+          case step: HasLabel          => step
           //case step: Union => //collect differentiating HasLabel steps
         } match {
           case Nil =>
@@ -109,7 +109,7 @@ object Traversal
               case step: OutEMap => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
               case step: InMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
               case step: InEMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-              case step: Group[_, _] =>
+              case step: Group[_, _, _, _] =>
                 MapType(List(stepsToContainerStructure(step.by.segmentList)),
                         List(stepsToContainerStructure(steps), starttype))
               case step: Path[_, _] => ListType(List(stepsToContainerStructure(step.by.segmentList)))
@@ -227,6 +227,7 @@ object Traversal
     def st: ST[Start] = _traversal.st
     def et: ET[End]   = _traversal.et
 
+    //G -> G[HList of Graph-like]
     def G(graph: Graph*): Traversal[ST[Start], GraphType[Graph], Segment[G :: HNil] :: HNil] =
       Traversal[ST[Start], GraphType[Graph], Segment[G :: HNil] :: HNil](
         (new Segment[G :: HNil](step.G(graph.toList) :: HNil)) :: _traversal.segments)(st, GraphType.datatype)
@@ -667,6 +668,53 @@ object Traversal
     def inE(key: Property*) = add(InE(key.toSet), st, EdgeURLType.apply[Edge[Any, End]])
   }
 
+  implicit class WithGroupStepHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], AZ <: ClassType[_],
+  KeySegments <: HList, Steps <: HList, Segments <: HList](
+      protected[this] val _traversal: Traversal[ST[Start],
+                                                ET[End],
+                                                Segment[Group[AZ, KeySegments, ET[End], HNil] :: Steps] :: Segments])
+      extends TMod[Start, ST, End, ET, Group[AZ, KeySegments, ET[End], HNil] :: Steps, Segments] {
+
+    def st: ST[Start] = _traversal.st
+    def et: ET[End]   = _traversal.et
+
+    def apply[AZv <: ClassType[_], ValueSegments <: HList](
+        value: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZv, ValueSegments])
+      : Traversal[ST[Start], ET[End], Segment[Group[AZ, KeySegments, AZv, ValueSegments] :: Steps] :: Segments] =
+      Traversal[ST[Start], ET[End], Segment[Group[AZ, KeySegments, AZv, ValueSegments] :: Steps] :: Segments](
+        _traversal.segments.head
+          .copy(Group[AZ, KeySegments, AZv, ValueSegments](
+            _traversal.segments.head.steps.head.by,
+            value(Traversal[ET[End], ET[End]](et, et))) :: _traversal.segments.head.steps.tail) :: _traversal.segments.tail)(
+        _traversal.st,
+        _traversal.et)
+  }
+
+  implicit class WithProjectStepHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], PST <: ClassType[_],
+  PET <: ClassType[_], PSegments <: HList, PROJECTIONS <: HList, Steps <: HList, Segments <: HList](
+      protected[this] val _traversal: Traversal[
+        ST[Start],
+        ET[End],
+        Segment[Project[Traversal[PST, PET, PSegments] :: PROJECTIONS] :: Steps] :: Segments])
+      extends TMod[Start, ST, End, ET, Project[Traversal[PST, PET, PSegments] :: PROJECTIONS] :: Steps, Segments] {
+
+    def st: ST[Start] = _traversal.st
+    def et: ET[End]   = _traversal.et
+
+    def apply[ET0 <: ClassType[_], Segments0 <: HList, Out <: HList](
+        value: Traversal[PST, PET, HNil] => Traversal[PST, ET0, Segments0])(
+        implicit prepend: Prepend.Aux[Traversal[PST, PET, PSegments] :: PROJECTIONS,
+                                      Traversal[PST, ET0, Segments0] :: HNil,
+                                      Out]): Traversal[ST[Start], ET[End], Segment[Project[Out] :: Steps] :: Segments] =
+      Traversal[ST[Start], ET[End], Segment[Project[Out] :: Steps] :: Segments](
+        _traversal.segments.head
+          .copy(Project[Out](prepend(
+            _traversal.segments.head.steps.head.by,
+            value(Traversal[PST, PET](_traversal.segments.head.steps.head.by.head.st,
+                                      _traversal.segments.head.steps.head.by.head.et)) :: HNil
+          )) :: _traversal.segments.head.steps.tail) :: _traversal.segments.tail)(_traversal.st, _traversal.et)
+  }
+
   trait CommonStepsHelper[
       Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList, Segments <: HList, Segments1 <: HList]
       extends BaseMod[Start, ST, End, ET, Steps, Segments, Segments1] {
@@ -678,59 +726,71 @@ object Traversal
     def as[S <: String](name: () => S): Traversal[ST[Start], ET[End], Segment[As[End, S] :: Steps] :: Segments] =
       add(As[End, S](name()))
 
+    //TODO: add a 'byValue' traversal, so a traversal on the grouped result is contained within the step
     def group[AZ <: ClassType[_], KeySegments <: HList](
         by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ, KeySegments])
-      : Traversal[ST[Start], ET[End], Segment[Group[AZ, KeySegments] :: Steps] :: Segments] =
-      add(Group[AZ, KeySegments](by(Traversal[ET[End], ET[End]](et, et))))
+      : Traversal[ST[Start], ET[End], Segment[Group[AZ, KeySegments, ET[End], HNil] :: Steps] :: Segments] =
+      add(
+        Group[AZ, KeySegments, ET[End], HNil](by(Traversal[ET[End], ET[End]](et, et)),
+                                              Traversal[ET[End], ET[End]](et, et)))
 
     //    def project[T, R](by: (Traversal[End, End, LastStep :: Steps] => Traversal[End, T, _, _ <: HList])*)
     //                     (traversals: List[Traversal[End, T, _, _ <: HList]] = by.toList.map(_(Traversal[End, End, LastStep]())))
     //                  (implicit f: FooTest.Aux[T, R], m: Monoid[R])
     //    : Traversal[Start, R, Project :: Steps] = {}
 
-    def project[A,
-                AZ[+Z] <: ClassType[Z],
-                B,
-                BZ[+Z] <: ClassType[Z],
-                ABZ <: ClassType[_],
-                Steps1 <: HList,
-                Steps2 <: HList](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1],
-                                 by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], Steps2])(
-        implicit
-        listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: HNil, List, ABZ]
-    ): Traversal[
-      ST[Start],
-      ClassType[Nothing],
-      Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: Traversal[ET[End], BZ[B], Steps2] :: HNil] :: Steps] :: Segments] /*: Traversal[ST[Start], TupleType[(A, B)], Segment[Project :: Steps] :: Segments]*/ = {
+    def project[A, AZ[+Z] <: ClassType[Z], ABZ <: ClassType[_], Steps1 <: HList](
+        by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1])
+      : Traversal[ST[Start],
+                  ClassType[Nothing],
+                  Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: HNil] :: Steps] :: Segments] = {
       val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
-      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
-      add(Project(tby1 :: tby2 :: HNil), st, ClassType.stubNothing)
+      add(Project(tby1 :: HNil), st, ClassType.stubNothing)
     }
 
-    def project[A,
-                AZ[+Z] <: ClassType[Z],
-                B,
-                BZ[+Z] <: ClassType[Z],
-                C,
-                CZ[+Z] <: ClassType[Z],
-                ABCZ <: ClassType[_],
-                Steps1 <: HList,
-                Steps2 <: HList,
-                Steps3 <: HList](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1],
-                                 by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], Steps2],
-                                 by3: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CZ[C], Steps3])(
-        implicit listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: CZ[C] :: HNil, List, ABCZ]
-    ): Traversal[ST[Start],
-                 ClassType[Nothing],
-                 Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: Traversal[ET[End], BZ[B], Steps2] :: Traversal[
-                   ET[End],
-                   CZ[C],
-                   Steps3] :: HNil] :: Steps] :: Segments] /*: Traversal[ST[Start], Tuple3Type[AZ[A], BZ[B], CZ[C]], Project :: Steps]*/ = {
-      val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
-      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
-      val tby3 = by3(Traversal[ET[End], ET[End]](et, et))
-      add(Project(tby1 :: tby2 :: tby3 :: HNil), st, ClassType.stubNothing)
-    }
+//    def project[A,
+//                AZ[+Z] <: ClassType[Z],
+//                B,
+//                BZ[+Z] <: ClassType[Z],
+//                ABZ <: ClassType[_],
+//                Steps1 <: HList,
+//                Steps2 <: HList](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1],
+//                                 by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], Steps2])(
+//        implicit
+//        listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: HNil, List, ABZ]
+//    ): Traversal[
+//      ST[Start],
+//      ClassType[Nothing],
+//      Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: Traversal[ET[End], BZ[B], Steps2] :: HNil] :: Steps] :: Segments] /*: Traversal[ST[Start], TupleType[(A, B)], Segment[Project :: Steps] :: Segments]*/ = {
+//      val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
+//      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
+//      add(Project(tby1 :: tby2 :: HNil), st, ClassType.stubNothing)
+//    }
+//
+//    def project[A,
+//                AZ[+Z] <: ClassType[Z],
+//                B,
+//                BZ[+Z] <: ClassType[Z],
+//                C,
+//                CZ[+Z] <: ClassType[Z],
+//                ABCZ <: ClassType[_],
+//                Steps1 <: HList,
+//                Steps2 <: HList,
+//                Steps3 <: HList](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1],
+//                                 by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], Steps2],
+//                                 by3: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CZ[C], Steps3])(
+//        implicit listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: CZ[C] :: HNil, List, ABCZ]
+//    ): Traversal[ST[Start],
+//                 ClassType[Nothing],
+//                 Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: Traversal[ET[End], BZ[B], Steps2] :: Traversal[
+//                   ET[End],
+//                   CZ[C],
+//                   Steps3] :: HNil] :: Steps] :: Segments] /*: Traversal[ST[Start], Tuple3Type[AZ[A], BZ[B], CZ[C]], Project :: Steps]*/ = {
+//      val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
+//      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
+//      val tby3 = by3(Traversal[ET[End], ET[End]](et, et))
+//      add(Project(tby1 :: tby2 :: tby3 :: HNil), st, ClassType.stubNothing)
+//    }
 
 //    def project[A,
 //                AZ[+Z] <: ClassType[Z],
@@ -1616,147 +1676,6 @@ object Traversal
   }
 }
 
-sealed trait Mapper[G[_], Containers <: HList, T] {
-  type F[_]
-  type Out
-  type FT <: Result[F, G, Out]
-
-  def apply(segments: List[Segment[HList]], graph: Graph): FT
-}
-object Mapper {
-//  type Aux[G[_], Out, F0] = Mapper[G, Out] { type F = F0 }
-  implicit def groupedStream[K, V, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                                   ev: GroupedResult.IsGrouped[Container]) =
-    new Mapper[Stream, Container :: Containers, (K, V)] {
-      type F[_] = Coeval[_]
-      type Out  = (K, V)
-      type FT   = SyncGroupedResult[K, V]
-
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        SyncGroupedResult[K, V](segments, graph)
-    }
-
-  implicit def streamh[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                          ev: ListResult.IsList[Container]) =
-    new Mapper[Stream, Container :: Containers, T] {
-      type F[_] = Coeval[_]
-      type Out  = T
-      type FT   = SyncListResult[T]
-
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        SyncListResult[T](segments, graph)
-    }
-  implicit def streamone[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                            ev: OneResult.IsOne[Container]) =
-    new Mapper[Stream, Container :: Containers, T] {
-      type F[_] = Coeval[_]
-      type Out  = T
-      type FT   = SyncOneResult[T]
-
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        SyncOneResult[T](segments, graph)
-    }
-  implicit def streamzeroorone[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                                  ev: ZeroOrOneResult.IsZeroOrOne[Container]) =
-    new Mapper[Stream, Container :: Containers, T] {
-      type F[_] = Coeval[_]
-      type Out  = T
-      type FT   = SyncZeroOrOneResult[T]
-
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        SyncZeroOrOneResult[T](segments, graph)
-    }
-  implicit def stream[T](implicit guide: Guide[Stream]) = new Mapper[Stream, HNil, T] {
-    type F[_] = Coeval[_]
-    type Out  = T
-    type FT   = SyncListResult[T]
-
-    def apply(segments: List[Segment[HList]], graph: Graph): FT =
-      SyncListResult[T](segments, graph)
-  }
-
-  implicit def groupedObservable[K, V, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                       ev: GroupedResult.IsGrouped[Container]) =
-    new Mapper[Observable, Container :: Containers, (K, V)] {
-      type F[_] = Task[_]
-      type Out  = (K, V)
-      type FT   = AsyncGroupedResult[K, V]
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        AsyncGroupedResult[K, V](segments, graph)
-    }
-  implicit def observableh[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                              ev: ListResult.IsList[Container]) =
-    new Mapper[Observable, Container :: Containers, T] {
-      type F[_] = Task[_]
-      type Out  = T
-      type FT   = AsyncListResult[T]
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        AsyncListResult[T](segments, graph)
-    }
-  implicit def observableone[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                ev: OneResult.IsOne[Container]) =
-    new Mapper[Observable, Container :: Containers, T] {
-      type F[_] = Task[_]
-      type Out  = T
-      type FT   = AsyncOneResult[T]
-
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        AsyncOneResult[T](segments, graph)
-    }
-  implicit def observablezeroorone[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                      ev: ZeroOrOneResult.IsZeroOrOne[Container]) =
-    new Mapper[Observable, Container :: Containers, T] {
-      type F[_] = Task[_]
-      type Out  = T
-      type FT   = AsyncZeroOrOneResult[T]
-
-      def apply(segments: List[Segment[HList]], graph: Graph): FT =
-        AsyncZeroOrOneResult[T](segments, graph)
-    }
-  implicit def observable[T](implicit guide: Guide[Observable]) = new Mapper[Observable, HNil, T] {
-    type F[_] = Task[_]
-    type Out  = T
-    type FT   = AsyncListResult[T]
-    def apply(segments: List[Segment[HList]], graph: Graph): FT =
-      AsyncListResult[T](segments, graph)
-  }
-}
-
-sealed trait OutTweaker[ET, SET, Containers <: HList] {
-  type Out
-
-  def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out]
-}
-object OutTweaker extends Poly2 {
-  type Aux[ET <: ClassType[_], SET, Containers <: HList, Out0] = OutTweaker[ET, SET, Containers] { type Out = Out0 }
-  implicit def nocontainers[End, ET[Z] <: ClassType[Z], SET] = new OutTweaker[ET[End], SET, HNil] {
-    type Out = End
-    def tweak[CT <: ClassType[SET]](ct1: ET[End], ct2: CT): ClassType[Out] = ct1
-  }
-//  implicit def containers[ET, SET, Container, Containers <: HList] = new OutTweaker[ET, SET, Container :: Containers] {
-//    type Out = SET
-//    def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
-//  }
-  implicit def containersMap[ET, K, V, Container, Containers <: HList](implicit ev: Container <:< Group[_, _]) =
-    new OutTweaker[ET, Map[K, V], Container :: Containers] {
-      type Out = (K, V)
-      def tweak[CT <: ClassType[Map[K, V]]](ct1: ET, ct2: CT): ClassType[Out] =
-        TupleType[Out](List(ct2.asInstanceOf[MapType[K, V]].keyRange, ct2.asInstanceOf[MapType[K, V]].valueRange))
-    }
-  implicit def containersTuple[ET, T, Container, Containers <: HList](implicit ev: Container <:< Project[_]) =
-    new OutTweaker[ET, List[T], Container :: Containers] {
-      type Out = T
-      def tweak[CT <: ClassType[List[T]]](ct1: ET, ct2: CT): ClassType[Out] =
-        ct2.asInstanceOf[ListType[T]].valueRange.head
-    }
-  implicit def containersOthers[ET, SET, Container, Containers <: HList](implicit ev: Container <:!< Group[_, _],
-                                                                         ev2: Container <:!< Project[_]) =
-    new OutTweaker[ET, SET, Container :: Containers] {
-      type Out = SET
-      def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
-    }
-}
-
 /**
   * TODO: try to convert End to shapeless.Coproduct
   * @param segments
@@ -1790,7 +1709,7 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
       tweaker: OutTweaker.Aux[iET, Out, Containers, Out2],
       guide: Guide[F],
       mapper: Mapper[F, Containers, Out2]): mapper.FT =
-    mapper.apply(segmentList, graph).asInstanceOf[mapper.FT]
+    mapper.apply(this, graph).asInstanceOf[mapper.FT]
 
   def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector)
 

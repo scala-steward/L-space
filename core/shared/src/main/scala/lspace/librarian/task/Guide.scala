@@ -18,12 +18,23 @@ import lspace.librarian.traversal.{
   ResourceStep,
   Segment,
   Step,
-  TraversalPath
+  Traversal,
+  TraversalPath,
+  UntypedTraversal
 }
-import lspace.structure.{Graph, Resource}
+import lspace.structure.{ClassType, Graph, Resource}
 import shapeless.HList
 
 trait Guide[F[_]] {
+
+  def executeTraversal[Out](
+      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => F[Out] = { graph =>
+    graph.executeTraversal(traversal, this).asInstanceOf[F[Out]]
+  }
+
+  def buildTraversal[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => F[Out]
+}
+trait LocalGuide[F[_]] extends Guide[F] {
   def assistent: Assistent
 
   def toValue(v: Any): Any = v match {
@@ -32,18 +43,26 @@ trait Guide[F[_]] {
     case resource: Resource[Any]   => resource.value
     case it: Map[Any, Any]         => it.map(t => toValue(t._1) -> toValue(t._2))
     case it: Iterable[Any]         => it.map(toValue)
-    case (v1, v2)                  => (toValue(v1), toValue(v2))
-    case (v1, v2, v3)              => (toValue(v1), toValue(v2), toValue(v3))
-    case (v1, v2, v3, v4)          => (toValue(v1), toValue(v2), toValue(v3), toValue(v4))
-    case value                     => value
+    case product: Product =>
+      product match {
+        case (v1, v2)                 => (toValue(v1), toValue(v2))
+        case (v1, v2, v3)             => (toValue(v1), toValue(v2), toValue(v3))
+        case (v1, v2, v3, v4)         => (toValue(v1), toValue(v2), toValue(v3), toValue(v4))
+        case (v1, v2, v3, v4, v5)     => (toValue(v1), toValue(v2), toValue(v3), toValue(v4), toValue(v5))
+        case (v1, v2, v3, v4, v5, v6) => (toValue(v1), toValue(v2), toValue(v3), toValue(v4), toValue(v5), toValue(v6))
+        case (v1, v2, v3, v4, v5, v6, v7) =>
+          (toValue(v1), toValue(v2), toValue(v3), toValue(v4), toValue(v5), toValue(v6), toValue(v7))
+        case value => value
+      }
+    case value => value
   }
 
   def findFirstContainer(steps: List[Step]): Option[Step] = {
     steps.collectFirst {
-      case step: Group[_, _] => step
-      case step: Project[_]  => step
-      case step: MapStep     => step
-      case step: Path[_, _]  => step
+      case step: Group[_, _, _, _] => step
+      case step: Project[_]        => step
+      case step: MapStep           => step
+      case step: Path[_, _]        => step
 //      case step: Head  => step
 //      case step: Last  => step
 //      case step: Count  => step
@@ -54,16 +73,16 @@ trait Guide[F[_]] {
   }
   def collectContainers(steps: List[Step]): List[Step] = {
     steps.collect {
-      case step: Group[_, _] => step
-      case step: Project[_]  => step
-      case step: MapStep     => step
-      case step: Path[_, _]  => step
-      case step: Head        => step
-      case step: Last        => step
-      case step: Count       => step
-      case step: Mean        => step
-      case step: Min         => step
-      case step: Max         => step
+      case step: Group[_, _, _, _] => step
+      case step: Project[_]        => step
+      case step: MapStep           => step
+      case step: Path[_, _]        => step
+      case step: Head              => step
+      case step: Last              => step
+      case step: Count             => step
+      case step: Mean              => step
+      case step: Min               => step
+      case step: Max               => step
     }
   }
 
@@ -88,8 +107,8 @@ trait Guide[F[_]] {
                          permissions: List[String] = List()): Librarian[T] =
     new SimpleLibrarian[T](get, path, loops, mit, permissions)
 
-  def buildTraversal[Out](segments: List[Segment[_]]): Graph => F[Out]
-  def traversalToF(segments: List[Segment[_]])(implicit graph: Graph): Librarian[Any] => F[Any]
+  def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
+      implicit graph: Graph): Librarian[Any] => F[Any]
 
   def buildNextStep(steps: List[Step], segments: List[Segment[_]])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
@@ -102,8 +121,7 @@ trait Guide[F[_]] {
   def filterStep(step: FilterStep, steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def clipStep(step: ClipStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Any]
+  def clipStep[T](step: ClipStep)(implicit graph: Graph): F[T] => F[T]
 
   def branchStep(step: BranchStep, steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]

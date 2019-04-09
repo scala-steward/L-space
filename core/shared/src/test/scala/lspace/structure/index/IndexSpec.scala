@@ -52,7 +52,7 @@ trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
       }
       "test for numeric-predicates" ignore {
         (for {
-          index <- createIndex(graph.__[Any, Any].has(Property.default.`@id`).untyped)
+          index <- createIndex(lspace.__[Any, Any].has(Property.default.`@id`).untyped)
           node1 <- graph.nodes.create()
           node2 <- graph.nodes.create()
           id1   <- graph.values.create(1l)

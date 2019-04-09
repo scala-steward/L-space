@@ -11,6 +11,7 @@ import lspace.decode.DecodeJsonLD
 import lspace.datatype.DataType
 import lspace.provider.detached.DetachedGraph
 import monix.eval.Task
+import monix.reactive.Observable
 import scribe._
 import shapeless.{CNil, HList}
 
@@ -46,9 +47,14 @@ trait TraversalService extends Api {
     *
     * @return
     */
-  lazy val traverse: Endpoint[IO, Collection[Any, ClassType[Any]]] = {
+  lazy val traverse: Endpoint[IO, _root_.fs2.Stream[IO, Collection[Any, ClassType[Any]]]] = {
     import io.finch.internal.HttpContent
-    implicit val _graph = graph
+    import cats.effect._, _root_.fs2._
+    import io.finch.fs2._
+    import _root_.fs2.interop.reactivestreams._
+    import scala.concurrent.ExecutionContext
+    implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+    implicit val _graph                         = graph
     implicit val d1 = io.finch.Decode
       .instance[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD] {
         (b, cs) =>
@@ -58,16 +64,36 @@ trait TraversalService extends Api {
       }
     post(
       "traverse" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
-                         lspace.services.codecs.Application.JsonLD]) {
+                         lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
-        traversalTask.flatMap { traversal =>
-          val start = Instant.now()
-          traversal.untyped.withGraph(graph).toListF.map { values =>
-            val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values)
-            collection.logger.debug("result count: " + values.size.toString)
-            Ok(collection)
+//        Ok(
+//        Observable
+//          .fromTask(
+        traversalTask
+          .map { traversal =>
+            println(s"executing ${traversal.prettyPrint}")
+            val start = Instant.now()
+            //          traversal.untyped.withGraph(graph).toListF.map { values =>
+            //            val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values)
+            //            collection.logger.debug("result count: " + values.size.toString)
+            //            Ok(collection)
+            //          }
+            traversal.untyped
+              .withGraph(graph)
+              .apply()
+              .bufferTumbling(100)
+              .map { values =>
+                val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
+                collection.logger.debug("result count: " + values.size.toString)
+                collection
+//                    Ok(collection)
+              }
+              .toReactivePublisher
+              .toStream[IO]()
           }
-        }.toIO
+          .map(Ok)
+          .toIO
+//          .flatten
     }
   }
 

@@ -81,8 +81,9 @@ class StepSpec extends AsyncWordSpec with Matchers {
   "A Group-step" should {
     "be serializable" in {
       testToNode(
-        Group(lspace.g.out(lspace.Label.P.typed.createdonDateTime))
-          .asInstanceOf[Group[ClassType[Any], HList]])(Group.toStep)
+        Group(lspace.g.out(lspace.Label.P.typed.createdonDateTime),
+              lspace.g.out(lspace.Label.P.typed.modifiedonDateTime))
+          .asInstanceOf[Group[ClassType[Any], HList, ClassType[Any], HList]])(Group.toStep)
     }
   }
   "A Has-step" should {

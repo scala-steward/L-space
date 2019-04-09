@@ -44,23 +44,23 @@ object Graph {
     Property.default.`@deletedon`,
     Property.default.`@transcendedon`
   )
-  lazy val reservedKeys = Set(
-    Property.default.`@id`,
-    Property.default.`@value`,
-    Property.default.`@ids`,
-    Property.default.`@type`,
-    Property.default.`@container`,
-    Property.default.`@label`,
-    Property.default.`@comment`,
-    Property.default.`@createdon`,
-    Property.default.`@modifiedon`,
-    Property.default.`@deletedon`,
-    Property.default.`@transcendedon`,
-    Property.default.`@properties`,
-    Property.default.`@graph`,
-    Property.default.`@range`,
-    Property.default.`@extends`
-  )
+//  lazy val reservedKeys = Set(
+//    Property.default.`@id`,
+////    Property.default.`@value`,
+//    Property.default.`@ids`,
+//    Property.default.`@type`,
+////    Property.default.`@container`,
+////    Property.default.`@label`,
+////    Property.default.`@comment`,
+//    Property.default.`@createdon`,
+//    Property.default.`@modifiedon`,
+//    Property.default.`@deletedon`,
+//    Property.default.`@transcendedon`,
+//    Property.default.`@properties`,
+//    Property.default.`@graph`,
+//    Property.default.`@range`,
+//    Property.default.`@extends`
+//  )
 
   //  graphs += "detached" -> DetachedGraph
 //  implicit def dt[T <: Graph](implicit ev: T <:< Graph) = new IriType[T] {
@@ -151,38 +151,7 @@ trait Graph extends IriResource with GraphUtils { self =>
   protected def storeNode(node: _Node): Task[Unit] = nodeStore.store(node)
 
   protected[lspace] def newEdge[S, E](id: Long, from: _Resource[S], key: Property, to: _Resource[E]): GEdge[S, E]
-//  protected def newEdge(id: Long, from: Long, key: Property, to: Long): _Edge[Any, Any]
-//  protected def createEdge(id: Long, from: Long, key: Property, to: Long): Task[_Edge[Any, Any]] = {
-////    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
-//    if (Property.properties.default.byIri.get(key.iri).isEmpty)
-//      ns.properties.store(key).runToFuture(monix.execution.Scheduler.global)
-//
-//    val _from = resources
-//      .hasId(from)
-//      .map(
-//        _.map(_.asInstanceOf[_Resource[Any]])
-//          .getOrElse {
-//            throw new Exception(s"cannot create edge, from-resource with id ${from} not found")
-//          })
-//    val _to =
-//      resources
-//        .hasId(to)
-//        .map(
-//          _.map(_.asInstanceOf[_Resource[Any]])
-//            .getOrElse {
-//              throw new Exception(s"cannot create edge, to-resource with id ${to} not found")
-//            })
-////    val edge = createEdge(idProvider.next, _from, key, _to)
-////    storeEdge(edge.asInstanceOf[_Edge[_, _]])
-////    edge
-//    for {
-//      from <- _from
-//      to   <- _to
-//      id   <- idProvider.next
-//      edge <- createEdge(id, from, key, to)
-//      u    <- storeEdge(edge.asInstanceOf[_Edge[_, _]]).forkAndForget //what if this fails?
-//    } yield edge
-//  }
+
   protected[lspace] def createEdge[S, E](id: Long,
                                          from: _Resource[S],
                                          key: Property,
@@ -352,19 +321,23 @@ trait Graph extends IriResource with GraphUtils { self =>
       lf: StructureCalculator.Aux[Containers, ET, Out, CT],
       tw: OutTweaker.Aux[ET, Out, Containers, Out2],
       guide: Guide[F],
-      mapper: Mapper[F, Containers, Out]): mapper.FT =
-    mapper.apply(traversal.segmentList, this).asInstanceOf[mapper.FT]
+      mapper: Mapper[F, Containers, Out2]): mapper.FT =
+    mapper.apply(traversal, this).asInstanceOf[mapper.FT]
 
-  def __[Start, End](implicit cltblStart: ClassTypeable[Start],
-                     cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HNil] =
-    Traversal[cltblStart.CT, cltblEnd.CT](cltblStart.ct, cltblEnd.ct)
+  protected[lspace] def executeTraversal[F[_]](
+      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+      guide: Guide[F]): F[Any] = guide.buildTraversal[Any](traversal)(this)
 
-  @deprecated("instead import lspace.g")
-  def g(): Traversal[ClassType[Any], ClassType[Any], HNil] =
-    Traversal[ClassType[Any], ClassType[Any]](ClassType.stubAny, ClassType.stubAny)
+//  def __[Start, End](implicit cltblStart: ClassTypeable[Start],
+//                     cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HNil] =
+//    Traversal[cltblStart.CT, cltblEnd.CT](cltblStart.ct, cltblEnd.ct)
 
-  @deprecated("instead import lspace.g")
-  lazy val traversal: Traversal[ClassType[Any], ClassType[Any], HNil] = g
+//  @deprecated("instead import lspace.g")
+//  def g(): Traversal[ClassType[Any], ClassType[Any], HNil] =
+//    Traversal[ClassType[Any], ClassType[Any]](ClassType.stubAny, ClassType.stubAny)
+//
+//  @deprecated("instead import lspace.g")
+//  lazy val traversal: Traversal[ClassType[Any], ClassType[Any], HNil] = g
 
 //  def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
 //      traversal: Traversal[ST, ET, Segments]): Stream[Out]

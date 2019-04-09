@@ -19,40 +19,43 @@ object AsyncGuide {
   }
 }
 
-trait AsyncGuide extends Guide[Observable] {
+trait AsyncGuide extends LocalGuide[Observable] {
 
-  def buildTraversal[Out](segments: List[Segment[_]]): Graph => Observable[Out] = { implicit graph: Graph =>
-    segments match {
-      case Nil => Observable.empty[Out]
-      case segment :: segments =>
-        segment.stepsList match {
-          case Nil => Observable.empty[Out]
-          case step :: steps =>
-            findFirstContainer((segment :: segments).flatMap(_.stepsList)) match {
-              case Some(step: Group[_, _]) =>
-                val (until, from) = (segment :: segments).flatMap(_.stepsList).span(_ != step)
-                val nextStep = buildNextStep(until, Nil) andThen
-                  collectingBarrierStep(step, from.tail, Nil, true).asInstanceOf[Observable[Any] => Observable[Any]]
-                nextStep(Observable(createLibrarian[Any](null)))
+  def buildTraversal[Out](
+      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => Observable[Out] = {
+    implicit graph: Graph =>
+      traversal.segmentList match {
+        case Nil => Observable.empty[Out]
+        case segment :: segments =>
+          segment.stepsList match {
+            case Nil => Observable.empty[Out]
+            case step :: steps =>
+              findFirstContainer((segment :: segments).flatMap(_.stepsList)) match {
+                case Some(step: Group[_, _, _, _]) =>
+                  val (until, from) = (segment :: segments).flatMap(_.stepsList).span(_ != step)
+                  val nextStep = buildNextStep(until, Nil) andThen
+                    collectingBarrierStep(step, from.tail, Nil, true).asInstanceOf[Observable[Any] => Observable[Any]]
+                  nextStep(Observable(createLibrarian[Any](null)))
 //              case Some(step: Max) =>
 //              case Some(step: Min) =>
 //              case Some(step: Count) =>
 //              case Some(step: Mean) =>
 //              case Some(step: Head) =>
 //              case Some(step: Last) =>
-              case _ =>
-                val nextStep = buildNextStep(segment.stepsList, segments)
-                nextStep(Observable(createLibrarian[Any](null)))
-            }
-        }
-    }
+                case _ =>
+                  val nextStep = buildNextStep(segment.stepsList, segments)
+                  nextStep(Observable(createLibrarian[Any](null)))
+              }
+          }
+      }
   }.andThen(_.map {
     case librarian: Librarian[Any] => toValue(librarian.get)
     case v                         => toValue(v)
   }.asInstanceOf[Observable[Out]])
 
-  def traversalToF(segments: List[Segment[_]])(implicit graph: Graph): Librarian[Any] => Observable[Any] = {
-    segments match {
+  def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
+      implicit graph: Graph): Librarian[Any] => Observable[Any] = {
+    traversal.segmentList match {
       case Nil =>
         librarian: Librarian[Any] =>
           Observable(librarian)
@@ -80,6 +83,9 @@ trait AsyncGuide extends Guide[Observable] {
           obs
       case step :: steps =>
         step match {
+          case step: GraphStep =>
+            obs =>
+              Observable.raiseError(new Exception("AsyncGuide does not support federated queries, RemoteGuide can!"))
           case step: ResourceStep =>
             resourceStep(step, steps, nextSegments)
           case step: MoveStep =>
@@ -91,7 +97,7 @@ trait AsyncGuide extends Guide[Observable] {
               case _ => filterStep(step, steps, nextSegments)
             }
           case step: ClipStep =>
-            clipStep(step, steps, nextSegments)
+            clipStep(step) andThen buildNextStep(steps, segments)
           case step: BranchStep =>
             branchStep(step, steps, nextSegments)
           case step: CollectingBarrierStep =>
@@ -291,7 +297,7 @@ trait AsyncGuide extends Guide[Observable] {
                   case v => Task.now(Map())
                 }))
           case step: Path[_, _] =>
-            val byObs = traversalToF(step.by.segmentList)
+            val byObs = traversalToF(step.by)
             step.by.steps.lastOption match {
               case Some(Count) =>
                 obs: Observable[Librarian[Any]] =>
@@ -537,7 +543,7 @@ trait AsyncGuide extends Guide[Observable] {
       //                case v => v
       //              }).map(_.head).flatten
       case step: And =>
-        val andObs = step.traversals.map(_.segmentList).map(traversalToF)
+        val andObs = step.traversals.map(traversalToF)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             andObs.map(_(librarian)).map(_.nonEmpty).reduce(_ ++ _).forall(b => b).flatMap {
@@ -546,7 +552,7 @@ trait AsyncGuide extends Guide[Observable] {
             }
           }
       case step: Or =>
-        val orObs = step.traversals.map(_.segmentList).map(traversalToF)
+        val orObs = step.traversals.map(traversalToF)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             orObs.map(_(librarian)).map(_.nonEmpty).reduce(_ ++ _).exists(b => b).flatMap {
@@ -555,7 +561,7 @@ trait AsyncGuide extends Guide[Observable] {
             }
           }
       case step: Where =>
-        val traveralObservable = traversalToF(step.traversal.segmentList)
+        val traveralObservable = traversalToF(step.traversal)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             traveralObservable(librarian).nonEmpty.flatMap {
@@ -564,7 +570,7 @@ trait AsyncGuide extends Guide[Observable] {
             }
           }
       case step: Not =>
-        val traveralObservable = traversalToF(step.traversal.segmentList)
+        val traveralObservable = traversalToF(step.traversal)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             traveralObservable(librarian).isEmpty.flatMap {
@@ -592,28 +598,26 @@ trait AsyncGuide extends Guide[Observable] {
 
   //  def hasStep(step: HasStep, steps: List[Step], segments: List[Segment[_]])(
   //      obs: Observable[Librarian[Any]]): Observable[Librarian[Any]]
-  def clipStep(step: ClipStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+  def clipStep[T](step: ClipStep)(implicit graph: Graph): Observable[T] => Observable[T] = {
 
     val f = step match {
       case step: Head =>
-        obs: Observable[Librarian[Any]] =>
+        obs: Observable[T] =>
           obs.head
       case step: Last =>
-        obs: Observable[Librarian[Any]] =>
+        obs: Observable[T] =>
           obs.last
       case step: Limit =>
-        obs: Observable[Librarian[Any]] =>
+        obs: Observable[T] =>
           obs.take(step.max)
       case step: Range =>
-        obs: Observable[Librarian[Any]] =>
+        obs: Observable[T] =>
           obs.drop(step.low).take(step.high - step.low)
       case step: Tail =>
-        obs: Observable[Librarian[Any]] =>
+        obs: Observable[T] =>
           obs.takeLast(step.max)
     }
-    f andThen nextStep
+    f
   }
 
   def branchStep(step: BranchStep, steps: List[Step], segments: List[Segment[_]])(
@@ -622,7 +626,7 @@ trait AsyncGuide extends Guide[Observable] {
 
     val f = step match {
       case step: Coalesce[_, _] =>
-        val coalObs = step.traversals.map(_.segmentList).map(traversalToF)
+        val coalObs = step.traversals.map(traversalToF)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             coalObs.foldLeft(Observable.empty[Any]) {
@@ -634,9 +638,9 @@ trait AsyncGuide extends Guide[Observable] {
             }
           }
       case step: Choose[_, _] =>
-        val byObs    = traversalToF(step.by.segmentList)
-        val rightObs = traversalToF(step.right.segmentList)
-        val leftObs  = traversalToF(step.left.segmentList)
+        val byObs    = traversalToF(step.by)
+        val rightObs = traversalToF(step.right)
+        val leftObs  = traversalToF(step.left)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             byObs(librarian).nonEmpty.flatMap {
@@ -647,20 +651,19 @@ trait AsyncGuide extends Guide[Observable] {
             }
           }
       case step: Local =>
-        val traveralObservable = traversalToF(step.traversal.segmentList)
+        val traveralObservable = traversalToF(step.traversal)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>
             traveralObservable(librarian)
           }
       case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
-        val repeatObs = traversalToF(step.traversal.segmentList)
+        val repeatObs = traversalToF(step.traversal)
         if (step.collect) {
           step.max match {
             case Some(max) =>
               step.until
-                .map(_.segmentList)
-                .filter(_.nonEmpty)
-                .filter(_.head.stepsList.nonEmpty)
+                .filter(_.segmentList.nonEmpty)
+                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   scribe.trace("collect max until")
@@ -695,9 +698,8 @@ trait AsyncGuide extends Guide[Observable] {
               }
             case None =>
               step.until
-                .map(_.segmentList)
-                .filter(_.nonEmpty)
-                .filter(_.head.stepsList.nonEmpty)
+                .filter(_.segmentList.nonEmpty)
+                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   scribe.trace("collect until")
@@ -735,9 +737,8 @@ trait AsyncGuide extends Guide[Observable] {
           step.max match {
             case Some(max) =>
               step.until
-                .map(_.segmentList)
-                .filter(_.nonEmpty)
-                .filter(_.head.stepsList.nonEmpty)
+                .filter(_.segmentList.nonEmpty)
+                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   scribe.trace("max until")
@@ -770,9 +771,8 @@ trait AsyncGuide extends Guide[Observable] {
               }
             case None =>
               step.until
-                .map(_.segmentList)
-                .filter(_.nonEmpty)
-                .filter(_.head.stepsList.nonEmpty)
+                .filter(_.segmentList.nonEmpty)
+                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   scribe.trace("until")
@@ -806,7 +806,7 @@ trait AsyncGuide extends Guide[Observable] {
           }
         }
       case step: Union[_, _] =>
-        val unionObs = step.traversals.map(_.segmentList).map(traversalToF).zip(step.traversals.map(_.steps.lastOption))
+        val unionObs = step.traversals.map(traversalToF).zip(step.traversals.map(_.steps.lastOption))
         obs: Observable[Librarian[Any]] =>
           {
             obs.flatMap { librarian =>
@@ -841,10 +841,23 @@ trait AsyncGuide extends Guide[Observable] {
       segments: List[Segment[_]],
       isRootGroup: Boolean = false)(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
 
-    val nextStep = buildNextStep(steps, segments)
+    val nextStep = //buildNextStep(steps, segments)
+      steps ++ segments.flatMap(_.stepsList) match {
+        case List(step: ClipStep) => clipStep[Any](step)
+        case head :: tail =>
+          obs: Observable[Any] =>
+            Observable.raiseError(new Exception("GroupStep can only be followed by a ClipStep (currently)"))
+        case Nil =>
+          obs: Observable[Any] =>
+            obs
+      }
+
     val f = step match {
-      case step: Group[_, _] =>
-        val byObservable = traversalToF(step.by.segmentList)
+      case step: Group[_, _, _, _] =>
+        val byObservable    = traversalToF(step.by)
+        val valueObservable = traversalToF(step.value)
+        val valueSteps      = step.value.segmentList.flatMap(_.stepsList)
+
         //TODO
         collectContainers(step.by.steps).lastOption match {
           case Some(step) =>
@@ -863,7 +876,9 @@ trait AsyncGuide extends Guide[Observable] {
                     })
                     .flatMap { group =>
                       Observable.fromTask(
-                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+//                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+                        clipper(group.map(_._1).flatMap(valueObservable), valueSteps)
+                          .map(group.key -> _))
                     }
               case step @ (_: Head | _: Min | _: Max | _: Mean) =>
                 obs: Observable[Librarian[Any]] =>
@@ -880,7 +895,7 @@ trait AsyncGuide extends Guide[Observable] {
                       }))
                     .flatMap { group =>
                       Observable.fromTask(
-                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+                        clipper(group.map(_._1).flatMap(valueObservable), valueSteps).map(group.key -> _))
                     }
               case Last =>
                 obs: Observable[Librarian[Any]] =>
@@ -897,7 +912,7 @@ trait AsyncGuide extends Guide[Observable] {
                       }))
                     .flatMap { group =>
                       Observable.fromTask(
-                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
+                        clipper(group.map(_._1).flatMap(valueObservable), valueSteps).map(group.key -> _))
                     }
             }
           case _ =>
@@ -917,7 +932,7 @@ trait AsyncGuide extends Guide[Observable] {
                   .toSet)
                 .flatMap { group =>
                   Observable.fromTask(
-                    clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList))
+                    clipper(group.map(_._1).flatMap(valueObservable), valueSteps)
                       .map(group.key.toList -> _))
               } //.toListL.map(_.toMap))
 //                .map(t => t._1.toList -> t._2)
@@ -926,8 +941,9 @@ trait AsyncGuide extends Guide[Observable] {
         }
     }
     if (isRootGroup)
-      f
-    else f andThen (obs => Observable.fromTask(obs.toListL.map(_.toMap)))
+      f andThen nextStep
+    else
+      f andThen nextStep andThen (obs => Observable.fromTask(obs.toListL.map(_.asInstanceOf[List[(Any, Any)]].toMap)))
   }
 
   def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step], segments: List[Segment[_]])(
@@ -990,7 +1006,7 @@ trait AsyncGuide extends Guide[Observable] {
 
     val f = step match {
       case step: Min =>
-        val byObservable = traversalToF(step.by.segmentList)
+        val byObservable = traversalToF(step.by)
         val byObsF = (obs: Observable[Librarian[Any]]) =>
           obs
             .flatMap { librarian =>
@@ -1029,7 +1045,7 @@ trait AsyncGuide extends Guide[Observable] {
             byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
         }).andThen(_.map(_._1))
       case step: Max =>
-        val byObservable = traversalToF(step.by.segmentList)
+        val byObservable = traversalToF(step.by)
         val byObsF = (obs: Observable[Librarian[Any]]) =>
           obs
             .flatMap { librarian =>
@@ -1077,7 +1093,7 @@ trait AsyncGuide extends Guide[Observable] {
 
     val f = step match {
       case step: Order =>
-        val byObservable = traversalToF(step.by.segmentList)
+        val byObservable = traversalToF(step.by)
         val byObsF = (obs: Observable[Librarian[Any]]) =>
           obs
             .flatMap { librarian =>
@@ -1173,7 +1189,7 @@ trait AsyncGuide extends Guide[Observable] {
     val nextStep = buildNextStep(steps, segments)
     val pObs = step.by.runtimeList.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
-        traversalToF(traversal.segmentList) -> collectContainers(traversal.steps).lastOption
+        traversalToF(traversal) -> collectContainers(traversal.steps).lastOption
     }
     val f =
       (obs: Observable[Librarian[Any]]) =>
@@ -1194,12 +1210,13 @@ trait AsyncGuide extends Guide[Observable] {
                 pOb(librarian).toListL
             }))
             .map {
-              case List(v1)                     => v1
-              case List(v1, v2)                 => (v1, v2)
-              case List(v1, v2, v3)             => (v1, v2, v3)
-              case List(v1, v2, v3, v4)         => (v1, v2, v3, v4)
-              case List(v1, v2, v3, v4, v5)     => (v1, v2, v3, v4, v5)
-              case List(v1, v2, v3, v4, v5, v6) => (v1, v2, v3, v4, v5, v6)
+              case List(v1)                         => v1
+              case List(v1, v2)                     => (v1, v2)
+              case List(v1, v2, v3)                 => (v1, v2, v3)
+              case List(v1, v2, v3, v4)             => (v1, v2, v3, v4)
+              case List(v1, v2, v3, v4, v5)         => (v1, v2, v3, v4, v5)
+              case List(v1, v2, v3, v4, v5, v6)     => (v1, v2, v3, v4, v5, v6)
+              case List(v1, v2, v3, v4, v5, v6, v7) => (v1, v2, v3, v4, v5, v6, v7)
             }
             .map(librarian.copy(_))
       }
