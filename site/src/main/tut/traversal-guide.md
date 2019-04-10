@@ -283,20 +283,20 @@ OutMap-step groups the resultset into a ```Map[Property,List[Value]]``` where Ou
 the traversal will continue to operate with a traverser for each Value. 
 ```tut:book
 g.N.outMap() //returns a property-map on all out-going connected resources
-graph.g.N.has("name", P.eqv("Garrison")).outMap().withGraph(graph).head
+g.N.has("name", P.eqv("Garrison")).outMap().withGraph(graph).head
 g.N.outMap("name", "knows") //returns a property-map for edges with label "name" or "knows"
 ```
 #### OutEMap
 ```tut:book
-graph.g.N.has("name", P.eqv("Garrison")).outEMap().withGraph(graph).head //should return all out-going edges grouped by key
+g.N.has("name", P.eqv("Garrison")).outEMap().withGraph(graph).head //should return all out-going edges grouped by key
 ```
 #### InMap
 ```tut:book
-graph.g.N.has("name", P.eqv("Garrison")).inMap().withGraph(graph).head //returns a property-map on all incoming connected resources
+g.N.has("name", P.eqv("Garrison")).inMap().withGraph(graph).head //returns a property-map on all incoming connected resources
 ```
 #### InEMap
 ```tut:book
-graph.g.N.has("name", P.eqv("Garrison")).inEMap().withGraph(graph).head //should return all in-coming edges grouped by key
+g.N.has("name", P.eqv("Garrison")).inEMap().withGraph(graph).head //should return all in-coming edges grouped by key
 ```
 ### Barrier steps
 Barrier steps can operate on the entire resultset of a traversal
@@ -308,7 +308,7 @@ Group-step groups the resultset into a ```Map[Key,List[Value]]``` where Key is t
 the traversal will continue to operate with a traverser for each Value. 
 ```tut:book
 g.N.group(_.out("name")).withGraph(graph).head //groups only on nodes with a "name" and only takes the first result (head)
-g.N.group(_.out("name")).group(_.out("age")).withGraph(graph).head //can e.g. be a Map[String, List[Map[Int,List[Node]]]]
+g.N.group(_.out("name"))(_.group(_.out("age"))).withGraph(graph).head //can e.g. be a Map[String, List[Map[Int,List[Node]]]]
 ```
 #### Reducing barrier steps
 Reducing barrier steps perform a fold task on all traverers in the stream resulting in a single traverser 
