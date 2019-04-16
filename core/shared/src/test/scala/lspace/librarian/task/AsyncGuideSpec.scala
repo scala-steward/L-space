@@ -368,7 +368,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .map(_.nonEmpty shouldBe true)
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).mapValues(_.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.label())
@@ -380,7 +380,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
                                                                               List((List("Levi"), List())))))
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).mapValues(_.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.out(properties.knows).count())
@@ -390,7 +390,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .map(_ shouldBe ((2, List((List("Levi"), List())))))
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).head).head.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).head).mapValues(_.head.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.out(properties.knows).hasLabel[Int].head)
