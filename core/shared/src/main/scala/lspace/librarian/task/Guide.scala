@@ -62,7 +62,6 @@ trait LocalGuide[F[_]] extends Guide[F] {
       case step: Group[_, _, _, _] => step
       case step: Project[_]        => step
       case step: MapStep           => step
-      case step: Path[_, _]        => step
 //      case step: Head  => step
 //      case step: Last  => step
 //      case step: Count  => step

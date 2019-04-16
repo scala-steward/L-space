@@ -30,8 +30,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
   implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
 
   val initTask = (for {
-    _ <- SampleGraph.loadSocial(sampleGraph)
-  } yield ()).memoizeOnSuccess
+    sample <- SampleGraph.loadSocial(sampleGraph)
+  } yield sample).memoizeOnSuccess
 
 //  override def afterAll(): Unit = {
 //    (for {

@@ -28,8 +28,8 @@ object DecodeJsonLD {
       label: Ontology,
       allowedProperties: List[Property] = List(),
       additionalProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
-    new DecodeJson[Node] {
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Node] =
+    new DecodeJsonLD[Node] {
       def decode =
         (json: String) =>
           decoder
@@ -73,8 +73,8 @@ object DecodeJsonLD {
       nodeToT: Node => T,
       allowedProperties: List[Property] = List(),
       additionalProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[T] =
-    new DecodeJson[T] {
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJsonLD[T] =
+    new DecodeJsonLD[T] {
       def decode =
         (json: String) =>
           jsonldToLabeledNode(label, allowedProperties, additionalProperties, forbiddenProperties)
@@ -91,8 +91,8 @@ object DecodeJsonLD {
   def jsonldToNode(
       allowedProperties: List[Property] = List(),
       additionalProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJson[Node] =
-    new DecodeJson[Node] {
+      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Node] =
+    new DecodeJsonLD[Node] {
       def decode = { (json: String) =>
         decoder
           .stringToNode(json)

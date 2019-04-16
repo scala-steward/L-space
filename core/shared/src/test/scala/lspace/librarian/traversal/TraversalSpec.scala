@@ -173,70 +173,83 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
   }
 
   "A traversal" must {
-    "have a defined end-type" in {
-      import shapeless.::
-      g.N.outMap().hasLabel(`@int`).et shouldBe `@int`
-    }
+//    "have a defined end-type" in {
+    import shapeless.::
+//      g.N.outMap().hasLabel(`@int`).et shouldBe `@int`
+//    }
   }
   "A traversal has an expected result type" can {
     """a Any""" in {
-      g.N.out().ct shouldBe None
+      g.N.out().et shouldBe ClassType.stubAny
     }
     """a Node""" in {
-      g.N.ct shouldBe Some(Node.nodeUrl)
+      g.N.et shouldBe Node.nodeUrl
     }
     """a Map[List[Any],Node]""" in {
       g.N
         .hasIri("/person/12345")
-        .group(_.out())(_.head)
-        .ct shouldBe Some(TupleType(List(List(ListType(List())), List(Node.nodeUrl))))
+        .group(_.out())
+        .mapValues(_.head)
+        .et shouldBe TupleType(List(List(ListType(List())), List(Node.nodeUrl)))
     }
     """a Map[List[Any],List[Node]]""" in {
       g.N
         .hasIri("/person/12345")
         .group(_.out())
-        .ct shouldBe Some(TupleType(List(List(ListType(List())), List(ListType(List(Node.nodeUrl))))))
+        .et shouldBe TupleType(List(List(ListType(List())), List(ListType(List(Node.nodeUrl)))))
     }
     """a Map[List[Any],Edge[_,_]]""" in {
       g.E
         .hasIri("/person/12345")
-        .group(_.out())(_.head)
-        .ct shouldBe Some(TupleType(List(List(ListType(List())), List(Edge.edgeUrl))))
+        .group(_.out())
+        .mapValues(_.head)
+        .et shouldBe TupleType(List(List(ListType(List())), List(Edge.edgeUrl)))
     }
     """a Map[List[Any],List[Edge[_,_]]]""" in {
       g.E
         .hasIri("/person/12345")
         .group(_.out())
-        .ct shouldBe Some(TupleType(List(List(ListType(List())), List(ListType(List(Edge.edgeUrl))))))
+        .et shouldBe TupleType(List(List(ListType(List())), List(ListType(List(Edge.edgeUrl)))))
     }
     """a Map[List[Any],Int]""" in {
       g.V
         .hasIri("/person/12345")
-        .group(_.out())(_.hasLabel[Int].head)
-        .ct shouldBe Some(TupleType(List(List(ListType(List())), List(IntType.datatype))))
+        .group(_.out())
+        .mapValues(_.hasLabel[Int].head)
+        .et shouldBe TupleType(List(List(ListType(List())), List(IntType.datatype)))
     }
     """a Map[List[Any],List[Int]]""" in {
       g.V
         .hasIri("/person/12345")
-        .group(_.out())(_.hasLabel[Int])
-        .ct shouldBe Some(TupleType(List(List(ListType(List())), List(ListType(List(IntType.datatype))))))
+        .group(_.out())
+        .mapValues(_.hasLabel[Int])
+        .et shouldBe TupleType(List(List(ListType(List())), List(ListType(List(IntType.datatype)))))
     }
     """a Map[List[Ontology],List[(List[Any],List[Double])]]""" in {
       Task {
         g.N
           .hasIri("/person/12345")
-          .group(_.label())(_.project(_.out("name"))(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
-          .ct shouldBe Some(
-          TupleType(List(ListType(List(Ontology.urlType))) ::
-            List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil))
+          .group(_.label())
+          .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
+          .et shouldBe
+          TupleType(
+            List(ListType(List(Ontology.urlType))) ::
+              List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil)
       }.runToFuture
     }
     """a ([List[Any],List[Any])""" in {
-      g.N.project(_.out())(_.in()).ct shouldBe Some(TupleType(List(List(ListType()), List(ListType()))))
+      g.N.project(_.out()).by(_.in()).et shouldBe TupleType(List(List(ListType()), List(ListType())))
     }
     """a ([List[Any],Map[Property,List[Any]])""" in {
-      g.N.project(_.out())(_.inMap()).ct shouldBe Some(
-        TupleType(List(List(ListType()), List(MapType(List(Property.urlType), List(ListType()))))))
+      g.N.project(_.out()).by(_.inMap()).et shouldBe
+        TupleType(List(List(ListType()), List(ListType(List(MapType(List(Property.urlType), List(ListType())))))))
+      g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
+        TupleType(
+          List(
+            List(ListType()),
+            List(ListType(List(MapType(List(Property.urlType), List(ListType()))))),
+            List(ListType(List(MapType(List(Property.urlType), List(ListType())))))
+          ))
     }
   }
   "Traversals" can {

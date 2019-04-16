@@ -26,7 +26,7 @@ object Encode {
     io.finch.Encode.instance[A, Application.JsonLD]((a, cs) => Buf.ByteArray.Owned(e.encode(a).getBytes(cs.name)))
   }
 
-  private object streamEncoders extends StreamInstances {
+  object streamEncoders extends StreamInstances {
     implicit def encodeJsonLDFs2Stream[F[_]: Effect](
         implicit
         A: JsonLD[Collection[Any, ClassType[Any]]])

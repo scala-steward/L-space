@@ -306,43 +306,23 @@ trait Graph extends IriResource with GraphUtils { self =>
 //  def map[T](traversalTask: TraversalTask[T]): T            = traversalTask.run(this)
   import lspace.librarian.traversal._
   def *>[ST <: ClassType[_],
-         ET <: ClassType[_],
+         End,
+         ET[+Z] <: ClassType[Z],
          Segments <: HList,
          Steps <: HList,
          RSteps <: HList,
          Containers <: HList,
-         F[_],
-         Out,
-         CT <: ClassType[Out],
-         Out2](traversal: Traversal[ST, ET, Segments])(
+         F[_]](traversal: Traversal[ST, ET[End], Segments])(
       implicit flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
       reverse: Reverse.Aux[Steps, RSteps],
       f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-      lf: StructureCalculator.Aux[Containers, ET, Out, CT],
-      tw: OutTweaker.Aux[ET, Out, Containers, Out2],
       guide: Guide[F],
-      mapper: Mapper[F, Containers, Out2]): mapper.FT =
+      mapper: Mapper[F, Containers, End]): mapper.FT =
     mapper.apply(traversal, this).asInstanceOf[mapper.FT]
 
   protected[lspace] def executeTraversal[F[_]](
       traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
       guide: Guide[F]): F[Any] = guide.buildTraversal[Any](traversal)(this)
-
-//  def __[Start, End](implicit cltblStart: ClassTypeable[Start],
-//                     cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HNil] =
-//    Traversal[cltblStart.CT, cltblEnd.CT](cltblStart.ct, cltblEnd.ct)
-
-//  @deprecated("instead import lspace.g")
-//  def g(): Traversal[ClassType[Any], ClassType[Any], HNil] =
-//    Traversal[ClassType[Any], ClassType[Any]](ClassType.stubAny, ClassType.stubAny)
-//
-//  @deprecated("instead import lspace.g")
-//  lazy val traversal: Traversal[ClassType[Any], ClassType[Any], HNil] = g
-
-//  def buildTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
-//      traversal: Traversal[ST, ET, Segments]): Stream[Out]
-//  def buildAsyncTraversersStream[ST <: ClassType[_], ET <: ClassType[_], Segments <: HList, Out](
-//      traversal: Traversal[ST, ET, Segments]): Task[Stream[Out]]
 
   def persist: Task[Unit] = Task.unit
 

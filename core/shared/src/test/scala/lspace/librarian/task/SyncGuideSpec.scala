@@ -51,9 +51,9 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
     """N.outMap()""" in {
       g.N.outMap().withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).task.runToFuture
     }
-    """N.outMap().hasLabel(`@int`)""" in {
-      g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).task.runToFuture
-    }
+//    """N.outMap().hasLabel(`@int`)""" in {
+//      g.N.outMap().hasLabel(`@int`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).task.runToFuture
+//    }
     """N.has("name", P.eqv("Garrison")).outMap()""" in {
       g.N.has("name", P.eqv("Garrison")).outMap().withGraph(sampleGraph).headF.map(_.size shouldBe 5).task.runToFuture
     }
@@ -247,7 +247,8 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
     """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
       val x = g.N
         .hasIri(sampleGraph.iri + "/person/12345")
-        .group(_.label())(_.project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
+        .group(_.label())
+        .mapValues(_.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
         .withGraph(sampleGraph)
         .toMap
 
@@ -258,8 +259,8 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
       Task(
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.out(properties.knows).count())(
-            _.project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
+          .group(_.out(properties.knows).count())
+          .mapValues(_.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
           .withGraph(sampleGraph)
           .head shouldBe ((2, List((List("Levi"), List()))))).runToFuture
     }
@@ -276,7 +277,8 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
       val x: List[(List[Any], List[Double])] = g.N
         .hasIri(sampleGraph.iri + "/person/12345")
         .out(properties.knows)
-        .project(_.out(properties.name))(_.out(properties.balance).hasLabel[Double].is(P.gt(2000.0)))
+        .project(_.out(properties.name))
+        .by(_.out(properties.balance).hasLabel[Double].is(P.gt(2000.0)))
         .withGraph(sampleGraph)
         .toList
 
@@ -310,7 +312,8 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
     }
     "N.group(_.label()).outMap()" in {
       g.N
-        .group(_.label())(_.outMap())
+        .group(_.label())
+        .mapValues(_.outMap())
         .withGraph(sampleGraph)
         .toListF
         .map(_.nonEmpty shouldBe true)
@@ -318,17 +321,17 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .runToFuture
 
     }
-    "N.group(_.label()).outMap().outMap()" in {
-      g.N
-        .group(_.label())(_.outMap()
-          .outMap())
-        .withGraph(sampleGraph)
-        .toListF
-        .map(_.nonEmpty shouldBe true)
-        .task
-        .runToFuture
-
-    }
+//    "N.group(_.label()).outMap().outMap()" in {
+//      g.N
+//        .group(_.label()).mapValues(_.outMap()
+//          .outMap())
+//        .withGraph(sampleGraph)
+//        .toListF
+//        .map(_.nonEmpty shouldBe true)
+//        .task
+//        .runToFuture
+//
+//    }
     //      "a Drop-step" ignore {
     //        val p         = sampleGraph + Ontology("https://schema.org/Person")
     //        val weirdname = "lkaskfdmnowenoiafps"

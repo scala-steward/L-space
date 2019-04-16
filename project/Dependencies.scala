@@ -5,7 +5,7 @@ object Version {
   val scala     = "2.12.8"
   val finch     = "0.28.0"
   val monix     = "3.0.0-RC2"
-  val sttp      = "1.5.11"
+  val sttp      = "1.5.12"
   val elastic4s = "6.5.1"
   val phantom   = "2.37.0"
 }
@@ -40,7 +40,7 @@ object Dependencies {
 
   val parseJvmDeps = Seq("com.softwaremill.sttp" %% "okhttp-backend-monix" % Version.sttp)
 
-  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.2"))
+  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.3"))
 
   val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.11.1"))
 

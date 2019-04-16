@@ -8,7 +8,7 @@ import cats.effect.IO
 import io.finch._
 import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
 import lspace.decode.DecodeJsonLD
-import lspace.datatype.DataType
+import lspace.datatype.{DataType, ListType}
 import lspace.provider.detached.DetachedGraph
 import monix.eval.Task
 import monix.reactive.Observable
@@ -71,7 +71,7 @@ trait TraversalService extends Api {
 //          .fromTask(
         traversalTask
           .map { traversal =>
-            println(s"executing ${traversal.prettyPrint}")
+//            println(s"executing ${traversal.prettyPrint}")
             val start = Instant.now()
             //          traversal.untyped.withGraph(graph).toListF.map { values =>
             //            val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values)
@@ -109,11 +109,12 @@ trait TraversalService extends Api {
     val traversal = g.N
       .union(_.hasLabel(Ontology.ontology), _.hasLabel(Property.ontology), _.hasLabel(DataType.ontology))
 
-    traversal.untyped
+    traversal
       .withGraph(graph)
       .toListF
       .map { values =>
-        val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values, traversal.ct)
+        val collection: Collection[Any, ClassType[Any]] =
+          Collection(start, Instant.now(), values, Some(ListType(traversal.et :: Nil)))
         Ok(collection)
       }
       .toIO

@@ -88,7 +88,7 @@ object SampleGraph {
     * @param graph
     * @return object of places and persons
     */
-  def loadSocial(graph: Graph): Task[Unit] = {
+  def loadSocial(graph: Graph) = {
 
     for {
       _places <- for {
