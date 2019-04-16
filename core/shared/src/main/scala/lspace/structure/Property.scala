@@ -93,7 +93,7 @@ object Property {
       * @param iris
       * @return
       */
-    def getOrCreate(iri: String, iris: Set[String]): Property = get(iri, iris).getOrElse {
+    def getOrCreate(iri: String, iris: Set[String] = Set()): Property = get(iri, iris).getOrElse {
       synchronized {
         get(iri, iris).getOrElse {
           val property = new Property(iri, iris + iri)

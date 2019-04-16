@@ -23,10 +23,6 @@ object Decode {
   implicit def decodeJsonLD[A](implicit e: DecodeJsonLD[A]): JsonLD[Task[A]] =
     io.finch.Decode.instance[Task[A], Application.JsonLD] { (b, cs) =>
       Right(e.decode(b.asString(cs)))
-    //        Parse.parse(b.asString(cs)) match {
-    //          case Right(result) => Right(e.decode(result))
-    //          case Left(error)   => Left(new Exception(error))
-    //        }
     }
 
 }

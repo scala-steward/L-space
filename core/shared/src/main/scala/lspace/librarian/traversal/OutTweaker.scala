@@ -27,18 +27,16 @@ object OutTweaker {
   //    def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
   //  }
   implicit def containersMap[K, V, Container, Containers <: HList](implicit ev: Container <:< Group[_, _, _, _]) =
-    new OutTweaker[MapType[K, V], Container :: Containers] {
-      type Out   = Map[K, V]
-      type OutCT = MapType[K, V]
-      def tweak(et: MapType[K, V]): MapType[K, V] =
-        MapType[K, V](
-          et.asInstanceOf[TupleType[(K, V)]].rangeTypes.head.asInstanceOf[List[ClassType[K]]] filter (_.iri.nonEmpty),
-          et.asInstanceOf[TupleType[(K, V)]]
-            .rangeTypes
-            .tail
-            .head
-            .asInstanceOf[List[ClassType[V]]] filter (_.iri.nonEmpty)
-        )
+    new OutTweaker[TupleType[(K, V)], Container :: Containers] {
+      type Out   = List[Map[K, V]]
+      type OutCT = ListType[Map[K, V]]
+      def tweak(et: TupleType[(K, V)]): ListType[Map[K, V]] =
+        ListType(
+          MapType[K, V](
+            et.rangeTypes.head.asInstanceOf[List[ClassType[K]]] filter (_.iri.nonEmpty),
+            et.rangeTypes.tail.head
+              .asInstanceOf[List[ClassType[V]]] filter (_.iri.nonEmpty)
+          ) :: Nil)
     }
   sealed trait IsListEnd[T]
   object IsListEnd {

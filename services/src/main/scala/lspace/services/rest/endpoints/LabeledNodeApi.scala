@@ -22,7 +22,7 @@ object LabeledNodeApi {
 
 class LabeledNodeApi(
     val ontology: Ontology,
-    additionalProperties: List[Property] = List(),
+    allowedProperties: List[Property] = List(),
     forbiddenProperties: List[Property] = List())(implicit val graph: Graph, val baseDecoder: NativeTypeDecoder)
     extends Api {
 //  implicit val encoder = Encoder //todo Encode context per client-session
@@ -73,19 +73,20 @@ class LabeledNodeApi(
 
   def create: Endpoint[IO, Node] = {
     import io.finch.internal.HttpContent
+    import lspace.services.codecs.Decode._
     implicit val decoder = Decoder(DetachedGraph)
-    implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
-      Right(
-        DecodeJsonLD
-          .jsonldToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
-          .decode(b.asString(cs)))
-    }
-    implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
-      Right(
-        DecodeJson
-          .jsonToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
-          .decode(b.asString(cs)))
-    }
+//    implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
+//      Right(
+    implicit val jsonldToLabeledNode = DecodeJsonLD
+      .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
+//          .decode(b.asString(cs)))
+//    }
+//    implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
+//      Right(
+    implicit val jsonToLabeledNode = DecodeJson
+      .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
+//          .decode(b.asString(cs)))
+//    }
     post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       nodeTask: Task[Node] =>
         nodeTask.flatMap { node =>
@@ -110,13 +111,13 @@ class LabeledNodeApi(
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
       Right(
         DecodeJsonLD
-          .jsonldToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
           .decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
       Right(
         DecodeJson
-          .jsonToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
           .decode(b.asString(cs)))
     }
     put(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
@@ -148,13 +149,13 @@ class LabeledNodeApi(
     implicit val d1 = io.finch.Decode.instance[Task[Node], lspace.services.codecs.Application.JsonLD] { (b, cs) =>
       Right(
         DecodeJsonLD
-          .jsonldToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
           .decode(b.asString(cs)))
     }
     implicit val d2 = io.finch.Decode.instance[Task[Node], Application.Json] { (b, cs) =>
       Right(
         DecodeJson
-          .jsonToLabeledNode(ontology, ontology.properties().toList, additionalProperties, forbiddenProperties)
+          .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
           .decode(b.asString(cs)))
     }
     patch(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {

@@ -206,6 +206,29 @@ trait Decoder {
     parse(json)
       .flatMap(toNode(_, activeContext))
 
+  def stringToEdge(json: String, activeContext: AC = ActiveContext()): Task[Edge[Any, Any]] =
+    parse(json)
+      .flatMap(toEdge(_, activeContext))
+
+  def toEdge(json: Json, activeContext: AC = ActiveContext()): Task[Edge[Any, Any]] = {
+    json.obj
+      .map { obj =>
+        obj.extractContext(activeContext).flatMap { implicit activeContext =>
+          val expandedJson = obj.expand
+          if (expandedJson.contains(types.`@value`))
+            Task.raiseError(FromJsonException("cannot parse object with @value key to node, this looks like a value"))
+          else if (expandedJson.contains(types.`@from`))
+            Task.raiseError(FromJsonException("cannot parse object with @from key to node, this looks like an edge"))
+          else if (expandedJson.contains(types.`@to`))
+            Task.raiseError(FromJsonException("cannot parse object with @to key to node, this looks like an edge"))
+          else {
+            toEdge(expandedJson, None)(activeContext).get //TODO: getOrElse fail?
+          }
+        }
+      }
+      .getOrElse(Task.raiseError(FromJsonException("root must be an object")))
+  }
+
   def toNode(json: Json, activeContext: AC = ActiveContext()): Task[Node] = {
     json.obj
       .map { obj =>

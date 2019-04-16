@@ -152,7 +152,7 @@ object Ontology {
           ontologies.headOption
       }
     }
-    def getOrCreate(iri: String, iris: Set[String]): Ontology = get(iri, iris).getOrElse {
+    def getOrCreate(iri: String, iris: Set[String] = Set()): Ontology = get(iri, iris).getOrElse {
       synchronized {
         get(iri, iris).getOrElse {
           val ontology = new Ontology(iri, iris + iri)

@@ -66,18 +66,10 @@ trait TraversalService extends Api {
       "traverse" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
                          lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
-//        Ok(
-//        Observable
-//          .fromTask(
         traversalTask
           .map { traversal =>
 //            println(s"executing ${traversal.prettyPrint}")
             val start = Instant.now()
-            //          traversal.untyped.withGraph(graph).toListF.map { values =>
-            //            val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values)
-            //            collection.logger.debug("result count: " + values.size.toString)
-            //            Ok(collection)
-            //          }
             traversal.untyped
               .withGraph(graph)
               .apply()
@@ -86,14 +78,12 @@ trait TraversalService extends Api {
                 val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
                 collection.logger.debug("result count: " + values.size.toString)
                 collection
-//                    Ok(collection)
               }
               .toReactivePublisher
               .toStream[IO]()
           }
           .map(Ok(_))
           .toIO
-//          .flatten
     }
   }
 
