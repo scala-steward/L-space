@@ -5,7 +5,7 @@ import cats.effect.IO
 import com.twitter.finagle.http.Response
 import io.finch._
 import io.finch.Endpoint
-import lspace.codec.{Encoder, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.{jsonld, ActiveContext, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.structure.{Graph, Lspace}
 import monix.eval.Task
 
@@ -30,7 +30,7 @@ trait NameSpaceService extends Api {
 
   import lspace.Implicits.Scheduler.global
 
-  val encoder = Encoder(baseEncoder)
+  val encoder = jsonld.Encoder(baseEncoder)
 
   val headersAll = root.map(_.headerMap.toMap)
   val cache      = mutable.HashMap[String, mutable.HashMap[String, String]]()
@@ -49,7 +49,7 @@ trait NameSpaceService extends Api {
         graph.ns.nodes
           .hasIri(graph.iri + "/" + path)
           .headL
-          .map(encoder(_))
+          .map(encoder(_)(ActiveContext()))
           .map { json =>
             cache += (graph.iri + "/" + path)                                                                -> (cache
               .getOrElse(graph.iri + "/" + path, mutable.HashMap[String, String]()) += "application/ld+json" -> json)
@@ -70,7 +70,7 @@ trait NameSpaceService extends Api {
         graph.ns.nodes
           .hasIri(iri)
           .headL
-          .map(encoder(_))
+          .map(encoder(_)(ActiveContext()))
           .map { json =>
             cache += iri                                                                  -> (cache
               .getOrElse(iri, mutable.HashMap[String, String]()) += "application/ld+json" -> json)

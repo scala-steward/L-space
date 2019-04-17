@@ -2,12 +2,14 @@ package lspace.services.rest.endpoints
 
 import com.twitter.finagle.http.{Request, Response, Status}
 import com.twitter.util.Await
-import io.finch.{Application, Bootstrap, Input}
+import io.finch.{Application, Bootstrap, Endpoint, Input}
+import lspace.codec.argonaut._
+import lspace.codec.ActiveContext
 import lspace.encode.EncodeJsonLD
-import lspace.services.codecs.{Application => LApplication}
 import lspace.datatype.TextType
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
+import lspace.services.LApplication
 import lspace.structure._
 import lspace.structure.Property.default.`@id`
 import lspace.util.SampleGraph
@@ -16,6 +18,7 @@ import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
 import shapeless.{:+:, CNil}
 import lspace.services.util._
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -25,9 +28,9 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
 //  override def executionContext = lspace.Implicits.Scheduler.global
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
-  implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder
-  implicit val encoder        = lspace.codec.Encoder(nencoder)
-  implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
+//  implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder
+  implicit val encoder = lspace.codec.jsonld.Encoder.apply
+//  implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
 
   val initTask = (for {
     sample <- SampleGraph.loadSocial(sampleGraph)
@@ -54,7 +57,11 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     casecodec2(Person.apply, Person.unapply)("name", "id")
   implicit val enc = PersonCodecJson.Encoder
 
-  lazy val personApiService = LabeledNodeApi(person)(sampleGraph, ndecoder)
+  val defaultContext = ActiveContext(
+    `@prefix` = ListMap("naam" -> "name")
+  )
+  lazy val personApiService: LabeledNodeApi = LabeledNodeApi(sampleGraph, person, defaultContext)
+
   val toCC = { node: Node =>
     Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as TextType).headOption)
   }
@@ -62,20 +69,34 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     for {
       node <- DetachedGraph.nodes.create(person)
       _    <- Task.sequence(cc.id.toList.map(node --- Property.default.`@id` --> _))
-      _    <- node --- person.keys.name --> cc.name
+//      _    <- node --- person.keys.name --> cc.name
+      _ <- node --- person.keys.name --> cc.name
     } yield node
   }
 
   import lspace.encode.EncodeJson._
   import lspace.encode.EncodeJsonLD._
   import lspace.services.codecs.Encode._
+  implicit val activeContext: ActiveContext = ActiveContext()
 
-  lazy val service: com.twitter.finagle.Service[Request, Response] = Bootstrap
-    .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-    .serve[LApplication.JsonLD :+: Application.Json :+: CNil](personApiService.api)
-    .toService
+  lazy val service: com.twitter.finagle.Service[Request, Response] = Endpoint.toService(personApiService.compiled)
 
   "An LabeledNodeApi" should {
+    "serve an active context" in {
+      Task {
+        val input = Input
+          .get("/context")
+        personApiService
+          .context(input)
+          .awaitOutput()
+          .map { output =>
+            output.isRight shouldBe true
+            val response = output.right.get
+            response.status shouldBe Status.Ok
+          }
+          .getOrElse(fail("endpoint does not match"))
+      }.runToFuture
+    }
     "support GET with application/ld+json" in {
       Task {
         val input = Input
@@ -241,27 +262,6 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .getOrElse(fail("endpoint does not match"))
       }).runToFuture
     }
-    "support GET with application/json" in {
-      val input = Input
-        .get("/")
-        .withHeaders("Accept" -> "application/json")
-      Await.result(service(input.request).map { r =>
-        r.contentType shouldBe Some("application/json")
-        r.status shouldBe Status.Ok
-      })
-    }
-    "support POST with application/json" in {
-      (for {
-        alice2 <- toNode(Person("Alice"))
-        input = Input
-          .post("/")
-          .withBody[Application.Json](alice2)
-          .withHeaders("Accept" -> "application/json")
-        _ <- Task.deferFuture(service(input.request)).map { r =>
-          r.status shouldBe Status.Created
-        }
-      } yield succeed).runToFuture
-    }
     "support PUT with application/json" in {
       (for {
         alice2 <- toNode(Person("Alice"))
@@ -369,5 +369,38 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     }
   }
 
-  "A LabeledNodeApi service" should {}
+  "A compiled LabeledNodeApi service" should {
+    "serve an active context" in {
+      val input = Input
+        .get("/context")
+        .withHeaders("Accept" -> "application/ld+json")
+
+      service(input.request).map { r =>
+        println(r.contentString)
+        r.contentType shouldBe Some("application/ld+json")
+        r.status shouldBe Status.Ok
+      }
+    }
+    "support GET with application/json" in {
+      val input = Input
+        .get("/")
+        .withHeaders("Accept" -> "application/json")
+      service(input.request).map { r =>
+        r.contentType shouldBe Some("application/json")
+        r.status shouldBe Status.Ok
+      }
+    }
+    "support POST with application/json" in {
+      (for {
+        alice2 <- toNode(Person("Alice"))
+        input = Input
+          .post("/")
+          .withBody[Application.Json](alice2)
+          .withHeaders("Accept" -> "application/json")
+        _ <- Task.deferFuture(service(input.request)).map { r =>
+          r.status shouldBe Status.Created
+        }
+      } yield succeed).runToFuture
+    }
+  }
 }

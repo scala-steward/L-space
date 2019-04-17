@@ -1,21 +1,23 @@
 package lspace.lgraph.provider.file
 
 import lspace.NS.types
-import lspace.codec.{ExpandedMap, NativeTypeDecoder}
+import lspace.codec.{ActiveContext, ExpandedMap, NativeTypeDecoder}
 import lspace.codec.exception.FromJsonException
+import lspace.codec.jsonld.Decoder
 import lspace.structure._
 import monix.eval.Task
 
 case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps())(
     implicit val baseDecoder: NativeTypeDecoder.Aux[Json0])
-    extends lspace.codec.Decoder {
+    extends Decoder {
   type Json = Json0
-  override def apply(graph0: Lspace): lspace.codec.Decoder.Aux[Json] = DecodeLDFS.apply(graph0, idMaps)(baseDecoder)
+  override def apply(graph0: Lspace): lspace.codec.jsonld.Decoder.Aux[Json] =
+    DecodeLDFS.apply(graph0, idMaps)(baseDecoder)
 
   lazy val nsDecoder = {
     def graph0       = graph
     def baseDecoder0 = baseDecoder
-    new lspace.codec.Decoder {
+    new Decoder {
       type Json = Json0
       val graph: Graph                                      = graph0.ns
       implicit def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
@@ -23,7 +25,7 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
     }
   }
 
-  override def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] = //need IdMaps here
+  override def tryNodeRef(json: Json)(implicit activeContext: ActiveContext): Option[Task[Node]] = //need IdMaps here
     json.string
       .map(activeContext.expandIri)
       .map(s => graph.nodes.upsert(s.iri)) //TODO: add label if missing?
@@ -36,7 +38,7 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
           .map(id => graph.getOrCreateNode(id)))
 
   override def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
-      implicit activeContext: AC): Task[Node] = {
+      implicit activeContext: ActiveContext): Task[Node] = {
     expandedJson
       .get(types.`@id`)
       .flatMap(json =>
@@ -62,7 +64,8 @@ case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps(
         .get(types.`@id`)}")))
   }
 
-  override def tryEdgeRef(json: Json, label: Property)(implicit activeContext: AC): Option[Task[Edge[_, _]]] =
+  override def tryEdgeRef(json: Json, label: Property)(
+      implicit activeContext: ActiveContext): Option[Task[Edge[_, _]]] =
     json.string
       .map(graph.edges.hasIri(_).headL) //TODO: check if label == edge.key and throw exception if !=
       .orElse(

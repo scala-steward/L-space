@@ -1,6 +1,7 @@
 package lspace.services.rest.endpoints
 
-trait GraphApi {
+trait GraphApi extends Api {
+
   def nodes: NodesApi
   def edges: EdgesApi
   def values: ValuesApi

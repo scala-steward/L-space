@@ -9,7 +9,7 @@ import monix.eval.Task
 
 object SampleGraph {
 
-  object Place extends OntologyDef("https://schema.org/Place", label = "Place") {
+  object Place extends OntologyDef("https://example.org/Place", label = "Place") {
     object keys {
       lazy val name                              = SampleGraph.properties.name
       lazy val nameString: TypedProperty[String] = SampleGraph.properties.nameString
@@ -22,7 +22,7 @@ object SampleGraph {
       lazy val geo  = keys.geo
     }
   }
-  object Person extends OntologyDef("https://schema.org/Person", label = "Person") {
+  object Person extends OntologyDef("https://example.org/Person", label = "Person") {
     object keys {
       lazy val name                                         = SampleGraph.properties.name
       lazy val nameString: TypedProperty[String]            = SampleGraph.properties.nameString
@@ -56,15 +56,15 @@ object SampleGraph {
     object name extends PropertyDef("name", label = "name", `@range` = () => TextType.datatype :: Nil)
     lazy val nameString: TypedProperty[String] = name as TextType.datatype
     object geo
-        extends PropertyDef("https://schema.org/geo", label = "geo", `@range` = () => GeopointType.datatype :: Nil)
+        extends PropertyDef("https://example.org/geo", label = "geo", `@range` = () => GeopointType.datatype :: Nil)
     lazy val geoPoint: TypedProperty[Point] = geo as GeopointType.datatype
     object birthDate
-        extends PropertyDef("https://schema.org/birthDate",
+        extends PropertyDef("https://example.org/birthDate",
                             label = "birthDate",
                             `@range` = () => LocalDateType.datatype :: Nil)
     lazy val birthDateLocalDate: TypedProperty[LocalDate] = birthDate as LocalDateType.datatype
     object birthPlace
-        extends PropertyDef("https://schema.org/birthPlace",
+        extends PropertyDef("https://example.org/birthPlace",
                             label = "birthPlace",
                             `@range` = () => Place.ontology :: Nil)
     lazy val birthPlacePlace: TypedProperty[Node] = birthPlace as Place.ontology
@@ -73,7 +73,7 @@ object SampleGraph {
     object rate extends PropertyDef("rate", label = "rate", `@range` = () => IntType.datatype :: Nil)
     lazy val rateInt: TypedProperty[Int] = rate as IntType.datatype
     object knows
-        extends PropertyDef("https://schema.org/knows", label = "knows", `@range` = () => Person.ontology :: Nil)
+        extends PropertyDef("https://example.org/knows", label = "knows", `@range` = () => Person.ontology :: Nil)
     lazy val knowsPerson: TypedProperty[Node] = knows as Person.ontology
   }
   object namespaces {

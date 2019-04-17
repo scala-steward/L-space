@@ -1,15 +1,10 @@
 package lspace.librarian.traversal
 
 import java.time._
-
 import lspace._
 import Label.D._
-import lspace.datatype._
-import lspace.datatype.DataType.default.`@int`
 import lspace.librarian.logic.{predicate => p}
-import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
-import lspace.structure._
 import monix.eval.Task
 import org.scalatest.{AsyncWordSpec, Matchers}
 import shapeless._
@@ -190,40 +185,40 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.head)
-        .et shouldBe TupleType(List(List(ListType(List())), List(Node.nodeUrl)))
+        .et shouldBe tupleType(listType(), Node.nodeUrl)
     }
     """a Map[List[Any],List[Node]]""" in {
       g.N
         .hasIri("/person/12345")
         .group(_.out())
-        .et shouldBe TupleType(List(List(ListType(List())), List(ListType(List(Node.nodeUrl)))))
+        .et shouldBe tupleType(listType(), listType(Node.nodeUrl))
     }
     """a Map[List[Any],Edge[_,_]]""" in {
       g.E
         .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.head)
-        .et shouldBe TupleType(List(List(ListType(List())), List(Edge.edgeUrl)))
+        .et shouldBe tupleType(listType(), Edge.edgeUrl)
     }
     """a Map[List[Any],List[Edge[_,_]]]""" in {
       g.E
         .hasIri("/person/12345")
         .group(_.out())
-        .et shouldBe TupleType(List(List(ListType(List())), List(ListType(List(Edge.edgeUrl)))))
+        .et shouldBe tupleType(listType(), listType(Edge.edgeUrl))
     }
     """a Map[List[Any],Int]""" in {
       g.V
         .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.hasLabel[Int].head)
-        .et shouldBe TupleType(List(List(ListType(List())), List(IntType.datatype)))
+        .et shouldBe tupleType(listType(), `@int`)
     }
     """a Map[List[Any],List[Int]]""" in {
       g.V
         .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.hasLabel[Int])
-        .et shouldBe TupleType(List(List(ListType(List())), List(ListType(List(IntType.datatype)))))
+        .et shouldBe tupleType(listType(), listType(`@int`))
     }
     """a Map[List[Ontology],List[(List[Any],List[Double])]]""" in {
       Task {
@@ -231,25 +226,19 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
           .hasIri("/person/12345")
           .group(_.label())
           .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
-          .et shouldBe
-          TupleType(
-            List(ListType(List(Ontology.urlType))) ::
-              List(ListType(List(TupleType(List(ListType(Nil) :: Nil, ListType(`@double` :: Nil) :: Nil))))) :: Nil)
+          .et shouldBe tupleType(listType(Ontology.urlType), listType(tupleType(listType(), listType(`@double`))))
       }.runToFuture
     }
     """a ([List[Any],List[Any])""" in {
-      g.N.project(_.out()).by(_.in()).et shouldBe TupleType(List(List(ListType()), List(ListType())))
+      g.N.project(_.out()).by(_.in()).et shouldBe tupleType(listType(), listType())
     }
     """a ([List[Any],Map[Property,List[Any]])""" in {
-      g.N.project(_.out()).by(_.inMap()).et shouldBe
-        TupleType(List(List(ListType()), List(ListType(List(MapType(List(Property.urlType), List(ListType())))))))
+      g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(),
+                                                               listType(mapType(Property.urlType, listType())))
       g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
-        TupleType(
-          List(
-            List(ListType()),
-            List(ListType(List(MapType(List(Property.urlType), List(ListType()))))),
-            List(ListType(List(MapType(List(Property.urlType), List(ListType())))))
-          ))
+        tupleType(listType(),
+                  listType(mapType(Property.urlType, listType())),
+                  listType(mapType(Property.urlType, listType())))
     }
   }
   "Traversals" can {

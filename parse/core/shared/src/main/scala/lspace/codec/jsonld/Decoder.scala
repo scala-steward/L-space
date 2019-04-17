@@ -1,4 +1,4 @@
-package lspace.codec
+package lspace.codec.jsonld
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.ConcurrentHashMap
@@ -6,18 +6,17 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.Label
 import lspace.NS.types
 import lspace.codec.exception.{FromJsonException, NotAcceptableException, UnexpectedJsonException}
+import lspace.codec._
 import lspace.datatype._
+import lspace.parse.util.HttpClient
 import lspace.structure._
-import lspace.parse.util.{HttpClient, HttpClientImpl}
 import lspace.types.string.{Blank, Iri}
-import lspace.types.vector.{Geometry, Point, Polygon}
-import monix.eval.{Coeval, Task}
-import monix.reactive.Observable
+import lspace.types.vector.{Point, Polygon}
+import monix.eval.Task
 
-import scala.annotation.tailrec
-import scala.collection.{concurrent, immutable}
-import scala.collection.immutable.{AbstractMap, Iterable, ListSet, Map, MapLike}
 import scala.collection.JavaConverters._
+import scala.collection.concurrent
+import scala.collection.immutable.{ListSet, Map}
 import scala.concurrent.duration._
 
 object Decoder {
@@ -54,8 +53,6 @@ trait Decoder {
   def apply(graph0: Lspace): Decoder.Aux[Json] = Decoder.apply(graph0)(baseDecoder)
 
 //  implicit def decoder: Decoder = this
-  type AC = ActiveContext
-  type AP = ActiveProperty
   def parse(string: String): Task[Json] = baseDecoder.parse(string)
 
   implicit def jsonToList(json: Json): Option[List[Json]]             = baseDecoder.jsonToList(json)
@@ -173,27 +170,29 @@ trait Decoder {
     def extractTo: Option[Json] =
       exp.get(types.`@to`)
 
-    def extractOntologies(implicit activeContext: AC): Task[List[Ontology]] =
+    def extractOntologies(implicit activeContext: ActiveContext): Task[List[Ontology]] =
       exp.get(types.`@type`).map(toOntologies(_)).getOrElse(Task.now(List()))
-    def extractProperty(implicit activeContext: AC): Task[Option[Property]] =
+    def extractProperty(implicit activeContext: ActiveContext): Task[Option[Property]] =
       exp.get(types.`@type`).map(toProperties(_)).map(_.map(_.headOption)).getOrElse(Task.now(None))
-    def extractDatatype(implicit activeContext: AC): Task[Option[DataType[Any]]] =
+    def extractDatatype(implicit activeContext: ActiveContext): Task[Option[DataType[Any]]] =
       exp.get(types.`@type`).map(toDatatypes(_)).map(_.map(_.headOption)).getOrElse(Task.now(None))
-    def extractType(implicit activeContext: AC): Task[List[ClassType[Any]]] =
+    def extractType(implicit activeContext: ActiveContext): Task[List[ClassType[Any]]] =
       exp.get(types.`@type`).map(toClasstypes(_)).getOrElse(Task.now(List()))
   }
 
-  def stringToLabeledNode(json: String, ontology: Ontology, activeContext: AC = ActiveContext()): Task[Node] =
+  def stringToLabeledNode(json: String, ontology: Ontology)(implicit activeContext: ActiveContext): Task[Node] =
     parse(json)
-      .flatMap(toLabeledNode(_, ontology, activeContext))
+      .flatMap(toLabeledNode(_, ontology))
 
-  def toLabeledNode(json: Json, ontology: Ontology, activeContext: AC = ActiveContext()): Task[Node] = {
+  def toLabeledNode(json: Json, ontology: Ontology)(implicit activeContext: ActiveContext): Task[Node] = {
     json.obj
       .map { obj =>
-        obj.extractContext(activeContext).flatMap { implicit activeContext =>
+        obj.extractContext.flatMap { implicit activeContext =>
           val expandedJson = obj.expand
           expandedJson.extractOntologies.flatMap { ontologies =>
-            if (ontologies.contains(ontology)) toNode(expandedJson, None)(activeContext)
+            if (ontologies.isEmpty) toNode(expandedJson, Some(ontology))
+            else if (ontologies.contains(ontology) || ontologies.exists(_.`@extends`(ontology)))
+              toNode(expandedJson, None)
             else
               Task.raiseError(NotAcceptableException(s"cannot parse root object, expected @type ${ontology.iri}"))
           }
@@ -202,18 +201,18 @@ trait Decoder {
       .getOrElse(Task.raiseError(FromJsonException("root must be an object")))
   }
 
-  def stringToNode(json: String, activeContext: AC = ActiveContext()): Task[Node] =
+  def stringToNode(json: String)(implicit activeContext: ActiveContext): Task[Node] =
     parse(json)
-      .flatMap(toNode(_, activeContext))
+      .flatMap(toNode(_))
 
-  def stringToEdge(json: String, activeContext: AC = ActiveContext()): Task[Edge[Any, Any]] =
+  def stringToEdge(json: String)(implicit activeContext: ActiveContext): Task[Edge[Any, Any]] =
     parse(json)
-      .flatMap(toEdge(_, activeContext))
+      .flatMap(toEdge(_))
 
-  def toEdge(json: Json, activeContext: AC = ActiveContext()): Task[Edge[Any, Any]] = {
+  def toEdge(json: Json)(implicit activeContext: ActiveContext): Task[Edge[Any, Any]] = {
     json.obj
       .map { obj =>
-        obj.extractContext(activeContext).flatMap { implicit activeContext =>
+        obj.extractContext.flatMap { implicit activeContext =>
           val expandedJson = obj.expand
           if (expandedJson.contains(types.`@value`))
             Task.raiseError(FromJsonException("cannot parse object with @value key to node, this looks like a value"))
@@ -229,10 +228,10 @@ trait Decoder {
       .getOrElse(Task.raiseError(FromJsonException("root must be an object")))
   }
 
-  def toNode(json: Json, activeContext: AC = ActiveContext()): Task[Node] = {
+  def toNode(json: Json)(implicit activeContext: ActiveContext): Task[Node] = {
     json.obj
       .map { obj =>
-        obj.extractContext(activeContext).flatMap { implicit activeContext =>
+        obj.extractContext.flatMap { implicit activeContext =>
           val expandedJson = obj.expand
           if (expandedJson.contains(types.`@value`))
             Task.raiseError(FromJsonException("cannot parse object with @value key to node, this looks like a value"))
@@ -241,7 +240,7 @@ trait Decoder {
           else if (expandedJson.contains(types.`@to`))
             Task.raiseError(FromJsonException("cannot parse object with @to key to node, this looks like an edge"))
           else {
-            toNode(expandedJson, None)(activeContext)
+            toNode(expandedJson, None)
           }
         }
       }
@@ -253,7 +252,7 @@ trait Decoder {
     * @return
     */
   def toResource(expandedJson: ExpandedMap[Json], expectedType: Option[ClassType[_]])(
-      implicit activeContext: AC): Task[Resource[Any]] = {
+      implicit activeContext: ActiveContext): Task[Resource[Any]] = {
 //    extractContext(obj).flatMap { implicit activeContext =>
 //      val expandedJson = activeContext.expandKeys(obj)
     expandedJson.extractType.flatMap { expectedTypes =>
@@ -273,7 +272,8 @@ trait Decoder {
     }
   }
 
-  def toResource(json: Json, expectedType: Option[ClassType[_]])(implicit activeContext: AC): Task[Resource[Any]] = {
+  def toResource(json: Json, expectedType: Option[ClassType[_]])(
+      implicit activeContext: ActiveContext): Task[Resource[Any]] = {
     (for {
       iri <- json.string
       et  <- expectedType.collect { case ontology: Ontology => ontology }
@@ -313,7 +313,8 @@ trait Decoder {
     * @tparam T
     * @return
     */
-  def withEdges[T <: Resource[_]](resource: T, otherJson: ExpandedMap[Json])(implicit activeContext: AC): Task[T] = {
+  def withEdges[T <: Resource[_]](resource: T, otherJson: ExpandedMap[Json])(
+      implicit activeContext: ActiveContext): Task[T] = {
     Task
       .gatherUnordered(otherJson.obj.map {
         case (key, value) =>
@@ -457,7 +458,7 @@ trait Decoder {
       }
   }
 
-  def tryNodeRef(json: Json)(implicit activeContext: AC): Option[Task[Node]] =
+  def tryNodeRef(json: Json)(implicit activeContext: ActiveContext): Option[Task[Node]] =
     json.string
       .map(activeContext.expandIri)
       .map {
@@ -467,7 +468,8 @@ trait Decoder {
 //      .map(Task.now)
   //        .getOrElse(Task.raiseError(FromJsonException("object expected when parsing to node")))
 
-  def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(implicit activeContext: AC): Task[Node] = {
+  def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
+      implicit activeContext: ActiveContext): Task[Node] = {
     val iri = expandedJson.extractId
     if (iri.isDefined && expandedJson.size == 1) {
       //node-ref
@@ -495,7 +497,7 @@ trait Decoder {
     }
   }
 
-  def tryEdgeRef(json: Json, label: Property)(implicit activeContext: AC): Option[Task[Edge[_, _]]] =
+  def tryEdgeRef(json: Json, label: Property)(implicit activeContext: ActiveContext): Option[Task[Edge[_, _]]] =
     json.string
       .map(activeContext.expandIri)
       .flatMap {
@@ -504,9 +506,9 @@ trait Decoder {
       }
 //      .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
   def toEdge(expandedJson: ExpandedMap[Json], expectedType: Option[Property])(
-      implicit activeContext: AC): Option[Task[Edge[Any, Any]]] = toEdge(expandedJson, expectedType.toList)
+      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = toEdge(expandedJson, expectedType.toList)
   def toEdge(expandedJson: ExpandedMap[Json], expectedTypes: List[Property])(
-      implicit activeContext: AC): Option[Task[Edge[Any, Any]]] = {
+      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = {
     (expandedJson.extractFrom, expandedJson.extractTo) match {
       case (Some(source), Some(destination)) =>
         Some((for {
@@ -536,7 +538,7 @@ trait Decoder {
     }
   }
 
-  def toLiteral[T](json: Json, label: LiteralType[T])(implicit activeContext: AC): Task[T] =
+  def toLiteral[T](json: Json, label: LiteralType[T])(implicit activeContext: ActiveContext): Task[T] =
     (label match {
       case TextType.datatype =>
         json.string
@@ -560,7 +562,7 @@ trait Decoder {
       .map(Task.now)
       .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown LiteralType ${label.iri} for $json")))
 
-  def toStructured[T](json: Json, label: StructuredType[T])(implicit activeContext: AC): Task[T] =
+  def toStructured[T](json: Json, label: StructuredType[T])(implicit activeContext: ActiveContext): Task[T] =
     label match {
       case label: GeometricType[T] =>
         toGeometric(json, label)
@@ -571,8 +573,7 @@ trait Decoder {
       case _ => Task.raiseError(UnexpectedJsonException(s"unknown StructuredType ${label.iri}"))
     }
 
-  def toGeometric[T](json: Json, label: GeometricType[T])(implicit activeContext: AC): Task[T] = {
-    import lspace.decode._
+  def toGeometric[T](json: Json, label: GeometricType[T])(implicit activeContext: ActiveContext): Task[T] = {
     (label match { //TODO: create specific parsers
       case label: GeopointType[_]   => json.geoPoint
       case label: GeoPolygonType[_] => json.geoPolygon
@@ -582,7 +583,7 @@ trait Decoder {
       .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown GeometricType ${label.iri}")))
   }
 
-  def toCollection[T](json: List[Json], label: CollectionType[T])(implicit activeContext: AC): Task[T] =
+  def toCollection[T](json: List[Json], label: CollectionType[T])(implicit activeContext: ActiveContext): Task[T] =
     label match {
       case label: ListType[_]    => toList(json, label.valueRange).map(_.asInstanceOf[T])
       case label: VectorType[_]  => toVector(json, label.valueRange).map(_.asInstanceOf[T])
@@ -592,7 +593,7 @@ trait Decoder {
       case _                     => Task.raiseError(UnexpectedJsonException(s"unknown CollectionType ${label.iri}"))
     }
 
-  def toTuple[T](json: List[Json], label: TupleType[T])(implicit activeContext: AC): Task[T] =
+  def toTuple[T](json: List[Json], label: TupleType[T])(implicit activeContext: ActiveContext): Task[T] =
     label match {
       case dt: TupleType[_] =>
         if (json.size != dt.rangeTypes.size)
@@ -653,7 +654,7 @@ trait Decoder {
   } //.asInstanceOf[Task[(ClassType[Any], Any)]]
 
   def tryRaw(json: Json, expectedType: Option[ClassType[Any]] = None)(
-      implicit activeContext: AC): Option[Task[(ClassType[Any], Any)]] = {
+      implicit activeContext: ActiveContext): Option[Task[(ClassType[Any], Any)]] = {
     //is primitive
     toPrimitive(json)
       .map(v => ClassType.valueToOntologyResource(v) -> v)
@@ -671,7 +672,7 @@ trait Decoder {
   }
 
   def toObject(expandedJson: ExpandedMap[Json], expectedType: Option[ClassType[_]])(
-      implicit activeContext: AC): Task[(ClassType[Any], Any)] =
+      implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
     expandedJson.extractValue
       .map { json =>
         expandedJson.extractDatatype
@@ -695,7 +696,7 @@ trait Decoder {
       }
 
   def tryData(expandedJson: ExpandedMap[Json], expectedType: Option[DataType[_]])(
-      implicit activeContext: AC): Option[Task[Any]] = {
+      implicit activeContext: ActiveContext): Option[Task[Any]] = {
     expandedJson.extractValue.map { json =>
       expandedJson.extractDatatype.map(_.orElse(expectedType)).flatMap {
         _.map { label =>
@@ -705,7 +706,7 @@ trait Decoder {
     }
   }
 
-  def toData(json: Json, label: DataType[_])(implicit activeContext: AC): Task[Any] =
+  def toData(json: Json, label: DataType[_])(implicit activeContext: ActiveContext): Task[Any] =
     label match {
       case label: LiteralType[Any] =>
         toLiteral(json, label)
@@ -723,7 +724,7 @@ trait Decoder {
     }
 
   def tryValue(expandedJson: ExpandedMap[Json], expectedType: Option[DataType[_]])(
-      implicit activeContext: AC): Option[Task[Value[Any]]] = {
+      implicit activeContext: ActiveContext): Option[Task[Value[Any]]] = {
     expandedJson.extractValue.map { json =>
       expandedJson.extractDatatype
         .map(_.orElse(expectedType))
@@ -738,7 +739,7 @@ trait Decoder {
     }
   }
 
-  def toValue(json: Json, label: DataType[_])(implicit activeContext: AC): Task[Value[Any]] =
+  def toValue(json: Json, label: DataType[_])(implicit activeContext: ActiveContext): Task[Value[Any]] =
     toData(json, label).flatMap { v =>
       graph.values.create(v, label)
     }
@@ -756,7 +757,7 @@ trait Decoder {
     * @param activeContext
     * @return
     */
-  def extractIris(json: Json)(implicit activeContext: AC): List[String] =
+  def extractIris(json: Json)(implicit activeContext: ActiveContext): List[String] =
     json.list
       .map(
         array =>
@@ -780,7 +781,7 @@ trait Decoder {
       .map(activeContext.expandIri)
       .map(_.iri)
 
-  def prepareOntology(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Ontology] = {
+  def prepareOntology(expandedJson: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[Ontology] = {
 //    scribe.trace(s"prepare ontology ${obj}")
 //    val expandedJson = activeContext.expandKeys(obj)
 
@@ -862,7 +863,7 @@ trait Decoder {
   protected lazy val owip: concurrent.Map[String, Task[Ontology]] =
     new ConcurrentHashMap[String, Task[Ontology]](16, 0.9f, 32).asScala
 
-  def toOntology(iri: String)(implicit activeContext: AC): Task[Ontology] = {
+  def toOntology(iri: String)(implicit activeContext: ActiveContext): Task[Ontology] = {
 //    println(s"toOntology ${iri}")
     graph.ns.ontologies
       .get(iri)
@@ -883,10 +884,10 @@ trait Decoder {
         })
   }
 
-  def toOntologies(json: Json)(implicit activeContext: AC): Task[List[Ontology]] =
+  def toOntologies(json: Json)(implicit activeContext: ActiveContext): Task[List[Ontology]] =
     Task.gather(extractIris(json).map(toOntology))
 
-  def prepareProperty(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[Property] = {
+  def prepareProperty(expandedJson: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[Property] = {
 //    scribe.trace(s"prepare property ${obj}")
 //    val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson
@@ -1008,7 +1009,7 @@ trait Decoder {
   protected lazy val pwip: concurrent.Map[String, Task[Property]] =
     new ConcurrentHashMap[String, Task[Property]](16, 0.9f, 32).asScala
 
-  def toProperty(iri: String)(implicit activeContext: AC): Task[Property] = {
+  def toProperty(iri: String)(implicit activeContext: ActiveContext): Task[Property] = {
 //    println(s"toProperty ${iri}")
     graph.ns.properties
       .get(iri)
@@ -1023,13 +1024,13 @@ trait Decoder {
       }
   }
 
-  def toProperties(json: Json)(implicit activeContext: AC): Task[List[Property]] =
+  def toProperties(json: Json)(implicit activeContext: ActiveContext): Task[List[Property]] =
     Task.gather(extractIris(json).map(toProperty))
 
   private val building: concurrent.Map[String, Task[Node]] =
     new ConcurrentHashMap[String, Task[Node]]().asScala
 
-  def prepareDataType(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[DataType[_]] = {
+  def prepareDataType(expandedJson: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[DataType[_]] = {
 //    scribe.trace(s"prepare datatype ${obj}")
 //    val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson
@@ -1107,7 +1108,7 @@ trait Decoder {
     } else Task.raiseError(FromJsonException(s"ontology is not of type '@class' ${expandedJson.obj}"))
   }
 
-  def toDatatype(iri: String)(implicit activeContext: AC): Task[DataType[Any]] = {
+  def toDatatype(iri: String)(implicit activeContext: ActiveContext): Task[DataType[Any]] = {
 //    println(s"toDatatype ${iri}")
     graph.ns.datatypes
       .get(iri)
@@ -1130,13 +1131,13 @@ trait Decoder {
         })
   }
 
-  def toDatatypes(json: Json)(implicit activeContext: AC): Task[List[DataType[Any]]] =
+  def toDatatypes(json: Json)(implicit activeContext: ActiveContext): Task[List[DataType[Any]]] =
     Task.sequence(extractIris(json).map(toDatatype))
 
   protected lazy val ctwip: concurrent.Map[String, Task[ClassType[_]]] =
     new ConcurrentHashMap[String, Task[ClassType[_]]](16, 0.9f, 32).asScala
 
-  def prepareClassType(expandedJson: ExpandedMap[Json])(implicit activeContext: AC): Task[ClassType[_]] = {
+  def prepareClassType(expandedJson: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[ClassType[_]] = {
 //    val expandedJson = activeContext.expandKeys(obj)
     val typeIris = expandedJson
       .get(types.`@type`)
@@ -1186,7 +1187,7 @@ trait Decoder {
     }
   }
 
-  def toClasstype(iri: String)(implicit activeContext: AC): Task[ClassType[Any]] = {
+  def toClasstype(iri: String)(implicit activeContext: ActiveContext): Task[ClassType[Any]] = {
 //    println(s"toClassType ${iri}")
     graph.ns.classtypes
       .get(iri)
@@ -1222,24 +1223,25 @@ trait Decoder {
         })
   }
 
-  def toClasstypes(json: Json)(implicit activeContext: AC): Task[List[ClassType[Any]]] =
+  def toClasstypes(json: Json)(implicit activeContext: ActiveContext): Task[List[ClassType[Any]]] =
     Task.gather(extractIris(json).map(toClasstype))
 
-  def toList(list: List[Json], label: List[ClassType[_]])(implicit activeContext: AC): Task[List[Any]] =
+  def toList(list: List[Json], label: List[ClassType[_]])(implicit activeContext: ActiveContext): Task[List[Any]] =
     Task.gather {
       list.map { json =>
         toObject(json, label).map(_._2)
       }
     }
 
-  def toSet(list: List[Json], label: List[ClassType[_]])(implicit activeContext: AC): Task[Set[Any]] =
+  def toSet(list: List[Json], label: List[ClassType[_]])(implicit activeContext: ActiveContext): Task[Set[Any]] =
     Task.gather {
       list.toSet.map { json: Json =>
         toObject(json, label).map(_._2)
       }
     }
 
-  def toListSet(list: List[Json], label: List[ClassType[_]])(implicit activeContext: AC): Task[ListSet[Any]] =
+  def toListSet(list: List[Json], label: List[ClassType[_]])(
+      implicit activeContext: ActiveContext): Task[ListSet[Any]] =
     Task
       .gather {
         list.map { json =>
@@ -1248,7 +1250,7 @@ trait Decoder {
       }
       .map(_.to[ListSet])
 
-  def toVector(list: List[Json], label: List[ClassType[_]])(implicit activeContext: AC): Task[Vector[Any]] =
+  def toVector(list: List[Json], label: List[ClassType[_]])(implicit activeContext: ActiveContext): Task[Vector[Any]] =
     Task.gather {
       list.toVector.map { json =>
         toObject(json, label).map(_._2)
@@ -1256,7 +1258,7 @@ trait Decoder {
     }
 
   def toMap(list: List[Json], keyLabel: List[ClassType[_]], valueLabel: List[ClassType[_]])(
-      implicit activeContext: AC): Task[Map[Any, Any]] =
+      implicit activeContext: ActiveContext): Task[Map[Any, Any]] =
     Task
       .gather {
         list.map { json =>
@@ -1271,7 +1273,7 @@ trait Decoder {
       }
       .map(_.toMap)
 
-  def fetchOntology(iri: String)(implicit activeContext: AC): Task[Ontology] = {
+  def fetchOntology(iri: String)(implicit activeContext: ActiveContext): Task[Ontology] = {
     fetch(iri).flatMap { json =>
       json.obj
         .map { obj =>
@@ -1321,15 +1323,19 @@ trait Decoder {
                       }
                 })
                 .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
-            } else
-              Task.raiseError(FromJsonException(s"cannot parse ontology, not @type or @graph ${expandedJson.keys}"))
+            } else {
+              scribe.warn(
+                s"cannot fetch ontology $iri, creating by iri (it is unknown if this ontology extends others)")
+              Task.now(Ontology.ontologies.getOrCreate(iri))
+//              Task.raiseError(FromJsonException(s"cannot parse ontology, not @type or @graph ${expandedJson.keys}"))
+            }
           }
         }
         .getOrElse(Task.raiseError(FromJsonException("Ontology resource is not an object")))
     }
   }
 
-  def fetchProperty(iri: String)(implicit activeContext: AC): Task[Property] = {
+  def fetchProperty(iri: String)(implicit activeContext: ActiveContext): Task[Property] = {
     fetch(iri).flatMap { json =>
       json.obj
         .map { obj =>
@@ -1392,7 +1398,7 @@ trait Decoder {
         .getOrElse(Task.raiseError(FromJsonException("Property resource is not an object")))
     }
   }
-  def fetchClassType(iri: String)(implicit activeContext: AC): Task[ClassType[_]] = {
+  def fetchClassType(iri: String)(implicit activeContext: ActiveContext): Task[ClassType[_]] = {
     fetch(iri).flatMap { json =>
       json.obj
         .map(_.expand)
@@ -1453,7 +1459,7 @@ trait Decoder {
   protected lazy val fetchingInProgress: concurrent.Map[String, Task[Json]] =
     new ConcurrentHashMap[String, Task[Json]](16, 0.9f, 32).asScala
 
-  val httpClient: HttpClient = HttpClientImpl
+  val httpClient: HttpClient = lspace.parse.util.HttpClientImpl
   def fetch(iri: String): Task[Json] = { //TODO: create unique task, goal: do not fetch the same resource multiple times in parallel
     fetchingInProgress.getOrElseUpdate(
       iri, {
@@ -1483,7 +1489,7 @@ trait Decoder {
     * https://www.w3.org/2018/jsonld-cg-reports/json-ld-api/#context-processing-algorithms
     */
   object contextProcessing {
-    def processBase(obj: ExpandedMap[Json])(implicit activeContext: AC): Task[AC] = {
+    def processBase(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[ActiveContext] = {
       obj
         .get(types.`@base`)
         .map(
@@ -1497,7 +1503,7 @@ trait Decoder {
         )
         .getOrElse(Task.now(activeContext))
     }
-    def processVocab(obj: ExpandedMap[Json])(implicit activeContext: AC): Task[AC] = {
+    def processVocab(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[ActiveContext] = {
       obj
         .get(types.`@vocab`)
         .map(
@@ -1510,7 +1516,7 @@ trait Decoder {
               .getOrElse(Task.raiseError(FromJsonException(s"@vocab is not a string"))))
         .getOrElse(Task.now(activeContext))
     }
-    def processLanguage(obj: ExpandedMap[Json])(implicit activeContext: AC): Task[AC] = {
+    def processLanguage(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[ActiveContext] = {
       obj
         .get(types.`@language`)
         .orElse(obj.get(types.xsdLanguage))
@@ -1524,51 +1530,58 @@ trait Decoder {
         .getOrElse(Task.now(activeContext))
     }
 
-    val apply: (Task[AC], Json) => Task[AC] = { (activeContextTask: Task[AC], json: Json) =>
-      json.string
-        .filter(_.nonEmpty)
-        .map(iri =>
-          fetch(iri).flatMap(json => Task.now(json)).flatMap { json =>
-            json.obj
-              .map(_.extractContext(ActiveContext()))
-              .getOrElse(Task.raiseError(FromJsonException("invalid remote context"))) //TODO parse types other than jsonld
-              .flatMap(ac => activeContextTask.map(_ ++ ac))
-        })
-        .orElse {
-          json.obj.map { obj =>
-            activeContextTask
-              .flatMap { implicit activeContext =>
-                val expandedJson = obj.expand
-                expandedJson
-                  .get(types.`@base`)
-                  .map(
-                    json =>
-                      json.string
-                        .map(iri => activeContext.expandIri(iri))
-                        .map(_.iri)
-                        .map(base => activeContext.copy(`@base` = Some(Some(base))))
-                        .map(Task.now)
-                        .getOrElse(Task.raiseError(FromJsonException(s"@base is not a string"))))
-                  .getOrElse(Task.now(activeContext))
-                  .flatMap(processBase(expandedJson)(_))
-                  //            .flatMap { activeContext =>
-                  //              obj.get(types.`@version`) map {
-                  //                case "1.1" => //set processing mode
-                  //                case _ => FromJsonException("invalid @version value")
-                  //              }
-                  //            }
-                  .flatMap(processVocab(expandedJson)(_))
-                  .flatMap(processLanguage(expandedJson)(_))
-                  .flatMap { activeContext =>
-                    (expandedJson - types.`@base` - types.`@vocab` - types.`@language` - types.xsdLanguage).obj
-                      .foldLeft(Task.now(activeContext))(createTermDefinition.apply)
-                  }
-              }
+    val apply: (Task[ActiveContext], Json) => Task[ActiveContext] = {
+      (activeContextTask: Task[ActiveContext], json: Json) =>
+        json.string
+          .filter(_.nonEmpty)
+          .map(iri =>
+            fetch(iri).flatMap(json => Task.now(json)).flatMap { json =>
+              json.obj
+                .map(_.extractContext(ActiveContext()))
+                .getOrElse(Task.raiseError(FromJsonException("invalid remote context"))) //TODO parse types other than jsonld
+                .flatMap(ac => activeContextTask.map(_ ++ ac))
+          })
+          .orElse {
+            json.obj.map { obj =>
+              activeContextTask
+                .flatMap { implicit activeContext =>
+                  val expandedJson = obj.expand
+                  expandedJson
+                    .get(types.`@base`)
+                    .map(
+                      json =>
+                        json.string
+                          .map(iri => activeContext.expandIri(iri))
+                          .map(_.iri)
+                          .map(base => activeContext.copy(`@base` = Some(Some(base))))
+                          .map(Task.now)
+                          .getOrElse(Task.raiseError(FromJsonException(s"@base is not a string"))))
+                    .getOrElse(Task.now(activeContext))
+                    .flatMap(processBase(expandedJson)(_))
+                    //            .flatMap { activeContext =>
+                    //              obj.get(types.`@version`) map {
+                    //                case "1.1" => //set processing mode
+                    //                case _ => FromJsonException("invalid @version value")
+                    //              }
+                    //            }
+                    .flatMap(processVocab(expandedJson)(_))
+                    .flatMap(processLanguage(expandedJson)(_))
+                    .flatMap { activeContext =>
+                      val (prefixes, definitions) =
+                        (expandedJson - types.`@base` - types.`@vocab` - types.`@language` - types.xsdLanguage).obj
+                          .partition(_._2.string.isDefined)
+
+                      for {
+                        ac  <- prefixes.foldLeft(Task.now(activeContext))(createTermDefinition.apply)
+                        ac2 <- definitions.foldLeft(Task.now(ac))(createTermDefinition.apply)
+                      } yield ac2
+                    }
+                }
+            }
           }
-        }
-        .getOrElse {
-          Task.raiseError(FromJsonException("invalid local context"))
-        }
+          .getOrElse {
+            Task.raiseError(FromJsonException("invalid local context"))
+          }
     }
   }
 
@@ -1576,7 +1589,7 @@ trait Decoder {
     * https://www.w3.org/2018/jsonld-cg-reports/json-ld-api/#create-term-definition
     */
   object createTermDefinition {
-    def processType(obj: ExpandedMap[Json])(implicit activeProperty: AP): Task[AP] = {
+    def processType(obj: ExpandedMap[Json])(implicit activeProperty: ActiveProperty): Task[ActiveProperty] = {
       implicit val activeContext = activeProperty.`@context`
       obj
         .get(types.`@type`)
@@ -1587,7 +1600,7 @@ trait Decoder {
         })
         .getOrElse(Task.now(activeProperty))
     }
-    def processContainer(obj: ExpandedMap[Json])(implicit activeProperty: AP): Task[AP] = {
+    def processContainer(obj: ExpandedMap[Json])(implicit activeProperty: ActiveProperty): Task[ActiveProperty] = {
       implicit val activeContext = activeProperty.`@context`
       obj
         .get(types.`@container`)
@@ -1602,7 +1615,7 @@ trait Decoder {
         }
         .getOrElse(Task.now(activeProperty))
     }
-    def processReverse(obj: ExpandedMap[Json])(implicit activeContext: AC): Option[Task[AP]] = {
+    def processReverse(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Option[Task[ActiveProperty]] = {
       obj.get(types.`@reverse`).map {
         case json if obj.contains(types.`@id`) || obj.contains(types.`@nest`) =>
           Task.raiseError(FromJsonException("invalid reverse property"))
@@ -1623,7 +1636,7 @@ trait Decoder {
             .getOrElse(Task.raiseError(FromJsonException("invalid IRI mapping")))
       }
     }
-    def processId(obj: ExpandedMap[Json])(implicit activeContext: AC): Option[Task[AP]] = {
+    def processId(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Option[Task[ActiveProperty]] = {
       obj.get(types.`@id`).map { json =>
         json.string
           .map { term =>
@@ -1641,67 +1654,68 @@ trait Decoder {
           .getOrElse(Task.raiseError(FromJsonException("invalid IRI mapping")))
       }
     }
-    def processContext(obj: ExpandedMap[Json])(implicit activeContext: AC): Task[AC] = {
+    def processContext(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[ActiveContext] = {
       obj
         .get(types.`@context`)
         .map(contextProcessing.apply(Task.now(activeContext), _))
         .getOrElse(Task.now(activeContext))
     }
 
-    val apply: (Task[AC], (String, Json)) => Task[AC] = { (activeContextTask: Task[AC], kv: (String, Json)) =>
-      if (kv._1.startsWith("@")) Task.raiseError(FromJsonException("keyword redefinition"))
-      else {
-        val json = kv._2
-        activeContextTask.flatMap { implicit activeContext =>
-          activeContext.expandIri(kv._1).iri match {
-            case expKey =>
-              json.string
-                .map(activeContext.expandIri)
-                .map(_.iri)
-                .map(
-                  key =>
-                    graph.ns.properties
-                      .get(key)
-                      .flatMap(
-                        _.map(Task.now)
-                          .map(_.map(property =>
-                            activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> key),
-                                               definitions = activeContext.definitions + (expKey -> ActiveProperty(
-                                                 property = property)))))
-                          .getOrElse {
-                            Task.now(activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> key)))
-                          }))
-                .orElse {
-                  json.obj
-                    .map(_.expand)
-                    .map { obj =>
-                      processContext(obj)
-                        .flatMap { implicit activeContext =>
-                          processReverse(obj)
-                            .orElse(processId(obj))
-                            .getOrElse(graph.ns.properties
-                              .get(expKey)
-                              .flatMap(_.map(Task.now).getOrElse {
-                                toProperty(expKey)(activeContext)
-                              })
-                              .map(property => ActiveProperty(property = property)))
-                            .flatMap(processType(obj)(_))
-                            .flatMap(processContainer(obj)(_))
-                            .flatMap { implicit activeProperty =>
-                              val tail = obj - types.`@id` - types.`@reverse` - types.`@container` - types.`@context` - types.`@nest` - types.`@nest` - types.`@type`
-                              if (tail.nonEmpty)
-                                Task.raiseError(FromJsonException(
-                                  s"${tail.keys} are not a @id, @reverse, @container, @context, @nest, @prefix, or @type"))
-                              else Task.now(activeProperty)
-                            }
-                        }
-                        .map(ap => activeContext.copy(definitions = activeContext.definitions + (expKey -> ap)))
-                    }
-                }
-                .getOrElse(Task.raiseError(FromJsonException(s"invalid term definition: $expKey")))
+    val apply: (Task[ActiveContext], (String, Json)) => Task[ActiveContext] = {
+      (activeContextTask: Task[ActiveContext], kv: (String, Json)) =>
+        if (kv._1.startsWith("@")) Task.raiseError(FromJsonException("keyword redefinition"))
+        else {
+          val json = kv._2
+          activeContextTask.flatMap { implicit activeContext =>
+            activeContext.expandIri(kv._1).iri match {
+              case expKey =>
+                json.string
+                  .map(activeContext.expandIri)
+                  .map(_.iri)
+                  .map(
+                    key =>
+                      graph.ns.properties
+                        .get(key)
+                        .flatMap(
+                          _.map(Task.now)
+                            .map(_.map(property =>
+                              activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> key),
+                                                 definitions = activeContext.definitions + (expKey -> ActiveProperty(
+                                                   property = property)))))
+                            .getOrElse {
+                              Task.now(activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> key)))
+                            }))
+                  .orElse {
+                    json.obj
+                      .map(_.expand)
+                      .map { obj =>
+                        processContext(obj)
+                          .flatMap { implicit activeContext =>
+                            processReverse(obj)
+                              .orElse(processId(obj))
+                              .getOrElse(graph.ns.properties
+                                .get(expKey)
+                                .flatMap(_.map(Task.now).getOrElse {
+                                  toProperty(expKey)(activeContext)
+                                })
+                                .map(property => ActiveProperty(property = property)))
+                              .flatMap(processType(obj)(_))
+                              .flatMap(processContainer(obj)(_))
+                              .flatMap { implicit activeProperty =>
+                                val tail = obj - types.`@id` - types.`@reverse` - types.`@container` - types.`@context` - types.`@nest` - types.`@nest` - types.`@type`
+                                if (tail.nonEmpty)
+                                  Task.raiseError(FromJsonException(
+                                    s"${tail.keys} are not a @id, @reverse, @container, @context, @nest, @prefix, or @type"))
+                                else Task.now(activeProperty)
+                              }
+                          }
+                          .map(ap => activeContext.copy(definitions = activeContext.definitions + (expKey -> ap)))
+                      }
+                  }
+                  .getOrElse(Task.raiseError(FromJsonException(s"invalid term definition: $expKey")))
+            }
           }
         }
-      }
     }
   }
 }

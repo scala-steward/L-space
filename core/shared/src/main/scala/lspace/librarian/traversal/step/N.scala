@@ -32,7 +32,7 @@ object N
   implicit def toNode(step: N): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.nodeUrl, step.nodes)
+      _    <- if (step.nodes.nonEmpty) node.addOut(keys.nodeUrl, step.nodes) else Task.unit
     } yield node
   }.memoizeOnSuccess
 }

@@ -324,32 +324,32 @@ object DataType
 
     val `@structured` = StructuredType.datatype
 
-    def vectorType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+    def vectorType[V](ct: ClassType[V]): VectorType[V] =
       VectorType(List(ct.asInstanceOf[ClassType[V]]))
-    def vectorType[T](implicit tpe: ClassTypeable[T]) =
+    def vectorType[T](implicit tpe: ClassTypeable[T]): VectorType[T] =
       VectorType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[VectorType[T]]
-    def vectorType() = VectorType(List[ClassType[Any]]())
-    def listType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+    def vectorType(): VectorType[Any] = VectorType(List[ClassType[Any]]())
+    def listType[V](ct: ClassType[V]): ListType[V] =
       ListType(List(ct.asInstanceOf[ClassType[V]]))
-    def listType[T](implicit tpe: ClassTypeable[T]) =
+    def listType[T](implicit tpe: ClassTypeable[T]): ListType[T] =
       ListType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[ListType[T]]
-    def listType() = ListType(List[ClassType[Any]]())
-    def listsetType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+    def listType(): ListType[Any] = ListType(Nil)
+    def listsetType[V](ct: ClassType[V]): ListSetType[V] =
       ListSetType(List(ct.asInstanceOf[ClassType[V]]))
-    def listsetType[T](implicit tpe: ClassTypeable[T]) =
+    def listsetType[T](implicit tpe: ClassTypeable[T]): ListSetType[T] =
       ListSetType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[ListSetType[T]]
     def listsetType() = ListSetType(List[ClassType[Any]]())
-    def setType[V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](ct: VT[V]) =
+    def setType[V](ct: ClassType[V]): SetType[V] =
       SetType(List(ct.asInstanceOf[ClassType[V]]))
-    def setType[T](implicit tpe: ClassTypeable[T]) =
+    def setType[T](implicit tpe: ClassTypeable[T]): SetType[T] =
       SetType(List(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[SetType[T]]
-    def setType() = SetType(List[ClassType[Any]]())
-    def mapType[K, KT[+Z] <: ClassType[Z], KTOut <: ClassType[_], V, VT[+Z] <: ClassType[Z], VTOut <: ClassType[_]](
-        kct: KT[K],
-        vct: VT[V]) = MapType(List(kct.asInstanceOf[ClassType[K]]), List(vct.asInstanceOf[ClassType[V]]))
+    def setType(): SetType[Any] = SetType(List[ClassType[Any]]())
+    def mapType[K, V](kct: ClassType[K], vct: ClassType[V]): MapType[K, V] =
+      MapType(List(kct.asInstanceOf[ClassType[K]]), List(vct.asInstanceOf[ClassType[V]]))
     def mapType[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[K, V] =
       MapType(List(ktpe.ct.asInstanceOf[ClassType[K]]), List(vtpe.ct.asInstanceOf[ClassType[V]])) //.asInstanceOf[MapType[K, V]]
-    def mapType() = MapType(List[ClassType[Any]](), List[ClassType[Any]]())
+    def mapType(): MapType[Any, Any]                  = MapType(List[ClassType[Any]](), List[ClassType[Any]]())
+    def tupleType[T](ct: ClassType[_]*): TupleType[T] = TupleType[T](ct.toList.map(List(_)))
 //    def tupleType[A, AT[+Z] <: ClassType[Z], ATOut <: ClassType[_], B, BT[+Z] <: ClassType[Z], BTOut <: ClassType[_]](
 //                                                                                                                        act: AT[A],
 //                                                                                                                        bct: BT[B]) = TupleType(List(act), List(bct))

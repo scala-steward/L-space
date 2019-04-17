@@ -2,6 +2,8 @@ package lspace.decode
 
 import java.util.UUID
 
+import lspace.codec.ActiveContext
+import lspace.codec.jsonld.Decoder
 import lspace.librarian.traversal.Traversal
 import lspace.provider.mem.MemGraph
 import lspace.structure._
@@ -17,19 +19,6 @@ object DecodeJsonLD {
   case class InvalidJsonLD(message: String)       extends DecodeException(message)
   case class NotAcceptableJsonLD(message: String) extends NotAcceptable(message)
 
-  implicit def decodeJsonLDNode(implicit decoder: lspace.codec.Decoder) = new DecodeJsonLD[Node] {
-    def decode =
-      (json: String) =>
-        decoder
-          .stringToNode(json)
-  }
-  implicit def decodeJsonLDEdge(implicit decoder: lspace.codec.Decoder) = new DecodeJsonLD[Edge[Any, Any]] {
-    def decode =
-      (json: String) =>
-        decoder
-          .stringToEdge(json)
-  }
-
   /**
     *
     * @param label a label which is added to the resulting node
@@ -37,10 +26,11 @@ object DecodeJsonLD {
     * @param decoder
     * @return
     */
-  def jsonldToLabeledNode(
-      label: Ontology,
-      allowedProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Node] =
+  def jsonldToLabeledNode(label: Ontology,
+                          allowedProperties: List[Property] = List(),
+                          forbiddenProperties: List[Property] = List())(
+      implicit decoder: Decoder,
+      activeContext: ActiveContext): DecodeJsonLD[Node] =
     new DecodeJsonLD[Node] {
       def decode =
         (json: String) =>
@@ -73,11 +63,11 @@ object DecodeJsonLD {
     * @tparam T
     * @return
     */
-  def bodyJsonldTyped[T](
-      label: Ontology,
-      nodeToT: Node => T,
-      allowedProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: lspace.codec.Decoder): DecodeJsonLD[T] =
+  def bodyJsonldTyped[T](label: Ontology,
+                         nodeToT: Node => T,
+                         allowedProperties: List[Property] = List(),
+                         forbiddenProperties: List[Property] = List())(implicit decoder: Decoder,
+                                                                       activeContext: ActiveContext): DecodeJsonLD[T] =
     new DecodeJsonLD[T] {
       def decode =
         (json: String) =>
@@ -93,32 +83,52 @@ object DecodeJsonLD {
     * @return
     */
   def jsonldToNode(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Node] =
-    new DecodeJsonLD[Node] {
-      def decode = { (json: String) =>
-        decoder
-          .stringToNode(json)
-          .flatMap { node =>
-            if (allowedProperties.nonEmpty) {
-              val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-              for {
-                fNode <- resultGraph.nodes.create()
-                _     <- Task.gatherUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
-              } yield fNode
-            } else if (forbiddenProperties.nonEmpty) {
+      implicit decoder: Decoder,
+      activeContext: ActiveContext): DecodeJsonLD[Node] = {
+
+    val validProperty = (property: Property) =>
+      if (allowedProperties.nonEmpty) {
+        allowedProperties.contains(property) && !forbiddenProperties.contains(property)
+      } else if (forbiddenProperties.nonEmpty) {
+        !forbiddenProperties.contains(property)
+      } else {
+        true
+    }
+
+    if (allowedProperties.nonEmpty || forbiddenProperties.nonEmpty) {
+      new DecodeJsonLD[Node] {
+        def decode = { (json: String) =>
+          decoder
+            .stringToNode(json)
+            .flatMap { node =>
               val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
               for {
                 fNode <- resultGraph.nodes.create()
                 _ <- Task.gatherUnordered(
-                  node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
+                  node.outE().filter(e => validProperty(e.key)).map(e => fNode --- e.key --> e.to))
               } yield fNode
-            } else Task.now(node)
-          }
+            }
+        }
       }
-    }
+    } else
+      new DecodeJsonLD[Node] {
+        def decode = { (json: String) =>
+          decoder
+            .stringToNode(json)
+        }
+      }
+  }
 
-  def jsonldToTraversal(
-      implicit decoder: lspace.codec.Decoder): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =
+  def jsonldToEdge(implicit decoder: Decoder, activeContext: ActiveContext) = new DecodeJsonLD[Edge[Any, Any]] {
+    def decode =
+      (json: String) =>
+        decoder
+          .stringToEdge(json)
+  }
+
+  implicit def jsonldToTraversal(
+      implicit decoder: Decoder,
+      activeContext: ActiveContext): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =
     new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] {
       def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], HList]] =
         (string: String) =>

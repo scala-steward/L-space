@@ -1,9 +1,10 @@
-package lspace.codec
+package lspace.codec.jsonld
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.NS.types
 import lspace.codec.exception.ToJsonException
+import lspace.codec._
 import lspace.datatype._
 import lspace.structure._
 import lspace.types.vector.Geometry
@@ -22,9 +23,7 @@ trait Encoder {
   type Json
   implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
 
-//  implicit def encoder: lspace.codec.Encoder = this
-  type AC   = ActiveContext
-  type AP   = ActiveProperty
+//  implicit def encoder: lspace.codec.jsonld.Encoder = this
   type JOIP = JsonObjectInProgress[Json]
   type JIP  = JsonInProgress[Json]
 
@@ -58,13 +57,13 @@ trait Encoder {
     def noSpaces: String = jsonToNoSpacesString(json)
   }
 
-  def apply[T <: Node](node: Node): String = fromNode(node)(ActiveContext()).withContext.noSpaces
+  def apply[T <: Node](node: Node)(implicit activeContext: ActiveContext): String = fromNode(node).withContext.noSpaces
 
-  implicit class WithIriString(iri: String)(implicit activeContext: AC) {
+  implicit class WithIriString(iri: String)(implicit activeContext: ActiveContext) {
     lazy val compact: String = activeContext.compactIri(iri)
   }
 
-  def fromNode(node: Node)(implicit activeContext: AC): JOIP = {
+  def fromNode(node: Node)(implicit activeContext: ActiveContext): JOIP = {
     node match {
       case node: Node if node.labels.contains(DataType.ontology) =>
         fromDataType(DataType.datatypes.get(node.iri).get) //(DataType.build(node))
@@ -101,7 +100,7 @@ trait Encoder {
 
 //  implicit class WithDictionary(jsonIP: JOIP) {
 //    implicit val activeContext = jsonIP.activeContext
-  def addEdges(resource: Resource[_])(implicit activeContext: AC): (List[(String, Json)], AC) = {
+  def addEdges(resource: Resource[_])(implicit activeContext: ActiveContext): (List[(String, Json)], ActiveContext) = {
     resource
       .outEMap()
       .filterNot { case (key, properties) => Graph.baseKeys.contains(key) }
@@ -119,7 +118,7 @@ trait Encoder {
   }
 //  }
 
-  def fromEdges(key: Property, edges: List[Edge[_, _]])(implicit activeContext: AC): JIP = {
+  def fromEdges(key: Property, edges: List[Edge[_, _]])(implicit activeContext: ActiveContext): JIP = {
 
     val labelO: Option[ClassType[_]] =
       edges.groupBy(p => p.to.labels.headOption).toList.maxBy(_._2.size)._1
@@ -155,7 +154,7 @@ trait Encoder {
     }
   }
 
-  protected def edgeToAsJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
+  protected def edgeToAsJson[T](edge: Edge[_, T])(implicit activeContext: ActiveContext): JIP = {
     fromAny(edge.to,
             activeContext.definitions
               .get(edge.key.iri)
@@ -164,11 +163,11 @@ trait Encoder {
     )
   }
 
-  private def edgeFromAsJson[T](edge: Edge[_, T])(implicit activeContext: AC): JIP = {
+  private def edgeFromAsJson[T](edge: Edge[_, T])(implicit activeContext: ActiveContext): JIP = {
     fromAny(edge.from, None)(activeContext)
   }
 
-  def fromEdge(edge: Edge[_, _])(implicit activeContext: AC): JOIP = {
+  def fromEdge(edge: Edge[_, _])(implicit activeContext: ActiveContext): JOIP = {
     val (keyIri, newActiveContext) = activeContext.compactIri(edge.key)
     val (edges, newAc)             = addEdges(edge)(newActiveContext)
     JsonObjectInProgress[Json](
@@ -181,14 +180,14 @@ trait Encoder {
       }: _*) ++ List(types.`@type` -> textToJson(keyIri)))(newAc)
   }
 
-  def fromData(value: Any, expectedType: DataType[_])(implicit activeContext: AC): JIP = {
+  def fromData(value: Any, expectedType: DataType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: LiteralType[_]    => fromLiteral(value, label)
       case label: StructuredType[_] => fromStructured(value, label)
     }
   }
 
-  def fromLiteral(value: Any, expectedType: LiteralType[_])(implicit activeContext: AC): JIP = {
+  def fromLiteral(value: Any, expectedType: LiteralType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: BoolType[_] =>
         value match {
@@ -201,7 +200,7 @@ trait Encoder {
     }
   }
 
-  def fromCalendar(value: Any, expectedType: CalendarType[_])(implicit activeContext: AC): JIP = {
+  def fromCalendar(value: Any, expectedType: CalendarType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: DateTimeType[_]  => fromDateTime(value, label)
       case label: LocalDateType[_] => fromDate(value, label)
@@ -209,7 +208,7 @@ trait Encoder {
     }
   }
 
-  def fromDateTime(value: Any, expectedType: DateTimeType[_])(implicit activeContext: AC): JIP = {
+  def fromDateTime(value: Any, expectedType: DateTimeType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: Instant       => JsonInProgress(v.toString())
       case v: LocalDateTime => JsonInProgress(v.toString())
@@ -217,14 +216,14 @@ trait Encoder {
     }
   }
 
-  def fromDate(value: Any, expectedType: LocalDateType[_])(implicit activeContext: AC): JIP = {
+  def fromDate(value: Any, expectedType: LocalDateType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: LocalDate => JsonInProgress(v.toString())
       case _            => throw ToJsonException(s"date expected ${value.getClass} found")
     }
   }
 
-  def fromTime(value: Any, expectedType: LocalTimeType[_])(implicit activeContext: AC): JIP = {
+  def fromTime(value: Any, expectedType: LocalTimeType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: LocalTime => JsonInProgress(v.toString())
       case _ =>
@@ -232,7 +231,7 @@ trait Encoder {
     }
   }
 
-  def fromNumeric(value: Any, expectedType: NumericType[_])(implicit activeContext: AC): JIP = {
+  def fromNumeric(value: Any, expectedType: NumericType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: IntType[_]    => fromInt(value, label)
       case label: DoubleType[_] => fromDouble(value, label)
@@ -240,7 +239,7 @@ trait Encoder {
     }
   }
 
-  def fromInt(value: Any, expectedType: IntType[_])(implicit activeContext: AC): JIP = {
+  def fromInt(value: Any, expectedType: IntType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: Int => JsonInProgress(v)
       case _ =>
@@ -248,28 +247,28 @@ trait Encoder {
     }
   }
 
-  def fromDouble(value: Any, expectedType: DoubleType[_])(implicit activeContext: AC): JIP = {
+  def fromDouble(value: Any, expectedType: DoubleType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: Double => JsonInProgress(v)
       case _         => throw ToJsonException(s"double expected ${value.getClass} found")
     }
   }
 
-  def fromLong(value: Any, expectedType: LongType[_])(implicit activeContext: AC): JIP = {
+  def fromLong(value: Any, expectedType: LongType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: Long => JsonInProgress(v)
       case _       => throw ToJsonException(s"long expected ${value.getClass} found")
     }
   }
 
-  def fromText(value: Any, expectedType: TextType[_])(implicit activeContext: AC): JIP = {
+  def fromText(value: Any, expectedType: TextType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: String => JsonInProgress(v)
       case _         => throw ToJsonException(s"string expected ${value.getClass} found")
     }
   }
 
-  def fromStructured(value: Any, expectedType: StructuredType[_])(implicit activeContext: AC): JIP = {
+  def fromStructured(value: Any, expectedType: StructuredType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: CollectionType[_] => fromCollection(value, label)
       //        case label: ColorType[_] =>
@@ -279,7 +278,7 @@ trait Encoder {
     }
   }
 
-  private def toArray(v: Seq[_], label: Option[ClassType[_]])(implicit activeContext: AC): JIP = {
+  private def toArray(v: Seq[_], label: Option[ClassType[_]])(implicit activeContext: ActiveContext): JIP = {
     val (jsons, ac) = v.foldLeft((List[Json](), activeContext)) {
       case ((r, activeContext), v) =>
         val jip = fromAny(v, label)(activeContext)
@@ -288,7 +287,7 @@ trait Encoder {
     new JIP(jsons)(ac)
   }
 
-  def fromCollection(value: Any, expectedType: CollectionType[_])(implicit activeContext: AC): JIP = {
+  def fromCollection(value: Any, expectedType: CollectionType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: ListType[_] =>
         value match {
@@ -324,14 +323,14 @@ trait Encoder {
         }
     }
   }
-  def fromGeometric(value: Any, expectedType: GeometricType[_])(implicit activeContext: AC): JIP = {
+  def fromGeometric(value: Any, expectedType: GeometricType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
       case v: Geometry => JsonInProgress(v)
       case _           => throw ToJsonException(s"int expected ${value.getClass} found")
     }
   }
 
-  def fromQuantity(value: Any, expectedType: QuantityType[_])(implicit activeContext: AC): JIP = {
+  def fromQuantity(value: Any, expectedType: QuantityType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
       case label: DurationType =>
         value match {
@@ -341,7 +340,7 @@ trait Encoder {
         }
     }
   }
-  def fromTuple(value: Any, expectedType: TupleType[_])(implicit activeContext: AC): JIP = {
+  def fromTuple(value: Any, expectedType: TupleType[_])(implicit activeContext: ActiveContext): JIP = {
     val (jsons, newAc) = value
       .asInstanceOf[Product]
       .productIterator
@@ -392,7 +391,7 @@ trait Encoder {
 //    }
   }
 
-  def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: AC): JIP = {
+  def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: ActiveContext): JIP = {
     value match {
       case resource: IriResource =>
         resource match {
@@ -455,7 +454,7 @@ trait Encoder {
     * @param ontology
     * @return
     */
-  def fromOntology(ontology: Ontology)(implicit activeContext: AC): JOIP = {
+  def fromOntology(ontology: Ontology)(implicit activeContext: ActiveContext): JOIP = {
     val jsProperties = Seq[Option[(String, Json)]](
       Some(types.`@id`   -> (ontology.iri.compact.asJson)),
       Some(types.`@type` -> (types.`@class`.asJson)),
@@ -485,7 +484,7 @@ trait Encoder {
     * @param key
     * @return
     */
-  def fromProperty(key: Property)(implicit activeContext: AC): JOIP = {
+  def fromProperty(key: Property)(implicit activeContext: ActiveContext): JOIP = {
 
     val jsProperties = Seq(
       Some(types.`@id`   -> (key.iri.compact.asJson)),
@@ -517,7 +516,7 @@ trait Encoder {
     new JOIP(List[(String, Json)]() ++ jsProperties)(activeContext)
   }
 
-  def fromDataType(dataType: DataType[_])(implicit activeContext: AC): JOIP = {
+  def fromDataType(dataType: DataType[_])(implicit activeContext: ActiveContext): JOIP = {
     val jsProperties = Seq(
       Some(types.`@id`   -> (dataType.iri.asJson)),
       Some(types.`@type` -> (types.`@datatype`.asJson)),
@@ -574,10 +573,10 @@ trait Encoder {
     JsonObjectInProgress[Json](List[(String, Json)]() ++ jsProperties ++ oProperty)(newActiveContext)
   }
 
-  def ctListToJson(l: List[ClassType[_]])(implicit activeContext: AC): JIP = {
+  def ctListToJson(l: List[ClassType[_]])(implicit activeContext: ActiveContext): JIP = {
     if (l.lengthCompare(1) == 0 && l.head.iri.isEmpty) JsonInProgress("".asJson)
     else
-      l.foldLeft[(List[Json], AC)](List() -> activeContext) {
+      l.foldLeft[(List[Json], ActiveContext)](List() -> activeContext) {
         case ((l, activeContext), c) =>
           c match {
             case o: Ontology =>
@@ -599,4 +598,96 @@ trait Encoder {
           }
       } match { case (l, activeContext) => JsonInProgress(l.asJson)(activeContext) }
   }
+
+  implicit class WithActiveContext(context: ActiveContext) {
+    def asJson: Option[Json] = fromActiveContext(context)
+  }
+  def fromActiveContext(context: ActiveContext): Option[Json] = {
+
+    /**
+      * maps property definitions to @context map of property definitions
+      */
+    val (newActiveContext, propertyDefinitions) =
+      context.definitions.foldLeft((context, ListMap[String, ListMap[String, Json]]())) {
+        case ((activeContext, result), (key, activeProperty)) =>
+          val (keyIri, newActiveContext) = activeContext.compactIri(activeProperty.property)
+          List(
+            fromActiveContext(activeProperty.`@context`).map(types.`@context` -> _),
+            activeProperty.json._containers.map(types.`@container`            -> _),
+            activeProperty.json._types.map(types.`@type`                      -> _)
+          ).flatten match {
+            case kv if kv.nonEmpty =>
+              newActiveContext -> (result ++ ListMap(keyIri -> ListMap(kv: _*)))
+            case kv =>
+              newActiveContext -> result
+          }
+      }
+
+    /**
+      * maps prefix mappings to json and adds any property definitions
+      */
+    val prefixes = newActiveContext.`@prefix`.map {
+      case (prefix, iri) =>
+        prefix -> propertyDefinitions
+          .get(prefix)
+          .map { map =>
+            ListMap(types.`@id` -> iri.asJson) ++ map
+          }
+          .map(_.asJson)
+          .getOrElse(iri.asJson)
+    }
+    prefixes ++ (propertyDefinitions.mapValues(_.asJson) -- prefixes.keys) match {
+      case kv if kv.nonEmpty => Some(kv.asJson)
+      case kv                => None
+    }
+  }
+
+  implicit private class WithActiveProperty(activeProperty: ActiveProperty) {
+    object json {
+      def _containers: Option[Json] = {
+        implicit val activeContext = activeProperty.`@context`
+        activeProperty.`@container` match {
+          case Nil             => None
+          case List(container) => Some(activeContext.compactIri(container.iri).asJson)
+          case containers =>
+            Some(activeProperty.`@container`.foldLeft(List[Json]()) {
+              case (result, container) => result :+ activeContext.compactIri(container.iri).asJson
+            }.asJson)
+        }
+      }
+
+      def _types: Option[Json] = {
+        implicit val activeContext = activeProperty.`@context`
+        activeProperty.`@type` match {
+          case Nil       => None
+          case List(tpe) => Some(activeContext.compactIri(tpe.iri).asJson)
+          case tpes =>
+            Some(activeProperty.`@type`.foldLeft(List[Json]()) {
+              case (result, tpe) => result :+ activeContext.compactIri(tpe.iri).asJson
+            }.asJson)
+        }
+      }
+    }
+  }
+
+  implicit class WithJsonInProgress(jip: JsonInProgress[Json]) {
+
+    lazy val withContext: Json =
+      ListMap(jip.activeContext.asJson.map(types.`@context` -> _).toList: _*) ++ ListMap(types.`@graph` -> jip.json) asJson
+  }
+
+  implicit class WithJsonObjectInProgress(joip: JsonObjectInProgress[Json]) {
+
+    /**
+      * returns
+      */
+    lazy val withContext: Json = {
+      val context = joip.activeContext.asJson
+
+      if (context.isDefined)
+        ListMap(types.`@context` -> context.get) ++ joip.json asJson
+      else ListMap[String, Json]() ++ joip.json asJson
+    }
+  }
+
 }

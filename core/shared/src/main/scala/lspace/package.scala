@@ -12,6 +12,24 @@ package object lspace {
 
   type Graph = structure.Graph
   val Graph = structure.Graph
+  type Node = structure.Node
+  val Node = structure.Node
+  type Edge[+S, +E] = structure.Edge[S, E]
+  val Edge = structure.Edge
+  type Value[+T] = structure.Value[T]
+  val Value = structure.Value
+  type Resource[+T] = structure.Resource[T]
+  val Resource = structure.Resource
+  type ClassType[+T] = structure.ClassType[T]
+  val ClassType = structure.ClassType
+  type Ontology = structure.Ontology
+  val Ontology = structure.Ontology
+  type Property = structure.Property
+  val Property = structure.Property
+  type TypedProperty[T] = structure.TypedProperty[T]
+  val TypedProperty = structure.TypedProperty
+  type DataType[+T] = datatype.DataType[T]
+  val DataType = datatype.DataType
 
   type P[Z] = lspace.librarian.logic.predicate.P[Z]
   val P = lspace.librarian.logic.predicate.P
@@ -29,6 +47,8 @@ package object lspace {
     val P = structure.Property.default
     val D = datatype.DataType.default
   }
+  val Properties = structure.Property.default
+  val DataTypes  = datatype.DataType.default
 
   object Implicits {
     object DefaultAssistent {

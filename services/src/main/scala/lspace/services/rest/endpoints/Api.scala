@@ -5,5 +5,6 @@ import com.twitter.finagle.http.Request
 import io.finch.Endpoint
 
 trait Api extends Endpoint.Module[IO] {
-  def api: Endpoint[IO, _]
+//  def api: Endpoint[IO, _]
+//  def compiled: Endpoint.Compiled[IO]
 }

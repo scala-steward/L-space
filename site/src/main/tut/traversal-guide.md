@@ -131,7 +131,7 @@ Has-step validates the presence of a property and optionally asserts it by one o
 import java.time.LocalDate
 ```
 ```tut:book
-g.N.has("name").out("name").withGraph(graph).toList //filters on nodes which have an edge with property "https://schema.org/name"
+g.N.has("name").out("name").withGraph(graph).toList //filters on nodes which have an edge with property "https://example.org/name"
 g.N.has("name", P.eqv("Garrison")).out("name").withGraph(graph).toList //adds an equality constraint with value "Alice"
 g.N.has(keys.birthDate, P.gt(LocalDate.parse("2002-06-13"))).id.withGraph(graph).toList
 ```
@@ -170,23 +170,23 @@ g.N.coin(0.8).id.withGraph(graph).toList //random selection of nodes with p = 0.
 #### Where
 Where-step takes a traversal and filters on non-empty results
 ```tut:book
-g.N.where(_.has("https://schema.org/name")).out("https://schema.org/name").withGraph(graph).toList
+g.N.where(_.has("https://example.org/name")).out("https://example.org/name").withGraph(graph).toList
 ```
 #### And
 And-step takes one or more traversals and filters only those which have non-empty results for all traversals
 ```tut:book
-g.N.and(_.has("https://schema.org/name"), _.has("https://schema.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
+g.N.and(_.has("https://example.org/name"), _.has("https://example.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
 g.N.and(_.has(keys.balance, P.gt(300)), _.has(keys.balance, P.lt(3000))).count.withGraph(graph).head //shouldBe 2
 ```
 #### Or
 Or-step takes one or more traversals and filters only those which have non-empty results for at least one traversal
 ```tut:book
-g.N.or(_.has("https://schema.org/name"), _.has("https://schema.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
+g.N.or(_.has("https://example.org/name"), _.has("https://example.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
 ```
 #### Not
 Not-step takes a traversal and filters on empty results
 ```tut:book
-g.N.not(_.has("https://schema.org/name")).limit(2).id.withGraph(graph).toList
+g.N.not(_.has("https://example.org/name")).limit(2).id.withGraph(graph).toList
 ```
 #### Is
 Is-step asserts a value against one or more predicates
@@ -215,22 +215,22 @@ Move steps lets the traverser move through the graph. The path can be stored wit
 #### Out
 Out-step takes one or more property-labels and traverses along the valid outgoing paths if any
 ```tut:book
-g.N.out("https://schema.org/name").withGraph(graph).toList
+g.N.out("https://example.org/name").withGraph(graph).toList
 ```
 #### OutE
 OutE-step takes one or more property-labels and traverses to the valid outgoing paths if any
 ```tut:book
-g.N.outE("https://schema.org/name").withGraph(graph).toList
+g.N.outE("https://example.org/name").withGraph(graph).toList
 ```
 #### In
 In-step takes one or more property-labels and traverses along the valid incoming paths if any
 ```tut:book
-g.N.out("https://schema.org/name").withGraph(graph).toList
+g.N.out("https://example.org/name").withGraph(graph).toList
 ```
 #### InE
 InE-step takes one or more property-labels and traverses to the valid incoming paths if any
 ```tut:book
-g.N.outE("https://schema.org/name").withGraph(graph).toList
+g.N.outE("https://example.org/name").withGraph(graph).toList
 ```
 #### Label
 Label-step traverses to the label-nodes if any
@@ -326,9 +326,9 @@ g.N.out("balance").hasLabel(`@double`).sum.withGraph(graph).head //should be 249
 ##### Count
 Count-step returns the number of incoming traversers
 ```tut:book
-g.N.hasLabel(Ontology("https://schema.org/Person")).count.withGraph(graph).head //should be 6
-g.N.hasLabel(Ontology("https://schema.org/Person")).where(_.out(Property("https://schema.org/knows")).count.is(P.gt(1))).count.withGraph(graph).head //should be 5
-g.N.hasLabel(Ontology("https://schema.org/Person")).where(_.out(Property("https://schema.org/knows")).count.is(P.lt(2))).count.withGraph(graph).head //should be 1
+g.N.hasLabel(Ontology("https://example.org/Person")).count.withGraph(graph).head //should be 6
+g.N.hasLabel(Ontology("https://example.org/Person")).where(_.out(Property("https://example.org/knows")).count.is(P.gt(1))).count.withGraph(graph).head //should be 5
+g.N.hasLabel(Ontology("https://example.org/Person")).where(_.out(Property("https://example.org/knows")).count.is(P.lt(2))).count.withGraph(graph).head //should be 1
 ```
 #### Filter barrier steps
 Filter barrier steps filters traversers based on some comparison against the complete stream of traversers.

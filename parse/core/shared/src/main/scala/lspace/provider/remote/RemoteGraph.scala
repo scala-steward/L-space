@@ -13,7 +13,7 @@ import lspace.structure.{ClassType, Graph, NameSpaceGraph, Property}
 import monix.eval.Task
 import shapeless.HList
 import com.softwaremill.sttp._
-import lspace.codec.{Decoder, Encoder, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.{jsonld, ActiveContext, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.parse.util.HttpClient
 import monix.reactive.Observable
 
@@ -32,8 +32,8 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
   implicit val backend                = httpClient.backend
   val cache: Graph                    = Graph.apply(iri)
 
-  val encoder: Encoder = Encoder(baseEncoder)
-  val decoder: Decoder = Decoder(cache)(baseDecoder)
+  val encoder: jsonld.Encoder = jsonld.Encoder(baseEncoder)
+  val decoder: jsonld.Decoder = jsonld.Decoder(cache)(baseDecoder)
 
   val serviceUri = uri"$host:$port/$path"
 
@@ -64,7 +64,7 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
     Observable
       .fromTask(for {
         node <- traversal.toNode
-        json = encoder(node)
+        json = encoder(node)(ActiveContext()) //TODO: create nice named default context
 //        _    = println(json)
         request = sttp
           .body(json)
@@ -81,7 +81,7 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
               .map(StandardCharsets.UTF_8.decode(_).toString())
               .filter(_.nonEmpty)
               .mapEval(decoder.parse)
-              .mapEval(decoder.toNode(_))
+              .mapEval(decoder.toNode(_)(ActiveContext())) //TODO: use default nice named context here
               .map(Collection.wrap)
               .map(_.item)
               .flatMap(Observable.fromIterable(_))

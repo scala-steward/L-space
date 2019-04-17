@@ -14,6 +14,7 @@ import lspace.provider.transaction.Transaction
 import lspace.provider.wrapped.WrappedResource
 import lspace.librarian.traversal.Traversal
 import lspace.librarian.traversal.Traversal.SegmentMapper
+import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider}
@@ -243,6 +244,9 @@ trait Graph extends IriResource with GraphUtils { self =>
   def add: Graph => Task[Graph] = ++
   val ++ : Graph => Task[Graph] = (graph: Graph) => {
     if (graph != this) {
+      if (graph == DetachedGraph)
+        scribe.warn(
+          s"adding the contents of DetachedGraph to ${this.iri} is futile as DetachedGraph does not store any objects, they float")
       for {
         oldIdNewNodeMap <- graph
           .nodes()

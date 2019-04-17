@@ -185,7 +185,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 
 //  import argonaut._
 //  import Argonaut._
-//  implicit private val encoder: lspace.codec.Encoder[Json] = EncodeLDFS()
+//  implicit private val encoder: lspace.codec.jsonld.Encoder[Json] = EncodeLDFS()
 //  private val decoder                                      = DecodeLDFS(graph)
 
   private def parse(buf: BufferedSource): Observable[Json] = {
@@ -198,7 +198,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
     }
   }
 
-  private def parseContext(buf: BufferedSource): Task[decoder.AC] = {
+  private def parseContext(buf: BufferedSource): Task[ActiveContext] = {
     val it = buf.getLines()
     if (it.hasNext) {
       val raw = it.next()
