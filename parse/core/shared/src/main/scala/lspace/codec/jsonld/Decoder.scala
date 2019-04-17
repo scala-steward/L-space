@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import lspace.Label
 import lspace.NS.types
-import lspace.codec.exception.{FromJsonException, NotAcceptableException, UnexpectedJsonException}
+import lspace.codec.exception.{FromJsonException, NotAClassNorProperty, NotAcceptableException, UnexpectedJsonException}
 import lspace.codec._
 import lspace.datatype._
 import lspace.parse.util.HttpClient
@@ -1180,10 +1180,12 @@ trait Decoder {
       )
     } else {
       scribe.warn(s"preparingClassTypeNode $iris without type ${typeIris}")
-      ctwip.getOrElseUpdate(
-        iris.head,
-        fetchClassType(iris.head).memoizeOnSuccess
-      )
+      if (typeIris.nonEmpty) Task.raiseError(NotAClassNorProperty(s"${iris.mkString(" aka ")}"))
+      else
+        ctwip.getOrElseUpdate(
+          iris.head,
+          fetchClassType(iris.head).memoizeOnSuccess
+        )
     }
   }
 
@@ -1295,23 +1297,28 @@ trait Decoder {
                             _.map(obj => obj.extractContext.map(_ -> obj))
                               .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
                           })
-                      .flatMap { list =>
-                        Task
-                          .sequence { //gatherUnordered seems to deadlock?
-                            list.map {
-                              case (ac, obj) =>
-                                val expandedJson = obj.expand(ac)
-                                expandedJson
-                                  .extractId(ac)
-                                  .map(_.iri)
-                                  .map { iri =>
-                                    prepareClassType(expandedJson - types.`@context`)
-                                      .timeout(5000.millis)
-                                      .memoizeOnSuccess
-                                  }
-                                  .getOrElse(Task.raiseError(FromJsonException("classtype without iri")))
+                      .flatMap {
+                        list =>
+                          Task
+                            .sequence { //gatherUnordered seems to deadlock?
+                              list.map {
+                                case (ac, obj) =>
+                                  val expandedJson = obj.expand(ac)
+                                  expandedJson
+                                    .extractId(ac)
+                                    .map(_.iri)
+                                    .map { iri =>
+                                      prepareClassType(expandedJson - types.`@context`)
+                                        .timeout(5000.millis)
+                                        .onErrorHandleWith {
+                                          case e: NotAClassNorProperty => Task.unit
+                                          case e                       => Task.raiseError(e)
+                                        }
+                                        .memoizeOnSuccess
+                                    }
+                                    .getOrElse(Task.raiseError(FromJsonException("classtype without iri")))
+                              }
                             }
-                          }
                       }
                       .flatMap { f =>
                         graph.ns.nodes
@@ -1368,6 +1375,10 @@ trait Decoder {
                                 .map { iri =>
                                   prepareClassType(expandedJson - types.`@context`)
                                     .timeout(5000.millis)
+                                    .onErrorHandleWith {
+                                      case e: NotAClassNorProperty => Task.unit
+                                      case e                       => Task.raiseError(e)
+                                    }
                                     .memoizeOnSuccess
                                 }
                                 .get
@@ -1430,6 +1441,10 @@ trait Decoder {
                                 .map { iri =>
                                   prepareClassType(expandedJson - types.`@context`)
                                     .timeout(5000.millis)
+                                    .onErrorHandleWith {
+                                      case e: NotAClassNorProperty => Task.unit
+                                      case e                       => Task.raiseError(e)
+                                    }
                                     .memoizeOnSuccess
                                 }
                                 .get
@@ -1488,6 +1503,10 @@ trait Decoder {
                                 .map { iri =>
                                   prepareClassType(expandedJson - types.`@context`)
                                     .timeout(5000.millis)
+                                    .onErrorHandleWith {
+                                      case e: NotAClassNorProperty => Task.unit
+                                      case e                       => Task.raiseError(e)
+                                    }
                                     .memoizeOnSuccess
                                 }
                                 .get
