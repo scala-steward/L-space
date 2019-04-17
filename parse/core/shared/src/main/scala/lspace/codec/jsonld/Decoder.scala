@@ -1513,13 +1513,15 @@ trait Decoder {
                                 .extractId(ac)
                                 .map(_.iri)
                                 .map { iri =>
-                                  prepareClassType(expandedJson - types.`@context`)
-                                    .timeout(5000.millis)
-                                    .onErrorHandleWith {
-                                      case e: NotAClassNorProperty => Task.unit
-                                      case e                       => Task.raiseError(e)
-                                    }
-                                    .memoizeOnSuccess
+                                  if (ClassType.classtypes.get(iri).isEmpty)
+                                    prepareClassType(expandedJson - types.`@context`)
+                                      .timeout(5000.millis)
+                                      .onErrorHandleWith {
+                                        case e: NotAClassNorProperty => Task.unit
+                                        case e                       => Task.raiseError(e)
+                                      }
+                                      .memoizeOnSuccess
+                                  else Task.unit
                                 }
                                 .get
                           }
