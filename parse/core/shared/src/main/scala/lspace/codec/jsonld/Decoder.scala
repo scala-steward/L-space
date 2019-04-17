@@ -1456,6 +1456,81 @@ trait Decoder {
     }
   }
 
+  def fetchVocabularyGraph(iri: String)(implicit activeContext: ActiveContext): Task[Unit] =
+    for {
+      json <- fetch(iri)
+      _ <- json.obj
+        .map(_.expand)
+        .map { obj =>
+          obj.obj.extractContext.flatMap { implicit activeContext =>
+            if (obj.contains(types.`@graph`)) {
+              obj
+                .get(types.`@graph`)
+                .flatMap { json =>
+                  json.list.map { jsons =>
+                    Task
+                      .gatherUnordered(
+                        jsons
+                          .map(_.obj)
+                          .filter(_.exists(_.size > 2))
+                          .map {
+                            _.map(obj => obj.extractContext.map(_ -> obj))
+                              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
+                          })
+                      .flatMap { list =>
+                        Task.sequence {
+                          list.map {
+                            case (ac, obj) =>
+                              val expandedJson = obj.expand(ac)
+                              expandedJson
+                                .extractId(ac)
+                                .map(_.iri)
+                                .map { iri =>
+                                  prepareClassType(expandedJson - types.`@context`)
+                                    .timeout(5000.millis)
+                                    .memoizeOnSuccess
+                                }
+                                .get
+                          }
+                        }
+                      }
+                  }
+                }
+                .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
+
+            } else
+              Task.raiseError(FromJsonException(s"cannot parse classtype, not @type or @graph ${obj.obj}"))
+          }
+        }
+        .getOrElse(Task.raiseError(FromJsonException(s"cannot parse classtype, not @type or @graph $json")))
+    } yield ()
+
+  def fetchGraph(iri: String)(implicit activeContext: ActiveContext): Task[Unit] =
+    for {
+      json <- fetch(iri)
+      _ <- json.obj
+        .map(_.expand)
+        .map { obj =>
+          obj.obj.extractContext.flatMap { implicit activeContext =>
+            if (obj.contains(types.`@graph`)) {
+              obj
+                .get(types.`@graph`)
+                .flatMap { json =>
+                  json.list.map { jsons =>
+                    Task
+                      .gatherUnordered(jsons
+                        .map(toResource(_, None)))
+                  }
+                }
+                .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
+
+            } else
+              Task.raiseError(FromJsonException(s"cannot parse $iri, no @graph key found"))
+          }
+        }
+        .getOrElse(Task.raiseError(FromJsonException(s"cannot parse $iri, no @graph key found")))
+    } yield ()
+
   protected lazy val fetchingInProgress: concurrent.Map[String, Task[Json]] =
     new ConcurrentHashMap[String, Task[Json]](16, 0.9f, 32).asScala
 
