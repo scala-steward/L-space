@@ -24,7 +24,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
   val store       = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", 9042)
   val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", 9042)
 
-  val initTask = (for {
+  lazy val initTask = (for {
     _ <- Task.gatherUnordered(
       Seq(
         for {
@@ -48,7 +48,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
       ))
   } yield ()).memoize //OnSuccess
 
-  val graph: LGraph =
+  lazy val graph: LGraph =
     LGraph(store, new MemIndexProvider, noinit = true)
   lazy val sampleGraph          = SampledGraph(createGraph("CassandraStorageManagerSpec-sample"))
   lazy val graphToPersist       = SampledGraph(createGraph("CassandraStorageManagerSpec-persisted-sample"))
