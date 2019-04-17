@@ -911,11 +911,13 @@ trait Decoder {
           val rangeIris = expandedJson
             .get(types.`@range`)
             .orElse(expandedJson.get(types.schemaRange))
+            .orElse(expandedJson.get("http://schema.org/rangeIncludes"))
             .toList
             .flatMap(extractIris(_))
 
           val domainIncludeIris = expandedJson
             .get(types.schemaDomainIncludes)
+            .orElse(expandedJson.get("http://schema.org/domainIncludes"))
             .toList
             .flatMap(extractIris(_))
 

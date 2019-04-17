@@ -162,7 +162,7 @@ object Property {
 
       property.properties ++ (node
         .out(Property.default.typed.propertyProperty) ++ node
-        .in(lspace.NS.types.schemaDomainIncludes)
+        .in(lspace.NS.types.schemaDomainIncludes, "http://schema.org/domainIncludes")
         .collect { case node: Node => node })
         .filter(_.labels.contains(Property.ontology))
         .map(Property.properties.getAndUpdate)
@@ -215,7 +215,9 @@ object Property {
       }
     val `@container`: Property =
       new Property(NS.types.`@container`) { rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess }
-    val `@range`: Property = new Property(NS.types.`@range`, iris = Set(NS.types.`@range`, NS.types.schemaRange)) {
+    val `@range`: Property = new Property(
+      NS.types.`@range`,
+      iris = Set(NS.types.`@range`, NS.types.schemaRange, "http://schema.org/rangeIncludes")) {
       rangeList = Coeval.delay(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil).memoizeOnSuccess
     }
 //      range = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
