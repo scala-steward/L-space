@@ -39,6 +39,7 @@ object Property {
         `@range`,
         `@type`,
         `@extends`,
+        inverseOf,
         `@properties`,
         `@language`,
         `@index`,
@@ -190,6 +191,31 @@ object Property {
         .toList
         .flatten
 
+      node
+        .out(Property.default.inverseOf)
+        .headOption
+        .collect {
+          case nodes: List[_] =>
+            nodes.collect {
+              case node: Node if node.hasLabel(Property.ontology).isDefined =>
+                Property.properties
+                  .get(node.iri, node.iris)
+                  .getOrElse {
+                    Property.properties.getAndUpdate(node)
+                  } //orElse???
+              case iri: String =>
+                Property.properties
+                  .get(iri)
+                  .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+            }
+          case node: Node if node.hasLabel(Property.ontology).isDefined =>
+            List(Property.properties.get(node.iri, node.iris).getOrElse(Property.properties.getAndUpdate(node)))
+        }
+        .toList
+        .flatten
+        .headOption
+        .map(property.inverseOf set _)
+
       property
     }
 
@@ -232,6 +258,8 @@ object Property {
         .delay(ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil)
         .memoizeOnSuccess
     }
+    val inverseOf: Property =
+      new Property(NS.types.schemaInverseOf, Set(NS.types.schemaInverseOf, "http://schema.org/inverseOf"))
 //      range = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
     val `@properties`: Property = new Property(NS.types.`@properties`) {
       rangeList = Coeval.delay(Property.ontology :: Nil).memoizeOnSuccess
@@ -470,6 +498,20 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     }
     def --(parent: Iterable[Property]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
+      this
+    }
+  }
+
+  protected var inverseOfOption
+    : Coeval[Option[Property]] = Coeval.now(None).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
+
+  //  override def extendedClasses: List[Property] = extendedClassesList.value()
+  object inverseOf {
+    def apply(): Option[Property] = inverseOfOption()
+
+    def get: Option[Property] = inverseOfOption.value()
+    def set(inverse: Property): this.type = this.synchronized {
+      inverseOfOption = Coeval.now(Some(inverse)).memoizeOnSuccess
       this
     }
   }

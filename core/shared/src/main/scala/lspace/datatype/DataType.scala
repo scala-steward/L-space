@@ -14,10 +14,12 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
 
 object DataType
-    extends OntologyDef(NS.types.`@datatype`,
-                        Set(NS.types.`@datatype`, NS.types.schemaDataType),
-                        NS.types.`@datatype`,
-                        `@extends` = () => Ontology.ontology :: Nil) {
+    extends OntologyDef(
+      NS.types.`@datatype`,
+      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"),
+      NS.types.`@datatype`,
+      `@extends` = () => Ontology.ontology :: Nil
+    ) {
 
   object keys
 

@@ -921,6 +921,12 @@ trait Decoder {
             .toList
             .flatMap(extractIris(_))
 
+          val inverseOf = expandedJson
+            .get(types.schemaInverseOf)
+            .orElse(expandedJson.get("http://schema.org/inverseOf"))
+            .toList
+            .flatMap(extractIris(_))
+
           val propertiesIris = expandedJson
             .get(types.`@properties`)
             .toList
@@ -952,6 +958,10 @@ trait Decoder {
               .gather(rangeIris
                 .map(graph.nodes.upsert(_)))
             _ <- node.addOut(Label.P.`@range`, range)
+            inverse <- Task
+              .gather(inverseOf
+                .map(graph.nodes.upsert(_)))
+            _ <- node.addOut(Label.P.inverseOf, inverse)
             includedIn <- Task.gather(domainIncludeIris
               .map(graph.nodes.upsert(_)))
             _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))).forkAndForget
