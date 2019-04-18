@@ -114,13 +114,15 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     })
   }
   final def create[T](value: T, dt: DataType[T]): Task[Value[T]] = { //add implicit DataType[T]
+    val detectedDT = ClassType.valueToOntologyResource(value)
+    val finalDT    = if (detectedDT.`@extends`(dt)) detectedDT else dt
     for {
       dereferencedValue <- dereferenceValue(value).map(_.asInstanceOf[T])
-      b <- byValue(dereferencedValue -> dt :: Nil).headOptionL
+      b <- byValue(dereferencedValue -> finalDT :: Nil).headOptionL
         .flatMap(_.map(_.asInstanceOf[_Value[T]]).map(Task.now).getOrElse {
           for {
             id    <- idProvider.next
-            value <- createValue(id, dereferencedValue, dt)
+            value <- createValue(id, dereferencedValue, finalDT)
           } yield value
         })
     } yield { b }
