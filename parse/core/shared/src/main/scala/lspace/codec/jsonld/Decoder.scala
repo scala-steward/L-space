@@ -544,9 +544,10 @@ trait Decoder {
         json.string
       case tpe: NumericType[_] =>
         tpe match {
-          case DoubleType.datatype => json.double
-          case LongType.datatype   => json.long
-          case IntType.datatype    => json.int
+          case DoubleType.datatype  => json.double
+          case LongType.datatype    => json.long
+          case IntType.datatype     => json.int
+          case NumericType.datatype => json.int.orElse(json.long).orElse(json.double)
         }
       case tpe: CalendarType[_] =>
         tpe match {
@@ -1163,7 +1164,16 @@ trait Decoder {
       .toSet
     if (iris.isEmpty) scribe.warn(s"no iris for ${expandedJson.obj}")
 
-    if (Ontology.ontology.iris & typeIris nonEmpty) {
+    if (DataType.ontology.iris & typeIris nonEmpty) {
+      ctwip.getOrElseUpdate(
+        iris.head,
+        prepareDataType(expandedJson).flatMap { node =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+            node
+          }
+        }.memoizeOnSuccess
+      )
+    } else if (Ontology.ontology.iris & typeIris nonEmpty) {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareOntology(expandedJson).flatMap { ontology =>
@@ -1176,15 +1186,6 @@ trait Decoder {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareProperty(expandedJson).flatMap { node =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
-            node
-          }
-        }.memoizeOnSuccess
-      )
-    } else if (DataType.ontology.iris & typeIris nonEmpty) {
-      ctwip.getOrElseUpdate(
-        iris.head,
-        prepareDataType(expandedJson).flatMap { node =>
           Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
             node
           }
