@@ -97,7 +97,6 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   def get(iri: String): Option[DataType[Any]] = //TODO: .get (Task) instead of .cached
     {
-      println(s"collectionType get $iri")
       ClassType.classtypes
         .get(iri)
         .orElse(getTypes(iri) match {

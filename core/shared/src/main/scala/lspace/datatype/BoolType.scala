@@ -7,8 +7,9 @@ import lspace.structure._
 object BoolType extends DataTypeDef[BoolType[Any]] {
 
   lazy val datatype: BoolType[Boolean] = new BoolType[Boolean] {
-    val iri: String                = NS.types.`@boolean`
-    override val iris: Set[String] = Set(NS.types.`@boolean`, NS.types.schemaBoolean, NS.types.xsdBoolean)
+    val iri: String = NS.types.`@boolean`
+    override val iris: Set[String] =
+      Set(NS.types.`@boolean`, NS.types.schemaBoolean, "http://schema.org/Boolean", NS.types.xsdBoolean)
     labelMap = Map("en" -> NS.types.`@boolean`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
   }
