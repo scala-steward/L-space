@@ -96,19 +96,22 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
   }
 
   def get(iri: String): Option[DataType[Any]] = //TODO: .get (Task) instead of .cached
-    ClassType.classtypes
-      .get(iri)
-      .orElse(getTypes(iri) match {
-        case (List(ct), "") =>
-          Some(ct)
-        case (List(ct), tail) =>
-          scribe.warn(s"got type but tail is not empty, residu is: $tail")
-          Some(ct)
-        case (Nil, tail) =>
-          scribe.warn(s"no classtype construct build for $iri, residu is: $tail")
-          None
-      })
-      .asInstanceOf[Option[DataType[Any]]]
+    {
+      println(s"collectionType get $iri")
+      ClassType.classtypes
+        .get(iri)
+        .orElse(getTypes(iri) match {
+          case (List(ct), "") =>
+            Some(ct)
+          case (List(ct), tail) =>
+            scribe.warn(s"got type but tail is not empty, residu is: $tail")
+            Some(ct)
+          case (Nil, tail) =>
+            scribe.warn(s"no classtype construct build for $iri, residu is: $tail")
+            None
+        })
+        .asInstanceOf[Option[DataType[Any]]]
+    }
 }
 
 trait CollectionType[+T] extends StructuredType[T] {
