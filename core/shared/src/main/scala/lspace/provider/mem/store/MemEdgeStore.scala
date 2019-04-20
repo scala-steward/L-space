@@ -1,5 +1,6 @@
 package lspace.provider.mem.store
 
+import lspace.Label.D._
 import lspace.datatype.DataType
 import lspace.provider.mem.{MemGraph, MemResource}
 import lspace.structure.Property.default.{`@id`, `@ids`}
@@ -18,9 +19,9 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
     edge.to
       .asInstanceOf[MemResource[Any]]
       ._addIn(edge.asInstanceOf[Edge[_, Any]])
-    if ((edge.key == `@id` || edge.key == `@ids`) && edge.to.isInstanceOf[graph._Value[String]])
+    if ((edge.key == `@id` || edge.key == `@ids`) && edge.to
+          .isInstanceOf[graph._Value[_]] && edge.to.asInstanceOf[graph._Value[_]].label == `@string`)
       graph.`@idStore`.cache(edge.to.asInstanceOf[graph.GValue[_]])
-    edge
 //    for {
 //      _ <- if ((edge.key == `@id` || edge.key == `@ids`) && edge.to.isInstanceOf[graph._Value[String]])
 //        graph.`@idStore`.cache(edge.to.asInstanceOf[graph.GValue[_]])

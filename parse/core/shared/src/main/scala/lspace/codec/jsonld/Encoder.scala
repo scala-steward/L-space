@@ -400,7 +400,7 @@ trait Encoder {
               fromData(value.value, value.label)
             } else {
               val jip = fromData(value.value, value.label)
-              JsonInProgress(Map(types.`@value` -> jip.json, types.`@type` -> (value.label.iri.compact.asJson)).asJson)(
+              JsonInProgress(Map(types.`@value` -> jip.json, types.`@type` -> value.label.iri.compact.asJson).asJson)(
                 jip.activeContext
               )
             }
@@ -410,9 +410,15 @@ trait Encoder {
                 case Some(ct: NodeURLType[_]) =>
 //                  scribe.trace("nodeurltype")
                   JsonInProgress(node.iri.asJson)(activeContext)
-                case Some(o: Ontology) =>
+                case Some(o: Ontology) if node.labels.contains(o) =>
 //                  scribe.trace(s"ontology $o")
                   JsonInProgress(node.iri.asJson)(activeContext)
+                case Some(ct) =>
+                  JsonInProgress(
+                    Map(types.`@id`   -> node.iri.asJson,
+                        types.`@type` -> node.labels.map(_.iri).map(_.compact.asJson).asJson).asJson)(
+                    activeContext
+                  )
                 case None =>
                   JsonInProgress(Map(types.`@id` -> node.iri.asJson).asJson)(activeContext)
               }
@@ -425,8 +431,15 @@ trait Encoder {
               expectedType match {
                 case Some(ct: EdgeURLType[_]) =>
                   JsonInProgress(edge.iri.asJson)(activeContext)
-                case Some(o: Ontology) =>
+                case Some(p: Property) if edge.key == p =>
                   JsonInProgress(edge.iri.asJson)(activeContext)
+                case Some(ct) =>
+//                  JsonInProgress(
+//                    Map(types.`@id` -> edge.iri.asJson, types.`@type` -> edge.key.iri.compact.asJson).asJson)(
+//                    activeContext
+//                  )
+                  JsonInProgress(Map(types.`@id` -> edge.iri.asJson, types.`@type` -> types.`@edgeURL`.asJson).asJson)(
+                    activeContext)
                 case None =>
                   JsonInProgress(Map(types.`@id` -> edge.iri.asJson, types.`@type` -> types.`@edgeURL`.asJson).asJson)(
                     activeContext)

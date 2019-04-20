@@ -102,7 +102,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
         case Some(node) => Coeval.now(node /*.asInstanceOf[GNode]*/ )
         case None       => _TNode(n).asInstanceOf[Coeval[GResource[_]]]
       }
-    case e: parent._Edge[Any, Any] =>
+    case e: parent._Edge[_, _] =>
       edgeStore.cached
         .hasId(e.id) match {
         case Some(edge) => Coeval.now(edge /*.asInstanceOf[GEdge[_, _]]*/ )
@@ -113,7 +113,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
 //        .map(_.asInstanceOf[_Edge[_,_]])
 //        .map(Coeval.now)
 //        .get //OrElse(_TEdge[Any, Any](e.asInstanceOf[parent._Edge[Any, Any]]))
-    case v: parent._Value[Any] =>
+    case v: parent._Value[_] =>
       valueStore.cached
         .hasId(v.id) match {
         case Some(value) => Coeval.now(value /*.asInstanceOf[GValue[Any]]*/ )

@@ -84,22 +84,22 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
   def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] = {
     Observable.fromIterable {
       value match {
-        case value: Int           => intCache.get(value).toStream.flatMap(_.toList)
-        case value: Double        => doubleCache.get(value).toStream.flatMap(_.toList)
-        case value: Long          => longCache.get(value).toStream.flatMap(_.toList)
-        case value: String        => stringCache.get(value).toStream.flatMap(_.toList)
-        case value: Boolean       => booleanCache.get(value).toStream.flatMap(_.toList)
-        case value: Instant       => datetimeCache.get(value).toStream.flatMap(_.toList)
-        case value: LocalDateTime => localdatetimeCache.get(value).toStream.flatMap(_.toList)
-        case value: LocalDate     => dateCache.get(value).toStream.flatMap(_.toList)
-        case value: LocalTime     => timeCache.get(value).toStream.flatMap(_.toList)
-        case value: Time          => durationCache.get(value).toStream.flatMap(_.toList)
-        case value: Point         => geopointCache.get(value).toStream.flatMap(_.toList)
-        case value: Map[Any, Any] => mapCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
-        case value: ListSet[Any]  => listsetCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
-        case value: Set[Any]      => setCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
-        case value: List[Any]     => listCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
-        case value: Vector[Any]   => vectorCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+        case value: Int                      => intCache.get(value).toStream.flatMap(_.toList)
+        case value: Double                   => doubleCache.get(value).toStream.flatMap(_.toList)
+        case value: Long                     => longCache.get(value).toStream.flatMap(_.toList)
+        case value: String                   => stringCache.get(value).toStream.flatMap(_.toList)
+        case value: Boolean                  => booleanCache.get(value).toStream.flatMap(_.toList)
+        case value: Instant                  => datetimeCache.get(value).toStream.flatMap(_.toList)
+        case value: LocalDateTime            => localdatetimeCache.get(value).toStream.flatMap(_.toList)
+        case value: LocalDate                => dateCache.get(value).toStream.flatMap(_.toList)
+        case value: LocalTime                => timeCache.get(value).toStream.flatMap(_.toList)
+        case value: Time                     => durationCache.get(value).toStream.flatMap(_.toList)
+        case value: Point                    => geopointCache.get(value).toStream.flatMap(_.toList)
+        case value: Map[Any, Any] @unchecked => mapCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+        case value: ListSet[Any] @unchecked  => listsetCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+        case value: Set[Any] @unchecked      => setCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+        case value: List[Any] @unchecked     => listCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
+        case value: Vector[Any] @unchecked   => vectorCache.get(value).toStream.flatMap(_.toList).filter(_.label == dt)
         case _ =>
           throw new Exception(s"unsupported valuestore-type, cannot find store for datatype-class ${value.getClass}")
       }
@@ -135,7 +135,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
             .asInstanceOf[String] -> (stringCache.getOrElse(value.value.asInstanceOf[String], Set()) + value
             .asInstanceOf[graph.GValue[String]])
         }
-      case dt: BoolType[Boolean] =>
+      case dt: BoolType[_] =>
         booleanCache.synchronized {
           booleanCache += value.value
             .asInstanceOf[Boolean] -> (booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set()) + value
@@ -252,7 +252,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
             if (values.exists(_ == value)) stringCache -= value.value.asInstanceOf[String]
             else stringCache += value.value.asInstanceOf[String] -> (values - value.asInstanceOf[graph.GValue[String]])
           }
-        case dt: BoolType[Boolean] =>
+        case dt: BoolType[_] =>
           booleanCache.synchronized {
             val values = booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set())
             if (values.exists(_ == value)) booleanCache -= value.value.asInstanceOf[Boolean]

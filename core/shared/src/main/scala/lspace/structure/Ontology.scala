@@ -13,7 +13,12 @@ import scala.concurrent.duration.FiniteDuration
 
 object Ontology {
   lazy val ontology: Ontology =
-    Ontology(NS.types.`@class`, iris = Set(NS.types.`@class`, NS.types.rdfsClass, NS.types.schemaClass))
+    Ontology(NS.types.`@class`,
+             iris = Set(NS.types.`@class`,
+                        NS.types.rdfsClass,
+                        NS.types.schemaClass,
+                        "https://schema.org/Class",
+                        "http://schema.org/Class"))
   lazy val unknownOntology: Ontology =
     Ontology("@unknownOntology", iris = Set("@unknownOntology"), extendedClasses = () => List(ontology))
 

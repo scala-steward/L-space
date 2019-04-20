@@ -266,11 +266,12 @@ trait Resource[+T] extends IriResource {
     } yield edge
   }
 
+  //TODO: cleanup types
   def addOut[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
       implicit ev1: V <:!< ClassType[_]): Task[Edge[T, V]] = {
     for {
       toResource <- value match {
-        case resource: Resource[V] => Task.now(resource.asInstanceOf[Resource[V]])
+        case resource: Resource[_] => Task.now(resource.asInstanceOf[Resource[V]])
         case _ =>
           dt match {
             case dt: DataType[V] if dt.iri.nonEmpty =>
@@ -295,11 +296,11 @@ trait Resource[+T] extends IriResource {
   def addOut[V](key: TypedProperty[V], value: V): Task[Edge[T, V]] = {
     for {
       toResource <- value match {
-        case resource: Resource[V] => graph.resources.upsert(resource).map(_.asInstanceOf[Resource[V]])
+        case resource: Resource[_] => graph.resources.upsert(resource) //.map(_.asInstanceOf[Resource[V]])
         case _                     => graph.values.upsert(value, key.range.asInstanceOf[DataType[V]])
       }
       edge <- graph.edges.create(this, key.key, toResource)
-    } yield edge
+    } yield edge.asInstanceOf[Edge[T, V]]
   }
 
   def <--(key: String): PartialInEdge[T] =
@@ -339,7 +340,7 @@ trait Resource[+T] extends IriResource {
       implicit ev1: V <:!< ClassType[_]): Task[Edge[V, T]] = {
     for {
       toResource <- value match {
-        case resource: Resource[V] => graph.resources.upsert(resource)
+        case resource: Resource[_] => graph.resources.upsert(resource)
         case _ =>
           dt match {
             case dt: DataType[V] if dt.iri.nonEmpty =>
@@ -349,7 +350,7 @@ trait Resource[+T] extends IriResource {
           }
       }
       edge <- graph.edges.create(toResource, key, this)
-    } yield edge
+    } yield edge.asInstanceOf[Edge[V, T]]
   }
 
   def addIn[V <: ClassType[_]](key: Property, value: V): Task[Edge[Node, T]] = {

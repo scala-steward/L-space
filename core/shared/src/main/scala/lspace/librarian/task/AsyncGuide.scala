@@ -198,7 +198,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                     .map(value =>
                       librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
                 }
-            case list: List[Value[_]] =>
+            case list: List[Value[_] @unchecked] =>
               obs: Observable[Librarian[Any]] =>
                 obs.flatMap { librarian =>
                   Observable.fromIterable(list.map(value =>
@@ -310,7 +310,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                           })
                           .map { v =>
                             v.map {
-                              case Some(librarian: Librarian[Any]) =>
+                              case librarian: Librarian[Any] =>
                                 Some(librarian.get).map {
                                   case r: Resource[_] => r.value
                                   case v              => v
@@ -328,11 +328,15 @@ trait AsyncGuide extends LocalGuide[Observable] {
                           })
                           .map { v =>
                             v.map {
-                              case Some(librarian: Librarian[Any]) =>
+                              case Some(librarian: Librarian[Any] @unchecked) =>
                                 Some(librarian.get).map {
                                   case r: Resource[_] => r.value
                                   case v              => v
                                 }
+                              case None => None
+                              case t =>
+                                throw new Exception(
+                                  s"unexpected content, expected an Librarian! found ${t.getClass.getSimpleName}")
                             }
                           }))
               case Some(Last) =>
@@ -350,6 +354,10 @@ trait AsyncGuide extends LocalGuide[Observable] {
                                   case r: Resource[_] => r.value
                                   case v              => v
                                 }
+                              case None => None
+                              case t =>
+                                throw new Exception(
+                                  s"unexpected content, expected an Librarian! found ${t.getClass.getSimpleName}")
                             }
                           }))
               case _ =>
@@ -1188,7 +1196,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
 
     val nextStep = buildNextStep(steps, segments)
     val pObs = step.by.runtimeList.map {
-      case traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
+      case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
         traversalToF(traversal) -> collectContainers(traversal.steps).lastOption
     }
     val f =

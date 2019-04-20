@@ -196,7 +196,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                     .map(value =>
                       librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
                 }
-            case list: List[Value[_]] =>
+            case list: List[Value[_] @unchecked] =>
               obs: Stream[Librarian[Any]] =>
                 obs.flatMap { librarian =>
                   list.map(value =>
@@ -1053,7 +1053,7 @@ trait SyncGuide extends LocalGuide[Stream] {
     val nextStep = buildNextStep(steps, segments)
 
     val pObs = step.by.runtimeList.map {
-      case traversal: Traversal[ClassType[Any], ClassType[Any], HList] =>
+      case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
         traversalToF(traversal) -> traversal.steps.lastOption
     }
 

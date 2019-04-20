@@ -2,41 +2,46 @@ package lspace.encode
 
 import lspace.NS.types
 import lspace.codec.jsonld.Encoder
-import lspace.codec.{ActiveContext, ActiveProperty, NativeTypeEncoder}
+import lspace.codec.{ActiveContext, ActiveProperty, ContextedT, NativeTypeEncoder}
 import lspace.librarian.traversal.Collection
 import lspace.structure.{ClassType, Node}
 
 import scala.collection.immutable.ListMap
 
 trait EncodeJsonLD[A] extends Encode[A] {
-  def encode: A => String
+  def encode(implicit activeContext: ActiveContext): A => String
 }
 
 object EncodeJsonLD {
 
   import lspace.codec.JsonInProgress._
 
-  implicit def nodeToJsonLD[T <: Node](implicit encoder: Encoder, activeContext: ActiveContext) = new EncodeJsonLD[T] {
-    def encode = (node: T) => encoder(node)
+  implicit def contextedTToJsonLD[T](implicit en: EncodeJsonLD[T]) = new EncodeJsonLD[ContextedT[T]] {
+    def encode(implicit activeContext: ActiveContext) =
+      (ct: ContextedT[T]) => en.encode(activeContext ++ ct.activeContext)(ct.t)
   }
 
-  implicit def nodesToJsonLD[T <: Node](implicit encoder: Encoder, activeContext: ActiveContext) = {
+  implicit def nodeToJsonLD[T <: Node](implicit encoder: Encoder) = new EncodeJsonLD[T] {
+    def encode(implicit activeContext: ActiveContext) = (node: T) => encoder(node)(activeContext)
+  }
+
+  implicit def nodesToJsonLD[T <: Node](implicit encoder: Encoder) = {
     implicit val bd: NativeTypeEncoder.Aux[encoder.Json] =
       encoder.baseEncoder.asInstanceOf[NativeTypeEncoder.Aux[encoder.Json]]
     import encoder._
 
     new EncodeJsonLD[List[T]] {
-      def encode: List[T] => String =
+      def encode(implicit activeContext: ActiveContext): List[T] => String =
         (nodes: List[T]) => encoder.fromAny(nodes).withContext.noSpaces
     }
   }
 
-  implicit def collectionToJsonLD[T, CT <: ClassType[_]](implicit encoder: Encoder, activeContext: ActiveContext) =
+  implicit def collectionToJsonLD[T, CT <: ClassType[_]](implicit encoder: Encoder) =
     new EncodeJsonLD[Collection[T, CT]] {
 //      implicit val nte = encoder.baseEncoder
 //      import nte._
       import encoder._
-      def encode: Collection[T, CT] => String =
+      def encode(implicit activeContext: ActiveContext): Collection[T, CT] => String =
         (collection: Collection[T, CT]) => {
           val jip            = encoder.fromAny(collection.item, collection.ct)
           val (startIri, ac) = jip.activeContext.compactIri(Collection.keys.start.property)
@@ -64,13 +69,25 @@ object EncodeJsonLD {
     import encoder._
 
     new EncodeJsonLD[ActiveContext] {
-      def encode: ActiveContext => String =
+      def encode(implicit activeContext: ActiveContext): ActiveContext => String =
         (activeContext: ActiveContext) =>
           types.`@context` + ": " + encoder.fromActiveContext(activeContext).getOrElse("{}".asJson).noSpaces
     }
   }
 
   implicit val encodeJsonLDJson = new EncodeJsonLD[String] {
-    val encode = (json: String) => json
+    def encode(implicit activeContext: ActiveContext) = (json: String) => json
+  }
+  implicit val encodeBooleanJsonLD = new EncodeJsonLD[Boolean] {
+    def encode(implicit activeContext: ActiveContext) = (value: Boolean) => value.toString
+  }
+  implicit val encodeIntJsonLD = new EncodeJsonLD[Int] {
+    def encode(implicit activeContext: ActiveContext) = (value: Int) => value.toString
+  }
+  implicit val encodeDoubleJsonLD = new EncodeJsonLD[Double] {
+    def encode(implicit activeContext: ActiveContext) = (value: Double) => value.toString
+  }
+  implicit val encodeLongJsonLD = new EncodeJsonLD[Long] {
+    def encode(implicit activeContext: ActiveContext) = (value: Long) => value.toString
   }
 }

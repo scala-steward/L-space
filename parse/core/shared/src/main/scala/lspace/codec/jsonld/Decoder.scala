@@ -296,6 +296,7 @@ trait Decoder {
       .getOrElse(toObject(json, expectedType.toList).flatMap {
         case (classtype, resource: Resource[_]) => Task.now(resource)
         case (classtype: DataType[_], value)    => graph.values.create(value, classtype)
+        case (classtype, value)                 => Task.raiseError(new Exception("should not happen"))
       })
   }
 
@@ -661,7 +662,7 @@ trait Decoder {
       .map(v => ClassType.valueToOntologyResource(v) -> v)
       .map(Task.now)
       .map(_.flatMap {
-        case (dt: TextType[String], s: String) =>
+        case (dt: TextType[String] @unchecked, s: String) =>
           (for {
             iri <- json.string
             et  <- expectedType.collect { case ontology: Ontology => ontology }

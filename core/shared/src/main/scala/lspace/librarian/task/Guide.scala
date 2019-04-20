@@ -38,11 +38,11 @@ trait LocalGuide[F[_]] extends Guide[F] {
   def assistent: Assistent
 
   def toValue(v: Any): Any = v match {
-    case librarian: Librarian[Any] => toValue(librarian.get)
-    case Some(value)               => Some(toValue(value))
-    case resource: Resource[Any]   => resource.value
-    case it: Map[Any, Any]         => it.map(t => toValue(t._1) -> toValue(t._2))
-    case it: Iterable[Any]         => it.map(toValue)
+    case librarian: Librarian[_] => toValue(librarian.get)
+    case Some(value)             => Some(toValue(value))
+    case resource: Resource[_]   => resource.value
+    case it: Map[_, _]           => it.map(t => toValue(t._1) -> toValue(t._2))
+    case it: Iterable[_]         => it.map(toValue)
     case product: Product =>
       product match {
         case (v1, v2)                 => (toValue(v1), toValue(v2))
@@ -75,7 +75,6 @@ trait LocalGuide[F[_]] extends Guide[F] {
       case step: Group[_, _, _, _] => step
       case step: Project[_]        => step
       case step: MapStep           => step
-      case step: Path[_, _]        => step
       case step: Head              => step
       case step: Last              => step
       case step: Count             => step

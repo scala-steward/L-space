@@ -14,7 +14,10 @@ import scala.concurrent.duration.FiniteDuration
 
 object Property {
   lazy val ontology: Ontology =
-    Ontology(NS.types.`@property`, iris = Set(NS.types.`@property`, NS.types.rdfProperty))
+    Ontology(
+      NS.types.`@property`,
+      iris =
+        Set(NS.types.`@property`, NS.types.rdfProperty, "https://schema.org/Property", "http://schema.org/Property"))
   lazy val unknownProperty: Ontology =
     Ontology("@unknownProperty", iris = Set("@unknownProperty"), extendedClasses = () => List(ontology))
 

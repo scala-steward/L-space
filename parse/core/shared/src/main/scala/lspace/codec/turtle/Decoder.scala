@@ -20,7 +20,7 @@ import scala.util.Try
 case class Turtle(context: ActiveContext = ActiveContext(), statements: List[Statement] = List())
 
 case class Statement(subject: Identifier, predicates: Predicates)
-trait Object
+sealed trait Object
 case class Single(value: String)               extends Object
 case class Multi(values: List[Object])         extends Object
 case class Predicates(pv: List[(Iri, Object)]) extends Object
@@ -106,6 +106,7 @@ trait Decoder {
                     case (property, resource) => node --- property --> resource
                   })
                 } yield property -> node
+              case Multi(os) => Task.raiseError(new Exception("unexpected nested multi"))
             })
           case (p, predicates: Predicates) =>
             for {
@@ -213,8 +214,10 @@ trait Decoder {
                   wordsToPredicates(words) match {
                     case (predicates, words) => predicates.copy(pv = (pI -> nodePredicates) :: predicates.pv) -> words
                   }
+                case _ => throw new Exception("???")
               }
           }
+        case _ => throw new Exception("??")
       }
     }
 
@@ -230,6 +233,7 @@ trait Decoder {
             case (predicates, words) =>
               Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri], Single(o)) :: predicates.pv) -> words
           }
+        case _ => throw new Exception("??")
       }
     }
 
@@ -239,6 +243,7 @@ trait Decoder {
           val (oTail, tail) = wordsToObjects(words, predicate)
           oTail.copy(Single(o) :: oTail.values) -> tail
         case o :: ";" :: words => Multi(Single(o) :: Nil) -> (";" :: words)
+        case _                 => throw new Exception("??")
       }
     }
 

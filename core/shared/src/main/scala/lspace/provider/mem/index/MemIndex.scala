@@ -60,9 +60,9 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
   def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape] =
     Observable.fromIterable(data.toStream.filter { shape =>
       (shape.origin :: shape.edges.map(_.to).toList).zipAll(values, null, null).forall {
-        case (null, mpp) => false
-        case (e, null)   => false
-        case (e, List()) => true
+        case (null, mpp) if mpp != null => false
+        case (e, null) if e != null     => false
+        case (e, List())                => true
 //        case (e, mpp)    => mpp.forall(mpp => e.out(mpp._1).exists(v => mpp._2.forall(p => p.assert(v))))
       }
     }.toList)

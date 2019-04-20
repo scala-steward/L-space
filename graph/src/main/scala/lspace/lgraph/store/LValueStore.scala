@@ -179,31 +179,31 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           .map(Observable.fromIterable)
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Observable[graph._Value[V]]]
-      case value: Map[Any, Any] =>
+      case value: Map[Any, Any] @unchecked =>
         mapCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Observable[graph._Value[V]]]
-      case value: ListSet[Any] =>
+      case value: ListSet[Any] @unchecked =>
         listsetCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Observable[graph._Value[V]]]
-      case value: Set[Any] =>
+      case value: Set[Any] @unchecked =>
         setCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Observable[graph._Value[V]]]
-      case value: List[Any] =>
+      case value: List[Any] @unchecked =>
         listCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
           .getOrElse(graph.storeManager.valueByValue(value, dt))
           .asInstanceOf[Observable[graph._Value[V]]]
-      case value: Vector[Any] =>
+      case value: Vector[Any] @unchecked =>
         vectorCache
           .get(value)
           .map(Observable.fromIterable(_).filter(_.label == dt))
@@ -286,7 +286,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
             .asInstanceOf[String] -> (stringCache.getOrElse(value.value.asInstanceOf[String], Set()) + value
             .asInstanceOf[graph._Value[String]])
         }
-      case dt: BoolType[Boolean] =>
+      case dt: BoolType[_] =>
         boolCacheLock.synchronized {
           booleanCache += value.value
             .asInstanceOf[Boolean] -> (booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set()) + value
@@ -409,7 +409,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) stringCache -= value.value.asInstanceOf[String]
           else stringCache += value.value.asInstanceOf[String] -> (values - value.asInstanceOf[graph._Value[String]])
         }
-      case dt: BoolType[Boolean] =>
+      case dt: BoolType[_] =>
         boolCacheLock.synchronized {
           val values = booleanCache.getOrElse(value.value.asInstanceOf[Boolean], Set())
           if (values.exists(_ == value)) booleanCache -= value.value.asInstanceOf[Boolean]

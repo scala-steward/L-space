@@ -1,9 +1,9 @@
 package lspace.librarian.traversal
 
 import lspace.datatype._
-import lspace.librarian.logic.predicate.{Eqv, P}
+import lspace.librarian.logic.predicate.P
 import lspace.librarian.task._
-import lspace.librarian.traversal.Traversal.{keys, ontology}
+import lspace.librarian.traversal.Traversal.keys
 import lspace.structure.util.{ClassTypeable, Selector}
 import lspace.librarian.traversal.step.Order.Orderable
 import lspace.librarian.traversal.step.Select.Selection
@@ -13,27 +13,10 @@ import lspace.structure._
 import lspace.types.vector.Geometry
 import lspace.util.types.DefaultsToAny
 import monix.eval.{Coeval, Task}
-import monix.execution.CancelableFuture
-import monix.reactive.Observable
-import shapeless.{
-  ::,
-  <:!<,
-  =:!=,
-  HList,
-  HNil,
-  IsHCons1,
-  LUBConstraint,
-  Poly1,
-  Poly2,
-  Witness,
-  Id => _,
-  Path => _,
-  Select => _
-}
-import shapeless.ops.hlist.{Collect, IsHCons, Mapper, Prepend, Reverse, ToList, ToTraversable, Unifier}
+import shapeless.{::, <:!<, =:!=, HList, HNil, LUBConstraint, Poly1, Id => _, Path => _, Select => _}
+import shapeless.ops.hlist.{Collect, Prepend, Reverse}
 
 import scala.annotation.implicitNotFound
-import scala.collection.immutable.ListSet
 
 object Traversal
     extends OntologyDef(lspace.NS.vocab.Lspace.+("librarian/Traversal"), Set(), "Traversal", "A traversal .. ") {
@@ -1893,7 +1876,7 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
     this.copy(p1.apply(segments, traversal.segments))(st, traversal.et)
 
   override def equals(o: Any): Boolean = o match {
-    case traversal: Traversal[ClassType[_], ClassType[_], HList] => segmentList == traversal.segmentList
+    case traversal: Traversal[ClassType[_], ClassType[_], HList] @unchecked => segmentList == traversal.segmentList
   }
 
   lazy val toNode: Task[Node] = {

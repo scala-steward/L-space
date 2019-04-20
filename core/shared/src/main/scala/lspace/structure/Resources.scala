@@ -45,9 +45,9 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
           case edge: _Edge[_, _] => Task.now(edge)
           case edge: Edge[_, _] =>
             edges.upsert(edge).asInstanceOf[Task[Resource[V]]]
-          case value: _Value[V] =>
+          case value: _Value[_] =>
             Task.now(value)
-          case value: Value[V] =>
+          case value: Value[_] =>
             values.upsert(value).asInstanceOf[Task[Resource[V]]]
           case _ =>
             scribe.error(s"cannot upsert value with class ${value.getClass.toString}")

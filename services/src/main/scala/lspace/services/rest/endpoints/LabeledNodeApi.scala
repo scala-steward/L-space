@@ -5,7 +5,7 @@ import io.finch._
 import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
-import lspace.codec.{jsonld, ActiveContext, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.{jsonld, ActiveContext, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.decode.{DecodeJson, DecodeJsonLD}
 import lspace.encode.{EncodeJson, EncodeJsonLD}
 import lspace.provider.detached.DetachedGraph
@@ -26,7 +26,7 @@ class LabeledNodeApi(val ontology: Ontology,
                      forbiddenProperties: List[Property] = List())(implicit val graph: Graph,
                                                                    val baseDecoder: NativeTypeDecoder,
                                                                    val baseEncoder: NativeTypeEncoder,
-                                                                   activeContext: ActiveContext)
+                                                                   val activeContext: ActiveContext)
     extends Api {
 //  implicit val encoder = Encoder //todo Encode context per client-session
 //  implicit val decoder
@@ -70,12 +70,12 @@ class LabeledNodeApi(val ontology: Ontology,
   /**
     * GET /{id}
     */
-  def byId: Endpoint[IO, Node] = get(path[Long]).mapOutputAsync { id =>
-    idToNodeTask(id).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
+  def byId: Endpoint[IO, ContextedT[Node]] = get(path[Long]).mapOutputAsync { id =>
+    idToNodeTask(id).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
   }
 
-  def byIri: Endpoint[IO, Node] = get(path[String]).mapOutputAsync { (iri: String) =>
-    iriToNodeTask(iri).map(_.map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
+  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
+    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
   }
 
   /**
@@ -85,7 +85,7 @@ class LabeledNodeApi(val ontology: Ontology,
     g.N.hasLabel(ontology).withGraph(graph).toListF.map(Ok).toIO
   }
 
-  def create: Endpoint[IO, Node] = {
+  def create: Endpoint[IO, ContextedT[Node]] = {
     post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       nodeTask: Task[Node] =>
         nodeTask.flatMap { node =>
@@ -97,12 +97,13 @@ class LabeledNodeApi(val ontology: Ontology,
             _       <- Task.sequence(node.outE().map(e => newNode --- e.key --> e.to))
             _       <- t.commit()
             r       <- graph.nodes.hasId(newNode.id)
-          } yield Created(r.get)
+            out = ContextedT(r.get)
+          } yield Created(out)
         }.toIO //(catsEffect(global))
     }
   }
 
-  def replaceById: Endpoint[IO, Node] = {
+  def replaceById: Endpoint[IO, ContextedT[Node]] = {
     implicit val jsonldToNode = DecodeJsonLD
       .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
     implicit val jsonToNode = DecodeJson
@@ -122,14 +123,15 @@ class LabeledNodeApi(val ontology: Ontology,
               _ <- Task.sequence(node.outE().map(e => existingNode --- e.key --> e.to))
               _ <- t.commit()
               r <- graph.nodes.hasId(existingNode.id)
-            } yield Ok(r.get)
+              out = ContextedT(r.get)
+            } yield Ok(out)
           }
           .onErrorHandle(f => NotFound(new Exception("cannot PUT a resource which does not exist"))) //TODO: handle 'unexpected' multiple results
           .toIO
     }
   }
 
-  def updateById: Endpoint[IO, Node] = {
+  def updateById: Endpoint[IO, ContextedT[Node]] = {
     implicit val jsonldToNode = DecodeJsonLD
       .jsonldToNode(allowedProperties, forbiddenProperties)
     implicit val jsonToNode = DecodeJson
@@ -154,7 +156,8 @@ class LabeledNodeApi(val ontology: Ontology,
               _ <- Task.sequence(node.outE().map(e => existingNode --- e.key --> e.to))
               _ <- t.commit()
               r <- graph.nodes.hasId(existingNode.id)
-            } yield Ok(r.get)
+              out = ContextedT(r.get)
+            } yield Ok(out)
           }
           .onErrorHandle(f => NotFound(new Exception("cannot PATCH a resource which does not exist")))
           .toIO
@@ -175,7 +178,7 @@ class LabeledNodeApi(val ontology: Ontology,
     * GET /
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
-  def getByLibrarian: Endpoint[IO, List[Node]] = {
+  def getByLibrarian: Endpoint[IO, ContextedT[List[Node]]] = {
     get(body[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
@@ -184,6 +187,7 @@ class LabeledNodeApi(val ontology: Ontology,
             .toListF
             .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
             .map(_.toList)
+            .map(ContextedT(_))
             .map(Ok)
         }.toIO
     }
@@ -202,7 +206,7 @@ class LabeledNodeApi(val ontology: Ontology,
       create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
   def labeledApi = label :: api
 
-  def compiled = {
+  def compiled: Endpoint.Compiled[IO] = {
     type Json = baseEncoder.Json
     implicit val be: NativeTypeEncoder.Aux[Json] = baseEncoder.asInstanceOf[NativeTypeEncoder.Aux[Json]]
 

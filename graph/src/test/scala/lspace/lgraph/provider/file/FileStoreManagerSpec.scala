@@ -36,7 +36,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
             file.delete()
           }
         } catch {
-          case e => scribe.warn(e.getMessage)
+          case e: Throwable => scribe.warn(e.getMessage)
         }
       }
       deleteAll(directory)

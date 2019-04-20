@@ -142,9 +142,9 @@ trait ClassType[+T] extends IriResource {
   }
   def `@extends`(classType: ClassType[_]) = `extends`(classType)
 
-  @deprecated(s"migrate to properties(iri: String)")
-  def property(iri: String): Option[Property]    = properties(iri)
-  def `@property`(iri: String): Option[Property] = properties(iri)
+//  @deprecated(s"migrate to properties(iri: String)")
+//  def property(iri: String): Option[Property]    = properties(iri)
+//  def `@property`(iri: String): Option[Property] = properties(iri)
 
   protected var propertiesList
     : Coeval[Set[Property]] = Coeval.now(Set[Property]()).memoizeOnSuccess //_properties().toSet ++ extendedClasses.flatMap(_.properties)

@@ -117,26 +117,26 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                     datatype match {
                       case dataType: CollectionType[_] =>
                         dataType match {
-                          case dataType: ListSetType[Any] =>
+                          case dataType: ListSetType[_] =>
                             Seq(store(ListType(dataType.valueRange)).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
-                          case dataType: ListType[Any] =>
+                          case dataType: ListType[_] =>
                             Seq(store(ListType(dataType.valueRange)).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
-                          case dataType: MapType[Any, Any] =>
+                          case dataType: MapType[_, _] =>
                             Seq(
                               store(ListType(dataType.keyRange)).map(dt =>
                                 node.addOut(MapType.keys.keyRange, List(dt))),
                               store(ListType(dataType.valueRange)).map(dt =>
                                 node.addOut(CollectionType.keys.valueRange, List(dt)))
                             )
-                          case dataType: SetType[Any] =>
+                          case dataType: SetType[_] =>
                             Seq(store(ListType(dataType.valueRange)).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
-                          case dataType: VectorType[Any] =>
+                          case dataType: VectorType[_] =>
                             Seq(store(ListType(dataType.valueRange)).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
-                          case dataType: TupleType[Any] =>
+                          case dataType: TupleType[_] =>
                             Seq(Task
                               .gather(dataType.rangeTypes.map(range => Task.gather(range.map(classtypes.store(_)))))
                               .map { nodes =>

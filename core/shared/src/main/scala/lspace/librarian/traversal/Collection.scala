@@ -13,7 +13,7 @@ object Collection
                         comment = "Collection ..") {
 
   def wrap(node: Node): Collection[Any, ClassType[Any]] = node match {
-    case node: Collection[Any, ClassType[Any]] => node
+    case node: Collection[Any, ClassType[Any]] @unchecked => node
     case _ =>
       Collection[Any, ClassType[Any]](
         node.out(Collection.keys.startDateTime).head,

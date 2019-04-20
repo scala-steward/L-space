@@ -108,7 +108,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Ok
-            val node = response.value
+            val node = response.value.t
             node.out(person.keys.nameString).head shouldBe "Yoshio"
           }
           .getOrElse(fail("endpoint does not match"))
@@ -139,7 +139,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
             createdNode.out(person.keys.nameString).head shouldBe "Alice"
 
             personApiService
@@ -151,7 +151,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 output.isRight shouldBe true
                 val response = output.right.get
                 response.status shouldBe Status.Created
-                val node = response.value
+                val node = response.value.t
                 createdNode.iri should not be node.iri
                 node.out(person.keys.nameString).head shouldBe "Ali"
               }
@@ -175,7 +175,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
 
             personApiService
               .replaceById(Input
@@ -186,7 +186,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 output.isRight shouldBe true
                 val response = output.right.get
                 response.status shouldBe Status.Ok
-                val node = response.value
+                val node = response.value.t
                 createdNode.iri shouldBe node.iri
                 createdNode.id shouldBe node.id
                 node.out(person.keys.nameString).head shouldBe "Ali"
@@ -212,7 +212,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
 
             personApiService
               .updateById(Input
@@ -223,7 +223,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 output.isRight shouldBe true
                 val response = output.right.get
                 response.status shouldBe Status.Ok
-                val node = response.value
+                val node = response.value.t
                 createdNode.iri shouldBe node.iri
                 createdNode.out(person.keys.nameString).head shouldBe "Ali"
               }
@@ -246,7 +246,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
 
             personApiService
               .removeById(Input
@@ -278,7 +278,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
 
             personApiService
               .replaceById(
@@ -291,7 +291,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 output.isRight shouldBe true
                 val response = output.right.get
                 response.status shouldBe Status.Ok
-                val node = response.value
+                val node = response.value.t
                 createdNode.iri shouldBe node.iri
                 createdNode.id shouldBe node.id
                 node.out(person.keys.nameString).head shouldBe "Ali"
@@ -317,7 +317,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
 
             personApiService
               .updateById(Input
@@ -328,7 +328,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 output.isRight shouldBe true
                 val response = output.right.get
                 response.status shouldBe Status.Ok
-                val node = response.value
+                val node = response.value.t
                 createdNode.iri shouldBe node.iri
                 createdNode.out(person.keys.nameString).head shouldBe "Ali"
               }
@@ -351,7 +351,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Created
-            val createdNode = response.value
+            val createdNode = response.value.t
 
             personApiService
               .removeById(Input

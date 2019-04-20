@@ -1,8 +1,6 @@
 package lspace.librarian.logic.predicate
 
 import lspace.datatype.DataType
-import lspace.librarian.logic.predicate.P._
-import lspace.librarian.logic.predicate.{EqP, P, PredicateDef, PredicateWrapper, SeqP}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task

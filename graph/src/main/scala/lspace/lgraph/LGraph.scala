@@ -37,16 +37,16 @@ object LGraph {
 //      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
 
       override lazy val init: Task[Unit] =
-        Task
-          .sequence(
-            Seq(
-              ns.storeManager.init,
-              ns.index.storeManager.init,
-              storeManager.init,
-              index.storeManager.init
-            ))
-          .foreachL(f => Task.unit)
-          .memoizeOnSuccess
+        (for {
+          _ <- Task
+            .sequence(
+              Seq(
+                ns.storeManager.init,
+                ns.index.storeManager.init,
+                storeManager.init,
+                index.storeManager.init
+              ))
+        } yield ()) memoizeOnSuccess
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 
