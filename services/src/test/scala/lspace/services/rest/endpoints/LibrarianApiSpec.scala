@@ -109,7 +109,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
             .map { output =>
               //          if (output.isLeft) println(output.left.get.getMessage)
               output.status shouldBe Status.Ok
-              val collection = output.value
+              val collection = output.value.t
               collection.item shouldBe List(2)
             }
         }

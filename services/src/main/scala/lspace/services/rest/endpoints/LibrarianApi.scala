@@ -5,7 +5,7 @@ import java.time.Instant
 import cats.effect.IO
 import io.finch.{Application, Bootstrap, Endpoint, Ok}
 import lspace._
-import lspace.codec.{jsonld, ActiveContext, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.{jsonld, ActiveContext, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.librarian.traversal.Collection
 import lspace.provider.detached.DetachedGraph
 import lspace.services.LApplication
@@ -40,7 +40,7 @@ trait LibrarianApi extends ExecutionApi {
   import Implicits.AsyncGuide.guide
   import Implicits.Scheduler.global
 
-  def streamingQuery: Endpoint[IO, _root_.fs2.Stream[IO, Collection[Any, ClassType[Any]]]] = {
+  def streamingQuery: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = {
     import io.finch.internal.HttpContent
     import cats.effect._, _root_.fs2._
     import io.finch.fs2._
@@ -62,7 +62,7 @@ trait LibrarianApi extends ExecutionApi {
               .map { values =>
                 val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
                 collection.logger.debug("result count: " + values.size.toString)
-                collection
+                ContextedT(collection)
               }
               .toReactivePublisher
               .toStream[IO]()
@@ -71,7 +71,7 @@ trait LibrarianApi extends ExecutionApi {
           .toIO
     }
   }
-  def query: Endpoint[IO, Collection[Any, ClassType[Any]]] = {
+  def query: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
     post(
       "query" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
                       lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
@@ -84,7 +84,7 @@ trait LibrarianApi extends ExecutionApi {
             .map { values =>
               val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
               collection.logger.debug("result count: " + values.size.toString)
-              Ok(collection)
+              Ok(ContextedT(collection))
             }
         }.toIO
     }
