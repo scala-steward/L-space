@@ -34,6 +34,8 @@ position: 3
     * [Range](#range)
     * [Limit](#limit)
     * [Tail](#tail)
+    * [Head](#head)
+    * [Last](#last)
   * [Move steps](#move-steps)
     * [Out](#out)
     * [OutE](#oute)
@@ -41,11 +43,13 @@ position: 3
     * [InE](#ine)
     * [Label](#label)
     * [Id](#id)
+    * [Constant](#constant)
   * [Branche steps](#branche-steps)
     * [Union](#union)
     * [Local](#local)
     * [Repeat](#repeat)
     * [Coalesce](#coalesce)
+    * [Choose](#choose)
   * [Map steps](#map-steps)
     * [Path](#path)
     * [OutMap](#outmap)
@@ -210,6 +214,18 @@ Tail-step takes the last x-number of traversers
 ```tut:book
 g.N.tail(12).withGraph(graph).toList //takes only the last 12 nodes
 ```
+#### Head
+Head-step takes the first traverser
+```tut:book
+g.N.head.withGraph(graph).head //takes only the first node
+g.N.group(_.out("https://example.org/name").head).withGraph(graph).toList //
+```
+#### Last
+Last-step takes the last traverser
+```tut:book
+g.N.last.withGraph(graph).head //takes only the last 12 nodes
+g.N.group(_.out("https://example.org/name").last).withGraph(graph).toList //
+```
 ### Move steps
 Move steps lets the traverser move through the graph. The path can be stored within the traverer
 #### Out
@@ -241,6 +257,11 @@ g.N.label().withGraph(graph).toList
 Id-step returns the resource-id (long)
 ```tut:book
 g.N.id.withGraph(graph).toList
+```
+#### Constant
+Constant-step returns a traverser with the provided constant-value
+```tut:book
+g.N.constant(42).withGraph(graph).head
 ```
 ### Branche steps
 Branche steps can execute one or more separate traversals, execute those in a specific way and merges any results back into the original traversal
@@ -274,6 +295,11 @@ g.N.repeat(_.out("knows"), max = 3, collect = true).withGraph(graph).toList //re
 Coalesce-step takes one or more traversals and returns the result of the first non-empty traversal
 ```tut:book
 g.N.coalesce(_.has(keys.rate, P.gte(4)), _.has(keys.balance, P.lt(-200))).count.withGraph(graph).head //should be 3
+```
+#### Choose
+Choose-step takes a right or left traversal, right if the by-traversal is non-empty, left if it is empty.
+```tut:book
+g.N.choose(_.has(keys.rate, P.gte(4)), _.constant(true), _.constant(false)).withGraph(graph).toList //should be 3
 ```
 ### Map steps
 Map steps ...

@@ -541,7 +541,7 @@ trait SyncGuide extends LocalGuide[Stream] {
         val coalObs = step.traversals.map(traversalToF)
         obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            coalObs.map(t => Coeval.evalOnce(t(librarian))).find(_.value().nonEmpty).toList
+            coalObs.map(t => Coeval.evalOnce(t(librarian))).find(_.value().nonEmpty).map(_.value()).toList
           }
       case step: Choose[_, _] =>
         val byObs    = traversalToF(step.by)
