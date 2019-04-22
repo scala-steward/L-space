@@ -208,7 +208,8 @@ lazy val site = (project in file("site"))
   .settings(projectSettings)
   .settings(
     resourceGenerators in Compile += makeSettingsYml.taskValue,
-    makeMicrosite := (makeMicrosite dependsOn makeSettingsYml).value
+    makeMicrosite := (makeMicrosite dependsOn makeSettingsYml).value,
+    scalacOptions in Tut := compilerOptions
   )
   .settings(
     micrositeName := "L-space",

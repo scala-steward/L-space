@@ -135,7 +135,7 @@ Has-step validates the presence of a property and optionally asserts it by one o
 import java.time.LocalDate
 ```
 ```tut:book
-g.N.has("name").out("name").withGraph(graph).toList //filters on nodes which have an edge with property "https://example.org/name"
+g.N.has("name").out("name").withGraph(graph).toList //filters on nodes which have an edge with property "name"
 g.N.has("name", P.eqv("Garrison")).out("name").withGraph(graph).toList //adds an equality constraint with value "Alice"
 g.N.has(keys.birthDate, P.gt(LocalDate.parse("2002-06-13"))).id.withGraph(graph).toList
 ```
@@ -174,23 +174,23 @@ g.N.coin(0.8).id.withGraph(graph).toList //random selection of nodes with p = 0.
 #### Where
 Where-step takes a traversal and filters on non-empty results
 ```tut:book
-g.N.where(_.has("https://example.org/name")).out("https://example.org/name").withGraph(graph).toList
+g.N.where(_.has("name")).out("name").withGraph(graph).toList
 ```
 #### And
 And-step takes one or more traversals and filters only those which have non-empty results for all traversals
 ```tut:book
-g.N.and(_.has("https://example.org/name"), _.has("https://example.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
+g.N.and(_.has("name"), _.has("https://example.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
 g.N.and(_.has(keys.balance, P.gt(300)), _.has(keys.balance, P.lt(3000))).count.withGraph(graph).head //shouldBe 2
 ```
 #### Or
 Or-step takes one or more traversals and filters only those which have non-empty results for at least one traversal
 ```tut:book
-g.N.or(_.has("https://example.org/name"), _.has("https://example.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
+g.N.or(_.has("name"), _.has("https://example.org/birthDate")).out(keys.name, keys.birthDate).withGraph(graph).toList
 ```
 #### Not
 Not-step takes a traversal and filters on empty results
 ```tut:book
-g.N.not(_.has("https://example.org/name")).limit(2).id.withGraph(graph).toList
+g.N.not(_.has("name")).limit(2).id.withGraph(graph).toList
 ```
 #### Is
 Is-step asserts a value against one or more predicates
@@ -202,51 +202,51 @@ A clip step cuts the resulting stream of traversers.
 #### Range
 Range-step filters by a low-end and high-end index
 ```tut:book
-g.N.range(4, 16).withGraph(graph).toList //takes only node 4 until 16
+g.N.range(4, 16).iri.withGraph(graph).toList //takes only node 4 until 16
 ```
 #### Limit
 Limit-step takes the first x-number of traversers
 ```tut:book
-g.N.limit(12).withGraph(graph).toList //takes only the first 12 nodes
+g.N.limit(12).iri.withGraph(graph).toList //takes only the first 12 nodes
 ```
 #### Tail
 Tail-step takes the last x-number of traversers
 ```tut:book
-g.N.tail(12).withGraph(graph).toList //takes only the last 12 nodes
+g.N.tail(12).iri.withGraph(graph).toList //takes only the last 12 nodes
 ```
 #### Head
 Head-step takes the first traverser
 ```tut:book
-g.N.head.withGraph(graph).head //takes only the first node
-g.N.group(_.out("https://example.org/name").head).withGraph(graph).toList //
+g.N.head.iri.withGraph(graph).head //takes only the first node
+g.N.group(_.out("name").head).mapValues(_.iri).withGraph(graph).toList //
 ```
 #### Last
 Last-step takes the last traverser
 ```tut:book
-g.N.last.withGraph(graph).head //takes only the last 12 nodes
-g.N.group(_.out("https://example.org/name").last).withGraph(graph).toList //
+g.N.last.iri.withGraph(graph).head //takes only the last 12 nodes
+g.N.group(_.out("name").last).mapValues(_.iri).withGraph(graph).toList //
 ```
 ### Move steps
 Move steps lets the traverser move through the graph. The path can be stored within the traverer
 #### Out
 Out-step takes one or more property-labels and traverses along the valid outgoing paths if any
 ```tut:book
-g.N.out("https://example.org/name").withGraph(graph).toList
+g.N.out("name").withGraph(graph).toList
 ```
 #### OutE
 OutE-step takes one or more property-labels and traverses to the valid outgoing paths if any
 ```tut:book
-g.N.outE("https://example.org/name").withGraph(graph).toList
+g.N.outE("name").withGraph(graph).toList
 ```
 #### In
 In-step takes one or more property-labels and traverses along the valid incoming paths if any
 ```tut:book
-g.N.out("https://example.org/name").withGraph(graph).toList
+g.N.out("name").withGraph(graph).toList
 ```
 #### InE
 InE-step takes one or more property-labels and traverses to the valid incoming paths if any
 ```tut:book
-g.N.outE("https://example.org/name").withGraph(graph).toList
+g.N.outE("name").withGraph(graph).toList
 ```
 #### Label
 Label-step traverses to the label-nodes if any
@@ -294,12 +294,13 @@ g.N.repeat(_.out("knows"), max = 3, collect = true).withGraph(graph).toList //re
 #### Coalesce
 Coalesce-step takes one or more traversals and returns the result of the first non-empty traversal
 ```tut:book
-g.N.coalesce(_.has(keys.rate, P.gte(4)), _.has(keys.balance, P.lt(-200))).count.withGraph(graph).head //should be 3
+g.N.coalesce(_.has(keys.rate, P.gte(4)).iri, _.has(keys.balance, P.lt(-200)).iri).withGraph(graph).head
 ```
 #### Choose
 Choose-step takes a right or left traversal, right if the by-traversal is non-empty, left if it is empty.
 ```tut:book
-g.N.choose(_.has(keys.rate, P.gte(4)), _.constant(true), _.constant(false)).withGraph(graph).toList //should be 3
+g.N.choose(_.has(keys.rate, P.gte(4)), _.constant(true), _.constant(false)).withGraph(graph).toList 
+g.N.hasIri(graph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false)).withGraph(graph).head
 ```
 ### Map steps
 Map steps ...
@@ -333,8 +334,8 @@ Group-step groups the resultset into a ```Map[Key,List[Value]]``` where Key is t
 ```List[Value]``` is the list of values which have the same group-key. If the traversal has any succeeding steps after the Group-step, 
 the traversal will continue to operate with a traverser for each Value. 
 ```tut:book
-g.N.group(_.out("name")).withGraph(graph).head //groups only on nodes with a "name" and only takes the first result (head)
-g.N.group(_.out("name")).mapValues(_.group(_.out("age"))).withGraph(graph).head //can e.g. be a Map[String, List[Map[Int,List[Node]]]]
+g.N.group(_.out("name")).mapValues(_.iri).withGraph(graph).head //groups only on nodes with a "name" and only takes the first result (head)
+g.N.group(_.out("name")).mapValues(_.group(_.out("age")).mapValues(_.iri)).withGraph(graph).head //can e.g. be a Map[String, List[Map[Int,List[Node]]]]
 ```
 #### Reducing barrier steps
 Reducing barrier steps perform a fold task on all traverers in the stream resulting in a single traverser 

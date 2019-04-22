@@ -1,6 +1,6 @@
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 //addSbtPlugin("org.portable-scala" % "sbt-scala-native-crossproject" % "0.5.0")
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.26")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.27")
 //addSbtPlugin("org.scala-native" % "sbt-scala-native" % "0.3.8")
 //libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.0.0-M3"
 //addSbtPlugin("org.scala-sbt"  % "sbt-autoversion" % "1.0.0")
