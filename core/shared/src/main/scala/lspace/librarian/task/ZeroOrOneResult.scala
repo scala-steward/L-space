@@ -39,6 +39,7 @@ object ZeroOrOneResult {
     implicit object Min  extends IsZeroOrOne[step.Min]
     implicit object Max  extends IsZeroOrOne[step.Max]
     implicit object Mean extends IsZeroOrOne[step.Mean]
+    implicit object Sum  extends IsZeroOrOne[step.Sum]
   }
 }
 trait ZeroOrOneResult[+F[_], O[_], Out] extends OneResult[F, O, Out] {

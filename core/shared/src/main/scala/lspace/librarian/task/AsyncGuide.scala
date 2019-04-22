@@ -989,10 +989,10 @@ trait AsyncGuide extends LocalGuide[Observable] {
         obs: Observable[Librarian[Any]] =>
           obs
             .map(_.get)
-            .map {
-              case l: Librarian[Any] => l.get
-              case v                 => v
-            }
+//            .map {
+//              case l: Librarian[Any] => l.get
+//              case v                 => v
+//            }
             .map {
               case r: Resource[Any] => r.value
               case v                => v

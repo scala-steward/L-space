@@ -202,7 +202,6 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .map(_ shouldBe List(1, 1, 1, 1, 1, 1))
         .task
         .runToFuture
-
     }
     "N.coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200))).count" in {
       g.N
@@ -213,7 +212,16 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .map(_ shouldBe 3)
         .task
         .runToFuture
-
+    }
+    """g.N.coalesce(_.has(keys.rate, P.gte(4)).constant(1), _.constant(0)).sum.withGraph(graph).head""" in {
+      g.N
+        .coalesce(_.has(properties.rate, P.gte(4)).constant(1), _.constant(0))
+        .sum
+        .withGraph(sampleGraph)
+        .headF
+        .map(_ shouldBe 2)
+        .task
+        .runToFuture
     }
     """N.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))""" in {
       g.N

@@ -541,7 +541,12 @@ trait SyncGuide extends LocalGuide[Stream] {
         val coalObs = step.traversals.map(traversalToF)
         obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>
-            coalObs.map(t => Coeval.evalOnce(t(librarian))).find(_.value().nonEmpty).map(_.value()).toList
+            coalObs.toStream
+              .map(t => Coeval.evalOnce(t(librarian)))
+              .find(_.value().nonEmpty)
+              .map(_.value())
+              .toList
+              .flatten
           }
       case step: Choose[_, _] =>
         val byObs    = traversalToF(step.by)
@@ -849,10 +854,10 @@ trait SyncGuide extends LocalGuide[Stream] {
             createLibrarian(
               obs
                 .map(_.get)
-                .map {
-                  case l: Librarian[Any] => l.get
-                  case v                 => v
-                }
+//                .map {
+//                  case l: Librarian[Any] => l.get
+//                  case v                 => v
+//                }
                 .map {
                   case r: Resource[Any] => r.value
                   case v                => v

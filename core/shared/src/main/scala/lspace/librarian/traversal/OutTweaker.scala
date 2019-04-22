@@ -1,7 +1,7 @@
 package lspace.librarian.traversal
 
 import lspace.datatype.{CollectionType, ListType, MapType, TupleType}
-import lspace.librarian.traversal.step.{Count, Group, Head, Last, Max, Min, Project}
+import lspace.librarian.traversal.step.{Count, Group, Head, Last, Max, Mean, Min, Project, Sum}
 import lspace.structure.ClassType
 import shapeless.{::, <:!<, HList, HNil, Poly2}
 
@@ -63,6 +63,8 @@ object OutTweaker {
     implicit object last extends IsOptionEnd[Last]
     implicit object max  extends IsOptionEnd[Max]
     implicit object min  extends IsOptionEnd[Min]
+    implicit object mean extends IsOptionEnd[Mean]
+    implicit object sum  extends IsOptionEnd[Sum]
   }
   implicit def containersOption[End, ET[+Z] <: ClassType[Z], Container, Containers <: HList](
       implicit ev: IsOptionEnd[Container]) =

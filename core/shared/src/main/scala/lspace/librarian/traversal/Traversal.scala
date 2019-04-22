@@ -1,5 +1,7 @@
 package lspace.librarian.traversal
 
+import lspace.Label.D._
+import lspace.Label.P._
 import lspace.datatype._
 import lspace.librarian.logic.predicate.P
 import lspace.librarian.task._
@@ -1429,7 +1431,8 @@ object Traversal
                            Segments1 <: HList]
       extends BaseMod[Start, ST, End, ET, Steps, Segments, Segments1] {
 
-    def sum(): Traversal[ST[Start], ET[End], Segment[Sum :: Steps] :: Segments] = add(Sum)
+//    def sum(): Traversal[ST[Start], ET[End], Segment[Sum :: Steps] :: Segments] = add(Sum)
+    def sum(): Traversal[ST[Start], DoubleType[Double], Segment[Sum :: Steps] :: Segments] = add(Sum, st, `@double`)
     def max(): Traversal[ST[Start], ET[End], Segment[Max :: Steps] :: Segments] =
       add(Max(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]])))
     def min(): Traversal[ST[Start], ET[End], Segment[Min :: Steps] :: Segments] =

@@ -338,6 +338,15 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .map(_ shouldBe 3)
           .runToFuture
       }
+      """g.N.coalesce(_.has(keys.rate, P.gte(4)).constant(1), _.constant(0)).sum.withGraph(graph).head""" in {
+        g.N
+          .coalesce(_.has(properties.rate, P.gte(4)).constant(1), _.constant(0))
+          .sum()
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe 2)
+          .runToFuture
+      }
       """N.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/place/123")
