@@ -18,7 +18,7 @@ object AsyncGuide {
     val assistent: Assistent = _assistent
   }
 }
-
+//TODO: keep track of the end-type (needed for efficient calculations and assertions)
 trait AsyncGuide extends LocalGuide[Observable] {
 
   def buildTraversal[Out](
@@ -110,15 +110,16 @@ trait AsyncGuide extends LocalGuide[Observable] {
             projectStep(step, steps, nextSegments)
           case step: EnvironmentStep =>
             step match {
-              case step: TimeLimit =>
+              case step: TimeLimit => //todo
                 val nextStep = buildNextStep(steps, nextSegments)
                 import scala.concurrent.duration._
-                val f = (obs: Observable[Librarian[Any]]) =>
+                val f = (obs: Observable[Any]) =>
                   step.time match {
                     case Some(time) => obs.takeByTimespan(time.millis millis)
                     case None       => obs
                 }
-                f andThen nextStep
+//                f andThen nextStep
+                nextStep andThen f
             }
         }
     }
@@ -658,7 +659,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                 leftObs(librarian)
             }
           }
-      case step: Local =>
+      case step: Local[_, _] =>
         val traveralObservable = traversalToF(step.traversal)
         obs: Observable[Librarian[Any]] =>
           obs.flatMap { librarian =>

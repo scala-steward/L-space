@@ -9,7 +9,9 @@ import lspace.structure.{GraphFixtures, SampledGraph}
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 import lspace.types.vector.Point
 import lspace.util.SampleGraph
+import monix.eval.Task
 import monix.reactive.Observable
+import squants.time.Time
 
 import scala.language._
 
@@ -756,7 +758,18 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //        id == 0l shouldBe false
 //      }
 //
-////      "A TimeLimit-step" ignore {}
+      "g.N.timeLimit(Time.apply(20.millis)).count" in {
+        import scala.concurrent.duration._
+        g.N
+          .limit(1)
+          .local(_.timeLimit(Time(20.millis))
+            .repeat(_.out(), max = 20, collect = true))
+          .count
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ should be > 1l)
+          .runToFuture
+      }
 //
 //      "A limit-step" in {
 //        g.N.count.head should be > 2l

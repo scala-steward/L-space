@@ -158,7 +158,9 @@ class StepSpec extends AsyncWordSpec with Matchers {
   }
   "A Local-step" should {
     "be serializable" in {
-      testToNode(Local(lspace.g.out(lspace.Label.P.typed.createdonDateTime)))(Local.toStep)
+      testToNode(
+        Local(lspace.g.out(lspace.Label.P.typed.createdonDateTime))
+          .asInstanceOf[Local[ClassType[Any], ClassType[Any]]])(Local.toStep)
     }
   }
   "A Max-step" should {

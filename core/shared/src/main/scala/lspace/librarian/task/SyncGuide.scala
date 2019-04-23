@@ -109,8 +109,14 @@ trait SyncGuide extends LocalGuide[Stream] {
           case step: EnvironmentStep =>
             step match {
               case step: TimeLimit =>
-                val nextStep = buildNextStep(steps, nextSegments)
-                ((obs: Stream[Librarian[Any]]) => obs) andThen nextStep
+                val timeLimit =
+                  step.time.map(_.millis).getOrElse(throw new Exception("TimeLimit step without strict time"))
+                val timeLimitStamp = Instant.ofEpochMilli(Instant.now().toEpochMilli + timeLimit)
+                val nextStep       = buildNextStep(steps, nextSegments)
+//                ((obs: Stream[Librarian[Any]]) => obs) andThen nextStep
+                nextStep andThen { obs: Stream[Any] =>
+                  obs.takeWhile(l => timeLimitStamp.isAfter(Instant.now())) //TODO: investigate, does not look efficient (checking after each stream element)
+                }
             }
         }
     }
@@ -561,7 +567,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                 leftObs(librarian)
             }
           }
-      case step: Local =>
+      case step: Local[_, _] =>
         val traveralObservable = traversalToF(step.traversal)
         obs: Stream[Librarian[Any]] =>
           obs.flatMap { librarian =>

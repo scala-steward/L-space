@@ -6,9 +6,11 @@ import lspace.structure._
 import monix.eval.Task
 import shapeless.{HList, HNil}
 
-object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontology :: Nil) with StepWrapper[Local] {
+object Local
+    extends StepDef("Local", "A local-step ..", () => BranchStep.ontology :: Nil)
+    with StepWrapper[Local[ClassType[Any], ClassType[Any]]] {
 
-  def toStep(node: Node): Task[Local] =
+  def toStep(node: Node): Task[Local[ClassType[Any], ClassType[Any]]] =
     for {
       traversal <- node
         .out(keys.traversalTraversal)
@@ -36,7 +38,7 @@ object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontolo
     val traversalTraversal = keys.traversalTraversal
   }
 
-  implicit def toNode(local: Local): Task[Node] = {
+  implicit def toNode[S <: ClassType[_], E <: ClassType[_]](local: Local[S, E]): Task[Node] = {
     for {
       node      <- DetachedGraph.nodes.create(ontology)
       traversal <- local.traversal.toNode
@@ -46,7 +48,7 @@ object Local extends StepDef("Local", "A local-step ..", () => BranchStep.ontolo
 
 }
 
-case class Local(traversal: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]) extends BranchStep {
+case class Local[S <: ClassType[_], E <: ClassType[_]](traversal: Traversal[S, E, _ <: HList]) extends BranchStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "local(_." + traversal.toString + ")"

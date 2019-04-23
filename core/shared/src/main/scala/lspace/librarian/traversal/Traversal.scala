@@ -272,12 +272,6 @@ object Traversal
         implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
     protected def add[S <: ResourceStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
         implicit ev: S <:< ResourceStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
-
-    def id = add(Id, st, DataType.default.`@long`)
-
-    def iri =
-      add(Out(Set(Property.default.`@id`)), st, ClassType.stubAny).hasLabel[String]
-//        .add(HasLabel(List(DataType.default.`@string`)), st, DataType.default.`@string`)
   }
 
   trait TModHNil[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z]]
@@ -690,6 +684,12 @@ object Traversal
     def inE(f: (Property.default.type => Property), ff: (Property.default.type => Property)*) =
       add(InE((f :: ff.toList).map(_.apply(Property.default)).toSet), st, EdgeURLType.apply[Edge[Any, End]])
     def inE(key: Property*) = add(InE(key.toSet), st, EdgeURLType.apply[Edge[Any, End]])
+
+    def id = add(Id, st, DataType.default.`@long`)
+
+    def iri =
+      add(Out(Set(Property.default.`@id`)), st, ClassType.stubAny).hasLabel[String]
+    //        .add(HasLabel(List(DataType.default.`@string`)), st, DataType.default.`@string`)
   }
 
   implicit class WithGroupStepHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], KOut,
@@ -1184,7 +1184,7 @@ object Traversal
 
     def local[ET0 <: ClassType[_], Labels1 <: HList](
         traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, _ <: HList])
-      : Traversal[ST[Start], ET0, Segment[Local :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET0, Segment[Local[ET[End], ET0] :: Steps] :: Segments] = {
       val localTraversal = traversal(Traversal[ET[End], ET[End]](et, et))
       add(Local(localTraversal), st, localTraversal.et)
     }

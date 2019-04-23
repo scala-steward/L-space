@@ -383,3 +383,6 @@ Drop-step removes selected resources from the graph (Only for editable graphs)
 Environment steps adjust the context of the traversal
 #### TimeLimit
 TimeLimit-step limits the amount of time the rest of the traversal may take
+```tut:book
+g.N.timeLimit(squants.time.Time(20.millis)).withGraph(graph).toList
+```
