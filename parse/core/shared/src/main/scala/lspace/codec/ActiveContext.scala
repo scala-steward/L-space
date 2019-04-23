@@ -116,7 +116,8 @@ case class ActiveContext(`@prefix`: ListMap[String, String] = ListMap[String, St
       `@prefix` = `@prefix` ++ activeContext.`@prefix`,
       `@vocab` = `@vocab` ++ activeContext.`@vocab`,
       `@language` = `@language` ++ activeContext.`@language`,
-      `@base` = activeContext.`@base`.orElse(`@base`)
+      `@base` = activeContext.`@base`.orElse(`@base`),
+      definitions = definitions ++ activeContext.definitions
     )
 }
 
