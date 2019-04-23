@@ -71,7 +71,7 @@ object EncodeJsonLD {
     new EncodeJsonLD[ActiveContext] {
       def encode(implicit activeContext: ActiveContext): ActiveContext => String =
         (activeContext: ActiveContext) =>
-          types.`@context` + ": " + encoder
+          types.`@context`.asJson + ": " + encoder
             .fromActiveContext(activeContext)
             .getOrElse(Map[String, encoder.Json]().asJson)
             .noSpaces

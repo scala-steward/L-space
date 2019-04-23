@@ -16,7 +16,7 @@ abstract class EncodeJsonLDSpec(encoder: Encoder) extends WordSpec with Matchers
   "EncodeJsonLD" should {
     "encode an empty ActiveContext" in {
       val defaultContext = ActiveContext()
-      implicitly[EncodeJsonLD[ActiveContext]].encode(ActiveContext())(defaultContext) shouldBe """@context: {}"""
+      implicitly[EncodeJsonLD[ActiveContext]].encode(ActiveContext())(defaultContext) shouldBe """"@context": {}"""
     }
   }
 }
