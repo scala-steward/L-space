@@ -52,7 +52,7 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
         ac   = joip.activeContext
         _ = encoder.fromActiveContext(ac).map(_.noSpaces) shouldBe Some(
           """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/"}""")
-        _ = println(joip.withContext.noSpaces)
+//        _ = println(joip.withContext.noSpaces)
       } yield succeed).runToFuture
     }
   }

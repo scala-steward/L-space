@@ -30,29 +30,33 @@ object DecodeJsonLD {
                           allowedProperties: List[Property] = List(),
                           forbiddenProperties: List[Property] = List())(
       implicit decoder: Decoder,
-      activeContext: ActiveContext): DecodeJsonLD[Node] =
+      activeContext: ActiveContext): DecodeJsonLD[Node] = {
+    val filter = {
+      if (allowedProperties.nonEmpty) { node: Node =>
+        val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+        for {
+          fNode <- resultGraph.nodes.create()
+          _     <- Task.gatherUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
+        } yield fNode
+      } else if (forbiddenProperties.nonEmpty) { node: Node =>
+        val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+        for {
+          fNode <- resultGraph.nodes.create()
+          _ <- Task.gatherUnordered(
+            node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
+        } yield fNode
+      } else { node: Node =>
+        Task.now(node)
+      }
+    }
     new DecodeJsonLD[Node] {
       def decode =
         (json: String) =>
           decoder
             .stringToLabeledNode(json, label)
-            .flatMap { node =>
-              if (allowedProperties.nonEmpty) {
-                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                for {
-                  fNode <- resultGraph.nodes.create()
-                  _     <- Task.gatherUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
-                } yield fNode
-              } else if (forbiddenProperties.nonEmpty) {
-                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                for {
-                  fNode <- resultGraph.nodes.create()
-                  _ <- Task.gatherUnordered(
-                    node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
-                } yield fNode
-              } else Task.now(node)
-          }
+            .flatMap(filter)
     }
+  }
 
   /**
     *
@@ -66,15 +70,17 @@ object DecodeJsonLD {
   def bodyJsonldTyped[T](label: Ontology,
                          nodeToT: Node => T,
                          allowedProperties: List[Property] = List(),
-                         forbiddenProperties: List[Property] = List())(implicit decoder: Decoder,
-                                                                       activeContext: ActiveContext): DecodeJsonLD[T] =
+                         forbiddenProperties: List[Property] = List())(
+      implicit decoder: Decoder,
+      activeContext: ActiveContext): DecodeJsonLD[T] = {
+    val df = jsonldToLabeledNode(label, allowedProperties, forbiddenProperties)
     new DecodeJsonLD[T] {
       def decode =
         (json: String) =>
-          jsonldToLabeledNode(label, allowedProperties, forbiddenProperties)
-            .decode(json)
+          df.decode(json)
             .map(nodeToT(_))
     }
+  }
 
   /**
     *

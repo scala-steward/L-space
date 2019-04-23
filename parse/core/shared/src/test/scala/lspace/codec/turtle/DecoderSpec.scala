@@ -32,7 +32,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
           f.printStackTrace(); throw f
         }
         .flatMap { turtle =>
-          println(turtle)
+//          println(turtle)
           import decoder._
           turtle.process
         }

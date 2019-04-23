@@ -67,30 +67,33 @@ object DecodeJson {
     */
   def jsonToLabeledNode(label: Ontology,
                         allowedProperties: List[Property] = List(),
-                        forbiddenProperties: List[Property] = List())(implicit decoder: Decoder,
-                                                                      activeContext: ActiveContext): DecodeJson[Node] =
+                        forbiddenProperties: List[Property] = List())(
+      implicit decoder: Decoder,
+      activeContext: ActiveContext): DecodeJson[Node] = {
+    val filter = if (allowedProperties.nonEmpty) { node: Node =>
+      val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+      for {
+        fNode <- resultGraph.nodes.create()
+        _     <- Task.gatherUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
+      } yield fNode
+    } else if (forbiddenProperties.nonEmpty) { node: Node =>
+      val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
+      for {
+        fNode <- resultGraph.nodes.create()
+        _ <- Task.gatherUnordered(
+          node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
+      } yield fNode
+    } else { node: Node =>
+      Task.now(node)
+    }
     new DecodeJson[Node] {
       def decode =
         (json: String) =>
           decoder
             .stringToLabeledNode(json, label)
-            .flatMap { node =>
-              if (allowedProperties.nonEmpty) {
-                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                for {
-                  fNode <- resultGraph.nodes.create()
-                  _     <- Task.gatherUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
-                } yield fNode
-              } else if (forbiddenProperties.nonEmpty) {
-                val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
-                for {
-                  fNode <- resultGraph.nodes.create()
-                  _ <- Task.gatherUnordered(
-                    node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
-                } yield fNode
-              } else Task.now(node)
-          }
+            .flatMap(filter)
     }
+  }
 
   /**
     *
