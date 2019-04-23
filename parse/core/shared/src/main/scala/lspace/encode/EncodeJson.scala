@@ -60,10 +60,10 @@ object EncodeJson {
     new EncodeJson[ActiveContext] {
       def encode(implicit activeContext: ActiveContext): ActiveContext => String =
         (activeContext: ActiveContext) =>
-          types.`@context`.asJson + ": " + encoder
-            .fromActiveContext(activeContext)
-            .getOrElse(Map[String, encoder.Json]().asJson)
-            .noSpaces
+          Map(
+            types.`@context` -> encoder
+              .fromActiveContext(activeContext)
+              .getOrElse(Map[String, encoder.Json]().asJson)).asJson.noSpaces
     }
   }
 
