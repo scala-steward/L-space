@@ -44,7 +44,7 @@ trait Resource[+T] extends IriResource {
   }
 
   /**
-    * @ids are alternative (same-as) IRI/URI identifiers
+    * The @ids are alternative (same-as) IRI/URI identifiers
     * @return a Set[String] which has one or more values (it always includes `@id`)
     */
   def `@ids`: Set[String] = iris
@@ -117,7 +117,7 @@ trait Resource[+T] extends IriResource {
   def out(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Any] =
     out((f :: ff.toList).map(_.apply(Property.default)): _*)
 
-  /** Filters out-going resources by the provided [[Property*]]
+  /** Filters out-going resources by the provided [[Property]]
     *
     * @param key the [[Edge[_,_]]'s labels
     * @return List of unboxed values
@@ -140,7 +140,7 @@ trait Resource[+T] extends IriResource {
   def outE(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Edge[T, Any]] =
     outE((f :: ff.toList).map(_.apply(Property.default)): _*)
 
-  /** Filters out-going resources by the provided [[Property*]]
+  /** Filters out-going resources by the provided [[Property]]
     *
     * @param key the [[Edge]]'s labels
     * @return List[Edge[T, Any]]
@@ -172,7 +172,7 @@ trait Resource[+T] extends IriResource {
   def in(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Any] =
     in((f :: ff.toList).map(_.apply(Property.default)): _*)
 
-  /** Filters in-coming resources by the provided [[Property*]]
+  /** Filters in-coming resources by the provided [[Property]]
     *
     * @param key the [[Edge]]'s labels
     * @return List of unboxed values
@@ -196,7 +196,7 @@ trait Resource[+T] extends IriResource {
   def inE(f: (Property.default.type => Property), ff: (Property.default.type => Property)*): List[Edge[Any, T]] =
     inE((f :: ff.toList).map(_.apply(Property.default)): _*)
 
-  /** Filters in-coming resources by the provided [[Property*]]
+  /** Filters in-coming resources by the provided [[Property]]
     *
     * @param key the [[Edge]]'s labels
     * @return List[Edge[Any, T]]

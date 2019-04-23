@@ -12,7 +12,7 @@ trait IriResource {
   def iri: String
 
   /**
-    * @id is a IRI/URI identifier
+    * The @id is a IRI/URI identifier
     * @return a String which is empty if no @id is assigned, TODO: should this be an Option[String]?
     */
   def `@id` = iri
