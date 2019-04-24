@@ -110,7 +110,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
             projectStep(step, steps, nextSegments)
           case step: EnvironmentStep =>
             step match {
-              case step: TimeLimit => //todo
+              case step: TimeLimit => //todo, scan for other TimeLimit steps with time == None (cancels the nearest preceding time limit step)
                 val nextStep = buildNextStep(steps, nextSegments)
                 import scala.concurrent.duration._
                 val f = (obs: Observable[Any]) =>
