@@ -376,7 +376,6 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         .withHeaders("Accept" -> "application/ld+json")
 
       service(input.request).map { r =>
-        println(r.contentString)
         r.contentType shouldBe Some("application/ld+json")
         r.status shouldBe Status.Ok
       }
