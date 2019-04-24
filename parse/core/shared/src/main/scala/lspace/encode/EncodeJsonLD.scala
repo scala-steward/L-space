@@ -48,7 +48,7 @@ object EncodeJsonLD {
           val (endIri, ac2)  = ac.compactIri(Collection.keys.end.property)
           val context = ac2
             .copy(
-              definitions = jip.activeContext.definitions ++ Map(
+              definitions = jip.activeContext.definitions() ++ Map(
                 Collection.keys.start.property.iri -> ActiveProperty(`@type` = lspace.Label.D.`@datetime` :: Nil,
                                                                      property = Collection.keys.start.property),
                 Collection.keys.end.property.iri -> ActiveProperty(`@type` = lspace.Label.D.`@datetime` :: Nil,

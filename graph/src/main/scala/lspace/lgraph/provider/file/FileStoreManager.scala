@@ -193,7 +193,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
     Observable.fromIterator(Task(it)).mapParallelUnordered(20) { line =>
       baseDecoder.parse(line).onErrorHandle { f =>
         scribe.error("error parsing data: " + f.getMessage)
-        baseEncoder.encode("")
+        baseEncoder.jNull
       }
     }
   }
@@ -206,12 +206,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
         .parse(raw)
         .onErrorHandle { f =>
           scribe.error(f.getMessage + s" ${raw}")
-          encoder.textToJson("{}")
+          baseEncoder.jNull
         }
-        .flatMap { json =>
-          import decoder._
-          Map(lspace.NS.types.`@context` -> json).extractContext(ActiveContext())
-        }
+        .flatMap(decoder.contextProcessing.apply(ActiveContext(), _))
     } //TODO: parse remote context? List of contexts?
     else Task(ActiveContext())
   }
@@ -405,9 +402,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                                     } yield {
                                       id.long.get -> edge.id
                                     }
-                                  case _ => throw FromJsonException(s"expected an array of size 2")
+                                  case _ => Task.raiseError(FromJsonException(s"expected an array of size 2"))
                                 }
-                                .getOrElse(throw FromJsonException("array expected")))
+                                .getOrElse(Task.raiseError(FromJsonException("array expected"))))
                           case (property, fromLabels, List(dt2: DataType[_])) =>
                             Observable
                               .fromIterable(value.list.getOrElse(throw FromJsonException("array expected")))
@@ -417,13 +414,13 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                                     for {
                                       fromResource <- decoder
                                         .tryNodeRef(from)
-                                        .getOrElse(throw FromJsonException(s"cannot parse noderef ${from}"))
+                                        .getOrElse(Task.raiseError(FromJsonException(s"cannot parse noderef ${from}")))
                                       toResource <- decoder.toResource(to, Some(dt2))
                                       edge       <- fromResource --- property --> toResource
                                     } yield {
                                       id.long.get -> edge.id
                                     }
-                                  case _ => throw FromJsonException(s"expected an array of size 2")
+                                  case _ => Task.raiseError(FromJsonException(s"expected an array of size 2"))
                                 }
                                 .getOrElse(throw FromJsonException("array expected")))
                           case (property, List(dt1: DataType[_]), toLabels) =>
@@ -436,12 +433,12 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                                       fromResource <- decoder.toResource(from, Some(dt1))
                                       toResource <- decoder
                                         .tryNodeRef(to)
-                                        .getOrElse(throw FromJsonException("cannot parse noderef"))
+                                        .getOrElse(Task.raiseError(FromJsonException("cannot parse noderef")))
                                       edge <- fromResource --- property --> toResource
                                     } yield {
                                       id.long.get -> edge.id
                                     }
-                                  case _ => throw FromJsonException(s"expected an array of size 2")
+                                  case _ => Task.raiseError(FromJsonException(s"expected an array of size 2"))
                                 }
                                 .getOrElse(throw FromJsonException("array expected")))
                           case (property, fromLabels, toLabels) =>
@@ -453,17 +450,17 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                                     for {
                                       fromResource <- decoder
                                         .tryNodeRef(from)
-                                        .getOrElse(throw FromJsonException("cannot parse noderef"))
+                                        .getOrElse(Task.raiseError(FromJsonException("cannot parse noderef")))
                                       toResource <- decoder
                                         .tryNodeRef(to)
-                                        .getOrElse(throw FromJsonException("cannot parse noderef"))
+                                        .getOrElse(Task.raiseError(FromJsonException("cannot parse noderef")))
                                       edge <- fromResource --- property --> toResource
                                     } yield {
                                       id.long.get -> edge.id
                                     }
-                                  case _ => throw FromJsonException(s"expected an array of size 2")
+                                  case _ => Task.raiseError(FromJsonException(s"expected an array of size 2"))
                                 }
-                                .getOrElse(throw FromJsonException("array expected")))
+                                .getOrElse(Task.raiseError(FromJsonException("array expected"))))
                         }
                   }
                   .getOrElse(Observable.raiseError(FromJsonException("line should be a json-object")))
@@ -937,9 +934,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
           .flatMap { ac =>
             graphfiles.write.context.nodes.use { f =>
               Task {
-                f.println(ac.asJson
+                ac.asJson
                   .map(_.noSpaces)
-                  .getOrElse(""))
+                  .foreach(f.println)
               }
             }
           },
@@ -951,7 +948,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
           .flatMap { ac =>
             graphfiles.write.context.literalEdges.use { f =>
               Task {
-                f.println(ac.asJson.map(_.noSpaces).getOrElse(""))
+                ac.asJson
+                  .map(_.noSpaces)
+                  .foreach(f.println)
               }
             }
           },
@@ -963,7 +962,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
           .flatMap { ac =>
             graphfiles.write.context.structuredEdges.use { f =>
               Task {
-                f.println(ac.asJson.map(_.noSpaces).getOrElse(""))
+                ac.asJson
+                  .map(_.noSpaces)
+                  .foreach(f.println)
               }
             }
           },
@@ -975,7 +976,9 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
           .flatMap { ac =>
             graphfiles.write.context.structures.use { f =>
               Task {
-                f.println(ac.asJson.map(_.noSpaces).getOrElse(""))
+                ac.asJson
+                  .map(_.noSpaces)
+                  .foreach(f.println)
               }
             }
           }

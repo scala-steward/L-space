@@ -13,6 +13,7 @@ import lspace.structure._
 import lspace.types.string.{Blank, Iri}
 import lspace.types.vector.{Point, Polygon}
 import monix.eval.Task
+import monix.reactive.Observable
 
 import scala.collection.JavaConverters._
 import scala.collection.concurrent
@@ -104,14 +105,15 @@ trait Decoder {
       obj
         .get(types.`@context`)
         .map { json =>
-          if (json == null) Seq[Json]()
-          else
-            json.list
-              .map(_.toSeq)
-              .orElse(Some(Seq(json)))
-              .get
+          contextProcessing.apply(activeContext, json)
+//          if (json == null) Seq[Json]()
+//          else
+//            json.list
+//              .map(_.toSeq)
+//              .orElse(Some(Seq(json)))
+//              .get
         }
-        .map(_.foldLeft(Task.now(activeContext))(contextProcessing.apply))
+//        .map(_.foldLeft(Task.now(activeContext))(contextProcessing.apply))
         .getOrElse(Task.now(activeContext))
     }
   }
@@ -1574,9 +1576,13 @@ trait Decoder {
     fetchingInProgress.getOrElseUpdate(
       iri, {
         val eIri = if (iri.startsWith("https://schema.org")) iri.stripSuffix(".jsonld") + ".jsonld" else iri
-        if (iri.startsWith("https://schema.org")) {
+        if (!iri.contains("example.org") && !iri.contains("example.com")) {
           httpClient.application.ldjson
             .get(eIri)
+            .onErrorHandle { f =>
+              scribe.warn(f.getMessage)
+              s"""{"@id": "${iri}"}"""
+            }
 //            .executeOn(monix.execution.Scheduler.io())
             .timeout(5.second)
             .flatMap(parse)
@@ -1640,58 +1646,91 @@ trait Decoder {
         .getOrElse(Task.now(activeContext))
     }
 
-    val apply: (Task[ActiveContext], Json) => Task[ActiveContext] = {
-      (activeContextTask: Task[ActiveContext], json: Json) =>
-        json.string
-          .filter(_.nonEmpty)
-          .map(iri =>
-            fetch(iri).flatMap(json => Task.now(json)).flatMap { json =>
-              json.obj
-                .map(_.extractContext(ActiveContext()))
-                .getOrElse(Task.raiseError(FromJsonException("invalid remote context"))) //TODO parse types other than jsonld
-                .flatMap(ac => activeContextTask.map(_ ++ ac))
-          })
-          .orElse {
-            json.obj.map { obj =>
-              activeContextTask
-                .flatMap { implicit activeContext =>
-                  val expandedJson = obj.expand
-                  expandedJson
-                    .get(types.`@base`)
-                    .map(
-                      json =>
-                        json.string
-                          .map(iri => activeContext.expandIri(iri))
-                          .map(_.iri)
-                          .map(base => activeContext.copy(`@base` = Some(Some(base))))
-                          .map(Task.now)
-                          .getOrElse(Task.raiseError(FromJsonException(s"@base is not a string"))))
-                    .getOrElse(Task.now(activeContext))
-                    .flatMap(processBase(expandedJson)(_))
-                    //            .flatMap { activeContext =>
-                    //              obj.get(types.`@version`) map {
-                    //                case "1.1" => //set processing mode
-                    //                case _ => FromJsonException("invalid @version value")
-                    //              }
-                    //            }
-                    .flatMap(processVocab(expandedJson)(_))
-                    .flatMap(processLanguage(expandedJson)(_))
-                    .flatMap { activeContext =>
-                      val (prefixes, definitions) =
-                        (expandedJson - types.`@base` - types.`@vocab` - types.`@language` - types.xsdLanguage).obj
-                          .partition(_._2.string.isDefined)
+    def processRemoteContext(iri: String): Task[NamedActiveContext] = {
+      NamedActiveContext.get(iri).map(Task.now).getOrElse {
+        fetch(iri)
+          .flatMap(json => Task.now(json))
+          .flatMap { json =>
+            json.obj
+              .map(_.extractContext(ActiveContext()).map(NamedActiveContext(iri, _)))
+              .getOrElse(Task.raiseError(FromJsonException("invalid remote context"))) //TODO parse types other than jsonld
+          }
+          .map { namedActiveContext =>
+            NamedActiveContext.cache(namedActiveContext); namedActiveContext
+          }
+      }
+    }
+    def processLocalContext(obj: Map[String, Json])(implicit activeContext: ActiveContext): Task[ActiveContext] = {
+      val expandedJson = obj.expand(activeContext)
+      expandedJson
+        .get(types.`@base`)
+        .map(
+          json =>
+            json.string
+              .map(iri => activeContext.expandIri(iri))
+              .map(_.iri)
+              .map(base => activeContext.copy(`@base` = Some(Some(base))))
+              .map(Task.now)
+              .getOrElse(Task.raiseError(FromJsonException(s"@base is not a string"))))
+        .getOrElse(Task.now(activeContext))
+        .flatMap(processBase(expandedJson)(_))
+        //            .flatMap { activeContext =>
+        //              obj.get(types.`@version`) map {
+        //                case "1.1" => //set processing mode
+        //                case _ => FromJsonException("invalid @version value")
+        //              }
+        //            }
+        .flatMap(processVocab(expandedJson)(_))
+        .flatMap(processLanguage(expandedJson)(_))
+        .flatMap { activeContext =>
+          val (prefixes, definitions) =
+            (expandedJson - types.`@base` - types.`@vocab` - types.`@language` - types.xsdLanguage).obj
+              .partition(_._2.string.isDefined)
 
-                      for {
-                        ac  <- prefixes.foldLeft(Task.now(activeContext))(createTermDefinition.apply)
-                        ac2 <- definitions.foldLeft(Task.now(ac))(createTermDefinition.apply)
-                      } yield ac2
-                    }
+          for {
+            ac  <- prefixes.foldLeft(Task.now(activeContext))(createTermDefinition.apply)
+            ac2 <- definitions.foldLeft(Task.now(ac))(createTermDefinition.apply)
+          } yield ac2
+        }
+    }
+    val apply: (ActiveContext, Json) => Task[ActiveContext] = { (activeContext: ActiveContext, json: Json) =>
+      json.string
+        .filter(_.nonEmpty)
+        .map(processRemoteContext(_).map { remoteContext =>
+          activeContext.copy(remotes = activeContext.remotes ++ List(remoteContext))
+        })
+        .orElse(json.obj.map(processLocalContext(_)(activeContext)))
+        .orElse {
+          json.list
+            .map { list =>
+              val activeContextTask = list match {
+                case List(first, second, _*) if first.isNull => Task.now(ActiveContext())
+                case jsons                                   => Task.now(activeContext)
+              }
+              Observable
+                .fromIterable(list)
+                .foldLeftL(activeContextTask) {
+                  case (activeContextTask, json) =>
+                    json.string
+                      .map(processRemoteContext(_).flatMap { remoteContext =>
+                        activeContextTask.map(activeContext =>
+                          activeContext.copy(remotes = activeContext.remotes ++ List(remoteContext)))
+                      })
+                      .getOrElse {
+                        for {
+                          activeContext <- activeContextTask
+                          result <- json.obj
+                            .map(processLocalContext(_)(activeContext))
+                            .getOrElse(Task.raiseError(FromJsonException(s"cannot parse context $json")))
+                        } yield result
+                      }
                 }
+                .flatten
             }
-          }
-          .getOrElse {
-            Task.raiseError(FromJsonException("invalid local context"))
-          }
+        }
+        .getOrElse(if (json.isNull) Task.now(ActiveContext())
+        else Task.raiseError(FromJsonException(s"cannot parse context $json")))
+    //            Task.raiseError(FromJsonException("invalid local context"))
     }
   }
 
@@ -1767,7 +1806,7 @@ trait Decoder {
     def processContext(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[ActiveContext] = {
       obj
         .get(types.`@context`)
-        .map(contextProcessing.apply(Task.now(activeContext), _))
+        .map(contextProcessing.apply(activeContext, _))
         .getOrElse(Task.now(activeContext))
     }
 
@@ -1789,11 +1828,11 @@ trait Decoder {
                         .flatMap(
                           _.map(Task.now)
                             .map(_.map(property =>
-                              activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> key),
-                                                 definitions = activeContext.definitions + (expKey -> ActiveProperty(
+                              activeContext.copy(`@prefix` = activeContext.`@prefix`() + (expKey -> key),
+                                                 definitions = activeContext.definitions() + (expKey -> ActiveProperty(
                                                    property = property)))))
                             .getOrElse {
-                              Task.now(activeContext.copy(`@prefix` = activeContext.`@prefix` + (expKey -> key)))
+                              Task.now(activeContext.copy(`@prefix` = activeContext.`@prefix`() + (expKey -> key)))
                             }))
                   .orElse {
                     json.obj
@@ -1819,7 +1858,7 @@ trait Decoder {
                                 else Task.now(activeProperty)
                               }
                           }
-                          .map(ap => activeContext.copy(definitions = activeContext.definitions + (expKey -> ap)))
+                          .map(ap => activeContext.copy(definitions = activeContext.definitions() + (expKey -> ap)))
                       }
                   }
                   .getOrElse(Task.raiseError(FromJsonException(s"invalid term definition: $expKey")))

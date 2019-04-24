@@ -131,7 +131,7 @@ trait Encoder {
 //          })
       if (activeContext.definitions.get(key.iri).exists(_.`@type`.isEmpty)) {
         activeContext.copy(
-          definitions = activeContext.definitions + activeContext.definitions
+          definitions = activeContext.definitions() + activeContext.definitions
             .get(key.iri)
             .map(_.copy(`@type` = labelO.get :: Nil))
             .map(ap => key.iri -> ap)
@@ -621,7 +621,7 @@ trait Encoder {
       * maps property definitions to @context map of property definitions
       */
     val (newActiveContext, propertyDefinitions) =
-      context.definitions.foldLeft((context, ListMap[String, ListMap[String, Json]]())) {
+      context.definitions().foldLeft((context, ListMap[String, ListMap[String, Json]]())) {
         case ((activeContext, result), (key, activeProperty)) =>
           val (keyIri, newActiveContext) = activeContext.compactIri(activeProperty.property)
           List(
@@ -639,7 +639,7 @@ trait Encoder {
     /**
       * maps prefix mappings to json and adds any property definitions
       */
-    val prefixes = newActiveContext.`@prefix`.map {
+    val prefixes = newActiveContext.`@prefix`().map {
       case (prefix, iri) =>
         prefix -> propertyDefinitions
           .get(prefix)
@@ -649,9 +649,14 @@ trait Encoder {
           .map(_.asJson)
           .getOrElse(iri.asJson)
     }
-    prefixes ++ (propertyDefinitions.mapValues(_.asJson) -- prefixes.keys) match {
+    val localContext = prefixes ++ (propertyDefinitions.mapValues(_.asJson) -- prefixes.keys) match {
       case kv if kv.nonEmpty => Some(kv.asJson)
       case kv                => None
+    }
+    context.remotes.map(_.iri.asJson) ++ localContext.toList match {
+      case Nil        => None
+      case List(json) => Some(json)
+      case jsons      => Some(jsons.asJson)
     }
   }
 

@@ -148,7 +148,7 @@ trait Decoder {
         header.split(" ").toList match {
           case List(key, prefix, iri, ".") =>
             activeContext.copy(
-              `@prefix` = activeContext.`@prefix` + (prefix
+              `@prefix` = activeContext.`@prefix`() + (prefix
                 .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri))
           case other => throw new Exception(s"unexpected @prefix header ${other.mkString(" ")}")
         }
@@ -162,7 +162,7 @@ trait Decoder {
         header.split(" ").toList match {
           case List(key, prefix, iri) if key.toLowerCase == "prefix" =>
             activeContext.copy(
-              `@prefix` = activeContext.`@prefix` + (prefix
+              `@prefix` = activeContext.`@prefix`() + (prefix
                 .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri))
           case List(key, iri) if key.toLowerCase == "base" =>
             activeContext.copy(`@base` = Some(Some(activeContext.expandIri(iri.stripLtGt).iri)))

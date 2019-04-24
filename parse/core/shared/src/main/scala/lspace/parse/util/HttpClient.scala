@@ -28,12 +28,11 @@ trait HttpClient {
           .send()
           .flatMap { response =>
             response.body match {
-              case Right(r) => Task.now(r)
-              case Left(l)  => Task.raiseError(new Exception(s"Error-code $l: could not get resource $iri"))
+              case Right(r) =>
+                if (response.contentType.exists(_.contains(accept))) Task.now(r)
+                else Task.raiseError(new Exception(s"Unexpected content-type ${response.contentType}"))
+              case Left(l) => Task.raiseError(new Exception(s"Error-code $l: could not get resource $iri"))
             }
-          }
-          .onErrorHandle { f =>
-            f.printStackTrace(); s"""{"@id": "${iri}"}"""
           }
           .doOnFinish {
             case None =>

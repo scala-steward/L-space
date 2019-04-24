@@ -8,6 +8,7 @@ case class ActiveProperty(`@context`: ActiveContext = ActiveContext(),
                           `@reverse`: Boolean = false,
                           property: Property) {
 
+  //TODO: throw exception when property.iri != activeProperty.property.iri ???
   def ++(activeProperty: ActiveProperty): ActiveProperty =
     this.copy(
       `@context` = `@context` ++ activeProperty.`@context`,
