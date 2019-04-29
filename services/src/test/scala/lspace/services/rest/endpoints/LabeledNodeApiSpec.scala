@@ -86,6 +86,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       Task {
         val input = Input
           .get("/context")
+          .withHeaders("Accept" -> "application/ld+json")
         personApiService
           .context(input)
           .awaitOutput()
@@ -101,6 +102,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       Task {
         val input = Input
           .get("/123")
+          .withHeaders("Accept" -> "application/ld+json")
         personApiService
           .byId(input)
           .awaitOutput()
@@ -131,6 +133,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         input = Input
           .post("/")
           .withBody[LApplication.JsonLD](alice)
+          .withHeaders("Accept" -> "application/ld+json")
       } yield {
         personApiService
           .create(input)
@@ -143,9 +146,11 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             createdNode.out(person.keys.nameString).head shouldBe "Alice"
 
             personApiService
-              .create(Input
-                .post("/")
-                .withBody[LApplication.JsonLD](ali))
+              .create(
+                Input
+                  .post("/")
+                  .withBody[LApplication.JsonLD](ali)
+                  .withHeaders("Accept" -> "application/ld+json"))
               .awaitOutput()
               .map { output =>
                 output.isRight shouldBe true
@@ -169,7 +174,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .create(
             Input
               .post("/")
-              .withBody[LApplication.JsonLD](alice))
+              .withBody[LApplication.JsonLD](alice)
+              .withHeaders("Accept" -> "application/ld+json"))
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -178,9 +184,11 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             val createdNode = response.value.t
 
             personApiService
-              .replaceById(Input
-                .put(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-                .withBody[LApplication.JsonLD](ali))
+              .replaceById(
+                Input
+                  .put(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+                  .withBody[LApplication.JsonLD](ali)
+                  .withHeaders("Accept" -> "application/ld+json"))
               .awaitOutput()
               .map { output =>
                 output.isRight shouldBe true
@@ -206,7 +214,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .create(
             Input
               .post("/")
-              .withBody[LApplication.JsonLD](alice))
+              .withBody[LApplication.JsonLD](alice)
+              .withHeaders("Accept" -> "application/ld+json"))
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -215,9 +224,11 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             val createdNode = response.value.t
 
             personApiService
-              .updateById(Input
-                .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-                .withBody[LApplication.JsonLD](ali))
+              .updateById(
+                Input
+                  .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+                  .withBody[LApplication.JsonLD](ali)
+                  .withHeaders("Accept" -> "application/ld+json"))
               .awaitOutput()
               .map { output =>
                 output.isRight shouldBe true
@@ -240,7 +251,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .create(
             Input
               .post("/")
-              .withBody[LApplication.JsonLD](alice))
+              .withBody[LApplication.JsonLD](alice)
+              .withHeaders("Accept" -> "application/ld+json"))
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -311,7 +323,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .create(
             Input
               .post("/")
-              .withBody[LApplication.JsonLD](alice))
+              .withBody[LApplication.JsonLD](alice)
+              .withHeaders("Accept" -> "application/ld+json"))
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -320,9 +333,11 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             val createdNode = response.value.t
 
             personApiService
-              .updateById(Input
-                .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-                .withBody[LApplication.JsonLD](ali))
+              .updateById(
+                Input
+                  .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+                  .withBody[LApplication.JsonLD](ali)
+                  .withHeaders("Accept" -> "application/ld+json"))
               .awaitOutput()
               .map { output =>
                 output.isRight shouldBe true
@@ -345,7 +360,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .create(
             Input
               .post("/")
-              .withBody[LApplication.JsonLD](alice))
+              .withBody[LApplication.JsonLD](alice)
+              .withHeaders("Accept" -> "application/ld+json"))
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -386,6 +402,15 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         .withHeaders("Accept" -> "application/json")
       service(input.request).map { r =>
         r.contentType shouldBe Some("application/json")
+        r.status shouldBe Status.Ok
+      }
+    }
+    "support GET with application/ld+json" in {
+      val input = Input
+        .get("/")
+        .withHeaders("Accept" -> "application/ld+json")
+      service(input.request).map { r =>
+        r.contentType shouldBe Some("application/ld+json")
         r.status shouldBe Status.Ok
       }
     }

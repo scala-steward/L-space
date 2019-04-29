@@ -81,8 +81,8 @@ class LabeledNodeApi(val ontology: Ontology,
   /**
     * GET /
     */
-  def list: Endpoint[IO, List[Node]] = get(zero).mapOutputAsync { hn =>
-    g.N.hasLabel(ontology).withGraph(graph).toListF.map(Ok).toIO
+  def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
+    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
   }
 
   def create: Endpoint[IO, ContextedT[Node]] = {
