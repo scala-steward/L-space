@@ -1,6 +1,6 @@
 package lspace.structure
 
-import lspace.NS.types
+import lspace._
 import lspace.datatype.{DataType, VectorType}
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 import lspace.util.SampleGraph

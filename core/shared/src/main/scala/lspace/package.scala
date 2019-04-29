@@ -84,4 +84,5 @@ package object lspace {
   implicit class WithTaskResource[T](value: Task[Resource[T]])         extends ResourceTask[T, Resource](value)
   implicit class WithTaskResourceOption[T](value: Task[Option[Resource[T]]])
       extends ResourceOptionTask[T, Resource](value)
+
 }
