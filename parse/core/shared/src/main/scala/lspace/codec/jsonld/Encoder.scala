@@ -63,14 +63,17 @@ trait Encoder {
     lazy val compact: String = activeContext.compactIri(iri)
   }
 
-  def fromNode(node: Node)(implicit activeContext: ActiveContext): JOIP = {
+  def fromNode(node: Node, expectedTypes: Set[ClassType[_]] = Set())(implicit activeContext: ActiveContext): JOIP = {
     node match {
       case node: Node if node.labels.contains(DataType.ontology) =>
-        fromDataType(DataType.datatypes.get(node.iri).get) //(DataType.build(node))
+        if (node.labels.toSet == expectedTypes) JsonObjectInProgress(List(types.`@id` -> node.iri.asJson))
+        else fromDataType(DataType.datatypes.get(node.iri).get) //(DataType.build(node))
       case node: Node if node.labels.contains(Property.ontology) =>
-        fromProperty(Property.properties.get(node.iri).get) //(Property.build(node))
+        if (node.labels.toSet == expectedTypes) JsonObjectInProgress(List(types.`@id` -> node.iri.asJson))
+        else fromProperty(Property.properties.get(node.iri).get) //(Property.build(node))
       case node: Node if node.labels.contains(Ontology.ontology) =>
-        fromOntology(Ontology.ontologies.get(node.iri).get) //(Ontology.build(node))
+        if (node.labels.toSet == expectedTypes) JsonObjectInProgress(List(types.`@id` -> node.iri.asJson))
+        else fromOntology(Ontology.ontologies.get(node.iri).get) //(Ontology.build(node))
       case nodeResource =>
         nodeResource.labels.foldLeft(List[Json]() -> activeContext) {
           case ((iris, activeContext), tpe) =>
@@ -81,7 +84,7 @@ trait Encoder {
             val iri = nodeResource.iri
             //                if (nodeResource.iri.nonEmpty) nodeResource.iri
             //                else nodeResource.graph.iri + "/" + nodeResource.id
-            val (edges, newAc) = addEdges(nodeResource)(activeContext)
+            lazy val (edges, newAc) = addEdges(nodeResource)(activeContext)
             JsonObjectInProgress[Json](
               List[(String, Json)]() ++ List(iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)) ++ List({
                 val iris = nodeResource.iris
@@ -90,10 +93,13 @@ trait Encoder {
                   List(types.`@ids` -> (nodeResource.iris.toList.map(textToJson).asJson))
                 else List()
               }: _*) ++ {
-                if (typeIris.lengthCompare(1) == 0) Seq(types.`@type` -> typeIris.head)
-                else if (typeIris.nonEmpty) Seq(types.`@type` -> (typeIris.asJson))
-                else List()
-              } ++ edges)(newAc)
+                if (node.labels.toSet != expectedTypes) {
+                  if (typeIris.lengthCompare(1) == 0) Seq(types.`@type` -> typeIris.head)
+                  else if (typeIris.nonEmpty) Seq(types.`@type` -> (typeIris.asJson))
+                  else List()
+                } else List()
+              } ++ edges
+            )(newAc)
         }
     }
   }
@@ -423,7 +429,7 @@ trait Encoder {
                   JsonInProgress(Map(types.`@id` -> node.iri.asJson).asJson)(activeContext)
               }
             } else {
-              val joip = fromNode(node)
+              val joip = fromNode(node, expectedType.toSet)
               JsonInProgress((ListMap[String, Json]() ++ joip.json).asJson)(joip.activeContext)
             }
           case edge: Edge[_, _] =>
