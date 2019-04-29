@@ -160,7 +160,7 @@ object Ontology {
     }
   }
 
-  def apply(iri: String): Ontology = Ontology.ontologies.getOrCreate(iri, Set())
+  implicit def apply(iri: String): Ontology = Ontology.ontologies.getOrCreate(iri, Set())
 }
 
 /**

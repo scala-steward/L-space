@@ -412,7 +412,7 @@ object Property {
     }
   }
 
-  def apply(iri: String): Property                    = Property.properties.getOrCreate(iri, Set())
+  implicit def apply(iri: String): Property           = Property.properties.getOrCreate(iri, Set())
   def apply(iri: String, iris: Set[String]): Property = Property.properties.getOrCreate(iri, iris)
 }
 
