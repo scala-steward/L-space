@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Changelog
-position: 4
+position: 5
 ---
 
 # Changelog
