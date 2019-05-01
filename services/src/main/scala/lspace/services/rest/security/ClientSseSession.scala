@@ -14,11 +14,13 @@ object ClientSseSession {
             expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant)
     : Task[ClientSseSession] = {
     for {
-      node <- DetachedGraph.nodes.create(ClientSession.ontology)
-      _    <- node.addOut(Label.P.typed.iriUrlString, iri)
-      _    <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
-      _    <- node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, client)
-    } yield new ClientSseSession(new ClientSession(node) {})
+      node          <- DetachedGraph.nodes.create(ClientSession.ontology)
+      _             <- node.addOut(Label.P.typed.iriUrlString, iri)
+      _             <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      clientNode    <- client.toNode
+      _             <- node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, clientNode)
+      clientSession <- ClientSession.toClientSession(node)
+    } yield new ClientSseSession(clientSession)
   }
 }
 

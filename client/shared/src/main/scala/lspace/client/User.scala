@@ -8,23 +8,9 @@ import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import lspace.structure.Property.default._
 import lspace.structure.OntologyDef
-import monix.eval.Task
+import monix.eval.{Coeval, Task}
 
 object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", "User of something") {
-
-  def apply(iri: String, role: Set[Role], manager: Set[User]): Task[User] = {
-    for {
-      node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(typed.iriUrlString, iri)
-      _    <- Task.gatherUnordered(role.map(role => node.addOut(keys.`lspace:User/role@Role`, role)))
-      _    <- Task.gatherUnordered(manager.map(manager => node.addOut(keys.`lspace:User/manager@User`, manager)))
-    } yield new User(node)
-  }
-
-  def wrap(node: Node): User = node match {
-    case node: User => node
-    case _          => User(node)
-  }
 
   object keys {
     object `lspace:User/role`
@@ -81,9 +67,95 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
     lazy val `lspace:User/status`: Property                     = keys.`lspace:User/status`
     lazy val `lspace/User/status@String`: TypedProperty[String] = keys.`lspace/User/status@String`
   }
+
+  def apply(iri: String, role: Set[Role], manager: Set[User]): User = {
+    val iri0     = iri
+    val role0    = role
+    val manager0 = manager
+    new User {
+      val iri = iri0
+      role ++ role0
+      manager ++ manager0
+    }
+  }
+
+  implicit def toNode(user: User): Task[Node] =
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(typed.iriUrlString, user.iri)
+      _ <- Task.gatherUnordered(
+        user
+          .role()
+          .map(role =>
+            DetachedGraph.nodes.upsert(role.iri).flatMap(role => node.addOut(keys.`lspace:User/role@Role`, role))))
+      _ <- Task.gatherUnordered(
+        user
+          .manager()
+          .map(
+            manager =>
+              DetachedGraph.nodes
+                .upsert(manager.iri)
+                .flatMap(manager => node.addOut(keys.`lspace:User/manager@User`, manager))))
+    } yield node
+  def toUser(node: Node): Task[User] =
+    for {
+      user <- Task.now(new User {
+        val iri = node.iri
+      })
+      _ <- for {
+        roles0    <- Task.gather(node.out(Client.keys.`lspace:Client/role@Role`).map(Role.toRole)).map(_.toSet)
+        managers0 <- Task.gather(node.out(Client.keys.`lspace:Client/manager@User`).map(User.toUser)).map(_.toSet)
+      } yield {
+        user.role ++ roles0
+        user.manager ++ managers0
+      }
+    } yield user
 }
 
-case class User private (node: Node) extends WrappedNode(node) {
-  def role: Set[Role]    = out(User.keys.`lspace:User/role@Role`).map(Role.wrap).toSet
-  def manager: Set[User] = out(User.keys.`lspace:User/manager@User`).map(User.wrap).toSet
+trait User extends IriResource {
+  implicit def toNode: Task[Node] = this
+
+  protected var rolesList: Coeval[Set[Role]] = Coeval.now(Set[Role]()).memoizeOnSuccess
+  object role {
+    def apply(): Set[Role]               = rolesList()
+    def apply(iri: String): Option[Role] = rolesList().find(_.iri == iri)
+    def +(role: Role): this.type = this.synchronized {
+      rolesList = rolesList.map(_ + role).memoizeOnSuccess
+      this
+    }
+    def ++(roles: Iterable[Role]): this.type = this.synchronized {
+      rolesList = rolesList.map(_ ++ roles).memoizeOnSuccess
+      this
+    }
+    def -(role: Role): this.type = this.synchronized {
+      rolesList = rolesList.map(_ - role).memoizeOnSuccess
+      this
+    }
+    def --(roles: Iterable[Role]): this.type = this.synchronized {
+      rolesList = rolesList.map(_ -- roles).memoizeOnSuccess
+      this
+    }
+  }
+
+  protected var managersList: Coeval[Set[User]] = Coeval.now(Set[User]()).memoizeOnSuccess
+  object manager {
+    def apply(): Set[User]               = managersList()
+    def apply(iri: String): Option[User] = managersList().find(_.iri == iri)
+    def +(manager: User): this.type = this.synchronized {
+      managersList = managersList.map(_ + manager).memoizeOnSuccess
+      this
+    }
+    def ++(managers: Iterable[User]): this.type = this.synchronized {
+      managersList = managersList.map(_ ++ managers).memoizeOnSuccess
+      this
+    }
+    def -(manager: User): this.type = this.synchronized {
+      managersList = managersList.map(_ - manager).memoizeOnSuccess
+      this
+    }
+    def --(managers: Iterable[User]): this.type = this.synchronized {
+      managersList = managersList.map(_ -- managers).memoizeOnSuccess
+      this
+    }
+  }
 }

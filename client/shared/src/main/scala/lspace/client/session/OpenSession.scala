@@ -20,20 +20,6 @@ object OpenSession
       () => Session.ontology :: Nil
     ) {
 
-  def apply(iri: String, expiration: Instant, startTime: Instant): Task[OpenSession] = {
-    for {
-      node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(Property.default.typed.iriUrlString, iri)
-      _    <- node.addOut(keys.`lspace:OpenSession/expiration@Instant`, expiration)
-      _    <- node.addOut(keys.`lspace:OpenSession/startTime@Instant`, startTime)
-    } yield new OpenSession(node) {}
-  }
-
-  def wrap(node: Node): OpenSession = node match {
-    case node: OpenSession => node
-    case _                 => new OpenSession(node) {}
-  }
-
   object keys extends Session.Properties {
     object `lspace:OpenSession/expiration`
         extends PropertyDef(
@@ -78,14 +64,55 @@ object OpenSession
     lazy val `lspace:OpenSession/endTime`: Property                     = keys.`lspace:OpenSession/endTime`
     lazy val `lspace:OpenSession/endTime@Instant`: TypedKey[Instant]    = keys.`lspace:OpenSession/endTime@Instant`
   }
+
+  def apply(iri: String, expiration: Instant, startTime: Instant, endTime: Option[Instant] = None): OpenSession = {
+    val iri0        = iri
+    val expiration0 = expiration
+    val startTime0  = startTime
+    val endTime0    = endTime
+    new OpenSession {
+      def iri: String              = iri0
+      def expiration: Instant      = expiration0
+      def startTime: Instant       = startTime0
+      def endTime: Option[Instant] = endTime0
+    }
+  }
+
+  implicit def toNode(session: OpenSession): Task[Node] = {
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(Property.default.typed.iriUrlString, session.iri)
+      _    <- node.addOut(keys.`lspace:OpenSession/expiration@Instant`, session.expiration)
+      _    <- node.addOut(keys.`lspace:OpenSession/startTime@Instant`, session.startTime)
+      _    <- session.endTime.map(node.addOut(keys.`lspace:OpenSession/endTime@Instant`, _)).getOrElse(Task.unit)
+    } yield node
+  }
+
+  def toOpenSession(node: Node): Task[OpenSession] = Task {
+    val expiration0: Instant =
+      node
+        .out(OpenSession.keys.`lspace:OpenSession/expiration@Instant`)
+        .headOption
+        .getOrElse(throw new Exception("no expiration date"))
+    val startTime0: Instant =
+      node
+        .out(OpenSession.keys.`lspace:OpenSession/startTime@Instant`)
+        .headOption
+        .getOrElse(throw new Exception("no startTime date"))
+    val endTime0: Option[Instant] = node.out(OpenSession.keys.`lspace:OpenSession/endTime@Instant`).headOption
+    new OpenSession {
+      val iri        = node.iri
+      def expiration = expiration0
+      def startTime  = startTime0
+      def endTime    = endTime0
+    }
+  }
 }
 
-abstract class OpenSession(node: Node) extends WrappedNode(node) with Session {
-  def expiration: Instant =
-    out(OpenSession.keys.`lspace:OpenSession/expiration@Instant`).headOption
-      .getOrElse(throw new Exception("no expiration date"))
-  def startTime: Instant =
-    out(OpenSession.keys.`lspace:OpenSession/startTime@Instant`).headOption
-      .getOrElse(throw new Exception("no startTime date"))
-  def endTime: Option[Instant] = out(OpenSession.keys.`lspace:OpenSession/endTime@Instant`).headOption
+trait OpenSession extends Session {
+  implicit def toNode: Task[Node] = this
+
+  def expiration: Instant
+  def startTime: Instant
+  def endTime: Option[Instant]
 }

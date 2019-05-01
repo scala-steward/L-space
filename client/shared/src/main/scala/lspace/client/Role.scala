@@ -10,25 +10,15 @@ import monix.eval.Task
 
 object Role extends OntologyDef(lspace.NS.vocab.Lspace + "Role", Set(), "Role", "A role ..") {
 
-  //TODO: test implicit graph helper-functions
-  implicit class WithGraph(graph: Graph) {
-    def newRole(iri: String): Task[Role] = {
-      for {
-        node <- graph.nodes.create(ontology)
-        _    <- node.addOut(typed.iriUrlString, iri)
-      } yield new Role(node)
-    }
-  }
-  def apply(iri: String): Task[Role] = {
-    for {
-      node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(typed.iriUrlString, iri)
-    } yield new Role(node)
-  }
-  def wrap(node: Node): Role = node match {
-    case node: Role => node
-    case _          => Role(node)
-  }
+//  //TODO: test implicit graph helper-functions
+//  implicit class WithGraph(graph: Graph) {
+//    def newRole(iri: String): Task[Role] = {
+//      for {
+//        node <- graph.nodes.create(ontology)
+//        _    <- node.addOut(typed.iriUrlString, iri)
+//      } yield new Role(node)
+//    }
+//  }
 
   object keys {
     object `schema:name`
@@ -42,6 +32,26 @@ object Role extends OntologyDef(lspace.NS.vocab.Lspace + "Role", Set(), "Role", 
     val `schema:name`: Property = keys.`schema:name`
     val `schema:name@String`    = keys.`schema:name@String`
   }
+
+  def apply(iri: String): Role = {
+    val iri0 = iri
+    new Role {
+      val iri = iri0
+    }
+  }
+  def toRole(node: Node): Task[Role] = Task.now {
+    new Role {
+      val iri = node.iri
+    }
+  }
+  implicit def toNode(role: Role): Task[Node] =
+    for {
+      node <- DetachedGraph.nodes.create(ontology)
+      _    <- node.addOut(typed.iriUrlString, role.iri)
+    } yield node
+
 }
 
-case class Role private (override val value: Node) extends WrappedNode(value) {}
+trait Role extends IriResource {
+  implicit def toNode: Task[Node] = this
+}

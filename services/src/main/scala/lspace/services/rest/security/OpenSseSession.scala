@@ -13,10 +13,11 @@ object OpenSseSession {
     : Task[OpenSseSession] = {
 
     for {
-      node <- DetachedGraph.nodes.create(OpenSession.ontology)
-      _    <- node.addOut(Label.P.typed.iriUrlString, iri)
-      _    <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
-    } yield new OpenSseSession(new OpenSession(node) {}) with WithSse
+      node        <- DetachedGraph.nodes.create(OpenSession.ontology)
+      _           <- node.addOut(Label.P.typed.iriUrlString, iri)
+      _           <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      openSession <- OpenSession.toOpenSession(node)
+    } yield new OpenSseSession(openSession) with WithSse
   }
 }
 

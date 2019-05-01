@@ -17,12 +17,15 @@ object UserSseSession {
     : Task[UserSseSession] = {
 
     for {
-      node <- DetachedGraph.nodes.create(UserSession.ontology)
-      _    <- node.addOut(Label.P.typed.iriUrlString, iri)
-      _    <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
-      _    <- node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, client)
-      _    <- node.addOut(UserSession.keys.`lspace:UserSession/user@User`, user)
-    } yield new UserSseSession(new UserSession(node) {})
+      node        <- DetachedGraph.nodes.create(UserSession.ontology)
+      _           <- node.addOut(Label.P.typed.iriUrlString, iri)
+      _           <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      clientNode  <- client.toNode
+      _           <- node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, clientNode)
+      userNode    <- user.toNode
+      _           <- node.addOut(UserSession.keys.`lspace:UserSession/user@User`, userNode)
+      userSession <- UserSession.toUserSession(node)
+    } yield new UserSseSession(userSession)
   }
 }
 
