@@ -155,9 +155,9 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
     }
   }
 
-  def expectedType(property: Property) =
+  def expectedType(iri: String) =
     definitions
-      .get(property.iri)
+      .get(iri)
       .flatMap(_.`@type`.headOption)
 //      .orElse(property.range().headOption) // @range is only meant for guidance and not used for de-/serialization
 

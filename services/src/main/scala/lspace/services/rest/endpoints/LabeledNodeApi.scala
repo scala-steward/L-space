@@ -5,7 +5,7 @@ import io.finch._
 import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
-import lspace.codec.{jsonld, ActiveContext, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.{jsonld, ActiveContext, ActiveProperty, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
 import lspace.decode.{DecodeJson, DecodeJsonLD}
 import lspace.encode.{EncodeJson, EncodeJsonLD}
 import lspace.provider.detached.DetachedGraph
@@ -74,15 +74,105 @@ class LabeledNodeApi(val ontology: Ontology,
     idToNodeTask(id).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
   }
 
-  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
-    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
-  }
+//  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
+//    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
+//  }
 
   /**
     * GET /
     */
   def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
     g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
+  }
+
+  def listOut: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
+    case List(id) =>
+      g.N
+        .hasIri(graph.iri + "/" + label + "/" + id)
+        .hasLabel(ontology)
+        .withGraph(graph)
+        .toListF
+        .map(ContextedT(_))
+        .map(Ok)
+        .toIO
+    case List(id, key) =>
+      val expKey = activeContext.expandIri(key).iri
+      activeContext.definitions
+        .get(expKey)
+        .orElse(Property.properties.get(expKey).map(p => ActiveProperty(property = p)))
+        .map { activeProperty =>
+          activeProperty.`@type`.headOption
+            .map {
+              case ontology: Ontology =>
+                g.N
+                  .hasIri(graph.iri + "/" + label + "/" + id)
+                  .hasLabel(ontology)
+                  .out(activeProperty.property)
+                  .hasLabel(ontology)
+                  .withGraph(graph)
+                  .toListF
+                  .map(ContextedT(_))
+                  .map(Ok)
+                  .toIO
+              case property: Property =>
+                g.N
+                  .hasIri(graph.iri + "/" + label + "/" + id)
+                  .hasLabel(ontology)
+                  .out(activeProperty.property)
+                  .hasLabel(property)
+                  .withGraph(graph)
+                  .toListF
+                  .map(ContextedT(_))
+                  .map(Ok)
+                  .toIO
+              case datatype: DataType[_] =>
+                g.N
+                  .hasIri(graph.iri + "/" + label + "/" + id)
+                  .hasLabel(ontology)
+                  .out(activeProperty.property)
+                  .hasLabel(datatype)
+                  .withGraph(graph)
+                  .toListF
+                  .map(ContextedT(_))
+                  .map(Ok)
+                  .toIO
+            }
+            .getOrElse {
+              g.N
+                .hasIri(graph.iri + "/" + label + "/" + id)
+                .hasLabel(ontology)
+                .out(activeProperty.property)
+                .withGraph(graph)
+                .toListF
+                .map(ContextedT(_))
+                .map(Ok)
+                .toIO
+            }
+        }
+        .getOrElse(Task.now(Forbidden(new Exception(s"path $key not supported"))).toIO)
+    case List(id, key1, key2) =>
+      val expKey1 = activeContext.expandIri(key1).iri
+      val expKey2 = activeContext.expandIri(key2).iri
+      (for {
+        activeProperty1 <- activeContext.definitions
+          .get(expKey1)
+          .orElse(Property.properties.get(expKey1).map(p => ActiveProperty(property = p)))
+        activeProperty2 <- activeContext.definitions
+          .get(expKey2)
+          .orElse(Property.properties.get(expKey2).map(p => ActiveProperty(property = p)))
+      } yield {
+        g.N
+          .hasIri(graph.iri + "/" + label + "/" + id)
+          .hasLabel(ontology)
+          .out(activeProperty1.property)
+          .out(activeProperty2.property)
+          .withGraph(graph)
+          .toListF
+          .map(ContextedT(_))
+          .map(Ok)
+          .toIO
+      }).getOrElse(Task.now(Forbidden(new Exception(s"path $key1/$key2 not supported"))).toIO)
+    case paths => Task.now(Forbidden(new Exception(s"path ${paths.mkString("/")} not supported"))).toIO
   }
 
   def create: Endpoint[IO, ContextedT[Node]] = {
@@ -202,7 +292,7 @@ class LabeledNodeApi(val ontology: Ontology,
 //  }
 
   def api =
-    context :+: byId :+: byIri :+: list :+:
+    context :+: byId :+: /*byIri :+: */ list :+: listOut :+:
       create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
   def labeledApi = label :: api
 

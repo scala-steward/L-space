@@ -330,7 +330,7 @@ trait Decoder {
       .map(_.map {
         case (activeProperty, json) =>
           val property     = activeProperty.property
-          val expectedType = activeContext.expectedType(property)
+          val expectedType = activeProperty.`@type`.headOption
           val addEdgeF =
             if (activeProperty.`@reverse`) (value: Resource[_]) => resource.addIn(property, value)
             else (value: Resource[_]) => resource.addOut(property, value)

@@ -25,7 +25,7 @@ object EncodeJsonLD {
     def encode(implicit activeContext: ActiveContext) = (node: T) => encoder(node)(activeContext)
   }
 
-  implicit def nodesToJsonLD[T <: Node](implicit encoder: Encoder) = {
+  implicit def nodesToJsonLD[T](implicit encoder: Encoder) = {
     implicit val bd: NativeTypeEncoder.Aux[encoder.Json] =
       encoder.baseEncoder.asInstanceOf[NativeTypeEncoder.Aux[encoder.Json]]
     import encoder._

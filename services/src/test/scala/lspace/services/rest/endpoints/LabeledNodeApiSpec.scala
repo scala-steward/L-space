@@ -104,14 +104,29 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .get("/123")
           .withHeaders("Accept" -> "application/ld+json")
         personApiService
-          .byId(input)
+          .listOut(input)
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
             val response = output.right.get
             response.status shouldBe Status.Ok
-            val node = response.value.t
-            node.out(person.keys.nameString).head shouldBe "Yoshio"
+            response.value.t.nonEmpty shouldBe true
+            val node = response.value.t.head
+            node.asInstanceOf[Node].out(person.keys.nameString).head shouldBe "Yoshio"
+          }
+          .getOrElse(fail("endpoint does not match"))
+        personApiService
+          .listOut(
+            Input
+              .get("/123/naam")
+              .withHeaders("Accept" -> "application/ld+json"))
+          .awaitOutput()
+          .map { output =>
+            output.isRight shouldBe true
+            val response = output.right.get
+            response.status shouldBe Status.Ok
+            response.value.t.nonEmpty shouldBe true
+            response.value.t.head shouldBe "Yoshio"
           }
           .getOrElse(fail("endpoint does not match"))
         personApiService

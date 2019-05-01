@@ -4,7 +4,8 @@ import lspace.NS.types
 import lspace.codec.{ActiveContext, ContextedT}
 import lspace.codec.jsonld.Encoder
 import lspace.librarian.traversal.Collection
-import lspace.structure.{ClassType, Node}
+import lspace._
+import Label.P._
 
 trait EncodeJson[A] extends Encode[A] {
   def encode(implicit activeContext: ActiveContext): A => String
@@ -17,21 +18,32 @@ object EncodeJson {
       (ct: ContextedT[T]) => en.encode(activeContext ++ ct.activeContext)(ct.t)
   }
 
-  private def _nodeToJsonMap(node: Node)(implicit encoder: Encoder, activeContext: ActiveContext): encoder.Json = {
+  private def _nodeToJsonMap(resource: Resource[_])(implicit encoder: Encoder,
+                                                    activeContext: ActiveContext): encoder.Json = {
     import encoder._
     encoder.mapToJson(
-      node
-        .outEMap()
-        .map {
-          case (property, edges) =>
-            activeContext.compactIri(property.iri) -> (edges match {
-              case List(edge) =>
-                encoder.fromAny(edge.to, edge.to.labels.headOption).json
-              case edges =>
-                encoder.listToJson(edges
-                  .map(edge => encoder.fromAny(edge.to, edge.to.labels.headOption).json))
-            })
-        })
+      List(
+        Some(resource.iri).filter(_.nonEmpty).map(_.asJson).map(`@id`.iri -> _),
+        Some(resource.labels)
+          .filter(_.nonEmpty)
+          .map {
+            case List(label) => activeContext.compactIri(label.iri).asJson
+            case labels      => labels.map(_.iri).map(activeContext.compactIri(_).asJson).asJson
+          }
+          .map(`@type`.iri -> _)
+      ).filter(_.nonEmpty).map(_.get).toMap ++
+        resource
+          .outEMap()
+          .map {
+            case (property, edges) =>
+              activeContext.compactIri(property.iri) -> (edges match {
+                case List(edge) =>
+                  encoder.fromAny(edge.to, edge.to.labels.headOption).json
+                case edges =>
+                  encoder.listToJson(edges
+                    .map(edge => encoder.fromAny(edge.to, edge.to.labels.headOption).json))
+              })
+          })
   }
 
   implicit def nodeToJson[T <: Node](implicit encoder: Encoder) = new EncodeJson[T] {
@@ -40,11 +52,19 @@ object EncodeJson {
       (node: T) => _nodeToJsonMap(node).asInstanceOf[encoder.Json].noSpaces
   }
 
-  implicit def nodesToJson[T <: Node](implicit encoder: Encoder) =
+  implicit def nodesToJson[T](implicit encoder: Encoder) =
     new EncodeJson[List[T]] {
       import encoder._
       def encode(implicit activeContext: ActiveContext): List[T] => String =
-        (nodes: List[T]) => encoder.listToJson(nodes.map(_nodeToJsonMap(_).asInstanceOf[encoder.Json])).noSpaces
+        (nodes: List[T]) =>
+          encoder
+            .listToJson(nodes.map {
+              case node: Node       => _nodeToJsonMap(node).asInstanceOf[encoder.Json]
+              case edge: Edge[_, _] => _nodeToJsonMap(edge).asInstanceOf[encoder.Json]
+              case value: Value[_]  => _nodeToJsonMap(value).asInstanceOf[encoder.Json]
+              case value            => encoder.fromAny(value).json
+            })
+            .noSpaces
     }
 
   implicit def collectionToJson[T, CT <: ClassType[_]](implicit encoder: Encoder) =
