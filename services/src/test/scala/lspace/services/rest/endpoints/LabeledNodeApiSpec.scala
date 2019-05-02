@@ -107,7 +107,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .get("/123")
           .withHeaders("Accept" -> "application/ld+json")
         personApiService
-          .listOut(input)
+          .list(input)
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -119,7 +119,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           }
           .getOrElse(fail("endpoint does not match"))
         personApiService
-          .listOut(
+          .list(
             Input
               .get("/123/naam")
               .withHeaders("Accept" -> "application/ld+json"))

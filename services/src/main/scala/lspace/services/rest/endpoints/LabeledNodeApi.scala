@@ -81,11 +81,12 @@ class LabeledNodeApi(val ontology: Ontology,
   /**
     * GET /
     */
-  def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
-    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
-  }
+//  def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
+//    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
+//  }
 
-  def listOut: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
+  def list: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
+    case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
     case List(id) =>
       g.N
         .hasIri(graph.iri + "/" + label + "/" + id)
@@ -188,7 +189,7 @@ class LabeledNodeApi(val ontology: Ontology,
             _       <- t.commit()
             r       <- graph.nodes.hasId(newNode.id)
             out = ContextedT(r.get)
-          } yield Created(out)
+          } yield Created(out).withHeader("Location" -> newNode.iri)
         }.toIO //(catsEffect(global))
     }
   }
@@ -292,7 +293,7 @@ class LabeledNodeApi(val ontology: Ontology,
 //  }
 
   def api =
-    context :+: byId :+: /*byIri :+: */ list :+: listOut :+:
+    context :+: byId :+: /*byIri :+: */ list :+:
       create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
   def labeledApi = label :: api
 
