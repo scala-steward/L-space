@@ -58,7 +58,10 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
   implicit val enc = PersonCodecJson.Encoder
 
   val defaultContext = ActiveContext(
-    `@prefix` = ListMap("naam" -> "name")
+    `@prefix` = ListMap(
+      "naam"      -> "name",
+      "naam_naam" -> "name"
+    )
   )
   lazy val personApiService: LabeledNodeApi = LabeledNodeApi(sampleGraph, person, defaultContext)
 
@@ -419,6 +422,17 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         r.contentType shouldBe Some("application/json")
         r.status shouldBe Status.Ok
       }
+    }
+    "support GET /123/naam" in {
+      service(
+        Input
+          .get("/123/naam_naam")
+          .withHeaders("Accept" -> "application/json")
+          .request)
+        .map { output =>
+          output.status shouldBe Status.Ok
+          output.contentString shouldBe """[{"@value":"Yoshio","@type":"@string"}]"""
+        }
     }
     "support GET with application/ld+json" in {
       val input = Input
