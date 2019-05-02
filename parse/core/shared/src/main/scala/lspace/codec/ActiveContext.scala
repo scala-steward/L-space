@@ -149,9 +149,10 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
               `@base`.headOption.map(_ + term)
             )
             .getOrElse(term)
-      if (iri.startsWith("https")) Iri(iri)
-      else if (iri.startsWith("http:")) Iri(iri.replaceFirst("http:", "https:"))
-      else Iri(iri)
+//      if (iri.startsWith("https")) Iri(iri)
+//      else if (iri.startsWith("http:")) Iri(iri.replaceFirst("http:", "https:"))
+//      else
+      Iri(iri)
     }
   }
 
