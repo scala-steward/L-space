@@ -11,7 +11,7 @@ import lspace.encode.{EncodeJson, EncodeJsonLD}
 import lspace.provider.detached.DetachedGraph
 import lspace.services.LApplication
 import monix.eval.Task
-import shapeless.{:+:, CNil, HList}
+import shapeless.{:+:, ::, CNil, HList, HNil}
 
 object LabeledNodeApi {
   def apply(graph: Graph, ontology: Ontology, defaultContext: ActiveContext = ActiveContext())(
@@ -84,6 +84,13 @@ class LabeledNodeApi(val ontology: Ontology,
 //  def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
 //    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
 //  }
+
+//  def list2: Endpoint[IO, ContextedT[List[Node]]] =
+//    get(params[String]("out") :: params[String]("in") :: paramOption[Int]("from") :: paramOption[Int]("to"))
+//      .mapOutputAsync {
+//        case out :: in :: fromOption :: toOption :: HNil =>
+//          g.N.hasLabel(ontology).union(_.out(),_.in()).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
+//      }
 
   def list: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
     case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
