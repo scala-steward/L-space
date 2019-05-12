@@ -629,16 +629,20 @@ trait Encoder {
     val (newActiveContext, propertyDefinitions) =
       context.definitions().foldLeft((context, ListMap[String, ListMap[String, Json]]())) {
         case ((activeContext, result), (key, activeProperty)) =>
-          val (keyIri, newActiveContext) = activeContext.compactIri(activeProperty.property)
-          List(
-            fromActiveContext(activeProperty.`@context`).map(types.`@context` -> _),
-            activeProperty.json._containers.map(types.`@container`            -> _),
-            activeProperty.json._types.map(types.`@type`                      -> _)
-          ).flatten match {
+          val keyTerm = key //activeContext.compactIri(key)
+          (if (activeProperty.`@reverse`) ListMap(types.`@reverse` -> activeProperty.property.iri.asJson)
+           else ListMap(types.`@id`                                -> activeProperty.property.iri.asJson)) ++
+            List(
+              fromActiveContext(activeProperty.`@context`).map(types.`@context` -> _),
+              activeProperty.json._containers.map(types.`@container`            -> _),
+              activeProperty.json._types.map(types.`@type`                      -> _)
+            ).flatten match {
             case kv if kv.nonEmpty =>
-              newActiveContext -> (result ++ ListMap(keyIri -> ListMap(kv: _*)))
+              activeContext -> (result ++ ListMap(keyTerm -> kv))
+            case kv if activeProperty.`@reverse` =>
+              activeContext -> (result ++ ListMap(keyTerm -> ListMap[String, Json]()))
             case kv =>
-              newActiveContext -> result
+              activeContext -> result
           }
       }
 
@@ -649,13 +653,10 @@ trait Encoder {
       case (prefix, iri) =>
         prefix -> propertyDefinitions
           .get(prefix)
-          .map { map =>
-            ListMap(types.`@id` -> iri.asJson) ++ map
-          }
           .map(_.asJson)
           .getOrElse(iri.asJson)
     }
-    val localContext = prefixes ++ (propertyDefinitions.mapValues(_.asJson) -- prefixes.keys) match {
+    val localContext = prefixes ++ (propertyDefinitions -- prefixes.keys).mapValues(_.asJson) match {
       case kv if kv.nonEmpty => Some(kv.asJson)
       case kv                => None
     }

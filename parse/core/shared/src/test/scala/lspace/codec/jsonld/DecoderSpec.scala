@@ -31,13 +31,13 @@ abstract class DecoderSpec(decoder: Decoder) extends AsyncWordSpec with Matchers
     "decode any ontology" which {
       "is served by schema.org" in {
         decoder
-          .toOntology("https://schema.org/Person")(ActiveContext())
+          .toOntology("http://schema.org/Person")(ActiveContext())
           .map { ontology =>
-            ontology.iri shouldBe "https://schema.org/Person"
+            ontology.iri shouldBe "http://schema.org/Person"
             ontology
-              .properties("https://schema.org/additionalName")
+              .properties("http://schema.org/additionalName")
               .exists(_.range(`@string`.iri).isDefined) shouldBe true
-            ontology.properties("https://schema.org/colleagues").isDefined shouldBe true
+            ontology.properties("http://schema.org/colleagues").isDefined shouldBe true
           }
           .timeout(15.seconds)
           .runToFuture
@@ -45,10 +45,13 @@ abstract class DecoderSpec(decoder: Decoder) extends AsyncWordSpec with Matchers
     }
     "decode any node" which {
       "uses a context if provided" in {
-        Ontology.ontologies.getOrCreate("https://example.org/Person")
+        val person = Ontology.ontologies.getOrCreate("https://example.org/Person")
         val defaultContext = ActiveContext(
           `@prefix` = ListMap("naam" -> "name"),
-          definitions = Map("name"   -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")))
+          definitions = Map(
+            "name"    -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")),
+            "nameFor" -> ActiveProperty(`@type` = person :: Nil, `@reverse` = true, property = Property("name"))
+          )
         )
         (for {
           node <- decoder.stringToNode(

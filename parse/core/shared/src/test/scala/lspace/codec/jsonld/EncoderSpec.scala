@@ -42,9 +42,13 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
   "The Encoder" should {
     "encode a Node" which {
       "uses a default context if provided" in {
+        val person = Ontology.ontologies.getOrCreate("https://example.org/Person")
         val defaultContext = ActiveContext(
           `@prefix` = ListMap("naam" -> "name"),
-          definitions = Map("name"   -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")))
+          definitions = Map(
+            "naam"    -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")),
+            "nameFor" -> ActiveProperty(`@type` = person :: Nil, `@reverse` = true, property = Property("name"))
+          )
         )
         (for {
           sample <- initTask
@@ -53,7 +57,7 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
           json = joip.json
           ac   = joip.activeContext
           _ = encoder.fromActiveContext(ac).map(_.noSpaces) shouldBe Some(
-            """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/"}""")
+            """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/","nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}""")
           //        _ = println(joip.withContext.noSpaces)
         } yield succeed).runToFuture
       }

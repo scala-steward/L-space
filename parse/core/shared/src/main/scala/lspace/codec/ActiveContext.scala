@@ -108,7 +108,7 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
   }
 
   def compactIri(iri: String): String = {
-    val validPrefixes = `@prefix`.prefixOptions(iri)
+    val validPrefixes = `@prefix`.prefixOptions(iri).filter(p => iri.stripPrefix(p._2).startsWith(":"))
     if (validPrefixes.nonEmpty) {
       val (term, prefix) = validPrefixes.maxBy(_._2.length)
       val suffix         = iri.stripPrefix(prefix)
