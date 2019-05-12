@@ -46,7 +46,7 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
         val defaultContext = ActiveContext(
           `@prefix` = ListMap("naam" -> "name"),
           definitions = Map(
-            "naam"    -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")),
+            "name"    -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")),
             "nameFor" -> ActiveProperty(`@type` = person :: Nil, `@reverse` = true, property = Property("name"))
           )
         )
@@ -57,7 +57,7 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
           json = joip.json
           ac   = joip.activeContext
           _ = encoder.fromActiveContext(ac).map(_.noSpaces) shouldBe Some(
-            """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/","nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}""")
+            """{"naam":"name","1":"https://example.org/","name":{"@id":"name","@type":"@string"},"nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}""")
           //        _ = println(joip.withContext.noSpaces)
         } yield succeed).runToFuture
       }
