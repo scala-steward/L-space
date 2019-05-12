@@ -652,7 +652,7 @@ trait Encoder {
     val prefixes = newActiveContext.`@prefix`().map {
       case (prefix, iri) =>
         prefix -> propertyDefinitions
-          .get(prefix)
+          .get(iri)
           .map(_.asJson)
           .getOrElse(iri.asJson)
     }
