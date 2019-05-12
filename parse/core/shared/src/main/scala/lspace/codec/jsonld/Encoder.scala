@@ -629,7 +629,7 @@ trait Encoder {
     val (newActiveContext, propertyDefinitions) =
       context.definitions().foldLeft((context, ListMap[String, ListMap[String, Json]]())) {
         case ((activeContext, result), (key, activeProperty)) =>
-          val keyTerm = key //activeContext.compactIri(key)
+          val keyTerm = activeContext.compactIri(key)
           (if (activeProperty.`@reverse`) ListMap(types.`@reverse` -> activeProperty.property.iri.asJson)
            else ListMap(types.`@id`                                -> activeProperty.property.iri.asJson)) ++
             List(
@@ -647,7 +647,7 @@ trait Encoder {
       }
 
     /**
-      * maps prefix mappings to json and adds any property definitions
+      * maps prefix mappings to json; gets property definition or property-iri
       */
     val prefixes = newActiveContext.`@prefix`().map {
       case (prefix, iri) =>
