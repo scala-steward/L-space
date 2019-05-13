@@ -114,7 +114,7 @@ class LabeledNodeApi(val ontology: Ontology,
               case ontology: Ontology =>
                 g.N
                   .hasIri(graph.iri + "/" + label + "/" + id)
-                  .hasLabel(ontology)
+                  .hasLabel(this.ontology)
                   .out(activeProperty.property)
                   .hasLabel(ontology)
                   .withGraph(graph)
