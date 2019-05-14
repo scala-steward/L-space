@@ -120,6 +120,42 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
   }
 
   /**
+    * compacts by outgoing property definition
+    * @param property
+    * @return
+    */
+  def compactOut(property: Property): (String, ActiveContext) = {
+    definitions.all
+      .find(_._2.property == property)
+      .filterNot(_._2.`@reverse`)
+      .map(_._1)
+      .map(compactIri)
+      .map(_ -> this)
+      .getOrElse {
+        property.iri -> this
+      }
+  }
+
+  /**
+    * compacts by incoming (reverse) property definition
+    * @param property
+    * @return
+    */
+  def compactIn(property: Property): (String, ActiveContext) = {
+    definitions.all
+      .find(_._2.property == property)
+      .filter(_._2.`@reverse`)
+      .map(_._1)
+      .map(compactIri)
+      .map(_ -> this)
+      .getOrElse {
+        s"@reverse:${property.iri}" -> this.copy(
+          definitions = this.definitions.all + (s"@reverse:${property.iri}" -> ActiveProperty(`@reverse` = true,
+                                                                                              property = property)))
+      }
+  }
+
+  /**
     *
     * @param term
     * @return
