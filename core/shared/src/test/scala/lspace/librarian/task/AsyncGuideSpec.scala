@@ -829,26 +829,17 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //        id == 0l shouldBe false
 //      }
 //
-      "g.N.timeLimit(Time.apply(20.millis)).count" ignore {
+      "g.N.repeat(_.out()).timeLimit(Time.apply(20.millis)).count" in {
         import scala.concurrent.duration._
         g.N
-          .repeat(_.out())
+          .repeat(_.out(), collect = true)
+          .timeLimit(Time.apply(200.millis))
+          .count
           .withGraph(sampleGraph)
-          .apply()
-          .takeByTimespan(10.millis)
-          .toListL
-          .map(_.nonEmpty shouldBe true)
+          .headF
+          .map(_ should be > 1l)
+          .timeout(400.millis)
           .runToFuture
-//        g.N
-//          .limit(1)
-//          .local(_.timeLimit(Time(20.millis))
-//            .repeat(_.out(), max = 20, collect = true))
-//          .count
-//          .withGraph(sampleGraph)
-//          .headF
-//          .map(_ should be > 1l)
-//          .timeout(400.millis)
-//          .runToFuture
       }
 //
 //      "A limit-step" in {

@@ -113,13 +113,13 @@ trait AsyncGuide extends LocalGuide[Observable] {
               case step: TimeLimit => //todo, scan for other TimeLimit steps with time == None (cancels the nearest preceding time limit step)
                 val nextStep = buildNextStep(steps, nextSegments)
                 import scala.concurrent.duration._
-                val f = (obs: Observable[Any]) =>
+                val f = (obs: Observable[Librarian[Any]]) =>
                   step.time match {
                     case Some(time) => obs.takeByTimespan(time.millis millis)
                     case None       => obs
                 }
-//                f andThen nextStep
-                nextStep andThen f
+                f andThen nextStep
+//                nextStep andThen f
             }
         }
     }
@@ -666,154 +666,157 @@ trait AsyncGuide extends LocalGuide[Observable] {
             traveralObservable(librarian)
           }
       case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
+        import scala.concurrent.duration._
         val repeatObs = traversalToF(step.traversal)
-        if (step.collect) {
-          step.max match {
-            case Some(max) =>
-              step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
-                .map(traversalToF) match {
-                case Some(untilObs) =>
-                  scribe.trace("collect max until")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> max) {
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            untilObs(librarian).nonEmpty.flatMap {
-                              case true => Observable(Right(librarian))
-                              case false =>
-                                if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
-                                else Observable(Right(librarian))
-                            }
-                          }
-                      }
-                    }
-                case None =>
-                  scribe.trace("collect max")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> max) {
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
-                            else Observable(Right(librarian))
-                          }
-                      }
-                    }
-              }
-            case None =>
-              step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
-                .map(traversalToF) match {
-                case Some(untilObs) =>
-                  scribe.trace("collect until")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            untilObs(librarian).nonEmpty.flatMap {
-                              case true => Observable(Right(librarian))
-                              case false =>
-                                if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
-                                else Observable(Right(librarian))
-                            }
-                          }
-                      }
-                    }
-                case None =>
-                  scribe.trace("collect")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
-                            else Observable(Right(librarian))
-                          }
-                      }
-                    }
-              }
-          }
-        } else {
-          step.max match {
-            case Some(max) =>
-              step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
-                .map(traversalToF) match {
-                case Some(untilObs) =>
-                  scribe.trace("max until")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> max) {
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            untilObs(librarian).nonEmpty.flatMap {
-                              case true => Observable(Right(librarian))
-                              case false =>
-                                if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
-                            }
-                          }
-                      }
-                    }
-                case None =>
-                  scribe.trace("max")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> max) {
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
-                          }
-                      }
-                    }
-              }
-            case None =>
-              step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
-                .map(traversalToF) match {
-                case Some(untilObs) =>
-                  scribe.trace("until")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            untilObs(librarian).nonEmpty.flatMap {
-                              case true => Observable(Right(librarian))
-                              case false =>
-                                if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
-                            }
-                          }
-                      }
-                    }
-                case None =>
-                  scribe.trace("last")
-                  obs: Observable[Librarian[Any]] =>
-                    obs.flatMap { librarian =>
-                      Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
-                        case (librarian, max) =>
-                          val r = repeatObs(librarian)
-                          r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
-                            if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
-                          }
-                      }
-                    }
-              }
-          }
-        }
+        (if (step.collect) {
+           step.max match {
+             case Some(max) =>
+               step.until
+                 .filter(_.segmentList.nonEmpty)
+                 .filter(_.segmentList.head.stepsList.nonEmpty)
+                 .map(traversalToF) match {
+                 case Some(untilObs) =>
+                   scribe.trace("collect max until")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable
+                         .tailRecM(librarian -> max) {
+                           case (librarian, max) =>
+                             val r = repeatObs(librarian)
+                             r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                               untilObs(librarian).nonEmpty.flatMap {
+                                 case true => Observable(Right(librarian))
+                                 case false =>
+                                   if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
+                                   else Observable(Right(librarian))
+                               }
+                             }
+                         }
+                     }
+                 case None =>
+                   scribe.trace("collect max")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable.tailRecM(librarian -> max) {
+                         case (librarian, max) =>
+                           val r = repeatObs(librarian)
+                           r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                             if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
+                             else Observable(Right(librarian))
+                           }
+                       }
+                     }
+               }
+             case None =>
+               step.until
+                 .filter(_.segmentList.nonEmpty)
+                 .filter(_.segmentList.head.stepsList.nonEmpty)
+                 .map(traversalToF) match {
+                 case Some(untilObs) =>
+                   scribe.trace("collect until")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
+                         case (librarian, max) =>
+                           val r = repeatObs(librarian)
+                           r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                             untilObs(librarian).nonEmpty.flatMap {
+                               case true => Observable(Right(librarian))
+                               case false =>
+                                 if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
+                                 else Observable(Right(librarian))
+                             }
+                           }
+                       }
+                     }
+                 case None =>
+                   scribe.trace("collect")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable
+                         .tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
+                           case (librarian, max) =>
+                             val r = repeatObs(librarian)
+                             r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                               if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
+                               else Observable(Right(librarian))
+                             }
+                         }
+                     }
+               }
+           }
+         } else {
+           step.max match {
+             case Some(max) =>
+               step.until
+                 .filter(_.segmentList.nonEmpty)
+                 .filter(_.segmentList.head.stepsList.nonEmpty)
+                 .map(traversalToF) match {
+                 case Some(untilObs) =>
+                   scribe.trace("max until")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable.tailRecM(librarian -> max) {
+                         case (librarian, max) =>
+                           val r = repeatObs(librarian)
+                           r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                             untilObs(librarian).nonEmpty.flatMap {
+                               case true => Observable(Right(librarian))
+                               case false =>
+                                 if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
+                             }
+                           }
+                       }
+                     }
+                 case None =>
+                   scribe.trace("max")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable.tailRecM(librarian -> max) {
+                         case (librarian, max) =>
+                           val r = repeatObs(librarian)
+                           r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                             if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
+                           }
+                       }
+                     }
+               }
+             case None =>
+               step.until
+                 .filter(_.segmentList.nonEmpty)
+                 .filter(_.segmentList.head.stepsList.nonEmpty)
+                 .map(traversalToF) match {
+                 case Some(untilObs) =>
+                   scribe.trace("until")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
+                         case (librarian, max) =>
+                           val r = repeatObs(librarian)
+                           r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                             untilObs(librarian).nonEmpty.flatMap {
+                               case true => Observable(Right(librarian))
+                               case false =>
+                                 if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
+                             }
+                           }
+                       }
+                     }
+                 case None =>
+                   scribe.trace("last")
+                   obs: Observable[Librarian[Any]] =>
+                     obs.flatMap { librarian =>
+                       Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
+                         case (librarian, max) =>
+                           val r = repeatObs(librarian)
+                           r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
+                             if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
+                           }
+                       }
+                     }
+               }
+           }
+         }).andThen(_.delayOnNext(1.nanosecond))
       case step: Union[_, _] =>
         val unionObs = step.traversals.map(traversalToF).zip(step.traversals.map(_.steps.lastOption))
         obs: Observable[Librarian[Any]] =>
