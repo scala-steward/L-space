@@ -50,6 +50,19 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
             "nameFor" -> ActiveProperty(`@type` = person :: Nil, `@reverse` = true, property = Property("name"))
           )
         )
+//        println(
+//          encoder
+//            .fromActiveContext(ActiveContext(
+//              `@prefix` = ListMap("naam" -> "http://schema.org/name"),
+//              definitions = Map(
+//                "http://schema.org/name" -> ActiveProperty(`@type` = `@string` :: Nil,
+//                                                           property = Property("http://schema.org/name")),
+//                "nameFor" -> ActiveProperty(`@type` = person :: Nil,
+//                                            `@reverse` = true,
+//                                            property = Property("http://schema.org/name"))
+//              )
+//            ))
+//            .map(_.noSpaces))
         (for {
           sample <- initTask
           stan = sample.persons.Stan.person
@@ -57,7 +70,7 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
           json = joip.json
           ac   = joip.activeContext
           _ = encoder.fromActiveContext(ac).map(_.noSpaces) shouldBe Some(
-            """{"naam":"name","1":"https://example.org/","name":{"@id":"name","@type":"@string"},"nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}""")
+            """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/","nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}""")
           //        _ = println(joip.withContext.noSpaces)
         } yield succeed).runToFuture
       }
