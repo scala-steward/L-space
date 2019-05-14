@@ -50,9 +50,12 @@ class LabeledNodeApi(val ontology: Ontology,
   import lspace._
   import Implicits.AsyncGuide._
 
-  def context: Endpoint[IO, ActiveContext] = get("context") {
-    Ok(activeContext)
-  }
+  def context /*: Endpoint[IO, ActiveContext]*/ =
+    get("@context") {
+      Ok(activeContext)
+    } :+: get("context") {
+      Ok(activeContext)
+    }
 
   val idToNodeTask: Long => Task[Option[Node]] = (id: Long) =>
     g.N
@@ -277,7 +280,9 @@ class LabeledNodeApi(val ontology: Ontology,
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
   def getByLibrarian: Endpoint[IO, ContextedT[List[Node]]] = {
-    get(body[Task[Traversal[ClassType[Any], ClassType[Any], HList]], lspace.services.codecs.Application.JsonLD]) {
+    get(
+      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+                       lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
           traversal.untyped

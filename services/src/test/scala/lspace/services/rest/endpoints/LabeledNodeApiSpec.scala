@@ -414,6 +414,16 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         r.status shouldBe Status.Ok
       }
     }
+    "serve an active @context" in {
+      val input = Input
+        .get("/@context")
+        .withHeaders("Accept" -> "application/ld+json")
+
+      service(input.request).map { r =>
+        r.contentType shouldBe Some("application/ld+json")
+        r.status shouldBe Status.Ok
+      }
+    }
     "support GET with application/json" in {
       val input = Input
         .get("/")
@@ -423,7 +433,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         r.status shouldBe Status.Ok
       }
     }
-    "support GET /123/naam" in {
+    "support GET /123/naam_naam" in {
       service(
         Input
           .get("/123/naam_naam")
