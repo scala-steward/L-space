@@ -9,13 +9,13 @@ class OntologySpec extends AsyncWordSpec with Matchers {
 
   "Ontologies" can {
     "be compared by iri" in {
-      Ontology("abc") shouldBe Ontology("abc")
-      Ontology("abc") should not be Ontology("abcd")
+      new Ontology("abc") shouldBe new Ontology("abc")
+      new Ontology("abc") should not be new Ontology("abcd")
 
-      val ontologyABC = Ontology("abc")
+      val ontologyABC = new Ontology("abc")
       List(ontologyABC, ontologyABC, ontologyABC).toSet.size shouldBe 1
 
-      val ontologyABCD = Ontology("abcd")
+      val ontologyABCD = new Ontology("abcd")
       List(ontologyABC, ontologyABC, ontologyABCD).toSet.size shouldBe 2
     }
   }
@@ -28,18 +28,18 @@ class OntologySpec extends AsyncWordSpec with Matchers {
   }
   "An ontology.properties" should {
     ".+ thread-safe" in {
-      val p = Property("a")
+      val p = new Ontology("a")
       (for {
         _ <- Task.gatherUnordered {
-          (1 to 1000).map(i => Property(s"a$i")).map(p.properties.+(_)).map(Task.now)
+          (1 to 1000).map(i => new Property(s"a$i")).map(p.properties.+(_)).map(Task.now)
         }
       } yield p.properties().size shouldBe 1000).runToFuture
     }
     ".++ thread-safe" in {
-      val p = Property("a")
+      val p = new Property("a")
       (for {
         _ <- Task.gatherUnordered {
-          (1 to 1000).map(i => Property(s"a$i")).grouped(100).map(p.properties.++(_)).map(Task.now)
+          (1 to 1000).map(i => new Property(s"a$i")).grouped(100).map(p.properties.++(_)).map(Task.now)
         }
       } yield p.properties().size shouldBe 1000).runToFuture
     }

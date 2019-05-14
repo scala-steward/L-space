@@ -34,6 +34,7 @@ import squants.time.Time
 trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
 
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   implicit def guide: Guide[Stream]
 

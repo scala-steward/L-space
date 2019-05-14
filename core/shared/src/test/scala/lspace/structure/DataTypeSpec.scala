@@ -1,5 +1,5 @@
 package lspace.structure
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{AsyncWordSpec, Matchers}
 
-class DataTypeSpec extends WordSpec with Matchers {}
+class DataTypeSpec extends AsyncWordSpec with Matchers {}
