@@ -161,6 +161,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
             val response = output.right.get
             response.status shouldBe Status.Created
             val createdNode = response.value.t
+            createdNode.labels should contain only person.ontology
             createdNode.out(person.keys.nameString).head shouldBe "Alice"
 
             personApiService

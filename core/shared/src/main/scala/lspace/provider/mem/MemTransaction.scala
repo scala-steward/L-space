@@ -42,7 +42,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
           nodes.added.toList.map(_._2).map { node =>
             for {
               newNode <- Task { parent.newNode(node.id) }
-              _       <- Task.gather(node.labels.map(newNode._addLabel))
+              _ = node.labels.foreach(newNode._cacheLabel)
             } yield newNode
           }
         }

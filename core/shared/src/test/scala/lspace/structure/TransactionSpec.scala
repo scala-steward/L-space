@@ -27,6 +27,7 @@ trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll
           node.out() should contain(1.2)
           node.out() should not contain ("Alice")
           node.out() should contain("Ali")
+          node.labels should contain only SampleGraph.Person.ontology
         }).runToFuture
       }
 
