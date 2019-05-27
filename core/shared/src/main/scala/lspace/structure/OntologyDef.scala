@@ -48,7 +48,7 @@ abstract class OntologyDef(
     Ontology.ontologies.byIri.getOrElseUpdate(ontology.iri, ontology)
   }
 
-  def keys: Object
+//  def keys: Object               = new {}
   def properties: List[Property] = List()
   private def properties0        = properties
 

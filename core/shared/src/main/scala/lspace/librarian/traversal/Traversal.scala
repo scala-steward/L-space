@@ -858,11 +858,6 @@ object Traversal
                  ListType(step.value.et :: Nil filter (_.iri.nonEmpty)) :: Nil)))
     }
 
-    //    def project[T, R](by: (Traversal[End, End, LastStep :: Steps] => Traversal[End, T, _, _ <: HList])*)
-    //                     (traversals: List[Traversal[End, T, _, _ <: HList]] = by.toList.map(_(Traversal[End, End, LastStep]())))
-    //                  (implicit f: FooTest.Aux[T, R], m: Monoid[R])
-    //    : Traversal[Start, R, Project :: Steps] = {}
-
     def project(): Traversal[ST[Start],
                              TupleType[End],
                              Segment[Project[Traversal[ET[End], ET[End], HNil] :: HNil] :: Steps] :: Segments] =
@@ -884,75 +879,6 @@ object Traversal
       val tby1 = by1(Traversal(et, et))
       add(Project(tby1 :: HNil), st, TupleType(List(List(out.tweak(tby1.et)))))
     }
-
-//    def project[A,
-//                AZ[+Z] <: ClassType[Z],
-//                B,
-//                BZ[+Z] <: ClassType[Z],
-//                ABZ <: ClassType[_],
-//                Steps1 <: HList,
-//                Steps2 <: HList](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1],
-//                                 by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], Steps2])(
-//        implicit
-//        listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: HNil, List, ABZ]
-//    ): Traversal[
-//      ST[Start],
-//      ClassType[Nothing],
-//      Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: Traversal[ET[End], BZ[B], Steps2] :: HNil] :: Steps] :: Segments] /*: Traversal[ST[Start], TupleType[(A, B)], Segment[Project :: Steps] :: Segments]*/ = {
-//      val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
-//      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
-//      add(Project(tby1 :: tby2 :: HNil), st, ClassType.stubNothing)
-//    }
-//
-//    def project[A,
-//                AZ[+Z] <: ClassType[Z],
-//                B,
-//                BZ[+Z] <: ClassType[Z],
-//                C,
-//                CZ[+Z] <: ClassType[Z],
-//                ABCZ <: ClassType[_],
-//                Steps1 <: HList,
-//                Steps2 <: HList,
-//                Steps3 <: HList](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], Steps1],
-//                                 by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], Steps2],
-//                                 by3: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CZ[C], Steps3])(
-//        implicit listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: CZ[C] :: HNil, List, ABCZ]
-//    ): Traversal[ST[Start],
-//                 ClassType[Nothing],
-//                 Segment[Project[Traversal[ET[End], AZ[A], Steps1] :: Traversal[ET[End], BZ[B], Steps2] :: Traversal[
-//                   ET[End],
-//                   CZ[C],
-//                   Steps3] :: HNil] :: Steps] :: Segments] /*: Traversal[ST[Start], Tuple3Type[AZ[A], BZ[B], CZ[C]], Project :: Steps]*/ = {
-//      val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
-//      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
-//      val tby3 = by3(Traversal[ET[End], ET[End]](et, et))
-//      add(Project(tby1 :: tby2 :: tby3 :: HNil), st, ClassType.stubNothing)
-//    }
-
-//    def project[A,
-//                AZ[+Z] <: ClassType[Z],
-//                B,
-//                BZ[+Z] <: ClassType[Z],
-//                C,
-//                CZ[+Z] <: ClassType[Z],
-//                D,
-//                DZ[+Z] <: ClassType[Z],
-//                ABCDZ <: ClassType[_]](by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], AZ[A], _ <: HList],
-//                                       by2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], BZ[B], _ <: HList],
-//                                       by3: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CZ[C], _ <: HList],
-//                                       by4: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], DZ[D], _ <: HList])(
-//        implicit listHelper: ToTraversable.Aux[AZ[A] :: BZ[B] :: CZ[C] :: DZ[D] :: HNil, List, ABCDZ]
-//    ): Traversal[ST[Start], Tuple4Type[A, B, C, D], Segment[Project :: Steps] :: Segments] /*: Traversal[ST[Start], Tuple4Type[AZ[A], BZ[B], CZ[C], DZ[D]], Project :: Steps]*/ = {
-//      val tby1 = by1(Traversal[ET[End], ET[End]](et, et))
-//      val tby2 = by2(Traversal[ET[End], ET[End]](et, et))
-//      val tby3 = by3(Traversal[ET[End], ET[End]](et, et))
-//      val tby4 = by4(Traversal[ET[End], ET[End]](et, et))
-//      add(
-//        Project(List(tby1, tby2, tby3, tby4).asInstanceOf[List[Traversal[ET[End], ABCDZ, HList]]]),
-//        st,
-//        Tuple4Type(List(tby1.et), List(tby2.et), List(tby3.et), List(tby4.et))
-//      )
-//    }
 
     def where(traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList])
       : Traversal[ST[Start], ET[End], Segment[Where :: Steps] :: Segments] =
@@ -980,101 +906,6 @@ object Traversal
     def not(traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList])
       : Traversal[ST[Start], ET[End], Segment[Not :: Steps] :: Segments] =
       add(Not(traversal(Traversal[ET[End], ET[End]](et, et))))
-
-    import shapeless.ops.hlist.LeftFolder
-    import shapeless.ops.hlist.LeftReducer
-    //    def union[ET1 <: ClassType[_],
-    //              ET2 <: ClassType[_],
-    ////              H <: ClassType[_],
-    ////              ENDS <: HList,
-    ////              UENDS <: HList,
-    //              ETc <: ClassType[_],
-    //              ETout <: ClassType[_],
-    //              Steps1 <: HList,
-    //              Steps2 <: HList](t1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET1, Steps1],
-    //                               t2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET2, Steps2])(
-    //        implicit
-    //        endsReducer: LeftFolder.Aux[ET2 :: HNil, List[ET1], EndFolder.type, List[ETc]],
-    //        ev: ToList[Traversal[ET[End], ET1, Steps1] :: Traversal[ET[End], ET2, Steps2] :: HNil,
-    //                   Traversal[ET[End], _ <: ClassType[_], _ <: HList]],
-    //        et0: ClassTypeable.Aux[ETc, ETout]): Traversal[ST[Start], ETout, Union[ET[End], ETout] :: Steps] = {
-    //      union(
-    //        t1(Traversal[ET[End], ET[End]]()(target, et, et)) :: t2(Traversal[ET[End], ET[End]]()(target, et, et)) :: HNil)(
-    //        endsReducer,
-    //        ev,
-    //        et0)
-    //    }
-    //
-    //    def union[ET1 <: ClassType[_],
-    //              ET2 <: ClassType[_],
-    //              ET3 <: ClassType[_],
-    //              ETc <: ClassType[_],
-    ////              H <: ClassType[_],
-    ////              ENDS <: HList,
-    ////              UENDS <: HList,
-    //              ETout <: ClassType[_],
-    //              Steps1 <: HList,
-    //              Steps2 <: HList,
-    //              Steps3 <: HList](t1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET1, Steps1],
-    //                               t2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET2, Steps2],
-    //                               t3: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET3, Steps3])(
-    //        implicit
-    //        endsReducer: LeftFolder.Aux[ET2 :: ET3 :: HNil, List[ET1], EndFolder.type, List[ETc]],
-    //        ev: ToList[
-    //          Traversal[ET[End], ET1, Steps1] :: Traversal[ET[End], ET2, Steps2] :: Traversal[ET[End], ET3, Steps3] :: HNil,
-    //          Traversal[ET[End], _ <: ClassType[_], _ <: HList]],
-    //        et0: ClassTypeable.Aux[ETc, ETout]): Traversal[ST[Start], ETout, Union[ET[End], ETout] :: Steps] = {
-    //      union(
-    //        t1(Traversal[ET[End], ET[End]]()(target, et, et)) :: t2(Traversal[ET[End], ET[End]]()(target, et, et)) :: t3(
-    //          Traversal[ET[End], ET[End]]()(target, et, et)) :: HNil)(endsReducer, ev, et0)
-    //    }
-    //
-    //    def union[ET1 <: ClassType[_],
-    //              ET2 <: ClassType[_],
-    //              ET3 <: ClassType[_],
-    //              ET4 <: ClassType[_],
-    //              ETc <: ClassType[_],
-    ////              H <: ClassType[_],
-    ////              ENDS <: HList,
-    ////              UENDS <: HList,
-    //              ETout <: ClassType[_],
-    //              Steps1 <: HList,
-    //              Steps2 <: HList,
-    //              Steps3 <: HList,
-    //              Steps4 <: HList](t1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET1, Steps1],
-    //                               t2: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET2, Steps2],
-    //                               t3: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET3, Steps3],
-    //                               t4: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET4, Steps4])(
-    //        implicit
-    //        endsReducer: LeftFolder.Aux[ET2 :: ET3 :: ET4 :: HNil, List[ET1], EndFolder.type, List[ETc]],
-    //        ev: ToList[
-    //          Traversal[ET[End], ET1, Steps1] :: Traversal[ET[End], ET2, Steps2] :: Traversal[ET[End], ET3, Steps3] :: Traversal[
-    //            ET[End],
-    //            ET4,
-    //            Steps4] :: HNil,
-    //          Traversal[ET[End], _ <: ClassType[_], _ <: HList]],
-    //        et0: ClassTypeable.Aux[ETc, ETout]): Traversal[ST[Start], ETout, Union[ET[End], ETout] :: Steps] = {
-    //      union(
-    //        t1(Traversal[ET[End], ET[End]]()(target, et, et)) :: t2(Traversal[ET[End], ET[End]]()(target, et, et)) :: t3(
-    //          Traversal[ET[End], ET[End]]()(target, et, et)) :: t4(Traversal[ET[End], ET[End]]()(target, et, et)) :: HNil)(
-    //        endsReducer,
-    //        ev,
-    //        et0)
-    //    }
-    //
-    //    def union[ETc <: ClassType[_], ETout <: ClassType[_], TRAVERSALS <: HList, ENDS <: HList](traversals: TRAVERSALS)(
-    //        implicit
-    //        lub: LUBConstraint[TRAVERSALS, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
-    //        mapper: Mapper.Aux[TraveralEndMapper.type, TRAVERSALS, ENDS],
-    ////        endsUnifier: Unifier.Aux[ENDS, ETc :: UENDS],
-    ////        endsReducer: LeftFolder.Aux[ENDS, List[H], EndFolder.type, List[ETc]],
-    //        endsReducer: LeftReducer.Aux[TRAVERSALS, TraversalEndsUnifier.type, ETc],
-    //        ev: ToList[TRAVERSALS, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]],
-    //        end: ClassTypeable.Aux[ETc, ETout]): Traversal[ST[Start], ETout, Union[ET[End], ETout] :: Steps] = {
-    //      Traversal(Union(ev(traversals).map(_.asInstanceOf[Traversal[ET[End], ETout, HList]])) :: _traversal.steps)(target,
-    //                                                                                                                 st,
-    //                                                                                                                 end.ct)
-    //    }
 
     def union[ET0 <: ClassType[_],
               End1,
@@ -1740,38 +1571,6 @@ object Traversal
     new Traversal(HNil: HNil)(cltblStart.ct, cltblEnd.ct)
   def apply[ST0 <: ClassType[_], ET0 <: ClassType[_]](st: ST0, et: ET0): Traversal[ST0, ET0, HNil] =
     new Traversal(HNil: HNil)(st, et)
-
-//  def getCT[Start,
-//            ST[+Z] <: ClassType[Z],
-//            ET <: ClassType[_],
-//            Steps <: HList,
-//            Segments <: HList,
-//            RSteps <: HList,
-//            Containers <: HList,
-//            Out,
-//            CT <: ClassType[Out],
-//            Out2](traversal: Traversal[ST[Start], ET, Segments])(
-//      implicit
-//      flat: shapeless.ops.hlist.FlatMapper.Aux[SegmentMapper.type, Segments, Steps],
-//      reverse: Reverse.Aux[Steps, RSteps],
-//      f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-//      lf: StructureCalculator.Aux[Containers, ET, Out, CT],
-//      tweaker: OutTweaker.Aux[ET, Out, Containers, Out2]): Option[ClassType[Out2]] = {
-//    val ct =
-//      lf.convert(f(reverse(flat(traversal.segments))), traversal.et)
-//        .headOption
-//        .map(et => tweaker.tweak(traversal.et, et))
-//        .filter(_.iri.nonEmpty)
-////    ct.foreach {
-////      case ontology: Ontology =>
-////        if (Ontology.ontologies.get(ontology.iri).isEmpty) Ontology.ontologies.cache(ontology)
-////      case property: Property =>
-////        if (Property.properties.get(property.iri).isEmpty) Property.properties.cache(property)
-////      case datatype: DataType[_] =>
-////        if (DataType.datatypes.get(datatype.iri).isEmpty) DataType.datatypes.cache(datatype)
-////    }
-//    ct
-//  }
 
   implicit class WithMapTyped[Start,
                               ST[+Z] <: ClassType[Z],

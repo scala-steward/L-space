@@ -53,7 +53,7 @@ abstract class PropertyDef(iri: String,
     Property.properties.byIri.getOrElseUpdate(property.iri, property)
   }
 
-  def keys: Object               = new {}
+//  def keys: Object               = new {}
   def properties: List[Property] = List()
   private def properties0        = properties
 
