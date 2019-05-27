@@ -320,6 +320,18 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .runToFuture
 
     }
+    "N.group(_.label()).mapValues(_.count)).head" in {
+      g.N
+        .group(_.label())
+        .mapValues(_.count)
+        .withGraph(sampleGraph)
+        .toMapF
+        .map { groupedNodes =>
+          groupedNodes.values.toSet shouldBe Set(4l, 6l)
+        }
+        .task
+        .runToFuture
+    }
     "N.group(_.label()).outMap()" in {
       g.N
         .group(_.label())

@@ -65,6 +65,19 @@ trait SyncGuide extends LocalGuide[Stream] {
     }
   }
 
+  def traversalsToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+    traversal.segmentList match {
+      case Nil =>
+        librarians: Stream[Librarian[Any]] =>
+          librarians
+      case segment :: segments =>
+        val nextStep = buildNextStep(segment.stepsList, segments)
+        librarians: Stream[Librarian[Any]] =>
+          nextStep(librarians)
+    }
+  }
+
   def buildNextStep(steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
     val (nextSteps, nextSegments) =
@@ -724,10 +737,11 @@ trait SyncGuide extends LocalGuide[Stream] {
     f.asInstanceOf[Stream[Librarian[Any]] => Stream[Librarian[Any]]] andThen nextStep
   }
 
+  //TODO: analyse tail
   def clipper(value: Stream[Any], steps: List[Step]): Any =
     collectContainers(steps) match {
       case Count :: tail =>
-        if (steps.span(_ != Count)._2.filter { case step: Is => false; case _ => true }.isEmpty) value.head
+        if (tail.span(_ != Count)._2.filter { case step: Is => false; case _ => true }.isEmpty) value.head
         else value.toList
       case Head :: tail => //TODO: check for next containers
         value.headOption
@@ -756,7 +770,7 @@ trait SyncGuide extends LocalGuide[Stream] {
     val f = step match {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
-        val valueObservable = traversalToF(step.value)
+        val valueObservable = traversalsToF(step.value)
         val valueSteps      = step.value.segmentList.flatMap(_.stepsList)
 
         step.by.steps.lastOption match {
@@ -772,7 +786,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                     case v: Any                  => v
                 })
                 .toStream
-                .map { case (key, obs) => key -> clipper(obs.map(_._1).flatMap(valueObservable), valueSteps) }
+                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
           case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
             obs: Stream[Librarian[Any]] =>
               obs
@@ -786,7 +800,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                     case v: Any                  => v
                   }))
                 .toStream
-                .map { case (key, obs) => key -> clipper(obs.map(_._1).flatMap(valueObservable), valueSteps) }
+                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
           case Some(Last) =>
             obs: Stream[Librarian[Any]] =>
               obs
@@ -800,7 +814,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                     case v: Any                  => v
                   }))
                 .toStream
-                .map { case (key, obs) => key -> clipper(obs.map(_._1).flatMap(valueObservable), valueSteps) }
+                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
           case _ =>
             obs: Stream[Librarian[Any]] =>
               obs
@@ -816,7 +830,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                   .toSet)
                 .map(t => t._1.toList -> t._2)
                 .toStream
-                .map { case (key, obs) => key -> clipper(obs.map(_._1).flatMap(valueObservable), valueSteps) }
+                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
 
         }
     }

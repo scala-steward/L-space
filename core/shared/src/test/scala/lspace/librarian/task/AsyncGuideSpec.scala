@@ -503,7 +503,19 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(400.millis)
           .runToFuture
       }
-      "N.group(_.label()).outMap()" in {
+      "N.group(_.label()).mapValues(_.count))" in {
+        g.N
+          .group(_.label())
+          .mapValues(_.count)
+          .withGraph(sampleGraph)
+          .toMapF
+          .map { groupedNodes =>
+            groupedNodes.values.toSet shouldBe Set(4l, 6l)
+          }
+          .timeout(400.millis)
+          .runToFuture
+      }
+      "N.group(_.label()).mapValues(_.outMap())" in {
         g.N
           .group(_.label())
           .mapValues(_.outMap())

@@ -66,6 +66,19 @@ trait AsyncGuide extends LocalGuide[Observable] {
     }
   }
 
+  def traversalsToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+    traversal.segmentList match {
+      case Nil =>
+        librarians: Observable[Librarian[Any]] =>
+          librarians
+      case segment :: segments =>
+        val nextStep = buildNextStep(segment.stepsList, segments)
+        librarians: Observable[Librarian[Any]] =>
+          nextStep(librarians)
+    }
+  }
+
   def buildNextStep(steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
     val (nextSteps, nextSegments) =
@@ -835,10 +848,11 @@ trait AsyncGuide extends LocalGuide[Observable] {
     f.asInstanceOf[Observable[Librarian[Any]] => Observable[Librarian[Any]]] andThen nextStep
   }
 
+  //TODO: analyse tail
   def clipper(value: Observable[Any], steps: List[Step]): Task[Any] =
     collectContainers(steps) match {
       case Count :: tail =>
-        if (steps.span(_ != Count)._2.filter { case step: Is => false; case _ => true }.isEmpty) value.headL
+        if (tail.span(_ != Count)._2.filter { case step: Is => false; case _ => true }.isEmpty) value.headL
         else value.toListL
       case Head :: tail => //TODO: check for next containers
         value.headOptionL
@@ -867,7 +881,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
     val f = step match {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
-        val valueObservable = traversalToF(step.value)
+        val valueObservable = traversalsToF(step.value)
         val valueSteps      = step.value.segmentList.flatMap(_.stepsList)
 
         //TODO
@@ -889,7 +903,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                     .flatMap { group =>
                       Observable.fromTask(
 //                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
-                        clipper(group.map(_._1).flatMap(valueObservable), valueSteps)
+                        clipper(valueObservable(group.map(_._1)), valueSteps)
                           .map(group.key -> _))
                     }
               case step @ (_: Head | _: Min | _: Max | _: Mean) =>
@@ -906,8 +920,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                         case v: Any                  => v
                       }))
                     .flatMap { group =>
-                      Observable.fromTask(
-                        clipper(group.map(_._1).flatMap(valueObservable), valueSteps).map(group.key -> _))
+                      Observable.fromTask(clipper(valueObservable(group.map(_._1)), valueSteps).map(group.key -> _))
                     }
               case Last =>
                 obs: Observable[Librarian[Any]] =>
@@ -923,8 +936,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                         case v: Any                  => v
                       }))
                     .flatMap { group =>
-                      Observable.fromTask(
-                        clipper(group.map(_._1).flatMap(valueObservable), valueSteps).map(group.key -> _))
+                      Observable.fromTask(clipper(valueObservable(group.map(_._1)), valueSteps).map(group.key -> _))
                     }
             }
           case _ =>
@@ -944,7 +956,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                   .toSet)
                 .flatMap { group =>
                   Observable.fromTask(
-                    clipper(group.map(_._1).flatMap(valueObservable), valueSteps)
+                    clipper(valueObservable(group.map(_._1)), valueSteps)
                       .map(group.key.toList -> _))
               } //.toListL.map(_.toMap))
 //                .map(t => t._1.toList -> t._2)
