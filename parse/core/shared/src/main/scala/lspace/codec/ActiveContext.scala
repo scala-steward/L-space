@@ -86,7 +86,6 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
     } else {
       val (rLabel, rPrefix) = key.iri.reverse.span(_ != '/')
       if (rPrefix.nonEmpty) {
-//        val prefix = `@prefix`().size.toString
         val prefix = `@prefix`.all.size.toString
         s"$prefix:${rLabel.reverse}" -> this.copy(`@prefix` = `@prefix`() + (prefix -> rPrefix.reverse))
       } else {
@@ -150,8 +149,8 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
       .map(_ -> this)
       .getOrElse {
         s"@reverse:${property.iri}" -> this.copy(
-          definitions = this.definitions.all + (s"@reverse:${property.iri}" -> ActiveProperty(`@reverse` = true,
-                                                                                              property = property)))
+          definitions = this.definitions.all + (s"@reverse:${property.iri}" -> ActiveProperty(property,
+                                                                                              `@reverse` = true)()))
       }
   }
 

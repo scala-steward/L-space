@@ -65,13 +65,11 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
       .fromTask(for {
         node <- traversal.toNode
         json = encoder(node)(ActiveContext()) //TODO: create nice named default context
-//        _    = println(json)
         request = sttp
           .body(json)
           .header(HeaderNames.ContentType, "application/ld+json", true)
           .post(serviceUri)
           .response(asStream[Observable[ByteBuffer]])
-//        _ = println(request)
         response <- request.send()
       } yield {
         response.body match {

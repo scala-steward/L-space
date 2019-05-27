@@ -2,12 +2,12 @@ package lspace.services.rest.endpoints
 
 import cats.effect.IO
 import io.finch.Endpoint
+import lspace._
 import lspace.codec.ContextedT
 import lspace.librarian.traversal.Collection
-import lspace.structure.{ClassType, Node}
 
 trait SparqlApi extends ExecutionApi {
-  def query: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = ???
+  def query: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = ???
   //    {
   //      import io.finch.internal.HttpContent
   //      implicit val decoder = Decoder(DetachedGraph)

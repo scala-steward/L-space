@@ -46,8 +46,8 @@ abstract class EncoderSpec(encoder: Encoder) extends AsyncWordSpec with Matchers
         val defaultContext = ActiveContext(
           `@prefix` = ListMap("naam" -> "name"),
           definitions = Map(
-            "name"    -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name")),
-            "nameFor" -> ActiveProperty(`@type` = person :: Nil, `@reverse` = true, property = Property("name"))
+            "name"    -> ActiveProperty(`@type` = `@string` :: Nil, property = Property("name"))(),
+            "nameFor" -> ActiveProperty(`@type` = person :: Nil, `@reverse` = true, property = Property("name"))()
           )
         )
 //        println(

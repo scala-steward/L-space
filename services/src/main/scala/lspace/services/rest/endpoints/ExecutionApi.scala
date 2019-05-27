@@ -8,7 +8,7 @@ import lspace.librarian.traversal.Collection
 
 trait ExecutionApi extends Api {
 
-  def query: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]]
+  def query: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]]
   def mutate: Endpoint[IO, Unit]
   def ask: Endpoint[IO, Boolean]
   def subscribe: Endpoint[IO, List[Node]]

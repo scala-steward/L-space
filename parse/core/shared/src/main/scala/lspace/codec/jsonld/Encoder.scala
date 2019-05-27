@@ -139,9 +139,9 @@ trait Encoder {
         activeContext.copy(
           definitions = activeContext.definitions() + activeContext.definitions
             .get(key.iri)
-            .map(_.copy(`@type` = labelO.get :: Nil))
+            .map(_.copy(`@type` = labelO.get :: Nil)())
             .map(ap => key.iri -> ap)
-            .getOrElse(key.iri -> ActiveProperty(`@type` = labelO.get :: Nil, property = key)))
+            .getOrElse(key.iri -> ActiveProperty(`@type` = labelO.get :: Nil, property = key)()))
       } else activeContext
 
     edges match {

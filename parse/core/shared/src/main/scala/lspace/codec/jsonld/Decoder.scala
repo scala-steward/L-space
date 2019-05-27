@@ -118,7 +118,7 @@ trait Decoder {
     }
   }
 
-  implicit class WithExpandedMap(exp: ExpandedMap[Json]) {
+  implicit class WithSemiExpandedMap(exp: ExpandedMap[Json]) {
     def extractId(implicit activeContext: ActiveContext) =
       exp.get(types.`@id`).flatMap(_.string).map(activeContext.expandIri)
 
@@ -325,9 +325,17 @@ trait Decoder {
             .get(key)
             .map(_ -> value)
             .map(Task.now)
-            .getOrElse(toProperty(key).map(property => ActiveProperty(property = property) -> value))
+            .getOrElse(
+              toProperty(key).map(
+                property =>
+                  activeContext.definitions
+                    .get(key)
+                    .map(_ -> value)
+                    .getOrElse(ActiveProperty(property = property)() -> value)))
       })
       .map(_.map {
+//    Task
+//      .gatherUnordered(otherJson.obj.map {
         case (activeProperty, json) =>
           val property     = activeProperty.property
           val expectedType = activeProperty.`@type`.headOption
@@ -338,14 +346,14 @@ trait Decoder {
             if (activeProperty.`@reverse`)(ct: ClassType[Any], value: Any) => resource.addIn(property, ct, value)
             else (ct: ClassType[Any], value: Any) => resource.addOut(property, ct, value)
           json.obj
-            .map(_.expand) //before or after looking for @index, @language containers?
+//            .map(_.expand) //before or after looking for @index, @language containers?
             .map {
               obj =>
                 activeProperty.`@container` match {
                   case Nil =>
-                    toResource(obj, expectedType).flatMap(addEdgeF(_)).map(List(_))
+                    toResource(obj.expand, expectedType).flatMap(addEdgeF(_)).map(List(_))
                   case List(`@container`.`@index`) =>
-                    Task.gatherUnordered(obj.obj.toList.map {
+                    Task.gatherUnordered(obj.toList.map { //TODO: expand keys
                       case (index, json) =>
                         toResource(json, expectedType)
                           .flatMap(addEdgeF(_))
@@ -353,7 +361,7 @@ trait Decoder {
 //                          .map(List(_))
                     })
                   case List(`@container`.`@language`) =>
-                    Task.gatherUnordered(obj.obj.toList.map {
+                    Task.gatherUnordered(obj.toList.map {
                       case (language, json) =>
                         toResource(json, expectedType)
                           .flatMap(addEdgeF(_))
@@ -457,7 +465,9 @@ trait Decoder {
         //              }
       })
       .flatMap { l =>
-        Task.gatherUnordered(l).map(t => resource)
+        Task.gatherUnordered(l).map { l =>
+          resource
+        }
       }
   }
 
@@ -491,8 +501,8 @@ trait Decoder {
         .flatMap { node =>
           expandedJson.extractOntologies.flatMap { ontologies =>
             for {
-              _ <- (if (ontologies.isEmpty) Task.gather(label.toList.map(node.addLabel))
-                    else Task.gather(ontologies.map(node.addLabel)))
+              _ <- if (ontologies.isEmpty) Task.gather(label.toList.map(node.addLabel))
+              else Task.gather(ontologies.map(node.addLabel))
               _ <- withEdges(node, expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`)
             } yield node
           }
@@ -1745,7 +1755,7 @@ trait Decoder {
         .map(extractIris(_).map(toClasstype))
         .map(Task.gather(_))
         .map(_.map { cts =>
-          activeProperty.copy(`@type` = cts)
+          activeProperty.copy(`@type` = cts)()
         })
         .getOrElse(Task.now(activeProperty))
     }
@@ -1758,7 +1768,7 @@ trait Decoder {
             .map(activeContext.expandIri(_))
             .map(_.iri)
             .flatMap(`@container`.apply)
-            .map(iri => activeProperty.copy(`@container` = iri :: Nil))
+            .map(iri => activeProperty.copy(`@container` = iri :: Nil)())
             .map(Task.now)
             .getOrElse(Task.raiseError(FromJsonException(s"@container is not a string")))
         }
@@ -1781,7 +1791,7 @@ trait Decoder {
                   .flatMap(_.map(Task.now).getOrElse {
                     toProperty(key)(activeContext)
                   })
-                  .map(property => ActiveProperty(`@reverse` = true, property = property)))
+                  .map(property => ActiveProperty(property, `@reverse` = true)()))
             .getOrElse(Task.raiseError(FromJsonException("invalid IRI mapping")))
       }
     }
@@ -1799,7 +1809,7 @@ trait Decoder {
                 .flatMap(_.map(Task.now).getOrElse {
                   toProperty(key)(activeContext)
                 })
-                .map(property => ActiveProperty(property = property)))
+                .map(property => ActiveProperty(property)()))
           .getOrElse(Task.raiseError(FromJsonException("invalid IRI mapping")))
       }
     }
@@ -1828,9 +1838,8 @@ trait Decoder {
                         .flatMap(
                           _.map(Task.now)
                             .map(_.map(property =>
-                              activeContext.copy(`@prefix` = activeContext.`@prefix`() + (expKey -> key),
-                                                 definitions = activeContext.definitions() + (expKey -> ActiveProperty(
-                                                   property = property)))))
+                              activeContext.copy( //`@prefix` = activeContext.`@prefix`() + (expKey -> key),
+                                definitions = activeContext.definitions() + (expKey -> ActiveProperty(property)()))))
                             .getOrElse {
                               Task.now(activeContext.copy(`@prefix` = activeContext.`@prefix`() + (expKey -> key)))
                             }))
@@ -1847,7 +1856,7 @@ trait Decoder {
                                 .flatMap(_.map(Task.now).getOrElse {
                                   toProperty(expKey)(activeContext)
                                 })
-                                .map(property => ActiveProperty(property = property)))
+                                .map(property => ActiveProperty(property)()))
                               .flatMap(processType(obj)(_))
                               .flatMap(processContainer(obj)(_))
                               .flatMap { implicit activeProperty =>

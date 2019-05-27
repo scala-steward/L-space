@@ -95,8 +95,9 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
       (for {
         node <- traversal.toNode
         json = encoder.apply(node)
+        _    = println(json)
         input = Input
-          .post("/query")
+          .post("/@graph")
           .withBody[Application.JsonLD](node)
           .withHeaders("Accept" -> "application/ld+json")
         _ <- {
@@ -106,17 +107,17 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
                 .query(input)
                 .output
                 .get)
-            .map { output =>
+            .flatMap { output =>
               //          if (output.isLeft) println(output.left.get.getMessage)
               output.status shouldBe Status.Ok
-              val collection = output.value.t
-              collection.item shouldBe List(2)
+              val collection = output.value.compile.toList
+              Task.fromIO(output.value.compile.toList).map(_.head.t.item shouldBe List(2))
             }
         }
       } yield succeed).runToFuture
     }
     "be usable with RemoteGraph" in {
-      val graph = RemoteGraph.apply("abc", "http://localhost", 8082, "querystream")
+      val graph = RemoteGraph.apply("abc", "http://localhost", 8082, "@graph")
       (for {
         count <- graph.*>(lspace.g.N.has(SampleGraph.properties.balance, P.gt(500)).count).headF
       } yield count shouldBe 2l).runToFuture

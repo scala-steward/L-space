@@ -50,9 +50,9 @@ object EncodeJsonLD {
             .copy(
               definitions = jip.activeContext.definitions() ++ Map(
                 Collection.keys.start.property.iri -> ActiveProperty(`@type` = lspace.Label.D.`@datetime` :: Nil,
-                                                                     property = Collection.keys.start.property),
+                                                                     property = Collection.keys.start.property)(),
                 Collection.keys.end.property.iri -> ActiveProperty(`@type` = lspace.Label.D.`@datetime` :: Nil,
-                                                                   property = Collection.keys.end.property)
+                                                                   property = Collection.keys.end.property)()
               ))
 
           ListMap(

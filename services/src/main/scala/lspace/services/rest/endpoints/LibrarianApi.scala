@@ -40,7 +40,7 @@ trait LibrarianApi extends ExecutionApi {
   import Implicits.AsyncGuide.guide
   import Implicits.Scheduler.global
 
-  def streamingQuery: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = {
+  def query: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = {
     import io.finch.internal.HttpContent
     import cats.effect._, _root_.fs2._
     import io.finch.fs2._
@@ -48,8 +48,8 @@ trait LibrarianApi extends ExecutionApi {
     import scala.concurrent.ExecutionContext
     implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
     post(
-      "querystream" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
-                            lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
+      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+                       lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask
           .map { traversal =>
@@ -71,29 +71,29 @@ trait LibrarianApi extends ExecutionApi {
           .toIO
     }
   }
-  def query: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
-    post(
-      "query" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
-                      lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
-      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
-        traversalTask.flatMap { traversal =>
-          val start = Instant.now()
-          traversal.untyped
-            .withGraph(graph)
-            .toListF
-            .map { values =>
-              val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
-              collection.logger.debug("result count: " + values.size.toString)
-              Ok(ContextedT(collection))
-            }
-        }.toIO
-    }
-  }
+//  def query2: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
+//    post(
+//      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+//                       lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
+//      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
+//        traversalTask.flatMap { traversal =>
+//          val start = Instant.now()
+//          traversal.untyped
+//            .withGraph(graph)
+//            .toListF
+//            .map { values =>
+//              val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
+//              collection.logger.debug("result count: " + values.size.toString)
+//              Ok(ContextedT(collection))
+//            }
+//        }.toIO
+//    }
+//  }
   def mutate: Endpoint[IO, Unit] = ???
   def ask: Endpoint[IO, Boolean] = {
     post(
-      "query" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
-                      lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
+      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+                       lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
         traversalTask.flatMap { traversal =>
           val start = Instant.now()
@@ -112,11 +112,11 @@ trait LibrarianApi extends ExecutionApi {
 
   implicit lazy val encoder: jsonld.Encoder = jsonld.Encoder(baseEncoder)
 
-  def raw = query :+: streamingQuery
+  def raw = query
 
   def compiled: Endpoint.Compiled[IO] =
     Bootstrap
       .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-      .serve[LApplication.JsonLD](query :+: streamingQuery)
+      .serve[LApplication.JsonLD](query)
       .compile
 }

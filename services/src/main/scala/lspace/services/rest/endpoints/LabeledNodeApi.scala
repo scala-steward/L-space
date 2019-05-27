@@ -110,7 +110,7 @@ class LabeledNodeApi(val ontology: Ontology,
       val expKey = activeContext.expandIri(key).iri
       activeContext.definitions
         .get(expKey)
-        .orElse(Property.properties.get(expKey).map(p => ActiveProperty(property = p)))
+        .orElse(Property.properties.get(expKey).map(p => ActiveProperty(property = p)()))
         .map { activeProperty =>
           activeProperty.`@type`.headOption
             .map {
@@ -167,10 +167,10 @@ class LabeledNodeApi(val ontology: Ontology,
       (for {
         activeProperty1 <- activeContext.definitions
           .get(expKey1)
-          .orElse(Property.properties.get(expKey1).map(p => ActiveProperty(property = p)))
+          .orElse(Property.properties.get(expKey1).map(p => ActiveProperty(property = p)()))
         activeProperty2 <- activeContext.definitions
           .get(expKey2)
-          .orElse(Property.properties.get(expKey2).map(p => ActiveProperty(property = p)))
+          .orElse(Property.properties.get(expKey2).map(p => ActiveProperty(property = p)()))
       } yield {
         g.N
           .hasIri(graph.iri + "/" + label + "/" + id)
