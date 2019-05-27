@@ -251,9 +251,10 @@ trait Graph extends IriResource with GraphUtils { self =>
         oldIdNewNodeMap <- graph
           .nodes()
           .mapEval { node =>
-            nodes.create(node.labels: _*).map(node.id -> _)
+//            nodes.create(node.labels: _*).map(node.id -> _)
 //            (if (node.iri.nonEmpty) nodes.upsert(node.iri, node.labels: _*)
 //             else nodes.create(node.labels: _*)).map(node.id -> _)
+            nodes.upsert(node.iri, node.iris, node.labels: _*).map(node.id -> _)
           }
           .toListL
           .map(_.toMap)
@@ -271,7 +272,9 @@ trait Graph extends IriResource with GraphUtils { self =>
           for {
             edges <- graph
               .edges()
-//              .filter(e => !(e.key == Property.default.`@id` && e.to.hasLabel(TextType.datatype).isDefined))
+              .filter(e =>
+                !((e.key == Property.default.`@id` || e.key == Property.default.`@ids`) && e.from
+                  .isInstanceOf[Node] && e.to.hasLabel(TextType.datatype).isDefined))
               .mapEval { edge =>
                 //            if (edge.iri.nonEmpty) //TODO: find edge width
                 for {

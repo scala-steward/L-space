@@ -32,7 +32,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     for {
       id <- idProvider.next
       node = newNode(id)
-      u <- Task.gatherUnordered(ontology.map(node.addLabel))
+      u <- Task.sequence(ontology.map(node.addLabel))
     } yield node
   }
 
@@ -49,7 +49,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     * @param iris a set of iri's which should all resolve to the same resource
     * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
     */
-  def upsert(iri: String, iris: Set[String]): Task[Node] = {
+  def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] = {
     hasIri(iri :: iris.toList).toListL
       .flatMap {
         case Nil =>
@@ -71,6 +71,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
         val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty)
         for {
           iriEdges <- Task.sequence(newIris.map(node.addOut(Label.P.`@ids`, _)))
+          _        <- Task.sequence(ontologies.map(node.addLabel))
         } yield node
       }
   }
