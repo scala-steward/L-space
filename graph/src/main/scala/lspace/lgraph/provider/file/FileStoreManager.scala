@@ -14,6 +14,7 @@ import monix.eval.Task
 import monix.execution.{Cancelable, CancelableFuture}
 import monix.reactive.Observable
 
+import scala.collection.immutable.HashMap
 import scala.io.BufferedSource
 
 object FileStoreManager {
@@ -338,7 +339,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
               .append(List()) //TEMP-FIX: https://github.com/monix/monix/issues/832 reducing on an observable with only one item results in an empty stream
               .reduce(_ ++ _)
               .map(_.toMap)
-              .map(IdMaps(_))).toListL
+              .map(idmap => IdMaps(HashMap[Long, Long]() ++ idmap))).toListL
               .map(_.reduce(_ ++ _))
           }
       }
@@ -469,7 +470,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 //              .reduce(_ ++ _)
               .toListL
               .map(_.toMap)
-              .map(idmap => idMaps.copy(edgeIds = idmap))
+              .map(idmap => idMaps.copy(edgeIds = HashMap[Long, Long]() ++ idmap))
 //            .map(_.reduce(_ ++ _))
 //              .completedL
 //              .map { u =>
@@ -622,7 +623,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 //              }
               .toListL
               .map(_.toMap)
-              .map(idmap => idMaps.copy(edgeIds = idmap))
+              .map(idmap => idMaps.copy(edgeIds = HashMap[Long, Long]() ++ idmap))
           }
       }
   }
@@ -658,7 +659,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                   .getOrElse(Task.raiseError(FromJsonException("nodes-line should be an [[label-ref*][id*]]")))
               }
               .toListL
-              .map(edgeIds => IdMaps(edgeIds = edgeIds.toMap))
+              .map(edgeIds => IdMaps(edgeIds = HashMap[Long, Long]() ++ edgeIds.toMap))
               .map { idMaps ++ _ }
           }
       }
