@@ -747,7 +747,11 @@ trait SyncGuide extends LocalGuide[Stream] {
         value.headOption
       case Last :: tail => //TODO: check for next containers
         value.lastOption
-      case _ => value.toList
+      case Sum :: tail     => value.headOption
+      case Mean :: tail    => value.headOption
+      case Max(by) :: tail => value.headOption
+      case Min(by) :: tail => value.headOption
+      case _               => value.toList
     }
 
   def collectingBarrierStep(

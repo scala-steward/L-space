@@ -858,7 +858,11 @@ trait AsyncGuide extends LocalGuide[Observable] {
         value.headOptionL
       case Last :: tail => //TODO: check for next containers
         value.lastOptionL
-      case _ => value.toListL
+      case Sum :: tail     => value.headOptionL
+      case Mean :: tail    => value.headOptionL
+      case Max(by) :: tail => value.headOptionL
+      case Min(by) :: tail => value.headOptionL
+      case _               => value.toListL
     }
 
   def collectingBarrierStep(

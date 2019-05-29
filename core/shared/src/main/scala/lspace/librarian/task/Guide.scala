@@ -81,6 +81,7 @@ trait LocalGuide[F[_]] extends Guide[F] {
       case step: Mean              => step
       case step: Min               => step
       case step: Max               => step
+      case step: Sum               => step
     }
   }
 
