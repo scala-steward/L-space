@@ -178,11 +178,11 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 
   override val values: Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def nodeCount(): Task[Long] = graph.nodes().countL
+  override def nodeCount(): Task[Long] = Task.delay(graph.nodeStore.cached.count) //.nodes().countL
 
-  override def edgeCount(): Task[Long] = graph.edges().countL
+  override def edgeCount(): Task[Long] = Task.delay(graph.edgeStore.cached.count) //.edges().countL
 
-  override def valueCount(): Task[Long] = graph.values().countL
+  override def valueCount(): Task[Long] = Task.delay(graph.valueStore.cached.count) //.values().countL
 
 //  import argonaut._
 //  import Argonaut._

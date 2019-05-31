@@ -122,5 +122,6 @@ trait LStore[G <: LGraph] extends Store[G] {
   def cached = new {
     def all(): Stream[T2]           = _cache.values.toStream
     def hasId(id: Long): Option[T2] = _cache.get(id)
+    def count: Long                 = _cache.size
   }
 }
