@@ -24,6 +24,8 @@ abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(gra
     } ++ parent.nodes().filter(n => !idSet.contains(n.id))
   }
 
+  override def count(): Task[Long] = nodeStore.count().map(_ + added.size - deleted.size)
+
   override def hasIri(iris: List[String]): Observable[Node] = {
     val fromTransaction = super.hasIri(iris)
     val fromParent =

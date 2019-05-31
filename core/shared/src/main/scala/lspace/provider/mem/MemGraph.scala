@@ -76,7 +76,7 @@ trait MemGraph extends Graph {
 
   protected[lspace] val nodeStore: MemNodeStore[this.type]   = MemNodeStore("@node", thisgraph)
   protected[lspace] val edgeStore: MemEdgeStore[this.type]   = MemEdgeStore("@edge", thisgraph)
-  protected[lspace] val valueStore: MemValueStore[this.type] = MemValueStore("@edge", thisgraph)
+  protected[lspace] val valueStore: MemValueStore[this.type] = MemValueStore("@value", thisgraph)
 
   protected[mem] val `@idStore`: MemValueStore[this.type] =
     MemValueStore(NS.types.`@id`, thisgraph)

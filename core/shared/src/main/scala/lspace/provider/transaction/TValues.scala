@@ -25,6 +25,7 @@ abstract class TValues[G <: Transaction](override val graph: G) extends Values(g
       idSet += value.id -> value; value
     } ++ parent.values().filter(n => !idSet.contains(n.id))
   }
+  override def count(): Task[Long] = valueStore.count().map(_ + added.size - deleted.size)
 
   override def hasIri(iris: List[String]): Observable[Value[_]] = {
     val fromTransaction = super.hasIri(iris)

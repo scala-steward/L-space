@@ -24,6 +24,7 @@ abstract class TEdges[G <: Transaction](override val graph: G) extends Edges(gra
       idSet += edge.id -> edge; edge
     } ++ parent.edges().filter(n => !idSet.contains(n.id))
   }
+  override def count(): Task[Long] = edgeStore.count().map(_ + added.size - deleted.size)
 
   override def hasIri(iris: List[String]): Observable[Edge[_, _]] = {
     val fromTransaction = super.hasIri(iris)

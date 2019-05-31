@@ -54,5 +54,5 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   }
 
   def all(): Observable[T2] = Observable.fromIterable(data).map(_._2)
-  def count(): Task[Long]   = all().countL
+  def count(): Task[Long]   = Task.delay(data.size.toLong)
 }
