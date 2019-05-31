@@ -10,9 +10,10 @@ import monix.execution.atomic.AtomicLong
 
 import scala.collection.{concurrent, mutable}
 import scala.collection.JavaConverters._
+import scala.collection.immutable.HashSet
 
 object LResource {
-  case class LinksSet[S, E](lastsync: Option[Long] = None, links: List[Edge[S, E]] = List[Edge[S, E]]())
+  case class LinksSet[S, E](lastsync: Option[Long] = None, links: HashSet[Edge[S, E]] = HashSet[Edge[S, E]]())
 
   private[this] val getLastAccessStampLock = new Object
   private[this] val lastaccessStamp        = AtomicLong(Instant.now().getEpochSecond)
@@ -42,21 +43,24 @@ trait LResource[T] extends Resource[T] {
       val linksset = linksOut
         .getOrElse(edge.key, LResource.LinksSet[T, Any]())
       if (_lastoutsync.exists(_ + 120 > time)) {
-        linksOut += edge.key -> LinksSet[T, Any](lastsync = Some(time),
-                                                 links = (linksset.links
-                                                   .asInstanceOf[List[Edge[T, Any]]] :+ edge.asInstanceOf[Edge[T, Any]])
-                                                   .sortBy(_.id)
-                                                   .reverse
-                                                   .distinct
-                                                   .reverse)
+        linksOut += edge.key -> LinksSet[T, Any](
+          lastsync = Some(time),
+          links = (linksset.links
+            .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]])
+//                                                   .sortBy(_.id)
+//                                                   .reverse
+//                                                   .distinct
+//                                                   .reverse
+        )
       } else
         linksOut += edge.key -> LinksSet[T, Any](
           links = (linksset.links
-            .asInstanceOf[List[Edge[T, Any]]] :+ edge.asInstanceOf[Edge[T, Any]])
-            .sortBy(_.id)
-            .reverse
-            .distinct
-            .reverse)
+            .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]])
+//            .sortBy(_.id)
+//            .reverse
+//            .distinct
+//            .reverse
+        )
     }
   }
 
@@ -76,17 +80,20 @@ trait LResource[T] extends Resource[T] {
       if (_lastinsync.exists(_ + 120 > time)) {
         linksIn += edge.key -> LinksSet[Any, T](
           lastsync = Some(time),
-          links = (edge.asInstanceOf[Edge[Any, T]] :: linksset.links
-            .asInstanceOf[List[Edge[Any, T]]]).distinct
-            .sortBy(_.id)
-            .reverse
+          links = (linksset.links
+            .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]])
+//            .distinct
+//            .sortBy(_.id)
+//            .reverse
         )
       } else
         linksIn += edge.key -> LinksSet[Any, T](
-          links = (edge.asInstanceOf[Edge[Any, T]] :: linksset.links
-            .asInstanceOf[List[Edge[Any, T]]]).distinct
-            .sortBy(_.id)
-            .reverse)
+          links = (linksset.links
+            .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]])
+//            .distinct
+//            .sortBy(_.id)
+//            .reverse
+        )
     }
   }
 
@@ -131,27 +138,27 @@ trait LResource[T] extends Resource[T] {
     linksOut.keySet ++ linksIn.keySet toSet //TODO: this returns only from cached edges, query LStore
 
   def out(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatMap(_.links)).map(_.to.value)
-    else linksOut.values.flatMap(_.links).map(_.to.value).toList
+    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList)).map(_.to.value)
+    else linksOut.values.flatMap(_.links.toList).map(_.to.value).toList
 //    _outE(key: _*)
 //      .map(_.to.value)
 
   def outMap(key: Property*): Map[Property, List[Any]] = {
     if (key.isEmpty) linksOut.toMap.mapValues(_.links.map(_.to.value).toList)
-    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.to.value))
+    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.to.value).toList)
 //    _outE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.to.value))
   }
 
   def outE(key: Property*): List[Edge[T, Any]] = {
     if (key.nonEmpty)
-      key.toList.flatMap(key => linksOut.get(key).toList.flatMap(_.links)).asInstanceOf[List[Edge[T, Any]]]
-    else linksOut.values.toList.flatMap(_.links).asInstanceOf[List[Edge[T, Any]]]
+      key.toList.flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList)).asInstanceOf[List[Edge[T, Any]]]
+    else linksOut.values.toList.flatMap(_.links.toList).asInstanceOf[List[Edge[T, Any]]]
 //    _outE(key: _*)
   }
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.links)
-    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links)
+    if (key.isEmpty) linksOut.toMap.mapValues(_.links.toList)
+    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList)
 //    _outE(key.toList: _*).groupBy(_.key)
   }
 
@@ -191,33 +198,33 @@ trait LResource[T] extends Resource[T] {
   }*/
 
   def in(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toList.flatMap(_.links)).map(_.from.value)
-    else linksIn.values.flatMap(_.links).map(_.from.value).toList
+    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList)).map(_.from.value)
+    else linksIn.values.flatMap(_.links.toList).map(_.from.value).toList
 //    _inE(key: _*)
 //      .map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] =
     if (key.isEmpty) linksIn.toMap.mapValues(_.links.map(_.from.value).toList)
-    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.from.value))
+    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.from.value).toList)
 //    _inE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.from.value))
 
   def inE(key: Property*): List[Edge[Any, T]] = {
     if (key.nonEmpty)
-      key.toList.flatMap(key => linksIn.get(key).toList.flatMap(_.links)).asInstanceOf[List[Edge[Any, T]]]
-    else linksIn.values.toList.flatMap(_.links).asInstanceOf[List[Edge[Any, T]]]
+      key.toList.flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList)).asInstanceOf[List[Edge[Any, T]]]
+    else linksIn.values.toList.flatMap(_.links.toList).asInstanceOf[List[Edge[Any, T]]]
 //    _inE(key: _*)
   }
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
-    if (key.isEmpty) linksIn.toMap.mapValues(_.links)
-    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links)
+    if (key.isEmpty) linksIn.toMap.mapValues(_.links.toList)
+    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList)
 //    _inE(key.toList: _*).groupBy(_.key)
   }
 
   def removeIn[V >: T](edge: Edge[_, V]): Task[Unit] = Task {
     synchronized {
       linksIn.get(edge.key).foreach { linksset =>
-        linksset.links.asInstanceOf[List[Edge[Any, T]]].filterNot(_ == edge.asInstanceOf[Edge[Any, T]]) match {
+        linksset.links.asInstanceOf[HashSet[Edge[Any, T]]] - edge.asInstanceOf[Edge[Any, T]] match {
           case set if set.isEmpty =>
             linksIn -= edge.key
           case set =>
@@ -229,7 +236,7 @@ trait LResource[T] extends Resource[T] {
   def removeOut[V >: T](edge: Edge[V, _]): Task[Unit] = Task {
     synchronized {
       linksOut.get(edge.key).foreach { linksset =>
-        linksset.links.asInstanceOf[List[Edge[T, Any]]].filterNot(_ == edge.asInstanceOf[Edge[T, Any]]) match {
+        linksset.links.asInstanceOf[HashSet[Edge[T, Any]]] - edge.asInstanceOf[Edge[T, Any]] match {
           case set if set.isEmpty =>
             linksOut -= edge.key
           case set =>
