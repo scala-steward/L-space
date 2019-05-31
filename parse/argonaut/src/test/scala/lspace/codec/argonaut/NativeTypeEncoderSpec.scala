@@ -1,6 +1,6 @@
 package lspace.codec.argonaut
 
-class NativeTypeEncoderSpec extends lspace.codec.NativeTypeEncoderSpec {
+class NativeTypeEncoderSpec extends lspace.codec.jsonld.NativeTypeEncoderSpec {
   type Json = _root_.argonaut.Json
   implicit val encoder = lspace.codec.argonaut.nativeEncoder
 

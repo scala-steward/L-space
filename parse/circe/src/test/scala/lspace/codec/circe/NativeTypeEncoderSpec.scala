@@ -1,9 +1,6 @@
 package lspace.codec.circe
 
-import io.circe.Json
-import lspace.codec._
-
-class NativeTypeEncoderSpec extends lspace.codec.NativeTypeEncoderSpec {
+class NativeTypeEncoderSpec extends lspace.codec.jsonld.NativeTypeEncoderSpec {
   type Json = io.circe.Json
   implicit val encoder = lspace.codec.circe.nativeEncoder
 
