@@ -165,8 +165,8 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
           _    <- node.addOut("number", 3)
           _    <- node.addOut("number", 4)
         } yield {
-          node.out("number") shouldBe List(1, 2, 3, 4)
-          node.out() shouldBe List(1, 2, 3, 4)
+          node.out("number").toSet shouldBe Set(1, 2, 3, 4)
+          node.out().toSet shouldBe Set(1, 2, 3, 4)
         }).runToFuture
       }
     }
