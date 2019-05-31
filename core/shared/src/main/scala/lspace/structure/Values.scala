@@ -18,6 +18,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     def hasId(id: Long): Option[Value[Any]] =
       valueStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
+    def count: Long                   = valueStore.cached.count
   }
   def hasIri(iris: List[String]): Observable[Value[Any]] = {
     //    println(s"get nodes $iris")

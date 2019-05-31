@@ -37,6 +37,7 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   def cached = new {
     def all(): Stream[T2]           = data.toStream.map(_._2)
     def hasId(id: Long): Option[T2] = data.get(id)
+    def count: Long                 = data.size
   }
 
   def delete(resource: T): Task[Unit] = Task {

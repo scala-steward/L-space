@@ -20,6 +20,7 @@ trait RApi[T <: Resource[Any]] {
   def cached: {
     def hasId(id: Long): Option[T]
     def dereferenceValue(t: Any): Any
+    def count: Long
   }
 
 }

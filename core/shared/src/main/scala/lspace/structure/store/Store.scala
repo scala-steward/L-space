@@ -26,6 +26,7 @@ trait Store[G <: Graph] {
   def cached: {
     def all(): Stream[T2]
     def hasId(id: Long): Option[T2]
+    def count: Long
   }
 
   def -(resource: T): Task[Unit] = delete(resource)

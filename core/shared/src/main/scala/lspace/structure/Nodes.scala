@@ -15,6 +15,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     def hasId(id: Long): Option[Node] =
       nodeStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
+    def count: Long                   = nodeStore.cached.count
   }
   def hasId(id: List[Long]): Observable[Node] = nodeStore.hasId(id)
   override def hasIri(iris: List[String]): Observable[Node] = {

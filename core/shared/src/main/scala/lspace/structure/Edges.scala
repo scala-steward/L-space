@@ -27,6 +27,7 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
     def hasId(id: Long): Option[Edge[Any, Any]] =
       edgeStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
+    def count: Long                   = edgeStore.cached.count
   }
 
   /**
