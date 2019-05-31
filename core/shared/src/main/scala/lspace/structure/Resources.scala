@@ -103,6 +103,8 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
       case v: Value[_]  => valueStore.cached.hasId(v.id).getOrElse(newValue(v.id, dereferenceValue(v.value), v.label))
       case _            => t
     }
+
+    def count: Long = nodes.cached.count + edges.cached.count + values.cached.count
   }
 
   protected[lspace] def cache[T](resource: Resource[T]): _Resource[T] = resource match {
