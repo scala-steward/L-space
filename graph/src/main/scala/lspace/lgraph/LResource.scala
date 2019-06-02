@@ -18,6 +18,10 @@ object LResource {
   private[this] val getLastAccessStampLock = new Object
   private[this] val lastaccessStamp        = AtomicLong(Instant.now().getEpochSecond)
 
+  /**
+    * This method is used to create timestamps with fixed intervals and reuses equal values.
+    * @return
+    */
   def getLastAccessStamp() = getLastAccessStampLock.synchronized {
     val lastAccess = lastaccessStamp.get()
     val now        = Instant.now().getEpochSecond
@@ -32,8 +36,6 @@ trait LResource[T] extends Resource[T] {
   protected[lgraph] var _lastoutsync: Option[Long] = None
   private val linksOut: concurrent.Map[Property, LinksSet[T, _]] =
     new ConcurrentHashMap[Property, LinksSet[T, _]](16, 0.9f, 32).asScala
-//  private val linksOut: mutable.OpenHashMap[Property, LinksSet[T, _]] =
-//    mutable.OpenHashMap[Property, LinksSet[T, _]]()
   private val linksOutWriteLock = new Object
 
   def _addOut(edge: Edge[T, _]): Unit = {
@@ -45,21 +47,13 @@ trait LResource[T] extends Resource[T] {
       if (_lastoutsync.exists(_ + 120 > time)) {
         linksOut += edge.key -> LinksSet[T, Any](
           lastsync = Some(time),
-          links = (linksset.links
-            .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]])
-//                                                   .sortBy(_.id)
-//                                                   .reverse
-//                                                   .distinct
-//                                                   .reverse
+          links = linksset.links
+            .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]]
         )
       } else
         linksOut += edge.key -> LinksSet[T, Any](
-          links = (linksset.links
-            .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]])
-//            .sortBy(_.id)
-//            .reverse
-//            .distinct
-//            .reverse
+          links = linksset.links
+            .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]]
         )
     }
   }
@@ -67,8 +61,6 @@ trait LResource[T] extends Resource[T] {
   protected[lgraph] var _lastinsync: Option[Long] = None
   private val linksIn: concurrent.Map[Property, LinksSet[_, T]] =
     new ConcurrentHashMap[Property, LinksSet[_, T]](2, 0.9f, 4).asScala
-//  private val linksIn: mutable.OpenHashMap[Property, LinksSet[_, T]] =
-//    mutable.OpenHashMap[Property, LinksSet[_, T]]()
   private val linksInWriteLock = new Object
 
   def _addIn(edge: Edge[_, T]): Unit = {
@@ -80,19 +72,13 @@ trait LResource[T] extends Resource[T] {
       if (_lastinsync.exists(_ + 120 > time)) {
         linksIn += edge.key -> LinksSet[Any, T](
           lastsync = Some(time),
-          links = (linksset.links
-            .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]])
-//            .distinct
-//            .sortBy(_.id)
-//            .reverse
+          links = linksset.links
+            .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]]
         )
       } else
         linksIn += edge.key -> LinksSet[Any, T](
-          links = (linksset.links
-            .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]])
-//            .distinct
-//            .sortBy(_.id)
-//            .reverse
+          links = linksset.links
+            .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]]
         )
     }
   }
