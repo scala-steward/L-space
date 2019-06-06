@@ -444,7 +444,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).head).mapValues(_.head.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.out(properties.knows).hasLabel[Int].head)
+          .group(_.out(properties.knows).hasLabel[Int].head())
           .mapValues(_.head()
             .project(_.out(properties.name))
             .by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head))
@@ -454,15 +454,33 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(400.millis)
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(`@id`), _.out(`@type`))""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").out(properties.knows).project(_.out(properties.name).head).by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .out(properties.knows)
-          .project(_.out(properties.name))
+          .project(_.out(properties.name).head)
           .by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
           .withGraph(sampleGraph)
           .toListF
-          .map(_.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List())))
+          .map(_.toSet shouldBe Set((Some("Gray"), List(2230.3)), (Some("Yoshio"), List())))
+          .timeout(400.millis)
+          .runToFuture
+      }
+      """N.hasIri(sampleGraph.iri + "/person/12345").project(_.out(properties.knows).project(_.out(properties.name))
+        |.by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
+      """.stripMargin in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .project(_.out(properties.knows)
+            .project(_.out(properties.name))
+            .by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0))))
+          .by(_.out(properties.name))
+          .withGraph(sampleGraph)
+          .headF
+          .map {
+            case (tuples, name) =>
+              (tuples.toSet, name) shouldBe (Set((List("Gray"), List(2230.3)), (List("Yoshio"), List())), List("Levi"))
+          }
           .timeout(400.millis)
           .runToFuture
       }

@@ -26,6 +26,7 @@ package object traversal {
     implicit def last                         = at[Last](s => s)
     implicit def max                          = at[Max](s => s)
     implicit def min                          = at[Min](s => s)
+    implicit def mean                         = at[Mean](s => s)
     implicit def project[Traversals <: HList] = at[Project[Traversals]](s => s)
     implicit def group[T <: ClassType[_], Segments <: HList, Tv <: ClassType[_], SegmentsV <: HList] =
       at[Group[T, Segments, Tv, SegmentsV]](s => s)
@@ -34,6 +35,7 @@ package object traversal {
     implicit def outemap                                     = at[OutEMap](s => s)
     implicit def inmap                                       = at[InMap](s => s)
     implicit def inemap                                      = at[InEMap](s => s)
+    implicit def is                                          = at[Is](s => s)
     implicit def path[ET <: ClassType[_], Segments <: HList] = at[Path[ET, Segments]](s => s)
   }
 

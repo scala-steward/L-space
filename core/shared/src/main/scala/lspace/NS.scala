@@ -69,6 +69,7 @@ object NS {
     val `@tuple2`             = "@tuple2"
     val `@tuple3`             = "@tuple3"
     val `@tuple4`             = "@tuple4"
+    val `@option`             = "@option"
     val `@list`               = "@list"
     val `@set`                = "@set"
     val `@listset`            = "@listset"

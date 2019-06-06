@@ -318,7 +318,6 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .map(_.nonEmpty shouldBe true)
         .task
         .runToFuture
-
     }
     "N.group(_.label()).mapValues(_.count)).head" in {
       g.N

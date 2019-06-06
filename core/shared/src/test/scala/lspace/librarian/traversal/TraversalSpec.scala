@@ -1,8 +1,10 @@
 package lspace.librarian.traversal
 
 import java.time._
+
 import lspace._
 import Label.D._
+import lspace.datatype.{IntType, NodeURLType}
 import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
@@ -174,71 +176,124 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //    }
   }
   "A traversal has an expected result type" can {
-    """a Any""" in {
-      g.N.out().et shouldBe ClassType.stubAny
+    """g.out()""" in {
+      g.out().et shouldBe ClassType.stubAny
     }
-    """a Node""" in {
+    """g.N""" in {
       g.N.et shouldBe Node.nodeUrl
     }
-    """a Map[List[Any],Node]""" in {
+    """g.E""" in {
+      g.E.et shouldBe Edge.edgeUrl
+    }
+    """g.N.group(_.out()).mapValues(_.head)""" in {
       g.N
-        .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.head)
-        .et shouldBe tupleType(listType(), Node.nodeUrl)
+        .et shouldBe tupleType(listType(), optionType(Node.nodeUrl))
     }
-    """a Map[List[Any],List[Node]]""" in {
+    """g.N.group(_.out())""" in {
       g.N
-        .hasIri("/person/12345")
         .group(_.out())
         .et shouldBe tupleType(listType(), listType(Node.nodeUrl))
     }
-    """a Map[List[Any],Edge[_,_]]""" in {
+    """g.E.group(_.out()).mapValues(_.head)""" in {
       g.E
-        .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.head)
-        .et shouldBe tupleType(listType(), Edge.edgeUrl)
+        .et shouldBe tupleType(listType(), optionType(Edge.edgeUrl))
     }
-    """a Map[List[Any],List[Edge[_,_]]]""" in {
+    """g.E.group(_.out())""" in {
       g.E
-        .hasIri("/person/12345")
         .group(_.out())
         .et shouldBe tupleType(listType(), listType(Edge.edgeUrl))
     }
-    """a Map[List[Any],Int]""" in {
+    """g.V.group(_.out()).mapValues(_.hasLabel[Int].head)""" in {
       g.V
-        .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.hasLabel[Int].head)
-        .et shouldBe tupleType(listType(), `@int`)
+        .et shouldBe tupleType(listType(), optionType(`@int`))
     }
-    """a Map[List[Any],List[Int]]""" in {
+    """g.V.group(_.out()).mapValues(_.hasLabel[Int])""" in {
       g.V
-        .hasIri("/person/12345")
         .group(_.out())
         .mapValues(_.hasLabel[Int])
         .et shouldBe tupleType(listType(), listType(`@int`))
     }
-    """a Map[List[Ontology],List[(List[Any],List[Double])]]""" in {
-      Task {
-        g.N
-          .hasIri("/person/12345")
-          .group(_.label())
-          .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
-          .et shouldBe tupleType(listType(Ontology.urlType), listType(tupleType(listType(), listType(`@double`))))
-      }.runToFuture
+    """g.N.group(_.label()) .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))""" in {
+      g.N
+        .group(_.label())
+        .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
+        .et shouldBe tupleType(listType(Ontology.urlType), listType(tupleType(listType(), listType(`@double`))))
     }
-    """a ([List[Any],List[Any])""" in {
+    """g.N.project(_.out()).by(_.in())""" in {
       g.N.project(_.out()).by(_.in()).et shouldBe tupleType(listType(), listType())
     }
-    """a ([List[Any],Map[Property,List[Any]])""" in {
+    """g.N.project(_.out().hasLabel[Int].head)""" in {
+      g.N.project(_.out().hasLabel[Int].head).et shouldBe tupleType(optionType(`@int`))
+    }
+    """g.N.project(_.out().hasLabel[Int].head).by(_.in())""" in {
+      g.N.project(_.out().hasLabel[Int].head).by(_.in()).et shouldBe tupleType(optionType(`@int`), listType())
+    }
+    """g.N.project(_.out()).by(_.inMap())""" in {
       g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(),
                                                                listType(mapType(Property.urlType, listType())))
+    }
+    """g.N.project(_.out()).by(_.inMap()).by(_.outMap())""" in {
       g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
         tupleType(listType(),
                   listType(mapType(Property.urlType, listType())),
                   listType(mapType(Property.urlType, listType())))
+    }
+    """g.hasLabel[...].max()""" in {
+      g.hasLabel[Int].max().et shouldBe `@int`
+      g.hasLabel[Double].max().et shouldBe `@double`
+      g.hasLabel[Long].max().et shouldBe `@long`
+      g.hasLabel[Instant].max().et shouldBe `@datetime`
+      g.hasLabel[LocalDate].max().et shouldBe `@date`
+      g.hasLabel[LocalTime].max().et shouldBe `@time`
+      g.hasLabel[LocalDateTime].max().et shouldBe `@localdatetime`
+    }
+    """g.N.max(_....)""" in {
+      g.N.max(_.out().hasLabel[Int]).et shouldBe NodeURLType.datatype
+      g.N.max(_.out().hasLabel[Double]).et shouldBe NodeURLType.datatype
+      g.N.max(_.out().hasLabel[Long]).et shouldBe NodeURLType.datatype
+      g.N.max(_.out().hasLabel[Instant]).et shouldBe NodeURLType.datatype
+      g.N.max(_.out().hasLabel[LocalDate]).et shouldBe NodeURLType.datatype
+      g.N.max(_.out().hasLabel[LocalDateTime]).et shouldBe NodeURLType.datatype
+    }
+    """g.hasLabel[...].min()""" in {
+      g.hasLabel[Int].min().et shouldBe `@int`
+      g.hasLabel[Double].min().et shouldBe `@double`
+      g.hasLabel[Long].min().et shouldBe `@long`
+      g.hasLabel[Instant].min().et shouldBe `@datetime`
+      g.hasLabel[LocalDate].min().et shouldBe `@date`
+      g.hasLabel[LocalTime].min().et shouldBe `@time`
+      g.hasLabel[LocalDateTime].min().et shouldBe `@localdatetime`
+    }
+    """g.N.min(_....)""" in {
+      g.N.min(_.out().hasLabel[Int]).et shouldBe NodeURLType.datatype
+      g.N.min(_.out().hasLabel[Double]).et shouldBe NodeURLType.datatype
+      g.N.min(_.out().hasLabel[Long]).et shouldBe NodeURLType.datatype
+      g.N.min(_.out().hasLabel[Instant]).et shouldBe NodeURLType.datatype
+      g.N.min(_.out().hasLabel[LocalDate]).et shouldBe NodeURLType.datatype
+      g.N.min(_.out().hasLabel[LocalDateTime]).et shouldBe NodeURLType.datatype
+    }
+    """g.hasLabel[...].order()""" in {
+      g.hasLabel[Int].order().et shouldBe `@int`
+      g.hasLabel[Double].order().et shouldBe `@double`
+      g.hasLabel[Long].order().et shouldBe `@long`
+      g.hasLabel[Instant].order().et shouldBe `@datetime`
+      g.hasLabel[LocalDate].order().et shouldBe `@date`
+      g.hasLabel[LocalTime].order().et shouldBe `@time`
+      g.hasLabel[LocalDateTime].order().et shouldBe `@localdatetime`
+    }
+    """g.N.order(_....)""" in {
+      g.N.order(_.out().hasLabel[Int]).et shouldBe NodeURLType.datatype
+      g.N.order(_.out().hasLabel[Double]).et shouldBe NodeURLType.datatype
+      g.N.order(_.out().hasLabel[Long]).et shouldBe NodeURLType.datatype
+      g.N.order(_.out().hasLabel[Instant]).et shouldBe NodeURLType.datatype
+      g.N.order(_.out().hasLabel[LocalDate]).et shouldBe NodeURLType.datatype
+      g.N.order(_.out().hasLabel[LocalDateTime]).et shouldBe NodeURLType.datatype
     }
   }
   "Traversals" can {

@@ -70,7 +70,7 @@ object Order
 }
 
 //case class Order(key: PropertyKey, increasing: Boolean = true) extends TraverseStep /*with ModulateStep[ZeroOrMoreBy]*/ {
-case class Order(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean)
+case class Order(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean = true)
     extends RearrangeBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
 
   lazy val toNode: Task[Node]      = this

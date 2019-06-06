@@ -67,7 +67,7 @@ case class Project[Traversals <: HList](by: Traversals)
   override def prettyPrint: String =
     "project(" + by.runtimeList
       .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-      .map(_.toString)
+      .map(_.prettyPrint)
       .map("_." + _)
       .mkString(", ") + ")"
 }

@@ -5,8 +5,6 @@ import lspace.structure.util.ClassTypeable
 import lspace.structure._
 import lspace.util.types.DefaultsToAny
 
-import scala.collection.immutable.ListSet
-
 object ListType extends DataTypeDef[ListType[Any]] {
 
   lazy val datatype = new ListType[Any](Nil) {

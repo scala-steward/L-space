@@ -326,6 +326,11 @@ object DataType
 
     val `@structured` = StructuredType.datatype
 
+    def optionType[V](ct: ClassType[V]): OptionType[V] =
+      OptionType(Some(ct.asInstanceOf[ClassType[V]]))
+    def optionType[T](implicit tpe: ClassTypeable[T]): OptionType[T] =
+      OptionType(Some(tpe.ct.asInstanceOf[ClassType[T]])).asInstanceOf[OptionType[T]]
+    def optionType(): OptionType[Any] = OptionType(Option.empty[ClassType[Any]])
     def vectorType[V](ct: ClassType[V]): VectorType[V] =
       VectorType(List(ct.asInstanceOf[ClassType[V]]))
     def vectorType[T](implicit tpe: ClassTypeable[T]): VectorType[T] =

@@ -52,6 +52,7 @@ object Segment
 case class Segment[Steps <: HList] protected[lspace] (steps: Steps) {
 
   lazy val stepsList: List[Step] = steps.runtimeList.asInstanceOf[List[Step]].reverse
+  def untyped: UntypedSegment    = UntypedSegment(stepsList.toVector)
 
   override def equals(o: Any): Boolean = o match {
     case traversalSegment: Segment[HList] @unchecked =>

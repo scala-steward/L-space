@@ -1233,6 +1233,8 @@ trait AsyncGuide extends LocalGuide[Observable] {
                     pOb(librarian).headOptionL
                   case step: Last =>
                     pOb(librarian).lastOptionL
+                  case step: Project[_] =>
+                    pOb(librarian).toListL
                 }
               case (pOb, _) =>
                 pOb(librarian).toListL
