@@ -1795,10 +1795,11 @@ object Traversal
 //      getCT[Start, ST, ET, Steps, Segments, RSteps, Containers, Out, CT, Out2](traversal)(flat, reverse, f, lf, tweaker)
   }
 
-  def apply[Start: DefaultsToAny, End: DefaultsToAny](steps: Vector[Step])(
-      implicit cltblStart: ClassTypeable[Start],
-      cltblEnd: ClassTypeable[End]): Traversal[cltblStart.CT, cltblEnd.CT, HList] = {
+  def apply(steps: Vector[Step]): Traversal[ClassType[Any], ClassType[Any], HList] = {
     import scala.collection.immutable.::
+//    steps.toList match {
+//      case Nil => ClassType.stubAny
+//    }
     val segments = steps.foldLeft(List[Segment[HList]]()) {
       case (head :: tail, step) =>
         step match {
@@ -1813,7 +1814,7 @@ object Traversal
     }
     Traversal(segments.reverse.foldLeft[HList](HNil) {
       case (hl, segment) => segment :: hl
-    })(cltblStart.ct, cltblEnd.ct)
+    })(ClassType.stubAny, ClassType.stubAny)
   }
 }
 

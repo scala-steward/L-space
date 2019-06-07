@@ -210,8 +210,8 @@ class LabeledNodeApi(val ontology: Ontology,
     implicit val jsonToNode = DecodeJson
       .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
 
-    put(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
-      (id: Long, nodeTask: Task[Node]) => //TODO: validate before mutating
+    put(path[String] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
+      (id: String, nodeTask: Task[Node]) => //TODO: validate before mutating
         nodeTask
           .flatMap { node =>
             val t = graph.transaction
@@ -238,8 +238,8 @@ class LabeledNodeApi(val ontology: Ontology,
     implicit val jsonToNode = DecodeJson
       .jsonToNode(allowedProperties, forbiddenProperties)
 
-    patch(path[Long] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
-      (id: Long, nodeTask: Task[Node]) =>
+    patch(path[String] :: body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
+      (id: String, nodeTask: Task[Node]) =>
         nodeTask
           .flatMap { node =>
             val t = graph.transaction
@@ -264,7 +264,7 @@ class LabeledNodeApi(val ontology: Ontology,
           .toIO
     }
   }
-  def removeById: Endpoint[IO, Node] = delete(path[Long]) { id: Long =>
+  def removeById: Endpoint[IO, Node] = delete(path[String]) { id: String =>
     val t = graph.transaction
     (for {
       node <- t.nodes

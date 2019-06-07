@@ -70,7 +70,7 @@ object UntypedTraversal {
 case class UntypedTraversal(segments: Vector[UntypedSegment] = Vector()) {
 
   def steps: List[Step]                                         = segments.flatMap(_.steps).toList
-  def toTyped: Traversal[ClassType[Any], ClassType[Any], HList] = Traversal[Any, Any](steps.toVector)
+  def toTyped: Traversal[ClassType[Any], ClassType[Any], HList] = Traversal(steps.toVector)
 
   def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F], mapper: Mapper[F, HNil, Any]): mapper.FT =
     mapper(toTyped, graph).asInstanceOf[mapper.FT]
@@ -98,7 +98,7 @@ case class UntypedTraversal(segments: Vector[UntypedSegment] = Vector()) {
 
 case class UntypedSegment(steps: Vector[Step] = Vector()) {
 
-  def toTyped: Segment[HList] = new Segment(steps.foldLeft[HList](HNil) { case (r, s) => s :: r })
+  def toTyped: Segment[HList] = new Segment(steps.reverse.foldLeft[HList](HNil) { case (r, s) => s :: r })
 
   def ++(segment: UntypedSegment): UntypedSegment = this.copy(steps ++ segment.steps)
 
