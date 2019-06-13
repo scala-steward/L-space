@@ -11,7 +11,7 @@ import shapeless.{HList, Poly1}
 object Select
     extends StepDef("Select",
                     "A select-step selects the preliminary result from marked steps in the traversal path.",
-                    `@extends` = () => TraverseStep.ontology :: Nil)
+                    `@extends` = () => ProjectionStep.ontology :: Nil)
     with StepWrapper[Select[Any]] {
 
   case class Selection[SelectedLabels <: HList, TypesTuple](labels: SelectedLabels)
@@ -51,7 +51,7 @@ object Select
           container = types.`@listset` :: Nil,
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val nameString: TypedProperty[List[String]] = name.property + ListType(DataType.default.`@string` :: Nil)
+    val nameString: TypedProperty[List[String]] = name.property + ListType(DataType.default.`@string`)
   }
   override lazy val properties: List[Property] = keys.name :: Nil
 
@@ -63,7 +63,7 @@ object Select
   }.memoizeOnSuccess
 }
 
-case class Select[E](names: List[String]) extends TraverseStep {
+case class Select[E](names: List[String]) extends ProjectionStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"select(${names.mkString("a")}"

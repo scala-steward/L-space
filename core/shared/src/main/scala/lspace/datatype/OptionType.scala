@@ -24,20 +24,20 @@ object OptionType extends DataTypeDef[OptionType[Any]] {
       type C  = Option[TOut]
       type CT = OptionType[TOut]
       def ct: CT =
-        if (clsTpbl.ct.iri.nonEmpty) OptionType(Some(clsTpbl.ct))
+        if (clsTpbl.ct.iri.nonEmpty) OptionType(clsTpbl.ct)
         else OptionType.datatype.asInstanceOf[OptionType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: Option[ClassType[V]] = None): OptionType[V] = {
-    if (valueRange.nonEmpty)
-      new OptionType[V](valueRange) {
-        lazy val iri =
-          List(NS.types.`@option`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
-            .filter(_.nonEmpty)
-            .reduceLeft(_ + _)
+  def apply(): OptionType[Any] = datatype
+  def apply[V](valueRange: ClassType[V]): OptionType[V] = {
+    new OptionType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+      lazy val iri =
+        List(NS.types.`@option`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
+          .filter(_.nonEmpty)
+          .reduceLeft(_ + _)
 
-        override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
-      } else OptionType.datatype.asInstanceOf[OptionType[V]]
+      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+    }
   }
 }
 

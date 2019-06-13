@@ -18,9 +18,9 @@ object And extends PredicateDef("And") with PredicateWrapper[And] {
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",
-          `@range` = () => ListType(P.ontology :: Nil) :: Nil
+          `@range` = () => ListType(P.ontology) :: Nil
         ) {}
-    lazy val predicateP: TypedProperty[List[Node]] = predicate as ListType(P.ontology :: Nil)
+    lazy val predicateP: TypedProperty[List[Node]] = predicate as ListType(P.ontology)
   }
   override lazy val properties: List[Property] = keys.predicate.property :: P.properties
   trait Properties extends P.Properties {

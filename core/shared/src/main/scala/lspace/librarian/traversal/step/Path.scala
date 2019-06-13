@@ -8,7 +8,7 @@ import monix.eval.Task
 import shapeless.HList
 
 object Path
-    extends StepDef("Path", "A path-step ..", () => MapStep.ontology :: Nil)
+    extends StepDef("Path", "A path-step ..", () => ProjectionStep.ontology :: Nil)
     with StepWrapper[Path[ClassType[Any], HList]] {
 
   def toStep(node: Node): Task[Path[ClassType[Any], HList]] =
@@ -34,8 +34,8 @@ object Path
         )
     val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
   }
-  override lazy val properties: List[Property] = keys.by :: MapStep.properties
-  trait Properties extends MapStep.Properties {
+  override lazy val properties: List[Property] = keys.by :: ProjectionStep.properties
+  trait Properties extends ProjectionStep.Properties {
     val by          = keys.by
     val byTraversal = keys.byTraversal
   }
@@ -51,7 +51,7 @@ object Path
 }
 
 case class Path[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
-    extends MapStep {
+    extends ProjectionStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = if (by.segmentList.nonEmpty) "path(" + by.toString + ")" else "path"

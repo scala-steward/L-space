@@ -9,7 +9,7 @@ import scala.collection.immutable.ListSet
 
 object ListSetType extends DataTypeDef[ListSetType[Any]] {
 
-  lazy val datatype = new ListSetType[Any](Nil) {
+  lazy val datatype = new ListSetType[Any](None) {
     val iri: String = NS.types.`@listset`
     labelMap = Map("en" -> NS.types.`@listset`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -48,20 +48,20 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
       type C  = ListSet[TOut]
       type CT = ListSetType[TOut]
       def ct: CT = //ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
-        if (clsTpbl.ct.iri.nonEmpty) ListSetType(List(clsTpbl.ct))
+        if (clsTpbl.ct.iri.nonEmpty) ListSetType(clsTpbl.ct)
         else ListSetType.datatype.asInstanceOf[ListSetType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): ListSetType[V] = {
-    if (valueRange.nonEmpty)
-      new ListSetType[V](valueRange) {
-        lazy val iri =
-          List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).mkString("+"), ")")
-            .filter(_.nonEmpty)
-            .reduceLeft(_ + _)
-        override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
-      } else ListSetType.datatype.asInstanceOf[ListSetType[V]]
+  def apply(): ListSetType[Any] = datatype
+  def apply[V: DefaultsToAny](valueRange: ClassType[V]): ListSetType[V] = {
+    new ListSetType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+      lazy val iri =
+        List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
+          .filter(_.nonEmpty)
+          .reduceLeft(_ + _)
+      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+    }
   }
 }
 
-abstract class ListSetType[V](val valueRange: List[ClassType[V]]) extends CollectionType[ListSet[V]]
+abstract class ListSetType[V](val valueRange: Option[ClassType[V]]) extends CollectionType[ListSet[V]]

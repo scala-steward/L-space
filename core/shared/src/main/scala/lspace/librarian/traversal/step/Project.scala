@@ -10,7 +10,7 @@ import monix.eval.Task
 import shapeless.{HList, HNil, LUBConstraint}
 
 object Project
-    extends StepDef("Project", "A project-step ..", () => TraverseStep.ontology :: Nil)
+    extends StepDef("Project", "A project-step ..", () => ProjectionStep.ontology :: Nil)
     with StepWrapper[Project[HList]] {
 
   def toStep(node: Node): Task[Project[HList]] =
@@ -25,7 +25,7 @@ object Project
           .head)
     } yield Project[HList](by.reverse.foldLeft[HList](HNil) { case (hlist, traversal) => traversal :: hlist })
 
-  object keys extends TraverseStep.Properties {
+  object keys extends ProjectionStep.Properties {
     object by
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Project/by",
@@ -34,10 +34,10 @@ object Project
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[List[Node]] = by.property + ListType(Traversal.ontology :: Nil)
+    val byTraversal: TypedProperty[List[Node]] = by.property + ListType(Traversal.ontology)
   }
-  override lazy val properties: List[Property] = keys.by :: TraverseStep.properties
-  trait Properties extends TraverseStep.Properties
+  override lazy val properties: List[Property] = keys.by :: ProjectionStep.properties
+  trait Properties extends ProjectionStep.Properties
 
   implicit def toNode[Traversals <: HList](project: Project[Traversals])
 //                                          (
@@ -61,7 +61,7 @@ case class Project[Traversals <: HList](by: Traversals)
 //                                       (
 //    implicit
 //    lub: LUBConstraint[Traversals, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-    extends TraverseStep {
+    extends ProjectionStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =

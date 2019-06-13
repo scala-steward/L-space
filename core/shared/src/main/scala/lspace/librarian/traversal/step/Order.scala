@@ -9,7 +9,7 @@ import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Order
-    extends StepDef("Order", "An order-step ..", () => CollectingBarrierStep.ontology :: Nil)
+    extends StepDef("Order", "An order-step ..", () => GroupingBarrierStep.ontology :: Nil)
     with StepWrapper[Order] {
 
   sealed trait Orderable[T]
@@ -31,7 +31,7 @@ object Order
         .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
     } yield Order(by, node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true))
 
-  object keys extends CollectingBarrierStep.Properties {
+  object keys extends GroupingBarrierStep.Properties {
     object by
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Order/by",
@@ -50,8 +50,8 @@ object Order
         )
     val increasingBoolean: TypedProperty[Boolean] = increasing.property + DataType.default.`@boolean`
   }
-  override lazy val properties: List[Property] = keys.by :: keys.increasing.property :: CollectingBarrierStep.properties
-  trait Properties extends CollectingBarrierStep.Properties {
+  override lazy val properties: List[Property] = keys.by :: keys.increasing.property :: GroupingBarrierStep.properties
+  trait Properties extends GroupingBarrierStep.Properties {
     val by                = keys.by
     val byTraversal       = keys.byTraversal
     val increasing        = keys.increasing
@@ -70,7 +70,7 @@ object Order
 }
 
 //case class Order(key: PropertyKey, increasing: Boolean = true) extends TraverseStep /*with ModulateStep[ZeroOrMoreBy]*/ {
-case class Order(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList], increasing: Boolean = true)
+case class Order(by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList], increasing: Boolean = true)
     extends RearrangeBarrierStep /*with ModulateStep[ZeroOrMoreBy]*/ {
 
   lazy val toNode: Task[Node]      = this

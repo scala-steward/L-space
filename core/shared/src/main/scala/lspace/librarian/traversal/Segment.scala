@@ -19,10 +19,10 @@ object Segment
           lspace.NS.vocab.Lspace + "librarian/TraversalSegment/steps",
           "steps",
           "The steps in a traversal-segment",
-          `@range` = () => VectorType(Step.ontology :: Nil) :: Nil
+          `@range` = () => VectorType(Step.ontology) :: Nil
         ) {}
 
-    lazy val stepsNode: TypedProperty[Vector[Node]] = steps.property + VectorType(Step.ontology :: Nil)
+    lazy val stepsNode: TypedProperty[Vector[Node]] = steps.property + VectorType(Step.ontology)
   }
 
   override lazy val properties: List[Property] = keys.steps :: Nil

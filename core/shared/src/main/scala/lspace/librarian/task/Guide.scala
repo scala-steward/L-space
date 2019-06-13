@@ -7,9 +7,9 @@ import lspace.librarian.traversal.step._
 import lspace.librarian.traversal.{
   BranchStep,
   ClipStep,
-  CollectingBarrierStep,
   FilterBarrierStep,
   FilterStep,
+  GroupingBarrierStep,
   Librarian,
   MapStep,
   MoveStep,
@@ -125,7 +125,7 @@ trait LocalGuide[F[_]] extends Guide[F] {
   def branchStep(step: BranchStep, steps: List[Step], segments: List[Segment[_]])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def collectingBarrierStep(step: CollectingBarrierStep,
+  def collectingBarrierStep(step: GroupingBarrierStep,
                             steps: List[Step],
                             segments: List[Segment[_]],
                             isRootGroup: Boolean = false)(implicit graph: Graph): F[Librarian[Any]] => F[Any]

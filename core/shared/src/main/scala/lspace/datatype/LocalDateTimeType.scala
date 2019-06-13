@@ -6,9 +6,9 @@ import lspace.NS
 import lspace.structure.Property
 import lspace.structure.util.ClassTypeable
 
-object LocalDateTimeType extends DataTypeDef[DateTimeType[LocalDateTime]] {
+object LocalDateTimeType extends DataTypeDef[LocalDateTimeType[LocalDateTime]] {
 
-  lazy val datatype: DateTimeType[LocalDateTime] = new DateTimeType[LocalDateTime] {
+  lazy val datatype: LocalDateTimeType[LocalDateTime] = new LocalDateTimeType[LocalDateTime] {
     val iri: String                = NS.types.`@localdatetime`
     override val iris: Set[String] = Set(NS.types.`@localdatetime`)
     labelMap = Map("en" -> NS.types.`@localdatetime`)
@@ -20,10 +20,12 @@ object LocalDateTimeType extends DataTypeDef[DateTimeType[LocalDateTime]] {
   trait Properties extends CalendarType.Properties
 
   implicit val defaultLocalDateTimeType
-    : ClassTypeable.Aux[DateTimeType[LocalDateTime], LocalDateTime, DateTimeType[LocalDateTime]] =
-    new ClassTypeable[DateTimeType[LocalDateTime]] {
+    : ClassTypeable.Aux[LocalDateTimeType[LocalDateTime], LocalDateTime, LocalDateTimeType[LocalDateTime]] =
+    new ClassTypeable[LocalDateTimeType[LocalDateTime]] {
       type C  = LocalDateTime
-      type CT = DateTimeType[LocalDateTime]
+      type CT = LocalDateTimeType[LocalDateTime]
       def ct: CT = datatype
     }
 }
+
+trait LocalDateTimeType[+T] extends CalendarType[T]

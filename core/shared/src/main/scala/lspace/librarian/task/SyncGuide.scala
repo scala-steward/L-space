@@ -111,7 +111,7 @@ trait SyncGuide extends LocalGuide[Stream] {
             clipStep(step) andThen buildNextStep(steps, nextSegments)
           case step: BranchStep =>
             branchStep(step, steps, nextSegments)
-          case step: CollectingBarrierStep =>
+          case step: GroupingBarrierStep =>
             collectingBarrierStep(step, steps, nextSegments)
           case step: RearrangeBarrierStep =>
             rearrangeBarrierStep(step, steps, nextSegments)
@@ -389,7 +389,7 @@ trait SyncGuide extends LocalGuide[Stream] {
                 List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
               case v => List()
           }))
-      case step: Constant[_, _, _] =>
+      case step: Constant[_] =>
         obs: Stream[Librarian[Any]] =>
           nextStep(obs.map(librarian => librarian.copy(step.value)))
     }
@@ -755,7 +755,7 @@ trait SyncGuide extends LocalGuide[Stream] {
     }
 
   def collectingBarrierStep(
-      step: CollectingBarrierStep,
+      step: GroupingBarrierStep,
       steps: List[Step],
       segments: List[Segment[_]],
       isRootGroup: Boolean = false)(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {

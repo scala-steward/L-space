@@ -60,10 +60,10 @@ object ClassTypeable {
     def ct: CT = DateTimeType.datatype
   }
 
-  implicit val defaultLocalDateTime: ClassTypeable.Aux[LocalDateTime, LocalDateTime, DateTimeType[LocalDateTime]] =
+  implicit val defaultLocalDateTime: ClassTypeable.Aux[LocalDateTime, LocalDateTime, LocalDateTimeType[LocalDateTime]] =
     new ClassTypeable[LocalDateTime] {
       type C  = LocalDateTime
-      type CT = DateTimeType[LocalDateTime]
+      type CT = LocalDateTimeType[LocalDateTime]
       def ct: CT = LocalDateTimeType.datatype
     }
 
@@ -118,7 +118,7 @@ object ClassTypeable {
     new ClassTypeable[List[T]] {
       type C  = List[TOut]
       type CT = ListType[TOut]
-      def ct: CT = ListType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListType[TOut]]
+      def ct: CT = ListType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListType[TOut]]
     }
 
   implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](
@@ -126,7 +126,7 @@ object ClassTypeable {
     new ClassTypeable[Set[T]] {
       type C  = List[TOut]
       type CT = SetType[TOut]
-      def ct: CT = SetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[SetType[TOut]]
+      def ct: CT = SetType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[SetType[TOut]]
     }
 
   implicit def defaultVector[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
@@ -134,7 +134,7 @@ object ClassTypeable {
     new ClassTypeable[Vector[T]] {
       type C  = Vector[TOut]
       type CT = VectorType[TOut]
-      def ct: CT = VectorType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[VectorType[TOut]]
+      def ct: CT = VectorType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[VectorType[TOut]]
     }
 
   implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
@@ -142,7 +142,7 @@ object ClassTypeable {
     new ClassTypeable[ListSet[T]] {
       type C  = ListSet[TOut]
       type CT = ListSetType[TOut]
-      def ct: CT = ListSetType[TOut](List(clsTpbl.ct.asInstanceOf[ClassType[TOut]])).asInstanceOf[ListSetType[TOut]]
+      def ct: CT = ListSetType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListSetType[TOut]]
     }
 
   implicit def defaultMap[
@@ -158,8 +158,7 @@ object ClassTypeable {
       type C  = Map[KOut, VOut]
       type CT = MapType[KOut, VOut]
       def ct: CT =
-        MapType[KOut, VOut](List(clsTpblK.ct.asInstanceOf[ClassType[KOut]]),
-                            List(clsTpblV.ct.asInstanceOf[ClassType[VOut]]))
+        MapType[KOut, VOut](clsTpblK.ct.asInstanceOf[ClassType[KOut]], clsTpblV.ct.asInstanceOf[ClassType[VOut]])
     }
 
   implicit def defaultTuple2[
@@ -174,7 +173,7 @@ object ClassTypeable {
     new ClassTypeable[(A, B)] {
       type C  = (AOut, BOut)
       type CT = TupleType[(AOut, BOut)]
-      def ct: CT = TupleType(List(List(clsTpblA.ct), List(clsTpblB.ct))).asInstanceOf[TupleType[(AOut, BOut)]]
+      def ct: CT = TupleType(List(Some(clsTpblA.ct), Some(clsTpblB.ct))).asInstanceOf[TupleType[(AOut, BOut)]]
     }
 
   implicit def defaultTuple3[A,
@@ -193,7 +192,7 @@ object ClassTypeable {
       type C  = (Aout, Bout, Cout)
       type CT = TupleType[(Aout, Bout, Cout)]
       def ct: CT =
-        TupleType(List(List(clsTpblA.ct), List(clsTpblB.ct), List(clsTpblC.ct)))
+        TupleType(List(Some(clsTpblA.ct), Some(clsTpblB.ct), Some(clsTpblC.ct)))
           .asInstanceOf[TupleType[(Aout, Bout, Cout)]]
     }
 
@@ -217,7 +216,7 @@ object ClassTypeable {
       type C  = (Aout, Bout, Cout, Dout)
       type CT = TupleType[(Aout, Bout, Cout, Dout)]
       def ct: CT =
-        TupleType(List(List(clsTpblA.ct), List(clsTpblB.ct), List(clsTpblC.ct), List(clsTpblD.ct)))
+        TupleType(List(Some(clsTpblA.ct), Some(clsTpblB.ct), Some(clsTpblC.ct), Some(clsTpblD.ct)))
           .asInstanceOf[TupleType[(Aout, Bout, Cout, Dout)]]
     }
 

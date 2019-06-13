@@ -113,7 +113,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
             clipStep(step) andThen buildNextStep(steps, segments)
           case step: BranchStep =>
             branchStep(step, steps, nextSegments)
-          case step: CollectingBarrierStep =>
+          case step: GroupingBarrierStep =>
             collectingBarrierStep(step, steps, nextSegments)
           case step: RearrangeBarrierStep =>
             rearrangeBarrierStep(step, steps, nextSegments)
@@ -454,7 +454,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
                 List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
               case v => List()
             })))
-      case step: Constant[_, _, _] =>
+      case step: Constant[_] =>
         obs: Observable[Librarian[Any]] =>
           nextStep(obs.map(librarian => librarian.copy(step.value)))
     }
@@ -866,7 +866,7 @@ trait AsyncGuide extends LocalGuide[Observable] {
     }
 
   def collectingBarrierStep(
-      step: CollectingBarrierStep,
+      step: GroupingBarrierStep,
       steps: List[Step],
       segments: List[Segment[_]],
       isRootGroup: Boolean = false)(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {

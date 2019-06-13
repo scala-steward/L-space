@@ -34,9 +34,9 @@ object And
           lspace.NS.vocab.Lspace + "librarian/step/And/traversal",
           "traversal",
           "A traversal which must have a non-empty result",
-          `@range` = () => ListType(Traversal.ontology :: Nil) :: Nil
+          `@range` = () => ListType(Traversal.ontology) :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
 

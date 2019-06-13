@@ -7,7 +7,7 @@ import lspace.util.types.DefaultsToAny
 
 object SetType extends DataTypeDef[SetType[Any]] {
 
-  lazy val datatype = new SetType[Any](Nil) {
+  lazy val datatype = new SetType[Any](None) {
     val iri: String = NS.types.`@set`
     labelMap = Map("en" -> NS.types.`@set`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -45,20 +45,20 @@ object SetType extends DataTypeDef[SetType[Any]] {
       type C  = List[TOut]
       type CT = SetType[TOut]
       def ct: CT = //SetType(List(clsTpbl.ct)).asInstanceOf[SetType[TOut]]
-        if (clsTpbl.ct.iri.nonEmpty) SetType(List(clsTpbl.ct)) else SetType.datatype.asInstanceOf[SetType[TOut]]
+        if (clsTpbl.ct.iri.nonEmpty) SetType(clsTpbl.ct) else SetType.datatype.asInstanceOf[SetType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): SetType[V] = {
-    if (valueRange.nonEmpty)
-      new SetType[V](valueRange) {
-        lazy val iri =
-          List(NS.types.`@set`, "(", valueRange.map(_.iri).filter(_.nonEmpty).mkString("+"), ")")
-            .filter(_.nonEmpty)
-            .reduceLeft(_ + _)
+  def apply(): SetType[Any] = datatype
+  def apply[V: DefaultsToAny](valueRange: ClassType[V]): SetType[V] = {
+    new SetType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+      lazy val iri =
+        List(NS.types.`@set`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
+          .filter(_.nonEmpty)
+          .reduceLeft(_ + _)
 
-        override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
-      } else SetType.datatype.asInstanceOf[SetType[V]]
+      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+    }
   }
 }
 
-abstract class SetType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]]
+abstract class SetType[+V](val valueRange: Option[ClassType[V]]) extends CollectionType[List[V]]

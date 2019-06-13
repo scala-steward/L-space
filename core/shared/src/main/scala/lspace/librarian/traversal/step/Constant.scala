@@ -10,10 +10,12 @@ object Constant
     extends StepDef("Constant",
                     "A constant-step sets a strict value for the traverser.",
                     () => MoveStep.ontology :: Nil)
-    with StepWrapper[Constant[Any, Any, ClassType[Any]]] {
+    with StepWrapper[Constant[Any]] {
 
-  def toStep(node: Node): Task[Constant[Any, Any, ClassType[Any]]] =
-    Task.now(new Constant(node.out(Constant.keys.value).head))
+  def toStep(node: Node): Task[Constant[Any]] = {
+    val value = node.out(Constant.keys.value).head
+    Task.now(new Constant(value)(ClassType.valueToOntologyResource(value)))
+  }
 
   object keys extends MoveStep.Properties {
     object value
@@ -29,18 +31,16 @@ object Constant
     val value = keys.value
   }
 
-  implicit def toNode[T, T0, TT0 <: ClassType[_]](step: Constant[T, T0, TT0]): Task[Node] = {
-    import step.ct
+  implicit def toNode[T](step: Constant[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.value, step.value)
+      _    <- node.addOut(keys.value, step.label, step.value)
     } yield node
   }.memoizeOnSuccess
 
 }
 
-case class Constant[T, T0, TT0 <: ClassType[_]](value: T)(implicit val ct: ClassTypeable.Aux[T, T0, TT0])
-    extends MoveStep {
+case class Constant[T](value: T)(val label: ClassType[T]) extends MoveStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "constant(" + value + ")"

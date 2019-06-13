@@ -24,10 +24,9 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
           "@valueRange",
           "A @valueRange is a strict lowerbound of classtypes, this ensures type-safe casting of collections",
           `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+          `@range` = () => ListType(NodeURLType.datatype) :: Nil
         )
-    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange + ListType(
-      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange + ListType(NodeURLType.datatype)
   }
   override lazy val properties: List[Property] = keys.valueRange :: Nil //StructuredValue.properties
   trait Properties { //extends StructuredValue.Properties {
@@ -48,50 +47,51 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   private val separators = Set('(', ')', '+')
 
-  private def getTypes(iri: String): (List[ClassType[Any]], String) = {
+  private def getTypes(iri: String): (Option[ClassType[Any]], String) = {
     iri.splitAt(iri.indexWhere(separators.contains)) match {
-      case ("", iri) if iri.startsWith(")") => List()                                  -> iri.drop(1)
-      case ("", iri)                        => List(ClassType.classtypes.get(iri).get) -> ""
+      case ("", iri) if iri.startsWith(")") => None                                    -> iri.drop(1)
+      case ("", iri)                        => Some(ClassType.classtypes.get(iri).get) -> ""
       case (iri, tail) if tail.startsWith("(") =>
         iri match {
           case types.`@list` =>
             val (valueTypes, newTail) = getTypes(tail.drop(1))
-            (if (valueTypes.nonEmpty) List(ListType(valueTypes)) else List(ListType.datatype)) -> newTail
+            (if (valueTypes.nonEmpty) Some(ListType(valueTypes.get)) else Some(ListType.datatype)) -> newTail
           case types.`@listset` =>
             val (valueTypes, newTail) = getTypes(tail.drop(1))
-            (if (valueTypes.nonEmpty) List(ListSetType(valueTypes)) else List(ListSetType.datatype)) -> newTail
+            (if (valueTypes.nonEmpty) Some(ListSetType(valueTypes.get)) else Some(ListSetType.datatype)) -> newTail
           case types.`@set` =>
             val (valueTypes, newTail) = getTypes(tail.drop(1))
-            (if (valueTypes.nonEmpty) List(SetType(valueTypes)) else List(SetType.datatype)) -> newTail
+            (if (valueTypes.nonEmpty) Some(SetType(valueTypes.get)) else Some(SetType.datatype)) -> newTail
           case types.`@vector` =>
             val (valueTypes, newTail) = getTypes(tail.drop(1))
-            (if (valueTypes.nonEmpty) List(VectorType(valueTypes)) else List(VectorType.datatype)) -> newTail
+            (if (valueTypes.nonEmpty) Some(VectorType(valueTypes.get)) else Some(VectorType.datatype)) -> newTail
           case types.`@map` =>
             val (keyTypes, newTail) = getTypes(tail.drop(1))
             if (!newTail.startsWith("(")) throw new Exception("map without second block")
             val (valueTypes, newTail2) = getTypes(newTail.drop(1))
-            (if (keyTypes.nonEmpty || valueTypes.nonEmpty) List(MapType(keyTypes, valueTypes))
-             else List(MapType.datatype)) -> newTail2
+            (if (keyTypes.nonEmpty || valueTypes.nonEmpty)
+               Some(MapType(keyTypes.getOrElse(ClassType.stubAny), valueTypes.getOrElse(ClassType.stubAny)))
+             else Some(MapType.datatype)) -> newTail2
           case types.`@tuple` =>
             @tailrec
-            def getT(tail: String, types: List[List[ClassType[Any]]]): (List[List[ClassType[Any]]], String) = {
+            def getT(tail: String, types: List[Option[ClassType[Any]]]): (List[Option[ClassType[Any]]], String) = {
               val (valueTypes, newTail) = getTypes(tail.drop(1))
               if (!newTail.startsWith("("))
                 getT(newTail,
-                     types :+ (if (valueTypes.nonEmpty) List(ListType(valueTypes)) else List(ListType.datatype)))
+                     types :+ (if (valueTypes.nonEmpty) Some(ListType(valueTypes.get)) else Some(ListType.datatype)))
               else
-                (types :+ (if (valueTypes.nonEmpty) List(ListType(valueTypes)) else List(ListType.datatype))) -> newTail
+                (types :+ (if (valueTypes.nonEmpty) Some(ListType(valueTypes.get)) else Some(ListType.datatype))) -> newTail
             }
             val (rangeTypes, newTail) = getT(tail, List())
-            List(TupleType(rangeTypes)) -> newTail
+            Some(TupleType(rangeTypes)) -> newTail
           case _ =>
             scribe.error("cannot parse : " + iri)
             throw new Exception("cannot parse : " + iri)
         }
-      case (iri, tail) if tail.startsWith(")") => get(iri).toList -> tail.dropWhile(_ == ')')
+      case (iri, tail) if tail.startsWith(")") => get(iri) -> tail.dropWhile(_ == ')')
       case (iri, tail) if tail.startsWith("+") =>
         val (tailTypes, newTail) = getTypes(tail.drop(1))
-        get(iri).toList ++ tailTypes -> newTail
+        (get(iri).toList ++ tailTypes).reduceOption(_ + _) -> newTail
     }
   }
 
@@ -100,12 +100,12 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
       ClassType.classtypes
         .get(iri)
         .orElse(getTypes(iri) match {
-          case (List(ct), "") =>
+          case (Some(ct), "") =>
             Some(ct)
-          case (List(ct), tail) =>
+          case (Some(ct), tail) =>
             scribe.warn(s"got type but tail is not empty, residu is: $tail")
             Some(ct)
-          case (Nil, tail) =>
+          case (None, tail) =>
             scribe.warn(s"no classtype construct build for $iri, residu is: $tail")
             None
         })

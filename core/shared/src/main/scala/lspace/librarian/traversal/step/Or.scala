@@ -34,9 +34,9 @@ object Or
           "traversal",
           "A traversal ..",
           container = lspace.NS.types.`@list` :: Nil,
-          `@range` = () => ListType(Traversal.ontology :: Nil) :: Nil
+          `@range` = () => ListType(Traversal.ontology) :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {

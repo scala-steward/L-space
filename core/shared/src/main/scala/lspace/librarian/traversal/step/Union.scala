@@ -33,7 +33,7 @@ object Union
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology :: Nil)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
   trait Properties extends BranchStep.Properties {

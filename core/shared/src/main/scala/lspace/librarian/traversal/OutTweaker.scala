@@ -23,24 +23,27 @@ object OutTweaker {
     type Out   = List[End]
     type OutCT = ClassType[List[End]]
     def tweak(et: ET[End]): ClassType[List[End]] =
-      ListType(et :: Nil filter (_.iri.nonEmpty)) //.asInstanceOf[ClassType[List[End]]]
+      ListType(et) //.asInstanceOf[ClassType[List[End]]]
   }
   //  implicit def containers[ET, SET, Container, Containers <: HList] = new OutTweaker[ET, SET, Container :: Containers] {
   //    type Out = SET
   //    def tweak[CT <: ClassType[SET]](ct1: ET, ct2: CT): ClassType[Out] = ct2
   //  }
   implicit def containersMap[K, V, Container, Containers <: HList](implicit ev: Container <:< Group[_, _, _, _])
-    : OutTweaker.Aux[TupleType[(K, V)], Container :: Containers, List[Map[K, V]], ClassType[List[Map[K, V]]]] =
+    : OutTweaker.Aux[TupleType[(K, V)], Container :: Containers, Map[K, V], ClassType[Map[K, V]]] =
     new OutTweaker[TupleType[(K, V)], Container :: Containers] {
-      type Out   = List[Map[K, V]]
-      type OutCT = ClassType[List[Map[K, V]]]
-      def tweak(et: TupleType[(K, V)]): ClassType[List[Map[K, V]]] =
-        ListType(
-          MapType[K, V](
-            et.rangeTypes.head.asInstanceOf[List[ClassType[K]]] filter (_.iri.nonEmpty),
-            et.rangeTypes.tail.head
-              .asInstanceOf[List[ClassType[V]]] filter (_.iri.nonEmpty)
-          ) :: Nil)
+      type Out   = Map[K, V] //remove List?
+      type OutCT = ClassType[Map[K, V]]
+      def tweak(et: TupleType[(K, V)]): ClassType[Map[K, V]] =
+//        ListType(
+        MapType[K, V](
+          et.rangeTypes.head
+            .asInstanceOf[Option[ClassType[K]]]
+            .getOrElse(ClassType.stubAny.asInstanceOf[ClassType[K]]),
+          et.rangeTypes.tail.head
+            .asInstanceOf[Option[ClassType[V]]]
+            .getOrElse(ClassType.stubAny.asInstanceOf[ClassType[V]])
+        ) //)
     }
   sealed trait IsListEnd[T]
   object IsListEnd {
@@ -53,14 +56,14 @@ object OutTweaker {
     new OutTweaker[ET[End], Container :: Containers] {
       type Out   = List[End]
       type OutCT = ClassType[List[End]]
-      def tweak(et: ET[End]): ClassType[List[End]] = ListType(et :: Nil filter (_.iri.nonEmpty))
+      def tweak(et: ET[End]): ClassType[List[End]] = ListType(et)
     }
   implicit def containersList2[K, V, Container, Containers <: HList](implicit ev: IsListEnd[Container])
     : OutTweaker.Aux[MapType[K, V], Container :: Containers, Map[K, V], ClassType[List[Map[K, V]]]] =
     new OutTweaker[MapType[K, V], Container :: Containers] {
       type Out   = Map[K, V]
       type OutCT = ClassType[List[Map[K, V]]]
-      def tweak(et: MapType[K, V]): ClassType[List[Map[K, V]]] = ListType(et :: Nil filter (_.iri.nonEmpty))
+      def tweak(et: MapType[K, V]): ClassType[List[Map[K, V]]] = ListType(et)
     }
 
   sealed trait IsOptionEnd[T]
@@ -78,14 +81,14 @@ object OutTweaker {
     new OutTweaker[ET[End], Container :: Containers] {
       type Out   = Option[End]
       type OutCT = ClassType[Option[End]]
-      def tweak(et: ET[End]): ClassType[Option[End]] = OptionType(Some(et) filter (_.iri.nonEmpty))
+      def tweak(et: ET[End]): ClassType[Option[End]] = OptionType(et)
     }
   implicit def containersCountIs[End, ET[+Z] <: ClassType[Z], Containers <: HList]
     : OutTweaker.Aux[ET[End], Is :: Count :: Containers, Option[End], ClassType[Option[End]]] =
     new OutTweaker[ET[End], Is :: Count :: Containers] {
       type Out   = Option[End]
       type OutCT = ClassType[Option[End]]
-      def tweak(et: ET[End]): ClassType[Option[End]] = OptionType(Some(et) filter (_.iri.nonEmpty))
+      def tweak(et: ET[End]): ClassType[Option[End]] = OptionType(et)
     }
   implicit def containersAnyFilter[ET <: ClassType[_],
                                    Container <: FilterStep,
@@ -117,5 +120,31 @@ object OutTweaker {
       type OutCT = ClassType[End]
       def tweak(et: ET[End]): ClassType[End] = et //.asInstanceOf[ET[End]]
     }
+
+  def tweakEnd(traversal: Traversal[ClassType[Any], ClassType[Any], HList]): ClassType[Any] = {
+    //FilterBarrierStep
+    //ReducingBarrierStep
+    import scala.collection.immutable.::
+    traversal.steps.reverse.span {
+      case _: Head | _: Last | _: Min | _: Max => false
+      case _: FilterStep | _: EnvironmentStep  => true
+      case _                                   => false
+    } match {
+      case (toIgnore, (_: Head | _: Last | _: Min | _: Max | _: Mean | _: Sum) :: steps) =>
+        steps.span {
+          case _: Head | _: Last | _: Min | _: Max | _: Mean | _: Sum | _: FilterStep | _: EnvironmentStep => true
+          case _                                                                                           => false
+        } match {
+          case (toIgnore, (List(step: Group[_, _, _, _], _*))) =>
+            OptionType(TupleType(List(Some(step.by.et), Some(step.value.et)))) //OptionType(traversal.et)
+          case _ => OptionType(traversal.et)
+        }
+      case (toIgnore, (step: Count) :: steps) if toIgnore.nonEmpty && toIgnore.exists(_.isInstanceOf[FilterStep]) =>
+        OptionType(traversal.et)
+      case (toIgnore, (step: Count) :: steps) if !toIgnore.exists(_.isInstanceOf[FilterStep]) =>
+        traversal.et
+      case _ => ListType(traversal.et)
+    }
+  }
 
 }

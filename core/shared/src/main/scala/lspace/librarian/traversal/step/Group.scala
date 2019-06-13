@@ -7,7 +7,7 @@ import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Group
-    extends StepDef("Group", "A group-step groups traversers.", () => CollectingBarrierStep.ontology :: Nil)
+    extends StepDef("Group", "A group-step groups traversers.", () => GroupingBarrierStep.ontology :: Nil)
     with StepWrapper[Group[ClassType[Any], HList, ClassType[Any], HList]] {
 
   def toStep(node: Node): Task[Group[ClassType[Any], HList, ClassType[Any], HList]] =
@@ -24,7 +24,7 @@ object Group
           .head)
     } yield Group[ClassType[Any], HList, ClassType[Any], HList](by, value)
 
-  object keys extends CollectingBarrierStep.Properties {
+  object keys extends GroupingBarrierStep.Properties {
     object by
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Group/by",
@@ -42,9 +42,9 @@ object Group
         )
     val valueTraversal: TypedProperty[Node] = value.property + Traversal.ontology
   }
-  override lazy val properties: List[Property] = keys.by :: CollectingBarrierStep.properties
+  override lazy val properties: List[Property] = keys.by :: GroupingBarrierStep.properties
 
-  trait Properties extends CollectingBarrierStep.Properties {
+  trait Properties extends GroupingBarrierStep.Properties {
     lazy val `ns.l-space.eu/librarian/step/Group/by`: Property                  = keys.by
     lazy val `ns.l-space.eu/librarian/step/Group/by @Traversal`: TypedKey[Node] = keys.byTraversal
   }
@@ -65,7 +65,7 @@ object Group
 case class Group[+ET <: ClassType[_], Segments <: HList, +ETv <: ClassType[_], SegmentsV <: HList](
     by: Traversal[_ <: ClassType[_], ET, Segments],
     value: Traversal[_ <: ClassType[_], ETv, SegmentsV])
-    extends CollectingBarrierStep {
+    extends GroupingBarrierStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "group(_." + by.toString + ")"

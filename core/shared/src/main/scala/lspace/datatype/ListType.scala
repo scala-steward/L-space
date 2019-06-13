@@ -7,7 +7,7 @@ import lspace.util.types.DefaultsToAny
 
 object ListType extends DataTypeDef[ListType[Any]] {
 
-  lazy val datatype = new ListType[Any](Nil) {
+  lazy val datatype = new ListType[Any](None) {
     val iri: String = NS.types.`@list`
     labelMap = Map("en" -> NS.types.`@list`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -35,20 +35,20 @@ object ListType extends DataTypeDef[ListType[Any]] {
       type C  = List[TOut]
       type CT = ListType[TOut]
       def ct: CT =
-        if (clsTpbl.ct.iri.nonEmpty) ListType(List(clsTpbl.ct)) else ListType.datatype.asInstanceOf[ListType[TOut]]
+        if (clsTpbl.ct.iri.nonEmpty) ListType(clsTpbl.ct) else ListType.datatype.asInstanceOf[ListType[TOut]]
     }
 
-  def apply[V: DefaultsToAny](valueRange: List[ClassType[V]] = List()): ListType[V] = {
-    if (valueRange.nonEmpty)
-      new ListType[V](valueRange) {
-        lazy val iri =
-          List(NS.types.`@list`, "(", valueRange.map(_.iri).filter(_.nonEmpty).mkString("+"), ")")
-            .filter(_.nonEmpty)
-            .reduceLeft(_ + _)
+  def apply(): ListType[Any] = datatype
+  def apply[V: DefaultsToAny](valueRange: ClassType[V]): ListType[V] = {
+    new ListType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+      lazy val iri =
+        List(NS.types.`@list`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
+          .filter(_.nonEmpty)
+          .reduceLeft(_ + _)
 
-        override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
-      } else ListType.datatype.asInstanceOf[ListType[V]]
+      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+    }
   }
 }
 
-abstract class ListType[+V](val valueRange: List[ClassType[V]]) extends CollectionType[List[V]]
+abstract class ListType[+V](val valueRange: Option[ClassType[V]]) extends CollectionType[List[V]]

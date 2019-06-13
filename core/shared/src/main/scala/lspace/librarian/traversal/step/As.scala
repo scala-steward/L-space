@@ -25,7 +25,7 @@ object As
   }*/
 
   def toStep(node: Node): Task[As[Any, String]] = Task.now {
-    As[Any, String](node.out(As.keys.nameString).head)
+    As[Any, String](node.out(As.keys.nameString).head)(ClassType.stubAny)
   }
 
   object keys extends Step.Properties {
@@ -52,7 +52,7 @@ object As
   }.memoizeOnSuccess
 }
 
-case class As[T: DefaultsToAny, name <: String](label: name) extends Step {
+case class As[T: DefaultsToAny, name <: String](label: name)(val ct: ClassType[T]) extends Step {
   def _maphelper: T = List[T]().head
 
   lazy val toNode: Task[Node]      = this

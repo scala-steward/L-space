@@ -9,7 +9,7 @@ import lspace.util.types.DefaultsToAny
 
 object MapType extends DataTypeDef[MapType[Any, Any]] {
 
-  lazy val datatype = new MapType[Any, Any](Nil, Nil) {
+  lazy val datatype = new MapType[Any, Any](None, None) {
     val iri: String = NS.types.`@map`
     labelMap = Map("en" -> NS.types.`@map`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -22,10 +22,9 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
           "@keyRange",
           "A @keyRange",
           `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+          `@range` = () => ListType() :: Nil
         )
-    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange + ListType(
-      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange + ListType(NodeURLType.datatype)
 //    lazy val keyRangeProperty: TypedProperty[Property]      = keyRange + DataType.default.`@property`
 //    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keyRange + DataType.default.`@datatype`
   }
@@ -53,23 +52,22 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[KOut, VOut]
       def ct: CT = //MapType(List(clsTpblK.ct), List(clsTpblV.ct))
-        if (clsTpblK.ct.iri.nonEmpty || clsTpblV.ct.iri.nonEmpty) MapType(List(clsTpblK.ct), List(clsTpblV.ct))
+        if (clsTpblK.ct.iri.nonEmpty || clsTpblV.ct.iri.nonEmpty) MapType(clsTpblK.ct, clsTpblV.ct)
         else MapType.datatype.asInstanceOf[MapType[KOut, VOut]]
     }
 
-  def apply[K: DefaultsToAny, V: DefaultsToAny](keyRange: List[ClassType[K]] = List(),
-                                                valueRange: List[ClassType[V]] = List()): MapType[K, V] = {
-    if (keyRange.nonEmpty || valueRange.nonEmpty)
-      new MapType[K, V](keyRange, valueRange) {
-        lazy val iri =
-          //        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
-          //        else
-          s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).mkString("+")})(${valueRange.map(_.iri).filter(_.nonEmpty).mkString("+")})"
+  def apply(): MapType[Any, Any] = datatype
+  def apply[K: DefaultsToAny, V: DefaultsToAny](keyRange: ClassType[K], valueRange: ClassType[V]): MapType[K, V] = {
+    new MapType[K, V](Some(keyRange).filter(_.iri.nonEmpty), Some(valueRange).filter(_.iri.nonEmpty)) {
+      lazy val iri =
+        //        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
+        //        else
+        s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).getOrElse("")})(${valueRange.map(_.iri).filter(_.nonEmpty).getOrElse("")})"
 
-        override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
-      } else MapType.datatype.asInstanceOf[MapType[K, V]]
+      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+    }
   }
 }
 
-abstract class MapType[K, V](val keyRange: List[ClassType[K]], val valueRange: List[ClassType[V]])
+abstract class MapType[K, V](val keyRange: Option[ClassType[K]], val valueRange: Option[ClassType[V]])
     extends CollectionType[Map[K, V]]

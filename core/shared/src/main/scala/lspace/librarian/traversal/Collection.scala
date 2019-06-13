@@ -47,9 +47,9 @@ object Collection
           lspace.NS.vocab.Lspace + "librarian/Collection/item",
           "item",
           "Collected item",
-          `@range` = () => ListType(Nil) :: Nil
+          `@range` = () => ListType() :: Nil
         ) {}
-    lazy val itemList: TypedProperty[List[Any]] = item + ListType(Nil)
+    lazy val itemList: TypedProperty[List[Any]] = item + ListType()
 
   }
 
@@ -74,8 +74,7 @@ object Collection
       _    <- node.addOut(keys.endDateTime, collection.endDateTime)
       _ <- collection.ct
         .asInstanceOf[Option[ClassType[T]]]
-        .map(ct =>
-          node.addOut(keys.item.property, ListType(ct :: Nil).asInstanceOf[ClassType[List[T]]], collection.item))
+        .map(ct => node.addOut(keys.item.property, ListType(ct).asInstanceOf[ClassType[List[T]]], collection.item))
         .getOrElse(
           node.addOut(keys.itemList, collection.item.asInstanceOf[List[Any]]).asInstanceOf[Task[Edge[Node, Any]]])
     } yield node

@@ -38,78 +38,8 @@ object Traversal
           case (hlist, step) => step :: hlist
         })
     } yield {
-
-      def findNearestParent(labels: List[ClassType[_]], starttype: ClassType[Any]): ClassType[_] = {
-        if (labels.isEmpty) starttype
-        else if (labels.toSet.size == 1) labels.head
-        else
-          labels.toSet match {
-            //          case set if set.forall(_.`extends`(DataType.default.`@int`))           => DataType.default.`@int`
-            //          case set if set.forall(_.`extends`(DataType.default.`@double`))        => DataType.default.`@double`
-            //          case set if set.forall(_.`extends`(DataType.default.`@long`))          => DataType.default.`@long`
-            case set if set.forall(_.`extends`(DataType.default.`@number`)) => DataType.default.`@number`
-            //          case set if set.forall(_.`extends`(DataType.default.`@datetime`))      => DataType.default.`@datetime`
-            //          case set if set.forall(_.`extends`(DataType.default.`@localdatetime`)) => DataType.default.`@localdatetime`
-            //          case set if set.forall(_.`extends`(DataType.default.`@date`))          => DataType.default.`@date`
-            //          case set if set.forall(_.`extends`(DataType.default.`@time`))          => DataType.default.`@time`
-            case set if set.forall(_.`extends`(DataType.default.`@temporal`)) => DataType.default.`@temporal`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geopoint`))      => DataType.default.`@geopoint`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geomultipoint`)) => DataType.default.`@geomultipoint`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geoline`))       => DataType.default.`@geoline`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geomultiline`))  => DataType.default.`@geomultiline`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geopolygon`))    => DataType.default.`@geopolygon`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geomultipolygon`)) =>
-            //            DataType.default.`@geomultipolygon`
-            //          case set if set.forall(_.`extends`(DataType.default.`@geomultigeo`)) => DataType.default.`@geomultigeo`
-            case set if set.forall(_.`extends`(DataType.default.`@geo`)) => DataType.default.`@geo`
-            case _ =>
-              defaultdatatypestub
-          }
-      }
-
-      def stepsToContainerStructure(steps: List[Any], starttype: ClassType[Any] = defaultdatatypestub): ClassType[_] = {
-        import scala.collection.immutable.::
-        steps.collect {
-          case step: MapStep           => step
-          case step: Group[_, _, _, _] => step
-          case step: Path[_, _]        => step
-          case step: Project[_]        => step
-          case step: HasLabel          => step
-          //case step: Union => //collect differentiating HasLabel steps
-        } match {
-          case Nil =>
-            starttype
-          case step :: steps =>
-            step match {
-              case step: HasLabel =>
-                if (steps.nonEmpty)
-                  stepsToContainerStructure(
-                    steps,
-                    findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype))
-                else findNearestParent(step.label.map(_.iri).flatMap(ClassType.classtypes.get), starttype)
-              case step: OutMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-              case step: OutEMap => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-              case step: InMap   => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-              case step: InEMap  => MapType(List(Property.ontology), List(stepsToContainerStructure(steps)))
-              case step: Group[_, _, _, _] =>
-                MapType(List(stepsToContainerStructure(step.by.segmentList)),
-                        List(stepsToContainerStructure(steps), starttype))
-              case step: Path[_, _] => ListType(List(stepsToContainerStructure(step.by.segmentList)))
-              case step: Project[_] =>
-                val traversals =
-                  step.by.runtimeList.asInstanceOf[List[Traversal[ClassType[Any], ClassType[Any], HList]]]
-                TupleType(traversals.map(_.segmentList).map(stepsToContainerStructure(_)).map(List(_)))
-            }
-        }
-      }
-
-      new Traversal[ClassType[Any], ClassType[Any], HList](traversalSegments)(
-        defaultdatatypestub,
-        stepsToContainerStructure(
-          traversalSegments.runtimeList
-            .asInstanceOf[List[Segment[HList]]]
-            .flatMap(_.stepsList))
-      )
+      new Traversal[ClassType[Any], ClassType[Any], HList](traversalSegments)(ClassType.stubAny, ClassType.stubAny)
+        .retype(ClassType.stubAny, ClassType.stubAny)
     }
   }
 
@@ -119,9 +49,9 @@ object Traversal
           lspace.NS.vocab.Lspace + "librarian/Traversal/segment",
           "segment",
           "A segment in a traversal",
-          `@range` = () => VectorType(Segment.ontology :: Nil) :: Nil
+          `@range` = () => VectorType(Segment.ontology) :: Nil
         ) {}
-    lazy val segmentNode: TypedProperty[Vector[Node]] = segment.property as VectorType(Segment.ontology :: Nil)
+    lazy val segmentNode: TypedProperty[Vector[Node]] = segment.property as VectorType(Segment.ontology)
   }
 
   override lazy val properties: List[Property] = keys.segment :: Nil
@@ -238,25 +168,25 @@ object Traversal
     def et: ET[End]
 
     protected def add[S <: Step](step: S)(
-        implicit ev: S <:!< MoveStep,
-        ev2: S <:!< ResourceStep): Traversal[ST[Start], ET[End], Segment[S :: Steps] :: Segments]
-    protected def add[S <: MoveStep](step: S)(
-        implicit ev: S <:< MoveStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segments1]
-    protected def add[S <: ResourceStep](step: S)(
-        implicit ev: S <:< ResourceStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segments1]
+        implicit ev: S <:!< TraverseStep,
+        ev2: S <:!< FilterBarrierStep): Traversal[ST[Start], ET[End], Segment[S :: Steps] :: Segments]
+    protected def add[S <: FilterBarrierStep](step: S)(
+        implicit ev: S <:< FilterBarrierStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segments1]
+//    protected def add[S <: MoveStep](step: S)(
+//        implicit ev: S <:< MoveStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segments1]
+    protected def add[S <: TraverseStep](step: S)(
+        implicit ev: S <:< TraverseStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segments1]
     protected def add[S <: Step, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:!< MoveStep,
-        ev2: S <:!< ResourceStep,
-        ev3: S <:!< Project[_],
-        ev4: S <:!< CollectingBarrierStep): Traversal[ST, ET, Segment[S :: Steps] :: Segments]
-    protected def add[S <: Project[_], ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< Project[_]): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
-    protected def add[S <: CollectingBarrierStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< CollectingBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
-    protected def add[S <: MoveStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
-    protected def add[S <: ResourceStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< ResourceStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
+        implicit ev: S <:!< TraverseStep,
+        ev2: S <:!< FilterBarrierStep): Traversal[ST, ET, Segment[S :: Steps] :: Segments]
+//    protected def add[S <: Project[_], ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+//        implicit ev: S <:< Project[_]): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
+    protected def add[S <: FilterBarrierStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+        implicit ev: S <:< FilterBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
+//    protected def add[S <: MoveStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+//        implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
+    protected def add[S <: TraverseStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+        implicit ev: S <:< TraverseStep): Traversal[ST, ET, Segment[S :: HNil] :: Segments1]
   }
 
   trait TModHNil[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z]]
@@ -267,38 +197,41 @@ object Traversal
     import shapeless.<:!<
 
     protected def add[S <: Step](step: S)(
-        implicit ev: S <:!< MoveStep,
-        ev2: S <:!< ResourceStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
-      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil](
-        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
-    protected def add[S <: MoveStep](step: S)(
-        implicit ev: S <:< MoveStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
-      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil](
-        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
-    protected def add[S <: ResourceStep](step: S)(
-        implicit ev: S <:< ResourceStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
-      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil](
-        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
+        implicit ev: S <:!< TraverseStep,
+        ev2: S <:!< FilterBarrierStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
+      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(
+        _traversal.st,
+        _traversal.et)
+    protected def add[S <: FilterBarrierStep](step: S)(
+        implicit ev: S <:< FilterBarrierStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
+      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(
+        _traversal.st,
+        _traversal.et)
+//    protected def add[S <: MoveStep](step: S)(
+//        implicit ev: S <:< MoveStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
+//      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil](
+//        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
+    protected def add[S <: TraverseStep](step: S)(
+        implicit ev: S <:< TraverseStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil] =
+      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(
+        _traversal.st,
+        _traversal.et)
     protected def add[S <: Step, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:!< MoveStep,
-        ev2: S <:!< ResourceStep,
-        ev3: S <:!< Project[_],
-        ev4: S <:!< CollectingBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
-      Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st,
-                                                                                                                   et)
-    protected def add[S <: Project[_], ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< Project[_]): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
+        implicit ev: S <:!< TraverseStep,
+        ev2: S <:!< FilterBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
       Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(st, et)
-    protected def add[S <: CollectingBarrierStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< CollectingBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
+//    protected def add[S <: Project[_], ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+//        implicit ev: S <:< Project[_]): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
+//      Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(st, et)
+    protected def add[S <: FilterBarrierStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+        implicit ev: S <:< FilterBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
       Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(st, et)
-    protected def add[S <: MoveStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
+//    protected def add[S <: MoveStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+//        implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
+//      Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(st, et)
+    protected def add[S <: TraverseStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+        implicit ev: S <:< TraverseStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
       Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: HNil)(st, et)
-    protected def add[S <: ResourceStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< ResourceStep): Traversal[ST, ET, Segment[S :: HNil] :: HNil] =
-      Traversal[ST, ET, Segment[S :: HNil] :: HNil]((new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st,
-                                                                                                                   et)
   }
 
   trait TMod[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList, Segments <: HList]
@@ -309,48 +242,50 @@ object Traversal
     import shapeless.<:!<
 
     protected def add[S <: Step](step: S)(
-        implicit ev: S <:!< MoveStep,
-        ev2: S <:!< ResourceStep): Traversal[ST[Start], ET[End], Segment[S :: Steps] :: Segments] =
+        implicit ev: S <:!< TraverseStep,
+        ev2: S <:!< FilterBarrierStep): Traversal[ST[Start], ET[End], Segment[S :: Steps] :: Segments] =
       Traversal[ST[Start], ET[End], Segment[S :: Steps] :: Segments](
         _traversal.segments.head
           .copy(step :: _traversal.segments.head.steps) :: _traversal.segments.tail)(_traversal.st, _traversal.et)
 
-    protected def add[S <: MoveStep](step: S)(
-        implicit ev: S <:< MoveStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments] =
+    protected def add[S <: FilterBarrierStep](step: S)(implicit ev: S <:< FilterBarrierStep)
+      : Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments] =
       Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments](
         (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
-
-    protected def add[S <: ResourceStep](step: S)(implicit ev: S <:< ResourceStep)
+//    protected def add[S <: MoveStep](step: S)(
+//        implicit ev: S <:< MoveStep): Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments] =
+//      Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments](
+//        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
+//
+    protected def add[S <: TraverseStep](step: S)(implicit ev: S <:< TraverseStep)
       : Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments] =
       Traversal[ST[Start], ET[End], Segment[S :: HNil] :: Segment[Steps] :: Segments](
         (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(_traversal.st, _traversal.et)
 
     protected def add[S <: Step, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:!< MoveStep,
-        ev2: S <:!< ResourceStep,
-        ev3: S <:!< Project[_],
-        ev4: S <:!< CollectingBarrierStep): Traversal[ST, ET, Segment[S :: Steps] :: Segments] =
+        implicit ev: S <:!< TraverseStep,
+        ev2: S <:!< FilterBarrierStep): Traversal[ST, ET, Segment[S :: Steps] :: Segments] =
       Traversal[ST, ET, Segment[S :: Steps] :: Segments](
         _traversal.segments.head
           .copy(step :: _traversal.segments.head.steps) :: _traversal.segments.tail)(st, et)
 
-    protected def add[S <: Project[_], ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< Project[_]): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
+//    protected def add[S <: Project[_], ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+//        implicit ev: S <:< Project[_]): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
+//      Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments](
+//        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st, et)
+//
+    protected def add[S <: FilterBarrierStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+        implicit ev: S <:< FilterBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
       Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments](
         (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st, et)
+//
+//    protected def add[S <: MoveStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+//        implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
+//      Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments](
+//        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st, et)
 
-    protected def add[S <: CollectingBarrierStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< CollectingBarrierStep): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
-      Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments](
-        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st, et)
-
-    protected def add[S <: MoveStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< MoveStep): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
-      Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments](
-        (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st, et)
-
-    protected def add[S <: ResourceStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
-        implicit ev: S <:< ResourceStep): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
+    protected def add[S <: TraverseStep, ST <: ClassType[_], ET <: ClassType[_]](step: S, st: ST, et: ET)(
+        implicit ev: S <:< TraverseStep): Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments] =
       Traversal[ST, ET, Segment[S :: HNil] :: Segment[Steps] :: Segments](
         (new Segment[S :: HNil](step :: HNil)) :: _traversal.segments)(st, et)
   }
@@ -491,8 +426,8 @@ object Traversal
 //      add(Coin(traversal(Traversal[ET[End], ET[End]](et, et))))
 
     def constant[T, T0, TT0 <: ClassType[_]](p: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0])
-      : Traversal[ST[Start], TT0, Segment[Constant[T, T0, TT0] :: HNil] :: Segments1] =
-      add(Constant(p), st, ct.ct)
+      : Traversal[ST[Start], TT0, Segment[Constant[T] :: HNil] :: Segments1] =
+      add(Constant(p)(ct.ct.asInstanceOf[ClassType[T]]), st, ct.ct)
   }
 
   trait MoveMapStepsHelper[
@@ -512,19 +447,19 @@ object Traversal
                   .getOrElse(Property(key)))
             .toSet),
         st,
-        MapType(List(DataType.default.`@property`), List(ListType(Nil)))
+        MapType(DataType.default.`@property`, ListType())
       )
     def outMap(keys: List[Property])
       : Traversal[ST[Start], MapType[Property, List[Any]], Segment[OutMap :: HNil] :: Segments1] =
-      add(OutMap(keys.toSet), st, MapType(List(DataType.default.`@property`), List(ListType(Nil))))
+      add(OutMap(keys.toSet), st, MapType(DataType.default.`@property`, ListType()))
     def outMap(f: (Property.default.type => Property), ff: (Property.default.type => Property)*)
       : Traversal[ST[Start], MapType[Property, List[Any]], Segment[OutMap :: HNil] :: Segments1] =
       add(OutMap((f :: ff.toList).map(_.apply(Property.default)).toSet),
           st,
-          MapType(List(DataType.default.`@property`), List(ListType(Nil))))
+          MapType(DataType.default.`@property`, ListType()))
     def outMap(
         key: Property*): Traversal[ST[Start], MapType[Property, List[Any]], Segment[OutMap :: HNil] :: Segments1] =
-      add(OutMap(key.toSet), st, MapType(List(DataType.default.`@property`), List(ListType(Nil))))
+      add(OutMap(key.toSet), st, MapType(DataType.default.`@property`, ListType()))
 
     def outEMap(key: String, keys: String*)
       : Traversal[ST[Start], MapType[Property, List[Edge[End, Any]]], Segment[OutEMap :: HNil] :: Segments1] =
@@ -538,25 +473,21 @@ object Traversal
                   .getOrElse(Property(key)))
             .toSet),
         st,
-        MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[End, Any]]))))
+        MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[End, Any]]))
       )
     def outEMap(keys: List[Property])
       : Traversal[ST[Start], MapType[Property, List[Edge[End, Any]]], Segment[OutEMap :: HNil] :: Segments1] =
-      add(OutEMap(keys.toSet),
-          st,
-          MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[End, Any]])))))
+      add(OutEMap(keys.toSet), st, MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[End, Any]])))
     def outEMap(f: (Property.default.type => Property), ff: (Property.default.type => Property)*)
       : Traversal[ST[Start], MapType[Property, List[Edge[End, Any]]], Segment[OutEMap :: HNil] :: Segments1] =
       add(
         OutEMap((f :: ff.toList).map(_.apply(Property.default)).toSet),
         st,
-        MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[End, Any]]))))
+        MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[End, Any]]))
       )
     def outEMap(key: Property*)
       : Traversal[ST[Start], MapType[Property, List[Edge[End, Any]]], Segment[OutEMap :: HNil] :: Segments1] =
-      add(OutEMap(key.toSet),
-          st,
-          MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[End, Any]])))))
+      add(OutEMap(key.toSet), st, MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[End, Any]])))
 
     def inMap(key: String,
               keys: String*): Traversal[ST[Start], MapType[Property, List[Any]], Segment[InMap :: HNil] :: Segments1] =
@@ -570,18 +501,18 @@ object Traversal
                   .getOrElse(Property(key)))
             .toSet),
         st,
-        MapType(List(DataType.default.`@property`), List(ListType(Nil)))
+        MapType(DataType.default.`@property`, ListType())
       )
     def inMap(
         keys: List[Property]): Traversal[ST[Start], MapType[Property, List[Any]], Segment[InMap :: HNil] :: Segments1] =
-      add(InMap(keys.toSet), st, MapType(List(DataType.default.`@property`), List(ListType(Nil))))
+      add(InMap(keys.toSet), st, MapType(DataType.default.`@property`, ListType()))
     def inMap(f: (Property.default.type => Property), ff: (Property.default.type => Property)*)
       : Traversal[ST[Start], MapType[Property, List[Any]], Segment[InMap :: HNil] :: Segments1] =
       add(InMap((f :: ff.toList).map(_.apply(Property.default)).toSet),
           st,
-          MapType(List(DataType.default.`@property`), List(ListType(Nil))))
+          MapType(DataType.default.`@property`, ListType()))
     def inMap(key: Property*): Traversal[ST[Start], MapType[Property, List[Any]], Segment[InMap :: HNil] :: Segments1] =
-      add(InMap(key.toSet), st, MapType(List(DataType.default.`@property`), List(ListType(Nil))))
+      add(InMap(key.toSet), st, MapType(DataType.default.`@property`, ListType()))
 
     def inEMap(key: String, keys: String*)
       : Traversal[ST[Start], MapType[Property, List[Edge[Any, End]]], Segment[InEMap :: HNil] :: Segments1] =
@@ -595,25 +526,21 @@ object Traversal
                   .getOrElse(Property(key)))
             .toSet),
         st,
-        MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[Any, End]]))))
+        MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[Any, End]]))
       )
     def inEMap(keys: List[Property])
       : Traversal[ST[Start], MapType[Property, List[Edge[Any, End]]], Segment[InEMap :: HNil] :: Segments1] =
-      add(InEMap(keys.toSet),
-          st,
-          MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[Any, End]])))))
+      add(InEMap(keys.toSet), st, MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[Any, End]])))
     def inEMap(f: (Property.default.type => Property), ff: (Property.default.type => Property)*)
       : Traversal[ST[Start], MapType[Property, List[Edge[Any, End]]], Segment[InEMap :: HNil] :: Segments1] =
       add(
         InEMap((f :: ff.toList).map(_.apply(Property.default)).toSet),
         st,
-        MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[Any, End]]))))
+        MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[Any, End]]))
       )
     def inEMap(key: Property*)
       : Traversal[ST[Start], MapType[Property, List[Edge[Any, End]]], Segment[InEMap :: HNil] :: Segments1] =
-      add(InEMap(key.toSet),
-          st,
-          MapType(List(DataType.default.`@property`), List(ListType(List(EdgeURLType.apply[Edge[Any, End]])))))
+      add(InEMap(key.toSet), st, MapType(DataType.default.`@property`, ListType(EdgeURLType.apply[Edge[Any, End]])))
   }
 
   trait MoveStepsHelper[
@@ -730,7 +657,7 @@ object Traversal
         new Segment(step :: _traversal.segments.head.steps.tail) :: _traversal.segments.tail)(
         _traversal.st,
         TupleType[(KOut, VOut)](
-          List(et.rangeTypes.head.asInstanceOf[List[ClassType[KOut]]], outV.tweak(step.value.et) :: Nil))
+          List(et.rangeTypes.head.asInstanceOf[Option[ClassType[KOut]]], Some(outV.tweak(step.value.et))))
       )
     }
 
@@ -871,7 +798,7 @@ object Traversal
         TupleType[End0](
           mapper(step.by).runtimeList
             .asInstanceOf[List[ClassType[Any]]]
-            .map(List(_))
+            .map(Some(_))
             .map(_.filter(_.iri.nonEmpty))))
     }
   }
@@ -952,7 +879,7 @@ object Traversal
     def dedup(): Traversal[ST[Start], ET[End], Segment[Dedup :: Steps] :: Segments] = add(Dedup)
 
     def as[S <: String](name: () => S): Traversal[ST[Start], ET[End], Segment[As[End, S] :: Steps] :: Segments] =
-      add(As[End, S](name()))
+      add(As[End, S](name())(et))
 
     //TODO: add a 'byValue' traversal, so a traversal on the grouped result is contained within the step
     def group[CK <: ClassType[_],
@@ -971,11 +898,12 @@ object Traversal
 
       val step = Group[CK, KeySegments, ET[End], HNil](by(Traversal[ET[End], ET[End]](et, et)),
                                                        Traversal[ET[End], ET[End]](et, et))
-      add(step,
-          st,
-          TupleType[(KOut, List[End])](
-            List(outK.tweak(step.by.et) :: Nil filter (_.iri.nonEmpty),
-                 ListType(step.value.et :: Nil filter (_.iri.nonEmpty)) :: Nil)))
+      add(
+        step,
+        st,
+        TupleType[(KOut, List[End])](
+          List(Some(outK.tweak(step.by.et)).filter(_.iri.nonEmpty), Some(ListType(step.value.et))))
+      )
     }
 
 //    def project() /*: Traversal[ST[Start],
@@ -1005,7 +933,7 @@ object Traversal
 //    }
 
     def project() =
-      add(Project(Traversal(et, et) :: HNil), st, TupleType[End](List(List(et))))
+      add(Project(Traversal(et, et) :: HNil), st, TupleType[End](List(Some(et))))
 
     def project[CP <: ClassType[_],
                 PSegments <: HList,
@@ -1019,7 +947,7 @@ object Traversal
         out: OutTweaker.Aux[CP, PContainers, POut, CPOut]
     ) = {
       val tby1 = by1(Traversal(et, et))
-      add(Project(tby1 :: HNil), st, TupleType[POut](List(List(out.tweak(tby1.et)))))
+      add(Project(tby1 :: HNil), st, TupleType[POut](List(Some(out.tweak(tby1.et)))))
     }
 
     def where(traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList])
@@ -1062,14 +990,14 @@ object Traversal
         f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
         ev2: Labels1 =:= Labels2,
         et0: ClassTypeable.Aux[ET0, End1, ET1])
-      : Traversal[ST[Start], ET1, Segment[Union[ET[End], ET0] :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET1, Segment[Union[ET[End], ET0] :: HNil] :: Segments1] = {
       val unionTraversal = traversal(Traversal[ET[End], ET[End]](et, et))
       add(
         Union[ET[End], ET0](
           unionTraversal ::
             traversals.toList.map(traversal =>
             traversal(Traversal[ET[End], ET[End]](et, et))
-              .asInstanceOf[Traversal[ET[End], ET0, HList]])),
+              .asInstanceOf[Traversal[ET[End], ET0, Steps1]])),
         st,
         et0.ct
       )
@@ -1088,7 +1016,7 @@ object Traversal
                                     collect: Boolean = false,
                                     noloop: Boolean = false)(
         implicit until: Traversal[ET0, ET0, HNil] => Traversal[ET0, _ <: ClassType[_], _ <: HList] = null
-    ): Traversal[ST[Start], ET0, Segment[Repeat[ET0] :: Steps] :: Segments] = {
+    ): Traversal[ST[Start], ET0, Segment[Repeat[ET0] :: HNil] :: Segments1] = {
       val t = traversal(Traversal[ET[End], ET[End]](et, et))
       add(
         Repeat(
@@ -1118,7 +1046,7 @@ object Traversal
         f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
         ev2: Labels1 =:= Labels2,
         et0: ClassTypeable.Aux[ET0, End1, ET1])
-      : Traversal[ST[Start], ET1, Segment[Choose[ET[End], ET0] :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET1, Segment[Choose[ET[End], ET0] :: HNil] :: Segments1] = {
       val byTraversal    = by(Traversal[ET[End], ET[End]](et, et))
       val rightTraversal = right(Traversal[ET[End], ET[End]](et, et))
       val leftTraversal  = left(Traversal[ET[End], ET[End]](et, et))
@@ -1142,7 +1070,7 @@ object Traversal
         f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
         ev2: Labels1 =:= Labels2,
         et0: ClassTypeable.Aux[ET0, End1, ET1])
-      : Traversal[ST[Start], ET1, Segment[Coalesce[ET[End], ET0] :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET1, Segment[Coalesce[ET[End], ET0] :: HNil] :: Segments1] = {
       val coalesceTraversal = traversal(Traversal[ET[End], ET[End]](et, et))
       add(
         Coalesce[ET[End], ET0](
@@ -1157,7 +1085,7 @@ object Traversal
 
     def local[ET0 <: ClassType[_], Labels1 <: HList](
         traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, _ <: HList])
-      : Traversal[ST[Start], ET0, Segment[Local[ET[End], ET0] :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET0, Segment[Local[ET[End], ET0] :: HNil] :: Segments1] = {
       val localTraversal = traversal(Traversal[ET[End], ET[End]](et, et))
       add(Local(localTraversal), st, localTraversal.et)
     }
@@ -1167,16 +1095,16 @@ object Traversal
       *
       * @return
       */
-    def path: Traversal[ST[Start], ClassType[Nothing], Segment[Path[ClassType[Any], HNil] :: HNil] :: Segments1] =
-      add(Path(Traversal[ET[End], ClassType[Nothing]](et, ClassType.stubNothing)), st, ClassType.stubNothing)
+    def path: Traversal[ST[Start], ListType[Any], Segment[Path[ClassType[Any], HNil] :: HNil] :: Segments1] =
+      add(Path(Traversal[ET[End], ListType[Any]](et, ListType(ClassType.stubAny))), st, ListType(ClassType.stubAny))
 
     def path[ET0 <: ClassType[_], End1, ET1 <: ClassType[End1], Steps0 <: HList](
         traversal: Traversal[ET[End], ClassType[Any], HNil] => Traversal[ET[End], ET0, Steps0])(
         implicit
         et0: ClassTypeable.Aux[ET0, End1, ET1]
-    ): Traversal[ST[Start], ClassType[Nothing], Segment[Path[ET0, Steps0] :: HNil] :: Segments1] = {
-      val t = traversal(Traversal[ET[End], ClassType[Any]](et, ClassType.stubAny))
-      add(Path(t), st, ClassType.stubNothing)
+    ): Traversal[ST[Start], ListType[Any], Segment[Path[ET0, Steps0] :: HNil] :: Segments1] = {
+      val t = traversal(Traversal[ET[End], ListType[Any]](et, ListType(ClassType.stubAny)))
+      add(Path(t), st, ListType(ClassType.stubAny))
     }
 
 //    def is[T, T0, TT0 <: ClassType[_]](value: T)(
@@ -1225,7 +1153,7 @@ object Traversal
       * @return
       */
     def max[CT <: DataType[_]: Orderable](by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CT, _ <: HList])
-      : Traversal[ST[Start], ET[End], Segment[Max :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET[End], Segment[Max :: HNil] :: Segments1] = {
       val byTraversal = by(Traversal[ET[End], ET[End]](et, et))
       add(Max(byTraversal))
     }
@@ -1237,13 +1165,13 @@ object Traversal
       * @return
       */
     def min[CT <: DataType[_]: Orderable](by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CT, _ <: HList])
-      : Traversal[ST[Start], ET[End], Segment[Min :: Steps] :: Segments] = {
+      : Traversal[ST[Start], ET[End], Segment[Min :: HNil] :: Segments1] = {
       val byTraversal = by(Traversal[ET[End], ET[End]](et, et))
       add(Min(byTraversal))
     }
 
     def count(): Traversal[ST[Start], LongType[Long], Segment[Count :: Steps] :: Segments] =
-      add(Count, st, DataType.default.`@long`)
+      add(Count: Count, st, DataType.default.`@long`)
   }
 
   implicit class WithNodeStepsHelper[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: ClassType[Z], Steps <: HList,
@@ -1425,13 +1353,14 @@ object Traversal
       extends BaseMod[Start, ST, End, ET, Steps, Segments, Segments1] {
 
 //    def sum(): Traversal[ST[Start], ET[End], Segment[Sum :: Steps] :: Segments] = add(Sum)
-    def sum(): Traversal[ST[Start], DoubleType[Double], Segment[Sum :: Steps] :: Segments] = add(Sum, st, `@double`)
+    def sum(): Traversal[ST[Start], DoubleType[Double], Segment[Sum :: Steps] :: Segments] =
+      add(Sum: Sum, st, `@double`)
     def max(): Traversal[ST[Start], ET[End], Segment[Max :: Steps] :: Segments] =
       add(Max(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]])))
     def min(): Traversal[ST[Start], ET[End], Segment[Min :: Steps] :: Segments] =
       add(Min(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]])))
     def mean(): Traversal[ST[Start], DoubleType[Double], Segment[Mean :: Steps] :: Segments] =
-      add(Mean, st, DataType.default.`@double`)
+      add(Mean: Mean, st, DataType.default.`@double`)
     def order[ET0 <: DataType[_]](
         increasing: Boolean = true): Traversal[ST[Start], ET[End], Segment[Order :: Steps] :: Segments] =
       add(Order(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]]), increasing))
@@ -1463,12 +1392,12 @@ object Traversal
                             Segments1 <: HList]
       extends BaseMod[Start, ST, End, ET, Steps, Segments, Segments1] {
 
-    def sum(): Traversal[ST[Start], ET[End], Segment[Sum :: Steps] :: Segments] = add(Sum)
+    def sum(): Traversal[ST[Start], ET[End], Segment[Sum :: Steps] :: Segments] = add(Sum: Sum)
     def max(): Traversal[ST[Start], ET[End], Segment[Max :: Steps] :: Segments] =
       add(Max(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]])))
     def min(): Traversal[ST[Start], ET[End], Segment[Min :: Steps] :: Segments] =
       add(Min(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]])))
-    def mean(): Traversal[ST[Start], ET[End], Segment[Mean :: Steps] :: Segments] = add(Mean)
+    def mean(): Traversal[ST[Start], ET[End], Segment[Mean :: Steps] :: Segments] = add(Mean: Mean)
     def order[ET0 <: DataType[_]](
         increasing: Boolean = true): Traversal[ST[Start], ET[End], Segment[Order :: Steps] :: Segments] =
       add(Order(Traversal(et.asInstanceOf[DataType[_]], et.asInstanceOf[DataType[_]]), increasing))
@@ -1550,7 +1479,7 @@ object Traversal
                        Segments1 <: HList]
       extends BaseMod[Start, ST, End, ET, Steps, Segments, Segments1] {
 
-    def mean(): Traversal[ST[Start], ET[End], Segment[Mean :: Steps] :: Segments] = add(Mean)
+    def mean(): Traversal[ST[Start], ET[End], Segment[Mean :: Steps] :: Segments] = add(Mean: Mean)
   }
 
   object SegmentMapper extends Poly1 {
@@ -1803,18 +1732,200 @@ object Traversal
     val segments = steps.foldLeft(List[Segment[HList]]()) {
       case (head :: tail, step) =>
         step match {
-          case step: FilterStep           => head.copy[HList](step :: head.steps) :: tail
-          case step: RearrangeBarrierStep => head.copy[HList](step :: head.steps) :: tail
-          case step: ClipStep             => head.copy[HList](step :: head.steps) :: tail
-//          case step: Project[_]           => head.copy[HList](step :: head.steps) :: tail
-          case step => Segment().copy[HList](step :: HNil) :: head :: tail
+          case step: TraverseStep => Segment().copy[HList](step :: HNil) :: head :: tail
+          case step               => head.copy[HList](step :: head.steps) :: tail
         }
       case (Nil, step) =>
         Segment().copy[HList](step :: HNil) :: Nil
     }
-    Traversal(segments.reverse.foldLeft[HList](HNil) {
+    Traversal(segments.reverse.foldLeft[HList](HNil) { // remove .reverse?
       case (hl, segment) => segment :: hl
     })(ClassType.stubAny, ClassType.stubAny)
+  }
+
+  def stepsToTraversal(
+      steps: Vector[Step],
+      traversal: Traversal[ClassType[Any], ClassType[Any], HList]): Traversal[ClassType[Any], ClassType[Any], HList] = {
+    val existingHead = traversal.segmentList.headOption.getOrElse(Segment())
+    val existingTail = {
+      import shapeless._
+      import syntax.std.traversable._
+      traversal.segmentList.tail.foldLeft[HList](HNil) { case (r, s) => s :: r }
+    }
+    steps match {
+      case Vector() => traversal
+      case (step: TraverseStep) +: steps =>
+        val typedTraversal = step match {
+          case step: GroupingStep =>
+            step match {
+              case step: GroupingBarrierStep =>
+                step match {
+                  case step: Group[_, _, _, _] =>
+                    val typedStep = Group(
+                      step.by.retype(traversal.et, traversal.et),
+                      step.value.retype(traversal.et, traversal.et)
+                    )
+                    new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(
+                      traversal.st,
+                      TupleType(List(Some(typedStep.by.enclosedEndType), Some(typedStep.value.enclosedEndType))))
+                }
+              case step: MapStep =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(
+                  traversal.st,
+                  MapType(DataType.default.`@property`, ListType(ClassType.stubAny)))
+            }
+          case step: ReducingBarrierStep =>
+            step match {
+              case step: Count =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, `@long`)
+              case step: Mean =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et) //int to double?
+              case step: Sum =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+              case _ => throw new Exception("unexpected")
+            }
+          case step: ResourceStep =>
+            step match {
+              case step: N => new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, Node.nodeUrl)
+              case step: E => new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, Edge.edgeUrl)
+              case step: V =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, Value.default[Any].ct)
+              case step: R =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, ClassType.stubAny)
+            }
+          case step: GraphStep =>
+            new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, ClassType.stubAny)
+          case step: MoveStep =>
+            step match {
+              case step: Constant[_] =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, step.label)
+              case step: From => //TODO: create EdgeUrlType with From and To type information
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, ClassType.stubAny)
+              case step: To => //TODO: create EdgeUrlType with From and To type information
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, ClassType.stubAny)
+              case step: Id => new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, `@long`)
+              case step: Out =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, ClassType.stubAny)
+              case step: OutE =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, Edge.edgeUrl)
+              case step: In =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, ClassType.stubAny)
+              case step: InE =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, Edge.edgeUrl)
+            }
+          case step: BranchStep =>
+            step match {
+              case step: Choose[_, _] =>
+                val typedStep = Choose(
+                  step.by.retype(traversal.et, traversal.et),
+                  step.right.retype(traversal.et, traversal.et),
+                  step.left.retype(traversal.et, traversal.et)
+                )
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(
+                  traversal.st,
+                  typedStep.right.et + typedStep.left.et)
+              case step: Coalesce[_, _] =>
+                val typedStep = Coalesce(step.traversals.map(t => t.retype(traversal.et, traversal.et)))
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(
+                  traversal.st,
+                  typedStep.traversals.map(_.et).reduce(_ + _))
+              case step: Local[_, _] =>
+                val typedStep = Local(step.traversal.retype(traversal.et, traversal.et))
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st,
+                                                                                    typedStep.traversal.et)
+              case step: Repeat[_] =>
+                val typedStep = Local(step.traversal.retype(traversal.et, traversal.et))
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st,
+                                                                                    typedStep.traversal.et)
+              case step: Union[_, _] =>
+                val typedStep = Union(step.traversals.map(t => t.retype(traversal.et, traversal.et)))
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(
+                  traversal.st,
+                  typedStep.traversals.map(_.et).reduce(_ + _))
+            }
+          case step: ProjectionStep =>
+            step match {
+              case step: Select[_] =>
+                val labels = traversal.steps.collect { case step: As[_, _] => step }
+                val types  = step.names.map(name => labels.find(_.label == name).map(_.ct))
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, TupleType(types))
+              case step: Project[_] =>
+                val typedStep = Project(
+                  step.by.runtimeList
+                    .map {
+                      case t: Traversal[_, _, _] =>
+                        t.retype(traversal.et, traversal.et)
+                    }
+                    .foldLeft[HList](HNil) { case (r, t) => t :: r })
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(
+                  traversal.st,
+                  TupleType(
+                    typedStep.by.runtimeList.map { case t: Traversal[_, _, _] => t.enclosedEndType }.map(Some(_))))
+              case step: Path[_, _] =>
+                val typedStep = step
+                new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st,
+                                                                                    ListType(typedStep.by.et))
+            }
+        }
+        stepsToTraversal(steps, typedTraversal)
+      case (step: FilterStep) +: steps =>
+        val typedTraversal = step match {
+          case step: And =>
+            val typedStep = And(step.traversals.map(t => t.retype(traversal.et, traversal.et)))
+            new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+          case step: Coin =>
+            new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+          case step: Is =>
+            new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+          case step: Not =>
+            val typedStep = Not(step.traversal.retype(traversal.et, traversal.et))
+            new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+          case step: Or =>
+            val typedStep = Or(step.traversals.map(t => t.retype(traversal.et, traversal.et)))
+            new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+          case step: Where =>
+            val typedStep = Where(step.traversal.retype(traversal.et, traversal.et))
+            new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+          case step: GlobalFilterStep =>
+            step match {
+              case step: Dedup =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+            }
+          case step: ClipStep =>
+            step match {
+              case step: Head =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+              case step: Last =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+              case step: Limit =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+              case step: Range =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+              case step: Tail =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+            }
+          case step: HasStep =>
+            step match {
+              case step: HasLabel =>
+                new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, step.label.reduce(_ + _))
+              case _ => new Traversal(new Segment(step :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+            }
+        }
+        stepsToTraversal(steps, typedTraversal)
+      case (step: BarrierStep) +: steps =>
+        val typedTraversal = step match {
+          case (step: Order) +: steps =>
+            val typedStep = Order(step.by.retype(traversal.et, traversal.et), step.increasing)
+            new Traversal(new Segment(typedStep :: HNil) :: traversal.segments)(traversal.st, traversal.et)
+        }
+        stepsToTraversal(steps, typedTraversal)
+      case (step: As[_, _]) +: steps =>
+        val typedTraversal = new Traversal(new Segment(As(step.label)(traversal.et) :: HNil) :: traversal.segments)(
+          traversal.st,
+          traversal.et)
+        stepsToTraversal(steps, typedTraversal)
+//      case _             =>
+    }
   }
 }
 
@@ -1838,12 +1949,19 @@ case class Traversal[+ST <: ClassType[_], +ET <: ClassType[_], Segments <: HList
   def untyped: UntypedTraversal = UntypedTraversal(segmentList.toVector.map(_.untyped))
 
   def ++[ST0 <: ClassType[_], ET0 <: ClassType[_], Segments0 <: HList, Out <: HList](
-      traversal: Traversal[ST0, ET0, Segments0])(
-      implicit p1: Prepend.Aux[Segments, Segments0, Out]): Traversal[ST, ET0, Out] =
+      traversal: Traversal[ST0, ET0, Segments0])(implicit //ev: ET <:< ST0,
+                                                 p1: Prepend.Aux[Segments, Segments0, Out]): Traversal[ST, ET0, Out] =
     this.copy(p1.apply(segments, traversal.segments))(st, traversal.et)
 
+  def retype(st: ClassType[Any], et: ClassType[Any]): Traversal[ClassType[Any], ClassType[Any], HList] =
+    Traversal.stepsToTraversal(steps.toVector,
+                               Traversal(st, et).asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+  def enclosedEndType: ClassType[Any] =
+    OutTweaker.tweakEnd(this)
+
   override def equals(o: Any): Boolean = o match {
-    case traversal: Traversal[ClassType[_], ClassType[_], HList] @unchecked => segmentList == traversal.segmentList
+    case traversal: Traversal[ClassType[_], ClassType[_], HList] @unchecked =>
+      segmentList == traversal.segmentList && st == traversal.st && et == traversal.et
   }
 
   lazy val toNode: Task[Node] = {
