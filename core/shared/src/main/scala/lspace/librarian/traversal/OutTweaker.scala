@@ -90,12 +90,15 @@ object OutTweaker {
       type OutCT = ClassType[Option[End]]
       def tweak(et: ET[End]): ClassType[Option[End]] = OptionType(et)
     }
-  implicit def containersAnyFilter[ET <: ClassType[_],
+  implicit def containersAnyFilter[ET <: ClassType[Any],
                                    Container <: FilterStep,
                                    Containers <: HList,
                                    Out0,
-                                   COut0 <: ClassType[_]](implicit out: OutTweaker.Aux[ET, Containers, Out0, COut0])
-    : OutTweaker.Aux[ET, Container :: Containers, Out0, COut0] =
+                                   COut0 <: ClassType[Any]](
+      implicit ev: Container <:!< FilterBarrierStep,
+      ev1: Container <:!< Head,
+      ev2: Container <:!< Last,
+      out: OutTweaker.Aux[ET, Containers, Out0, COut0]): OutTweaker.Aux[ET, Container :: Containers, Out0, COut0] =
     new OutTweaker[ET, Container :: Containers] {
       type Out   = Out0
       type OutCT = COut0
@@ -125,7 +128,7 @@ object OutTweaker {
     //FilterBarrierStep
     //ReducingBarrierStep
     import scala.collection.immutable.::
-    traversal.steps.reverse.span {
+    traversal.stepsList.reverse.span {
       case _: Head | _: Last | _: Min | _: Max => false
       case _: FilterStep | _: EnvironmentStep  => true
       case _                                   => false

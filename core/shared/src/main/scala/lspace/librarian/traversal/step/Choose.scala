@@ -53,7 +53,7 @@ object Choose
           container = types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
 
     object right
         extends PropertyDef(
@@ -63,7 +63,7 @@ object Choose
           container = types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val rightTraversal: TypedProperty[Node] = right.property + Traversal.ontology
+    val rightTraversal: TypedProperty[Node] = right.property as Traversal.ontology
 
     object left
         extends PropertyDef(
@@ -73,7 +73,7 @@ object Choose
           container = types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val leftTraversal: TypedProperty[Node] = left.property + Traversal.ontology
+    val leftTraversal: TypedProperty[Node] = left.property as Traversal.ontology
   }
   override lazy val properties
     : List[Property] = keys.by.property :: keys.right.property :: keys.left.property :: BranchStep.properties

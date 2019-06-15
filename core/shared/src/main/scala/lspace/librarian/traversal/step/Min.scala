@@ -42,7 +42,7 @@ object Min
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.by :: FilterBarrierStep.properties
   trait Properties extends FilterBarrierStep.Properties {

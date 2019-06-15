@@ -19,7 +19,7 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
           "A Predicate",
           `@range` = () => P.ontology :: Nil
         )
-    val predicateUrl: TypedProperty[Node] = predicate.property + P.ontology
+    val predicateUrl: TypedProperty[Node] = predicate.property as P.ontology
   }
   override lazy val properties: List[Property] = keys.predicate :: FilterStep.properties
   trait Properties extends FilterStep.Properties {

@@ -23,29 +23,29 @@ object SyncGuide {
 }
 trait SyncGuide extends LocalGuide[Stream] {
 
-  implicit def segmentsToFlattenedSteps(segments: List[Segment[HList]]): List[Step] =
-    segments.flatMap(_.stepsList)
+//  implicit def segmentsToFlattenedSteps(segments: List[Segment[HList]]): List[Step] =
+//    segments.flatMap(_.stepsList)
 
   def buildTraversal[Out](
       traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => Stream[Out] = {
     implicit graph: Graph =>
-      traversal.segmentList match {
+      traversal.stepsList match {
+//        case Nil => Stream.empty[Out]
+//        case segment :: segments =>
+//          segment.stepsList match {
         case Nil => Stream.empty[Out]
-        case segment :: segments =>
-          segment.stepsList match {
-            case Nil => Stream.empty[Out]
-            case step :: steps =>
-              findFirstContainer((segment :: segments).flatMap(_.stepsList)) match {
-                case Some(step: Group[_, _, _, _]) =>
-                  val (until, from) = (segment :: segments).flatMap(_.stepsList).span(_ != step)
-                  val nextStep = buildNextStep(until, Nil) andThen
-                    collectingBarrierStep(step, from.tail, Nil, true).asInstanceOf[Stream[Any] => Stream[Any]]
-                  nextStep(Stream(createLibrarian[Any](null)))
-                case step =>
-                  val nextStep = buildNextStep(segment.stepsList, segments)
-                  nextStep(Stream(createLibrarian[Any](null)))
-              }
+        case steps =>
+          findFirstContainer(steps) match {
+            case Some(step: Group[_, _, _, _]) =>
+              val (until, from) = steps.span(_ != step)
+              val nextStep = buildNextStep(until) andThen
+                collectingBarrierStep(step, from.tail, true).asInstanceOf[Stream[Any] => Stream[Any]]
+              nextStep(Stream(createLibrarian[Any](null)))
+            case step =>
+              val nextStep = buildNextStep(steps)
+              nextStep(Stream(createLibrarian[Any](null)))
           }
+//          }
       }
   }.andThen(_.map {
     case librarian: Librarian[Any] => toValue(librarian.get)
@@ -54,12 +54,12 @@ trait SyncGuide extends LocalGuide[Stream] {
 
   def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
       implicit graph: Lspace): Librarian[Any] => Stream[Any] = {
-    traversal.segmentList match {
+    traversal.stepsList match {
       case Nil =>
         librarian: Librarian[Any] =>
           Stream(librarian)
-      case segment :: segments =>
-        val nextStep = buildNextStep(segment.stepsList, segments)
+      case steps =>
+        val nextStep = buildNextStep(steps)
         librarian: Librarian[Any] =>
           nextStep(Stream(librarian))
     }
@@ -67,28 +67,19 @@ trait SyncGuide extends LocalGuide[Stream] {
 
   def traversalsToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    traversal.segmentList match {
+    traversal.stepsList match {
       case Nil =>
         librarians: Stream[Librarian[Any]] =>
           librarians
-      case segment :: segments =>
-        val nextStep = buildNextStep(segment.stepsList, segments)
+      case steps =>
+        val nextStep = buildNextStep(steps)
         librarians: Stream[Librarian[Any]] =>
           nextStep(librarians)
     }
   }
 
-  def buildNextStep(steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val (nextSteps, nextSegments) =
-      if (steps.nonEmpty) steps -> segments
-      else {
-        segments match {
-          case Nil                 => Nil               -> Nil
-          case segment :: segments => segment.stepsList -> segments
-        }
-      }
-    nextSteps match {
+  def buildNextStep(steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+    steps match {
       case Nil =>
         obs: Stream[Librarian[Any]] =>
           obs
@@ -98,34 +89,34 @@ trait SyncGuide extends LocalGuide[Stream] {
             obs =>
               throw new Exception("AsyncGuide does not support federated queries, RemoteGuide can!")
           case step: ResourceStep =>
-            resourceStep(step, steps, nextSegments)
+            resourceStep(step, steps)
           case step: MoveStep =>
-            moveStep(step, steps, nextSegments)
+            moveStep(step, steps)
+          case step: ClipStep =>
+            clipStep(step) andThen buildNextStep(steps)
           case step: FilterStep =>
             step match {
               case step: FilterBarrierStep =>
-                filterBarrierStep(step, steps, nextSegments)
-              case _ => filterStep(step, steps, nextSegments)
+                filterBarrierStep(step, steps)
+              case _ => filterStep(step, steps)
             }
-          case step: ClipStep =>
-            clipStep(step) andThen buildNextStep(steps, nextSegments)
           case step: BranchStep =>
-            branchStep(step, steps, nextSegments)
+            branchStep(step, steps)
           case step: GroupingBarrierStep =>
-            collectingBarrierStep(step, steps, nextSegments)
+            collectingBarrierStep(step, steps)
           case step: RearrangeBarrierStep =>
-            rearrangeBarrierStep(step, steps, nextSegments)
+            rearrangeBarrierStep(step, steps)
           case step: ReducingBarrierStep =>
-            reducingBarrierStep(step, steps, nextSegments)
-          case step: Project[_] =>
-            projectStep(step, steps, nextSegments)
+            reducingBarrierStep(step, steps)
+          case step: ProjectionStep =>
+            projectionStep(step, steps)
           case step: EnvironmentStep =>
             step match {
               case step: TimeLimit =>
                 val timeLimit =
                   step.time.map(_.millis).getOrElse(throw new Exception("TimeLimit step without strict time"))
                 val timeLimitStamp = Instant.ofEpochMilli(Instant.now().toEpochMilli + timeLimit)
-                val nextStep       = buildNextStep(steps, nextSegments)
+                val nextStep       = buildNextStep(steps)
 //                ((obs: Stream[Librarian[Any]]) => obs) andThen nextStep
                 nextStep andThen { obs: Stream[Any] =>
                   obs.takeWhile(l => timeLimitStamp.isAfter(Instant.now())) //TODO: investigate, does not look efficient (checking after each stream element)
@@ -135,9 +126,9 @@ trait SyncGuide extends LocalGuide[Stream] {
     }
   }
 
-  def resourceStep(step: ResourceStep, steps: List[Step], segments: List[Segment[_]])(
+  def resourceStep(step: ResourceStep, steps: List[Step])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+    val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: N =>
@@ -237,9 +228,8 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def moveStep(step: MoveStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+  def moveStep(step: MoveStep, steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+    val nextStep = buildNextStep(steps)
     step match {
       case step: MapStep =>
         step match {
@@ -297,30 +287,6 @@ trait SyncGuide extends LocalGuide[Stream] {
                       }
                   case v => Map()
               })
-          case step: Path[_, _] =>
-            val byObs = traversalToF(step.by)
-            step.by.steps.lastOption match {
-              case Some(Count) =>
-                obs: Stream[Librarian[Any]] =>
-                  obs.map { librarian =>
-                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).head)
-                  }
-              case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
-                obs: Stream[Librarian[Any]] =>
-                  obs.map { librarian =>
-                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headOption)
-                  }
-              case Some(Last) =>
-                obs: Stream[Librarian[Any]] =>
-                  obs.map { librarian =>
-                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).lastOption)
-                  }
-              case _ =>
-                obs: Stream[Librarian[Any]] =>
-                  obs.map { librarian =>
-                    librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).toList)
-                  }
-            }
         }
       case step: Out =>
         obs: Stream[Librarian[Any]] =>
@@ -395,9 +361,8 @@ trait SyncGuide extends LocalGuide[Stream] {
     }
   }
 
-  def filterStep(step: FilterStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+  def filterStep(step: FilterStep, steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+    val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: HasStep =>
@@ -551,9 +516,8 @@ trait SyncGuide extends LocalGuide[Stream] {
     f
   }
 
-  def branchStep(step: BranchStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+  def branchStep(step: BranchStep, steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+    val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: Coalesce[_, _] =>
@@ -592,8 +556,8 @@ trait SyncGuide extends LocalGuide[Stream] {
           step.max match {
             case Some(max) =>
               step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
+                .filter(_.stepsList.nonEmpty)
+//                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   obs: Stream[Librarian[Any]] =>
@@ -624,8 +588,8 @@ trait SyncGuide extends LocalGuide[Stream] {
               }
             case None =>
               step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
+                .filter(_.stepsList.nonEmpty)
+//                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   obs: Stream[Librarian[Any]] =>
@@ -659,8 +623,8 @@ trait SyncGuide extends LocalGuide[Stream] {
           step.max match {
             case Some(max) =>
               step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
+                .filter(_.stepsList.nonEmpty)
+//                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   obs: Stream[Librarian[Any]] =>
@@ -692,8 +656,8 @@ trait SyncGuide extends LocalGuide[Stream] {
               }
             case None =>
               step.until
-                .filter(_.segmentList.nonEmpty)
-                .filter(_.segmentList.head.stepsList.nonEmpty)
+                .filter(_.stepsList.nonEmpty)
+//                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
                   obs: Stream[Librarian[Any]] =>
@@ -754,14 +718,11 @@ trait SyncGuide extends LocalGuide[Stream] {
       case _               => value.toList
     }
 
-  def collectingBarrierStep(
-      step: GroupingBarrierStep,
-      steps: List[Step],
-      segments: List[Segment[_]],
-      isRootGroup: Boolean = false)(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+  def collectingBarrierStep(step: GroupingBarrierStep, steps: List[Step], isRootGroup: Boolean = false)(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
 
-    val nextStep = //buildNextStep(steps, segments)
-      steps ++ segments.flatMap(_.stepsList) match {
+    val nextStep = //buildNextStep(steps)
+      steps match {
         case List(step: ClipStep) => clipStep[Any](step)
         case head :: tail =>
           obs: Stream[Any] =>
@@ -775,9 +736,9 @@ trait SyncGuide extends LocalGuide[Stream] {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
         val valueObservable = traversalsToF(step.value)
-        val valueSteps      = step.value.segmentList.flatMap(_.stepsList)
+        val valueSteps      = step.value.stepsList
 
-        step.by.steps.lastOption match {
+        step.by.stepsList.lastOption match {
           case Some(Count) =>
             obs: Stream[Librarian[Any]] =>
               obs
@@ -843,9 +804,9 @@ trait SyncGuide extends LocalGuide[Stream] {
     } else f andThen nextStep andThen (obs => Stream(obs.asInstanceOf[Stream[(Any, Any)]].toMap))
   }
 
-  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step], segments: List[Segment[_]])(
+  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+    val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: Count =>
@@ -896,9 +857,9 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step], segments: List[Segment[_]])(
+  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+    val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: Min =>
@@ -982,9 +943,9 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step], segments: List[Segment[_]])(
+  def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+    val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: Order =>
@@ -1077,13 +1038,52 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps, segments)
+  def projectionStep(step: ProjectionStep, steps: List[Step])(
+      implicit graph: Graph): Stream[Librarian[Any]] => Stream[Any] = {
+    val nextStep = buildNextStep(steps)
 
-    val pObs = step.by.runtimeList.map {
+    val f = step match {
+      case step: Project[_] =>
+        projectStep(step, steps)
+      case step: Path[_, _] =>
+        val byObs = traversalToF(step.by)
+        step.by.stepsList.lastOption match {
+          case Some(Count) =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map { librarian =>
+                librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).head)
+              }
+          case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map { librarian =>
+                librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headOption)
+              }
+          case Some(Last) =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map { librarian =>
+                librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).lastOption)
+              }
+          case _ =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map { librarian =>
+                librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).toList)
+              }
+        }
+    }
+    f andThen { r =>
+      r.map {
+        case l: Librarian[Any] => l
+        case other             => createLibrarian(other)
+      }
+    } andThen nextStep
+  }
+  def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+    val nextStep = buildNextStep(steps)
+
+    val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
-        traversalToF(traversal) -> traversal.steps.lastOption
+        traversalToF(traversal) -> traversal.stepsList.lastOption
     }
 
     val f = (obs: Stream[Librarian[Any]]) =>

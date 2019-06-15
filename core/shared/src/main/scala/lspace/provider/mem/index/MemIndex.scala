@@ -22,14 +22,14 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
   private val data: mutable.LinkedHashSet[Shape] =
     mutable.LinkedHashSet[Shape]()
 
-  val path: List[Out] = traversal.steps.collect { case step: Out => step }
+  val path: Vector[Out] = traversal.steps.collect { case step: Out => step }
 
   @tailrec
-  private def splitByOut(patterns: List[Set[Property]], steps: List[Step]): List[Set[Property]] =
+  private def splitByOut(patterns: List[Set[Property]], steps: Vector[Step]): List[Set[Property]] =
     steps match {
-      case head :: tail =>
+      case head +: tail =>
         tail.span(!_.isInstanceOf[Out]) match {
-          case (l1, Nil) =>
+          case (l1, Vector()) =>
             patterns :+ l1.collect {
               case step: Has      => step.key
               case step: HasLabel => Property.default.`@type`
@@ -40,7 +40,7 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
               case step: HasLabel => Property.default.`@type`
             }.toSet, l2)
         }
-      case Nil => patterns
+      case Vector() => patterns
     }
 
   val patterns: List[Set[Property]] =

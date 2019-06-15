@@ -2,7 +2,7 @@ package lspace.structure
 
 import lspace.NS
 import lspace.datatype.{DataType, EdgeURLType, IriType}
-import lspace.librarian.traversal.{step, Segment, Traversal}
+import lspace.librarian.traversal.{step, Traversal}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 import shapeless.{::, HNil}
@@ -22,7 +22,7 @@ object Edge {
   }
 
   implicit class WithEdge[S, E](edge: Edge[S, E]) {
-    def g: Traversal[ClassType[Any], EdgeURLType[Edge[S, E]], Segment[step.E :: HNil] :: HNil] = lspace.g.E(edge)
+    def g: Traversal[ClassType[Any], EdgeURLType[Edge[S, E]], step.E :: HNil] = lspace.g.E(edge)
   }
 }
 

@@ -135,8 +135,8 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       }
       "have a collection as a value" in {
         val vectorProperty = Property("some.vector")
-        vectorProperty.range + VectorType(List(DataType.default.`@int`))
-        val intVector = vectorProperty + VectorType(List(DataType.default.`@int`))
+//        vectorProperty as VectorType(DataType.default.`@int`)
+        val intVector = vectorProperty as VectorType(DataType.default.`@int`)
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut(intVector, Vector(1, 2, 3, 4))
@@ -147,7 +147,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       "be of type double" in {
         val number = Property("number")
         number.range + DataType.default.`@double`
-        val numberDouble = number + DataType.default.`@double`
+        val numberDouble = number as DataType.default.`@double`
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut(numberDouble, 0.0)

@@ -308,6 +308,18 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(400.millis)
           .runToFuture
       }
+      """N.hasIri(sampleGraph.iri + "/person/12345").out("https://example.org/knows").out("https://example.org/knows").path(_.out("name").count)""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .out("https://example.org/knows")
+          .out("https://example.org/knows")
+          .path(_.out("name").count)
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.toSet shouldBe Set(List(1, 1, 1), List(1, 1, 1), List(1, 1, 1)))
+          .timeout(400.millis)
+          .runToFuture
+      }
       "N.where(_.has(properties.balance)).out(properties.name)" in {
         g.N
           .where(_.has(properties.balance))

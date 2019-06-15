@@ -28,7 +28,7 @@ object UserSession
           "The user the session belongs to",
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:UserSession/user@User`: TypedProperty[Node] = `lspace:UserSession/user` + Client.ontology
+    lazy val `lspace:UserSession/user@User`: TypedProperty[Node] = `lspace:UserSession/user` as Client.ontology
   }
   override lazy val properties: List[Property] = keys.`lspace:UserSession/user` :: ClientSession.properties
   trait Properties extends ClientSession.Properties {

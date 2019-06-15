@@ -1,6 +1,6 @@
 package lspace.librarian.task
 
-import lspace.librarian.traversal.{step, Segment, Traversal}
+import lspace.librarian.traversal.{step, Traversal}
 import lspace.librarian.traversal
 import lspace.structure.{ClassType, Graph}
 import monix.eval.{Coeval, Task}

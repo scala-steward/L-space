@@ -13,7 +13,6 @@ import lspace.librarian.task.{AsyncGuide, Guide, ZeroOrOneResult}
 import lspace.provider.transaction.Transaction
 import lspace.provider.wrapped.WrappedResource
 import lspace.librarian.traversal.Traversal
-import lspace.librarian.traversal.Traversal.SegmentMapper
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
@@ -312,15 +311,9 @@ trait Graph extends IriResource with GraphUtils { self =>
 //  def *>[Out](traversalObservable: TraversalTask[Out]): Out = traversalObservable.run(this)
 //  def map[T](traversalTask: TraversalTask[T]): T            = traversalTask.run(this)
   import lspace.librarian.traversal._
-  def *>[ST <: ClassType[_],
-         End,
-         ET[+Z] <: ClassType[Z],
-         Segments <: HList,
-         Steps <: HList,
-         RSteps <: HList,
-         Containers <: HList,
-         F[_]](traversal: Traversal[ST, ET[End], Segments])(
-      implicit flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+  def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, RSteps <: HList, Containers <: HList, F[_]](
+      traversal: Traversal[ST, ET[End], Steps])(
+      implicit //flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
       reverse: Reverse.Aux[Steps, RSteps],
       f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
       guide: Guide[F],

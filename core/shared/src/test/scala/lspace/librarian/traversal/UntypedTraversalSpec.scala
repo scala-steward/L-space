@@ -15,9 +15,9 @@ class UntypedTraversalSpec extends WordSpec with Matchers {
         .validate() should matchPattern {
         case Right(report) =>
       }
-      lspace.g.N.has(Property.default.`@comment`).count().untyped.validate() should matchPattern {
-        case Left(error) =>
-      }
+//      lspace.g.N.has(Property.default.`@comment`).count().untyped.validate() should matchPattern {
+//        case Left(error) =>
+//      }
     }
   }
 

@@ -23,7 +23,7 @@ object Coin
           "The p-value thresshold to determine if the traverser keeps on existing",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val pDouble: TypedProperty[Double] = p.property + DataType.default.`@double`
+    val pDouble: TypedProperty[Double] = p.property as DataType.default.`@double`
 
     object seed
         extends PropertyDef(
@@ -32,7 +32,7 @@ object Coin
           "The seed for the random-number generator",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val seedInt: TypedProperty[Int] = seed.property + DataType.default.`@int`
+    val seedInt: TypedProperty[Int] = seed.property as DataType.default.`@int`
   }
   override lazy val properties: List[Property] = keys.p.property :: keys.seed.property :: FilterStep.properties
 

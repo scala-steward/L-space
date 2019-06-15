@@ -20,7 +20,7 @@ object Limit
           "The maximum number of results",
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val maxInt: TypedProperty[Int] = max.property + DataType.default.`@int`
+    val maxInt: TypedProperty[Int] = max.property as DataType.default.`@int`
   }
   override lazy val properties: List[Property] = keys.max :: ClipStep.properties
   trait Properties extends ClipStep.Properties {

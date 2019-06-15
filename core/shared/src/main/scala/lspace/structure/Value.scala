@@ -1,7 +1,7 @@
 package lspace.structure
 
 import lspace.datatype.{DataType, ValueURLType}
-import lspace.librarian.traversal.{step, Segment, Traversal}
+import lspace.librarian.traversal.{step, Traversal}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 import shapeless.{::, HNil}
@@ -17,7 +17,7 @@ object Value {
 
   implicit class WithValue[T, OutC, Out <: ClassType[OutC]](value: Value[T])(
       implicit cls: ClassTypeable.Aux[T, OutC, Out]) {
-    def g: Traversal[ClassType[Any], Out, Segment[step.V :: HNil] :: HNil] = lspace.g.V(value.value)
+    def g: Traversal[ClassType[Any], Out, step.V :: HNil] = lspace.g.V(value.value)
   }
 }
 

@@ -44,7 +44,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
 
     object until
         extends PropertyDef(
@@ -53,7 +53,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           "If the result of this traversal is non-empty the repeat-loop will break",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val untilTraversal: TypedProperty[Node] = until.property + Traversal.ontology
+    val untilTraversal: TypedProperty[Node] = until.property as Traversal.ontology
 
     object max
         extends PropertyDef(
@@ -62,7 +62,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           "The maximum number of repeats",
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val maxInt: TypedProperty[Int] = max.property + DataType.default.`@int`
+    val maxInt: TypedProperty[Int] = max.property as DataType.default.`@int`
 
     object collect
         extends PropertyDef(
@@ -71,7 +71,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           "Set to true to return all intermediate results (of each repeat)",
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val collectBoolean: TypedProperty[Boolean] = collect.property + DataType.default.`@boolean`
+    val collectBoolean: TypedProperty[Boolean] = collect.property as DataType.default.`@boolean`
 
     object noloop
         extends PropertyDef(
@@ -80,7 +80,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           "Set to true to prevent running into loops/cycles",
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val noloopBoolean: TypedProperty[Boolean] = collect.property + DataType.default.`@boolean`
+    val noloopBoolean: TypedProperty[Boolean] = collect.property as DataType.default.`@boolean`
   }
   override lazy val properties
     : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil

@@ -27,6 +27,7 @@ package object traversal {
     implicit def max                          = at[Max](s => s)
     implicit def min                          = at[Min](s => s)
     implicit def mean                         = at[Mean](s => s)
+    implicit def sum                          = at[Sum](s => s)
     implicit def project[Traversals <: HList] = at[Project[Traversals]](s => s)
     implicit def group[T <: ClassType[_], Segments <: HList, Tv <: ClassType[_], SegmentsV <: HList] =
       at[Group[T, Segments, Tv, SegmentsV]](s => s)
@@ -39,339 +40,339 @@ package object traversal {
     implicit def path[ET <: ClassType[_], Segments <: HList] = at[Path[ET, Segments]](s => s)
   }
 
-  sealed trait StructureCalculator[L <: HList, CT <: ClassType[_]] {
-    type Out
-    type OutCT <: ClassType[_]
-
-    def convert(hlist: L, value: CT): List[OutCT]
-  }
-
-  object StructureCalculator {
-
-    type Aux[L <: HList, CT <: ClassType[_], Out0, OutCT0 <: ClassType[_]] =
-      StructureCalculator[L, CT] {
-        type Out   = Out0
-        type OutCT = OutCT0
-      }
-
-    private trait Impl[L <: HList, CT <: ClassType[_], Out0, OutCT0 <: ClassType[_]]
-        extends StructureCalculator[L, CT] {
-      override type Out   = Out0
-      override type OutCT = OutCT0
-    }
-
-    implicit def hnil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[HNil, CT, List[Tout], ListType[Tout]] =
-      new Impl[HNil, CT, List[Tout], ListType[Tout]] {
-        override def convert(hlist: HNil, value: CT): List[ListType[Tout]] =
-          List(ListType[Tout](List(clsTpbl.ct.asInstanceOf[ClassType[Tout]]).filter(_.iri.nonEmpty))) //.asInstanceOf[List[ListType[Tout]]]
-      }
-
-    implicit def hnil2[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[HNil.type, CT, List[Tout], ListType[Tout]] =
-      new Impl[HNil.type, CT, List[Tout], ListType[Tout]] {
-        override def convert(hlist: HNil.type, value: CT): List[ListType[Tout]] =
-          List(ListType[Tout](List(clsTpbl.ct.asInstanceOf[ClassType[Tout]]).filter(_.iri.nonEmpty))) //.asInstanceOf[OutCT] //ClassType.valueToOntologyResource(value).asInstanceOf[CT]
-      }
-
-    implicit def headHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Head :: HNil, CT, Tout, CTout] =
-      new Impl[Head :: HNil, CT, Tout, CTout] {
-        override def convert(hlist: Head :: HNil, value: CT): List[CTout] =
-          List(clsTpbl.ct).filter(_.iri.nonEmpty)
-      }
-    implicit def head[L <: HList, CT <: ClassType[_]](
-        implicit ev: L =:!= HNil,
-        inner: StructureCalculator[L, CT]): Aux[Head :: L, CT, inner.Out, inner.OutCT] =
-      new Impl[Head :: L, CT, inner.Out, inner.OutCT] {
-        override def convert(hlist: Head :: L, value: CT): List[inner.OutCT] = {
-          val types = inner.convert(hlist.tail, value)
-          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
-        }
-      }
-    implicit def count[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Count :: HNil, CT, Tout, CTout] =
-      new Impl[Count :: HNil, CT, Tout, CTout] {
-        override def convert(hlist: Count :: HNil, value: CT): List[CTout] =
-          List(clsTpbl.ct).filter(_.iri.nonEmpty)
-      }
-    implicit def lastHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Last :: HNil, CT, Tout, CTout] =
-      new Impl[Last :: HNil, CT, Tout, CTout] {
-        override def convert(hlist: Last :: HNil, value: CT): List[CTout] =
-          List(clsTpbl.ct).filter(_.iri.nonEmpty)
-      }
-    implicit def last[L <: HList, CT <: ClassType[_]](
-        implicit ev: L =:!= HNil,
-        inner: StructureCalculator[L, CT]): Aux[Last :: L, CT, inner.Out, inner.OutCT] =
-      new Impl[Last :: L, CT, inner.Out, inner.OutCT] {
-        override def convert(hlist: Last :: L, value: CT): List[inner.OutCT] = {
-          val types = inner.convert(hlist.tail, value)
-          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
-        }
-      }
-    implicit def maxHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Max :: HNil, CT, Tout, CTout] =
-      new Impl[Max :: HNil, CT, Tout, CTout] {
-        override def convert(hlist: Max :: HNil, value: CT): List[CTout] =
-          List(clsTpbl.ct).filter(_.iri.nonEmpty)
-      }
-    implicit def max[L <: HList, CT <: ClassType[_]](
-        implicit ev: L =:!= HNil,
-        inner: StructureCalculator[L, CT]): Aux[Max :: L, CT, inner.Out, inner.OutCT] =
-      new Impl[Max :: L, CT, inner.Out, inner.OutCT] {
-        override def convert(hlist: Max :: L, value: CT): List[inner.OutCT] = {
-          val types = inner.convert(hlist.tail, value)
-          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
-        }
-      }
-    implicit def minHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
-        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Min :: HNil, CT, Tout, CTout] =
-      new Impl[Min :: HNil, CT, Tout, CTout] {
-        override def convert(hlist: Min :: HNil, value: CT): List[CTout] =
-          List(clsTpbl.ct).filter(_.iri.nonEmpty)
-      }
-    implicit def min[L <: HList, CT <: ClassType[_]](
-        implicit ev: L =:!= HNil,
-        inner: StructureCalculator[L, CT]): Aux[Min :: L, CT, inner.Out, inner.OutCT] =
-      new Impl[Min :: L, CT, inner.Out, inner.OutCT] {
-        override def convert(hlist: Min :: L, value: CT): List[inner.OutCT] = {
-          val types = inner.convert(hlist.tail, value)
-          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
-        }
-      }
-
-    //    implicit def mapStep[L <: HList, T, Step <: MapStep](implicit inner: MyLeftFolder[L, T]): Aux[Step :: L, T, Map[Property, inner.Out]] = new Impl[Step :: L, T, Map[Property, inner.Out]] {
-    //      override def convert(hlist: Step :: L, value: T): Map[Property, inner.Out] = {
-    //        val im = inner.convert(hlist.tail, value)
-    //        Map(Property("") -> im)
-    //      }
-    //    }
-    implicit def outmapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
-      : Aux[OutMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
-      new Impl[OutMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
-        override def convert(hlist: OutMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
-          val im = inner.convert(hlist.tail, value)
-          List(
-            MapType(List(DataType.default.`@property`),
-                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
-              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
-        }
-      }
-    implicit def outemapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
-      : Aux[OutEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
-      new Impl[OutEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
-        override def convert(hlist: OutEMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
-          val im = inner.convert(hlist.tail, value)
-          List(
-            MapType(List(DataType.default.`@property`),
-                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
-              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
-        }
-      }
-    implicit def inmapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
-      : Aux[InMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
-      new Impl[InMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
-        override def convert(hlist: InMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
-          val im = inner.convert(hlist.tail, value)
-          List(
-            MapType(List(DataType.default.`@property`),
-                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
-              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
-        }
-      }
-    implicit def inemapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
-      : Aux[InEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
-      new Impl[InEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
-        override def convert(hlist: InEMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
-          val im = inner.convert(hlist.tail, value)
-          List(
-            MapType(List(DataType.default.`@property`),
-                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
-              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
-        }
-      }
-
-    implicit def groupStep[L <: HList,
-                           CT <: ClassType[_],
-                           AT <: ClassType[_],
-                           ATv <: ClassType[_],
-                           Segments <: HList,
-                           SegmentsV <: HList,
-                           Steps <: HList,
-                           StepsV <: HList,
-                           RSteps <: HList,
-                           RStepsV <: HList,
-                           Containers <: HList,
-                           ContainersV <: HList](
-        implicit
-        flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
-        flatV: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, SegmentsV, StepsV],
-        reverse: Reverse.Aux[Steps, RSteps],
-        reverseV: Reverse.Aux[StepsV, RStepsV],
-        f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-        fV: Collect.Aux[RStepsV, ContainerSteps.type, ContainersV],
-        innerKey: StructureCalculator[Containers, AT],
-        innerValue: StructureCalculator[ContainersV, ATv],
-        inner: StructureCalculator[L, CT]): Aux[Group[AT, Segments, ATv, SegmentsV] :: L,
-                                                CT,
-                                                Map[innerKey.Out, innerValue.Out],
-                                                CollectionType[Map[innerKey.Out, innerValue.Out]]] =
-      new Impl[Group[AT, Segments, ATv, SegmentsV] :: L,
-               CT,
-               Map[innerKey.Out, innerValue.Out],
-               CollectionType[Map[innerKey.Out, innerValue.Out]]] {
-        override def convert(hlist: Group[AT, Segments, ATv, SegmentsV] :: L,
-                             value: CT): List[CollectionType[Map[innerKey.Out, innerValue.Out]]] = {
-          val ik = innerKey.convert(f(reverse(flat(hlist.head.by.segments))), hlist.head.by.et)
-          val iv = innerValue.convert(fV(reverseV(flatV(hlist.head.value.segments))), hlist.head.value.et)
-          val it = inner.convert(hlist.tail, value)
-          List(
-            MapType(ik.asInstanceOf[List[ClassType[innerKey.Out]]].filter(_.iri.nonEmpty),
-                    iv.asInstanceOf[List[ClassType[innerValue.Out]]].filter(_.iri.nonEmpty))
-              .asInstanceOf[CollectionType[Map[innerKey.Out, innerValue.Out]]]
-          )
-        }
-      }
-
-    object TraversalsMapper extends Poly1 {
-      implicit def getSteps[ST <: ClassType[_],
-                            ET <: ClassType[_],
-                            Segments <: HList,
-                            Steps <: HList,
-                            RSteps <: HList,
-                            Containers <: HList](
-          implicit
-          flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
-          reverse: Reverse.Aux[Steps, RSteps],
-          f: Collect.Aux[RSteps, ContainerSteps.type, Containers]
+//  sealed trait StructureCalculator[L <: HList, CT <: ClassType[_]] {
+//    type Out
+//    type OutCT <: ClassType[_]
+//
+//    def convert(hlist: L, value: CT): List[OutCT]
+//  }
+//
+//  object StructureCalculator {
+//
+//    type Aux[L <: HList, CT <: ClassType[_], Out0, OutCT0 <: ClassType[_]] =
+//      StructureCalculator[L, CT] {
+//        type Out   = Out0
+//        type OutCT = OutCT0
+//      }
+//
+//    private trait Impl[L <: HList, CT <: ClassType[_], Out0, OutCT0 <: ClassType[_]]
+//        extends StructureCalculator[L, CT] {
+//      override type Out   = Out0
+//      override type OutCT = OutCT0
+//    }
+//
+//    implicit def hnil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[HNil, CT, List[Tout], ListType[Tout]] =
+//      new Impl[HNil, CT, List[Tout], ListType[Tout]] {
+//        override def convert(hlist: HNil, value: CT): List[ListType[Tout]] =
+//          List(ListType[Tout](List(clsTpbl.ct.asInstanceOf[ClassType[Tout]]).filter(_.iri.nonEmpty))) //.asInstanceOf[List[ListType[Tout]]]
+//      }
+//
+//    implicit def hnil2[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[HNil.type, CT, List[Tout], ListType[Tout]] =
+//      new Impl[HNil.type, CT, List[Tout], ListType[Tout]] {
+//        override def convert(hlist: HNil.type, value: CT): List[ListType[Tout]] =
+//          List(ListType[Tout](List(clsTpbl.ct.asInstanceOf[ClassType[Tout]]).filter(_.iri.nonEmpty))) //.asInstanceOf[OutCT] //ClassType.valueToOntologyResource(value).asInstanceOf[CT]
+//      }
+//
+//    implicit def headHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Head :: HNil, CT, Tout, CTout] =
+//      new Impl[Head :: HNil, CT, Tout, CTout] {
+//        override def convert(hlist: Head :: HNil, value: CT): List[CTout] =
+//          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+//      }
+//    implicit def head[L <: HList, CT <: ClassType[_]](
+//        implicit ev: L =:!= HNil,
+//        inner: StructureCalculator[L, CT]): Aux[Head :: L, CT, inner.Out, inner.OutCT] =
+//      new Impl[Head :: L, CT, inner.Out, inner.OutCT] {
+//        override def convert(hlist: Head :: L, value: CT): List[inner.OutCT] = {
+//          val types = inner.convert(hlist.tail, value)
+//          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+//        }
+//      }
+//    implicit def count[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Count :: HNil, CT, Tout, CTout] =
+//      new Impl[Count :: HNil, CT, Tout, CTout] {
+//        override def convert(hlist: Count :: HNil, value: CT): List[CTout] =
+//          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+//      }
+//    implicit def lastHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Last :: HNil, CT, Tout, CTout] =
+//      new Impl[Last :: HNil, CT, Tout, CTout] {
+//        override def convert(hlist: Last :: HNil, value: CT): List[CTout] =
+//          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+//      }
+//    implicit def last[L <: HList, CT <: ClassType[_]](
+//        implicit ev: L =:!= HNil,
+//        inner: StructureCalculator[L, CT]): Aux[Last :: L, CT, inner.Out, inner.OutCT] =
+//      new Impl[Last :: L, CT, inner.Out, inner.OutCT] {
+//        override def convert(hlist: Last :: L, value: CT): List[inner.OutCT] = {
+//          val types = inner.convert(hlist.tail, value)
+//          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+//        }
+//      }
+//    implicit def maxHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Max :: HNil, CT, Tout, CTout] =
+//      new Impl[Max :: HNil, CT, Tout, CTout] {
+//        override def convert(hlist: Max :: HNil, value: CT): List[CTout] =
+//          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+//      }
+//    implicit def max[L <: HList, CT <: ClassType[_]](
+//        implicit ev: L =:!= HNil,
+//        inner: StructureCalculator[L, CT]): Aux[Max :: L, CT, inner.Out, inner.OutCT] =
+//      new Impl[Max :: L, CT, inner.Out, inner.OutCT] {
+//        override def convert(hlist: Max :: L, value: CT): List[inner.OutCT] = {
+//          val types = inner.convert(hlist.tail, value)
+//          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+//        }
+//      }
+//    implicit def minHNil[CT <: ClassType[_], Tout, CTout <: ClassType[_]](
+//        implicit clsTpbl: ClassTypeable.Aux[CT, Tout, CTout]): Aux[Min :: HNil, CT, Tout, CTout] =
+//      new Impl[Min :: HNil, CT, Tout, CTout] {
+//        override def convert(hlist: Min :: HNil, value: CT): List[CTout] =
+//          List(clsTpbl.ct).filter(_.iri.nonEmpty)
+//      }
+//    implicit def min[L <: HList, CT <: ClassType[_]](
+//        implicit ev: L =:!= HNil,
+//        inner: StructureCalculator[L, CT]): Aux[Min :: L, CT, inner.Out, inner.OutCT] =
+//      new Impl[Min :: L, CT, inner.Out, inner.OutCT] {
+//        override def convert(hlist: Min :: L, value: CT): List[inner.OutCT] = {
+//          val types = inner.convert(hlist.tail, value)
+//          types.filter(_.iri.nonEmpty) //.asInstanceOf[List[inner.OutCT]]
+//        }
+//      }
+//
+//    //    implicit def mapStep[L <: HList, T, Step <: MapStep](implicit inner: MyLeftFolder[L, T]): Aux[Step :: L, T, Map[Property, inner.Out]] = new Impl[Step :: L, T, Map[Property, inner.Out]] {
+//    //      override def convert(hlist: Step :: L, value: T): Map[Property, inner.Out] = {
+//    //        val im = inner.convert(hlist.tail, value)
+//    //        Map(Property("") -> im)
+//    //      }
+//    //    }
+//    implicit def outmapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
+//      : Aux[OutMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
+//      new Impl[OutMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
+//        override def convert(hlist: OutMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
+//          val im = inner.convert(hlist.tail, value)
+//          List(
+//            MapType(List(DataType.default.`@property`),
+//                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
+//              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
+//        }
+//      }
+//    implicit def outemapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
+//      : Aux[OutEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
+//      new Impl[OutEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
+//        override def convert(hlist: OutEMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
+//          val im = inner.convert(hlist.tail, value)
+//          List(
+//            MapType(List(DataType.default.`@property`),
+//                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
+//              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
+//        }
+//      }
+//    implicit def inmapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
+//      : Aux[InMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
+//      new Impl[InMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
+//        override def convert(hlist: InMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
+//          val im = inner.convert(hlist.tail, value)
+//          List(
+//            MapType(List(DataType.default.`@property`),
+//                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
+//              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
+//        }
+//      }
+//    implicit def inemapStep[L <: HList, CT <: ClassType[_]](implicit inner: StructureCalculator[L, CT])
+//      : Aux[InEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] =
+//      new Impl[InEMap :: L, CT, Map[Property, inner.Out], CollectionType[Map[Property, inner.Out]]] {
+//        override def convert(hlist: InEMap :: L, value: CT): List[CollectionType[Map[Property, inner.Out]]] = {
+//          val im = inner.convert(hlist.tail, value)
+//          List(
+//            MapType(List(DataType.default.`@property`),
+//                    im.asInstanceOf[List[ClassType[inner.Out]]].filter(_.iri.nonEmpty))
+//              .asInstanceOf[CollectionType[Map[Property, inner.Out]]])
+//        }
+//      }
+//
+//    implicit def groupStep[L <: HList,
+//                           CT <: ClassType[_],
+//                           AT <: ClassType[_],
+//                           ATv <: ClassType[_],
+//                           Segments <: HList,
+//                           SegmentsV <: HList,
+//                           Steps <: HList,
+//                           StepsV <: HList,
+//                           RSteps <: HList,
+//                           RStepsV <: HList,
+//                           Containers <: HList,
+//                           ContainersV <: HList](
+//        implicit
+//        flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+//        flatV: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, SegmentsV, StepsV],
+//        reverse: Reverse.Aux[Steps, RSteps],
+//        reverseV: Reverse.Aux[StepsV, RStepsV],
+//        f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
+//        fV: Collect.Aux[RStepsV, ContainerSteps.type, ContainersV],
+//        innerKey: StructureCalculator[Containers, AT],
+//        innerValue: StructureCalculator[ContainersV, ATv],
+//        inner: StructureCalculator[L, CT]): Aux[Group[AT, Segments, ATv, SegmentsV] :: L,
+//                                                CT,
+//                                                Map[innerKey.Out, innerValue.Out],
+//                                                CollectionType[Map[innerKey.Out, innerValue.Out]]] =
+//      new Impl[Group[AT, Segments, ATv, SegmentsV] :: L,
+//               CT,
+//               Map[innerKey.Out, innerValue.Out],
+//               CollectionType[Map[innerKey.Out, innerValue.Out]]] {
+//        override def convert(hlist: Group[AT, Segments, ATv, SegmentsV] :: L,
+//                             value: CT): List[CollectionType[Map[innerKey.Out, innerValue.Out]]] = {
+//          val ik = innerKey.convert(f(reverse(flat(hlist.head.by.steps))), hlist.head.by.et)
+//          val iv = innerValue.convert(fV(reverseV(flatV(hlist.head.value.steps))), hlist.head.value.et)
+//          val it = inner.convert(hlist.tail, value)
+//          List(
+//            MapType(ik.asInstanceOf[List[ClassType[innerKey.Out]]].filter(_.iri.nonEmpty),
+//                    iv.asInstanceOf[List[ClassType[innerValue.Out]]].filter(_.iri.nonEmpty))
+//              .asInstanceOf[CollectionType[Map[innerKey.Out, innerValue.Out]]]
+//          )
+//        }
+//      }
+//
+//    object TraversalsMapper extends Poly1 {
+//      implicit def getSteps[ST <: ClassType[_],
+//                            ET <: ClassType[_],
+//                            Segments <: HList,
+//                            Steps <: HList,
+//                            RSteps <: HList,
+//                            Containers <: HList](
+//          implicit
+//          flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+//          reverse: Reverse.Aux[Steps, RSteps],
+//          f: Collect.Aux[RSteps, ContainerSteps.type, Containers]
+////          innerKey: StructureCalculator[Containers, ET]
+//      ) =
+//        at[Traversal[ST, ET, Segments]](s => s.et :: f(reverse(flat(s.steps))))
+////          innerKey.convert(f(reverse(flat(s.segments))), s.et).filter(_.iri.nonEmpty))
+//    }
+//    object TraversalsMapper2 extends Poly1 {
+//      implicit def getSteps[ST <: ClassType[_],
+//                            ET <: ClassType[_],
+//                            Segments <: HList,
+//                            Steps <: HList,
+//                            RSteps <: HList,
+//                            Containers <: HList](
+//          implicit
+//          flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+//          reverse: Reverse.Aux[Steps, RSteps],
+//          f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
 //          innerKey: StructureCalculator[Containers, ET]
-      ) =
-        at[Traversal[ST, ET, Segments]](s => s.et :: f(reverse(flat(s.segments))))
-//          innerKey.convert(f(reverse(flat(s.segments))), s.et).filter(_.iri.nonEmpty))
-    }
-    object TraversalsMapper2 extends Poly1 {
-      implicit def getSteps[ST <: ClassType[_],
-                            ET <: ClassType[_],
-                            Segments <: HList,
-                            Steps <: HList,
-                            RSteps <: HList,
-                            Containers <: HList](
-          implicit
-          flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
-          reverse: Reverse.Aux[Steps, RSteps],
-          f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-          innerKey: StructureCalculator[Containers, ET]
-      ) =
-        at[Traversal[ST, ET, Segments]](s => innerKey.convert(f(reverse(flat(s.segments))), s.et))
-    }
-
-    object TraversalsMapper3 extends Poly1 {
-      implicit def getSteps[ST <: ClassType[_],
-                            ET <: ClassType[_],
-                            Segments <: HList,
-                            Steps <: HList,
-                            RSteps <: HList,
-                            Containers <: HList](
-          implicit
-          flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
-          reverse: Reverse.Aux[Steps, RSteps],
-          f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-          innerKey: StructureCalculator[Containers, ET]
-      ) =
-        at[Traversal[ST, ET, Segments]](s => s.asInstanceOf[innerKey.Out])
-    }
-
-    object ContainersToCTMapper extends Poly1 {
-      implicit def classType[ET <: ClassType[_], Containers <: HList](
-          implicit
-          inner: StructureCalculator[Containers, ET]) =
-        at[ET :: Containers] { s =>
-          inner.convert(s.tail, s.head)
-        } //this cast is never executed runtime but only used for type-calculation
-    }
-    object ContainersToOutMapper extends Poly1 {
-      implicit def classType[Containers <: HList, ET <: ClassType[_]](
-          implicit inner: StructureCalculator[Containers, ET]) =
-        at[ET :: Containers](s => s.asInstanceOf[inner.Out]) //this cast is never executed runtime but only used for type-calculation
-    }
-
-    implicit def projectStep[
-//                             CT <: ClassType[_],
-                             Traversals <: HList,
-                             Containers <: HList,
-                             CTout <: HList,
-                             Tout <: HList,
-                             Out2](
-        implicit
-        mapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper.type, Traversals, Containers],
-        outCtMapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper2.type, Traversals, CTout],
-        outMapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper3.type, Traversals, Tout],
-//        lub: shapeless.LUBConstraint[OutH, _ <: ClassType[_]],
-        tupler: shapeless.ops.hlist.Tupler.Aux[Tout, Out2])
-      : Aux[Project[Traversals] :: HNil, ClassType[Nothing], List[Out2], ListType[Out2]] =
-      new Impl[Project[Traversals] :: HNil, ClassType[Nothing], List[Out2], ListType[Out2]] {
-        override def convert(hlist: Project[Traversals] :: HNil, value: ClassType[Nothing]): List[OutCT] = {
-//          val (et :: containers) = mapper(hlist.head.by)
-//          val outCt              = outCtMapper(et.asInstanceOf[ClassType[Any]] :: containers)
-
-          List(
-            ListType(
-              List(TupleType[Out2](outCtMapper(hlist.head.by).runtimeList
-                .map(_.asInstanceOf[List[ClassType[Any]]].filter(_.iri.nonEmpty))))))
-//              .asInstanceOf[List[ClassType[innerKey.Out]]]
-//            .asInstanceOf[List[ListType[Out]]]
-        }
-      }
-
-    implicit def pathStep[L <: HList,
-                          ET <: ClassType[_],
-                          Segments <: HList,
-                          Steps <: HList,
-                          RSteps <: HList,
-                          Containers <: HList](
-        implicit
-        flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
-        reverse: Reverse.Aux[Steps, RSteps],
-        f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-//        concat: shapeless.ops.hlist.Prepend.Aux[Containers, L, AllSegments],
-        inner: StructureCalculator[Containers, ET])
-      : Aux[Path[ET, Segments] :: HNil, ClassType[Nothing], List[inner.Out], CollectionType[List[inner.Out]]] =
-      new Impl[Path[ET, Segments] :: HNil, ClassType[Nothing], List[inner.Out], CollectionType[List[inner.Out]]] {
-        override def convert(hlist: Path[ET, Segments] :: HNil,
-                             value: ClassType[Nothing]): List[CollectionType[List[inner.Out]]] = {
-          val im = inner.convert(f(reverse(flat(hlist.head.by.segments))), hlist.head.by.et)
-          List(
-            ListType(
-              im.asInstanceOf[List[ClassType[List[inner.Out]]]]
-                .filter(_.iri.nonEmpty)).asInstanceOf[CollectionType[List[inner.Out]]])
-        }
-      }
-  }
-
-  object TraversalsFolder extends Poly2 {
-    implicit def getType[Start1,
-                         ST1[+Z] <: ClassType[Z],
-                         End1,
-                         ET1[+Z] <: ClassType[Z],
-                         Steps1 <: HList,
-                         Start2,
-                         ST2[+Z] <: ClassType[Z],
-                         End2,
-                         ET2[+Z] <: ClassType[Z],
-                         Steps2 <: HList] =
-      at((t1: Traversal[ST1[Start1], ET1[End1], Steps1], t2: Traversal[ST2[Start2], ET2[End2], Steps2]) =>
-        List(t1, t2).head)
-  }
-
-  object EndFolder extends Poly2 {
-    implicit def concat[End1, ET1[+Z] <: ClassType[Z], End2, ET2[+Z] <: ClassType[Z]] =
-      at[ET1[End1], ET2[End2]]((tl: ET1[End1], t2: ET2[End2]) => t2 :: tl :: Nil head)
-  }
-
-  object TraveralEndMapper extends Poly1 {
-    implicit def mapET[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList] = at[Traversal[ST, ET, Steps]](t => t.et)
-  }
+//      ) =
+//        at[Traversal[ST, ET, Segments]](s => innerKey.convert(f(reverse(flat(s.steps))), s.et))
+//    }
+//
+//    object TraversalsMapper3 extends Poly1 {
+//      implicit def getSteps[ST <: ClassType[_],
+//                            ET <: ClassType[_],
+//                            Segments <: HList,
+//                            Steps <: HList,
+//                            RSteps <: HList,
+//                            Containers <: HList](
+//          implicit
+//          flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+//          reverse: Reverse.Aux[Steps, RSteps],
+//          f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
+//          innerKey: StructureCalculator[Containers, ET]
+//      ) =
+//        at[Traversal[ST, ET, Segments]](s => s.asInstanceOf[innerKey.Out])
+//    }
+//
+//    object ContainersToCTMapper extends Poly1 {
+//      implicit def classType[ET <: ClassType[_], Containers <: HList](
+//          implicit
+//          inner: StructureCalculator[Containers, ET]) =
+//        at[ET :: Containers] { s =>
+//          inner.convert(s.tail, s.head)
+//        } //this cast is never executed runtime but only used for type-calculation
+//    }
+//    object ContainersToOutMapper extends Poly1 {
+//      implicit def classType[Containers <: HList, ET <: ClassType[_]](
+//          implicit inner: StructureCalculator[Containers, ET]) =
+//        at[ET :: Containers](s => s.asInstanceOf[inner.Out]) //this cast is never executed runtime but only used for type-calculation
+//    }
+//
+//    implicit def projectStep[
+////                             CT <: ClassType[_],
+//                             Traversals <: HList,
+//                             Containers <: HList,
+//                             CTout <: HList,
+//                             Tout <: HList,
+//                             Out2](
+//        implicit
+//        mapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper.type, Traversals, Containers],
+//        outCtMapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper2.type, Traversals, CTout],
+//        outMapper: shapeless.ops.hlist.Mapper.Aux[TraversalsMapper3.type, Traversals, Tout],
+////        lub: shapeless.LUBConstraint[OutH, _ <: ClassType[_]],
+//        tupler: shapeless.ops.hlist.Tupler.Aux[Tout, Out2])
+//      : Aux[Project[Traversals] :: HNil, ClassType[Nothing], List[Out2], ListType[Out2]] =
+//      new Impl[Project[Traversals] :: HNil, ClassType[Nothing], List[Out2], ListType[Out2]] {
+//        override def convert(hlist: Project[Traversals] :: HNil, value: ClassType[Nothing]): List[OutCT] = {
+////          val (et :: containers) = mapper(hlist.head.by)
+////          val outCt              = outCtMapper(et.asInstanceOf[ClassType[Any]] :: containers)
+//
+//          List(
+//            ListType(
+//              List(TupleType[Out2](outCtMapper(hlist.head.by).runtimeList
+//                .map(_.asInstanceOf[List[ClassType[Any]]].filter(_.iri.nonEmpty))))))
+////              .asInstanceOf[List[ClassType[innerKey.Out]]]
+////            .asInstanceOf[List[ListType[Out]]]
+//        }
+//      }
+//
+//    implicit def pathStep[L <: HList,
+//                          ET <: ClassType[_],
+//                          Segments <: HList,
+//                          Steps <: HList,
+//                          RSteps <: HList,
+//                          Containers <: HList](
+//        implicit
+//        flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
+//        reverse: Reverse.Aux[Steps, RSteps],
+//        f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
+////        concat: shapeless.ops.hlist.Prepend.Aux[Containers, L, AllSegments],
+//        inner: StructureCalculator[Containers, ET])
+//      : Aux[Path[ET, Segments] :: HNil, ClassType[Nothing], List[inner.Out], CollectionType[List[inner.Out]]] =
+//      new Impl[Path[ET, Segments] :: HNil, ClassType[Nothing], List[inner.Out], CollectionType[List[inner.Out]]] {
+//        override def convert(hlist: Path[ET, Segments] :: HNil,
+//                             value: ClassType[Nothing]): List[CollectionType[List[inner.Out]]] = {
+//          val im = inner.convert(f(reverse(flat(hlist.head.by.steps))), hlist.head.by.et)
+//          List(
+//            ListType(
+//              im.asInstanceOf[List[ClassType[List[inner.Out]]]]
+//                .filter(_.iri.nonEmpty)).asInstanceOf[CollectionType[List[inner.Out]]])
+//        }
+//      }
+//  }
+//
+//  object TraversalsFolder extends Poly2 {
+//    implicit def getType[Start1,
+//                         ST1[+Z] <: ClassType[Z],
+//                         End1,
+//                         ET1[+Z] <: ClassType[Z],
+//                         Steps1 <: HList,
+//                         Start2,
+//                         ST2[+Z] <: ClassType[Z],
+//                         End2,
+//                         ET2[+Z] <: ClassType[Z],
+//                         Steps2 <: HList] =
+//      at((t1: Traversal[ST1[Start1], ET1[End1], Steps1], t2: Traversal[ST2[Start2], ET2[End2], Steps2]) =>
+//        List(t1, t2).head)
+//  }
+//
+//  object EndFolder extends Poly2 {
+//    implicit def concat[End1, ET1[+Z] <: ClassType[Z], End2, ET2[+Z] <: ClassType[Z]] =
+//      at[ET1[End1], ET2[End2]]((tl: ET1[End1], t2: ET2[End2]) => t2 :: tl :: Nil head)
+//  }
+//
+//  object TraveralEndMapper extends Poly1 {
+//    implicit def mapET[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList] = at[Traversal[ST, ET, Steps]](t => t.et)
+//  }
 
   object LabelSteps extends Poly1 {
     implicit def as[T, name <: String] = at[As[T, name]](s => s)

@@ -118,29 +118,30 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                       case dataType: CollectionType[_] =>
                         dataType match {
                           case dataType: ListSetType[_] =>
-                            Seq(store(ListType(dataType.valueRange)).map(dt =>
+                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
                           case dataType: ListType[_] =>
-                            Seq(store(ListType(dataType.valueRange)).map(dt =>
+                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
                           case dataType: MapType[_, _] =>
                             Seq(
-                              store(ListType(dataType.keyRange)).map(dt =>
+                              store(dataType.keyRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                                 node.addOut(MapType.keys.keyRange, List(dt))),
-                              store(ListType(dataType.valueRange)).map(dt =>
+                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                                 node.addOut(CollectionType.keys.valueRange, List(dt)))
                             )
                           case dataType: SetType[_] =>
-                            Seq(store(ListType(dataType.valueRange)).map(dt =>
+                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
                           case dataType: VectorType[_] =>
-                            Seq(store(ListType(dataType.valueRange)).map(dt =>
+                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
                           case dataType: TupleType[_] =>
                             Seq(Task
-                              .gather(dataType.rangeTypes.map(range => Task.gather(range.map(classtypes.store(_)))))
+                              .gather(dataType.rangeTypes.map(range =>
+                                Task.gather(range.toList.map(classtypes.store(_)))))
                               .map { nodes =>
-                                node.addOut(TupleType.keys._rangeClassType, nodes)
+                                node.addOut(TupleType.keys._rangeClassType, nodes.map(_.headOption))
                               })
                           case _ => Seq[Task[Edge[Any, Any]]]()
                         }

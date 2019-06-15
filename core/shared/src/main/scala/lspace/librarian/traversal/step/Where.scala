@@ -29,7 +29,7 @@ object Where extends StepDef("Where", "A where-step ..", () => FilterStep.ontolo
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {

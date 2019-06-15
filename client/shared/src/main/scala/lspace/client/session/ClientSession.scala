@@ -28,7 +28,8 @@ object ClientSession
           "The client (device) the session is bound to.",
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:ClientSession/client@Client`: TypedProperty[Node] = `lspace:ClientSession/client` + Client.ontology
+    lazy val `lspace:ClientSession/client@Client`
+      : TypedProperty[Node] = `lspace:ClientSession/client` as Client.ontology
   }
   override lazy val properties: List[Property] = keys.`lspace:ClientSession/client` :: OpenSession.properties
   trait Properties extends OpenSession.Properties {

@@ -31,7 +31,7 @@ object Collection
           "Start time of collecting",
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val startDateTime: TypedProperty[Instant] = start.property + DataType.default.`@datetime`
+    lazy val startDateTime: TypedProperty[Instant] = start.property as DataType.default.`@datetime`
 
     object end
         extends PropertyDef(
@@ -40,7 +40,7 @@ object Collection
           "End time of collecting",
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val endDateTime: TypedProperty[Instant] = start.property + DataType.default.`@datetime`
+    lazy val endDateTime: TypedProperty[Instant] = start.property as DataType.default.`@datetime`
 
     object item
         extends PropertyDef(
@@ -49,7 +49,7 @@ object Collection
           "Collected item",
           `@range` = () => ListType() :: Nil
         ) {}
-    lazy val itemList: TypedProperty[List[Any]] = item + ListType()
+    lazy val itemList: TypedProperty[List[Any]] = item as ListType()
 
   }
 

@@ -129,7 +129,7 @@ abstract class Properties(val graph: NameSpaceGraph) {
                   range <- Task.gather(property.range().map(classtypes.store))
                   //                properties      <- Task.gather(property.properties.map(ns.properties.store))
                   extendedClasses <- Task.gather(property.extendedClasses().map(ns.properties.store))
-                  range           <- node.addOut(Property.default.typed.rangeListClassType, range)
+                  _               <- node.addOut(Property.default.`@range`, range)
                   extended        <- node.addOut(Label.P.`@extends`, extendedClasses)
                   labels <- Task.gather(property.label().map {
                     case (language, label) =>

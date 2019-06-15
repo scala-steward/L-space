@@ -36,7 +36,7 @@ object And
           "A traversal which must have a non-empty result",
           `@range` = () => ListType(Traversal.ontology) :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property + ListType(Traversal.ontology)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
 

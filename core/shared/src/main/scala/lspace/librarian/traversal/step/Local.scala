@@ -30,7 +30,7 @@ object Local
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
   trait Properties extends BranchStep.Properties {

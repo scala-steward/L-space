@@ -36,7 +36,7 @@ object As
           "A named step-label which can be referred to further in the traversal",
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val nameString: TypedProperty[String] = name.property + DataType.default.`@string`
+    val nameString: TypedProperty[String] = name.property as DataType.default.`@string`
   }
   override lazy val properties: List[Property] = keys.name :: Step.properties
   trait Properties extends Step.Properties {

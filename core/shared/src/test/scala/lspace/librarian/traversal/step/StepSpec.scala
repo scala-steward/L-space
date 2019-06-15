@@ -13,7 +13,7 @@ import shapeless.{HList, HNil}
 class StepSpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
 
-  def testToNode[S <: Step](step: S)(toStep: Node => Task[S]) =
+  def testToNode[S <: Step, S1 <: Step](step: S)(toStep: Node => Task[S1]) =
     (for {
       node    <- step.toNode
       newStep <- toStep(node)
@@ -26,7 +26,7 @@ class StepSpec extends AsyncWordSpec with Matchers {
   }
   "An As-step" should {
     "be serializable" in {
-      testToNode(As[Any, String]("A"))(As.toStep)
+      testToNode(As("A")(ClassType.stubAny))(As.toStep)
     }
   }
   "A Choose-step" should {
@@ -50,7 +50,7 @@ class StepSpec extends AsyncWordSpec with Matchers {
   }
   "A Constant-step" should {
     "be serializable" in {
-      testToNode(Constant(0.8).asInstanceOf[Constant[Any, Any, ClassType[Any]]])(Constant.toStep)
+      testToNode(Constant(0.8)(lspace.Label.D.`@double`))(Constant.toStep)
     }
   }
   "A Count-step" should {
@@ -82,8 +82,7 @@ class StepSpec extends AsyncWordSpec with Matchers {
     "be serializable" in {
       testToNode(
         Group(lspace.g.out(lspace.Label.P.typed.createdonDateTime),
-              lspace.g.out(lspace.Label.P.typed.modifiedonDateTime))
-          .asInstanceOf[Group[ClassType[Any], HList, ClassType[Any], HList]])(Group.toStep)
+              lspace.g.out(lspace.Label.P.typed.modifiedonDateTime)))(Group.toStep)
     }
   }
   "A Has-step" should {

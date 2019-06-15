@@ -2,7 +2,7 @@ package lspace.structure
 
 import lspace.NS
 import lspace.datatype.{DataType, IriType, NodeURLType}
-import lspace.librarian.traversal.{step, Segment, Traversal}
+import lspace.librarian.traversal.{step, Traversal}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 import shapeless.{::, HNil}
@@ -22,8 +22,8 @@ object Node {
   }
 
   implicit class WithNode[T](node: Node) {
-    def g: Traversal[ClassType[Any], NodeURLType[Node], Segment[step.N :: HNil] :: HNil]     = lspace.g.N(node)
-    def start: Traversal[ClassType[Any], NodeURLType[Node], Segment[step.N :: HNil] :: HNil] = g
+    def g: Traversal[ClassType[Any], NodeURLType[Node], step.N :: HNil]     = lspace.g.N(node)
+    def start: Traversal[ClassType[Any], NodeURLType[Node], step.N :: HNil] = g
   }
 }
 

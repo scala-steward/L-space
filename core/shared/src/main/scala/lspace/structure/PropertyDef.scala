@@ -60,5 +60,5 @@ abstract class PropertyDef(iri: String,
   trait Properties {}
 
   def as[T](range: ClassType[T]): TypedProperty[T] = property.as(range)
-  def +[T](range: ClassType[T]): TypedProperty[T]  = property.as(range)
+//  def +[T](range: ClassType[T]): TypedProperty[T]  = property.as(range)
 }

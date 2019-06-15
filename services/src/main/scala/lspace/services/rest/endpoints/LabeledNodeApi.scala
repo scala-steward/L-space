@@ -281,9 +281,9 @@ class LabeledNodeApi(val ontology: Ontology,
     */
   def getByLibrarian: Endpoint[IO, ContextedT[List[Node]]] = {
     get(
-      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                        lspace.services.codecs.Application.JsonLD]) {
-      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
+      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
         traversalTask.flatMap { traversal =>
           traversal.untyped
             .withGraph(graph)

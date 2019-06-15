@@ -22,7 +22,7 @@ object HasIri
           container = types.`@set` :: Nil,
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val iriString: TypedProperty[String] = iri.property + DataType.default.`@string`
+    val iriString: TypedProperty[String] = iri.property as DataType.default.`@string`
   }
   override lazy val properties: List[Property] = keys.iri.property :: HasStep.properties
   trait Properties extends HasStep.Properties {

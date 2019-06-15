@@ -48,9 +48,9 @@ trait LibrarianApi extends ExecutionApi {
     import scala.concurrent.ExecutionContext
     implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
     post(
-      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                        lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
-      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
+      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
         traversalTask
           .map { traversal =>
             //            println(s"executing ${traversal.prettyPrint}")
@@ -92,9 +92,9 @@ trait LibrarianApi extends ExecutionApi {
   def mutate: Endpoint[IO, Unit] = ???
   def ask: Endpoint[IO, Boolean] = {
     post(
-      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
+      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                        lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
-      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
+      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
         traversalTask.flatMap { traversal =>
           val start = Instant.now()
           traversal.untyped

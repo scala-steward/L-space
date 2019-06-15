@@ -39,7 +39,7 @@ object Order
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
 
     object increasing
         extends PropertyDef(
@@ -48,7 +48,7 @@ object Order
           "Set to true to sort ascending",
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val increasingBoolean: TypedProperty[Boolean] = increasing.property + DataType.default.`@boolean`
+    val increasingBoolean: TypedProperty[Boolean] = increasing.property as DataType.default.`@boolean`
   }
   override lazy val properties: List[Property] = keys.by :: keys.increasing.property :: GroupingBarrierStep.properties
   trait Properties extends GroupingBarrierStep.Properties {

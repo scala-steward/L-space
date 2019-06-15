@@ -32,7 +32,7 @@ object Path
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.by :: ProjectionStep.properties
   trait Properties extends ProjectionStep.Properties {
@@ -54,5 +54,5 @@ case class Path[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: Class
     extends ProjectionStep {
 
   lazy val toNode: Task[Node]      = this
-  override def prettyPrint: String = if (by.segmentList.nonEmpty) "path(" + by.toString + ")" else "path"
+  override def prettyPrint: String = if (by.stepsList.nonEmpty) "path(" + by.toString + ")" else "path"
 }

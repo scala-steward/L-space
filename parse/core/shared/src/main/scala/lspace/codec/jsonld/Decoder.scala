@@ -295,7 +295,7 @@ trait Decoder {
             }
           }
       }
-      .getOrElse(toObject(json, expectedType.toList).flatMap {
+      .getOrElse(toObject(json, expectedType).flatMap {
         case (classtype, resource: Resource[_]) => Task.now(resource)
         case (classtype: DataType[_], value)    => graph.values.create(value, classtype)
         case (classtype, value)                 => Task.raiseError(new Exception("should not happen"))
@@ -388,7 +388,7 @@ trait Decoder {
                               .map(List(_))
                           case et => //no container but expected type, try ListType(List(et))
                             //                            if (property.iri == types.schemaDomainIncludes) {
-                            toCollection(array, ListType(List(et)))
+                            toCollection(array, ListType(et))
                               .flatMap(nodes => Task.gatherUnordered(nodes.map(node => addEdgeTypedF(et, node))))
                           //                            } else
                           //                              Task.raiseError(FromJsonException(
@@ -627,7 +627,7 @@ trait Decoder {
       case _ => Task.raiseError(UnexpectedJsonException(s"unknown TupleType ${label.iri}"))
     }
 
-  def toObject(json: Json, label: List[ClassType[_]])(
+  def toObject(json: Json, label: Option[ClassType[_]])(
       implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] = {
     json.obj
       .map { obj =>
@@ -635,7 +635,7 @@ trait Decoder {
           val expandedJson = obj.expand
           expandedJson.extractValue
             .map { json =>
-              expandedJson.extractDatatype.map(_.orElse(label.headOption)).flatMap { labelOption =>
+              expandedJson.extractDatatype.map(_.orElse(label)).flatMap { labelOption =>
                 labelOption
                   .map {
                     case tpe: DataType[_] if label.nonEmpty && !label.contains(tpe) =>
@@ -1254,21 +1254,21 @@ trait Decoder {
   def toClasstypes(json: Json)(implicit activeContext: ActiveContext): Task[List[ClassType[Any]]] =
     Task.gather(extractIris(json).map(toClasstype))
 
-  def toList(list: List[Json], label: List[ClassType[_]])(implicit activeContext: ActiveContext): Task[List[Any]] =
+  def toList(list: List[Json], label: Option[ClassType[_]])(implicit activeContext: ActiveContext): Task[List[Any]] =
     Task.gather {
       list.map { json =>
         toObject(json, label).map(_._2)
       }
     }
 
-  def toSet(list: List[Json], label: List[ClassType[_]])(implicit activeContext: ActiveContext): Task[Set[Any]] =
+  def toSet(list: List[Json], label: Option[ClassType[_]])(implicit activeContext: ActiveContext): Task[Set[Any]] =
     Task.gather {
       list.toSet.map { json: Json =>
         toObject(json, label).map(_._2)
       }
     }
 
-  def toListSet(list: List[Json], label: List[ClassType[_]])(
+  def toListSet(list: List[Json], label: Option[ClassType[_]])(
       implicit activeContext: ActiveContext): Task[ListSet[Any]] =
     Task
       .gather {
@@ -1278,14 +1278,15 @@ trait Decoder {
       }
       .map(_.to[ListSet])
 
-  def toVector(list: List[Json], label: List[ClassType[_]])(implicit activeContext: ActiveContext): Task[Vector[Any]] =
+  def toVector(list: List[Json], label: Option[ClassType[_]])(
+      implicit activeContext: ActiveContext): Task[Vector[Any]] =
     Task.gather {
       list.toVector.map { json =>
         toObject(json, label).map(_._2)
       }
     }
 
-  def toMap(list: List[Json], keyLabel: List[ClassType[_]], valueLabel: List[ClassType[_]])(
+  def toMap(list: List[Json], keyLabel: Option[ClassType[_]], valueLabel: Option[ClassType[_]])(
       implicit activeContext: ActiveContext): Task[Map[Any, Any]] =
     Task
       .gather {

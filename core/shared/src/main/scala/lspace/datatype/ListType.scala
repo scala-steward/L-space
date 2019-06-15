@@ -39,10 +39,10 @@ object ListType extends DataTypeDef[ListType[Any]] {
     }
 
   def apply(): ListType[Any] = datatype
-  def apply[V: DefaultsToAny](valueRange: ClassType[V]): ListType[V] = {
+  def apply[V](valueRange: ClassType[V]): ListType[V] = {
     new ListType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
-        List(NS.types.`@list`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
+        List(NS.types.`@list`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 

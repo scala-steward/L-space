@@ -8,9 +8,9 @@ import shapeless.{HList, HNil}
 
 object Group
     extends StepDef("Group", "A group-step groups traversers.", () => GroupingBarrierStep.ontology :: Nil)
-    with StepWrapper[Group[ClassType[Any], HList, ClassType[Any], HList]] {
+    with StepWrapper[Group[ClassType[Any], _ <: HList, ClassType[Any], _ <: HList]] {
 
-  def toStep(node: Node): Task[Group[ClassType[Any], HList, ClassType[Any], HList]] =
+  def toStep(node: Node): Task[Group[ClassType[Any], _ <: HList, ClassType[Any], _ <: HList]] =
     for {
       by <- Traversal.toTraversal(
         node
@@ -22,7 +22,7 @@ object Group
           .out(keys.valueTraversal)
           .take(1)
           .head)
-    } yield Group[ClassType[Any], HList, ClassType[Any], HList](by, value)
+    } yield Group(by, value)
 
   object keys extends GroupingBarrierStep.Properties {
     object by
@@ -32,7 +32,7 @@ object Group
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property + Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
     object value
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Group/value",
@@ -40,7 +40,7 @@ object Group
           "A traversal ..",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val valueTraversal: TypedProperty[Node] = value.property + Traversal.ontology
+    val valueTraversal: TypedProperty[Node] = value.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.by :: GroupingBarrierStep.properties
 
@@ -62,9 +62,9 @@ object Group
 
 }
 
-case class Group[+ET <: ClassType[_], Segments <: HList, +ETv <: ClassType[_], SegmentsV <: HList](
-    by: Traversal[_ <: ClassType[_], ET, Segments],
-    value: Traversal[_ <: ClassType[_], ETv, SegmentsV])
+case class Group[+ET <: ClassType[Any], Steps <: HList, +ETv <: ClassType[Any], StepsV <: HList](
+    by: Traversal[_ <: ClassType[Any], ET, Steps],
+    value: Traversal[_ <: ClassType[Any], ETv, StepsV])
     extends GroupingBarrierStep {
 
   lazy val toNode: Task[Node]      = this

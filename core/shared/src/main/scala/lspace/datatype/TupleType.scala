@@ -43,9 +43,9 @@ object TupleType extends DataTypeDef[TupleType[_]] {
           label = "@tuplerange",
           comment = "@tuplerange",
           `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(ListType(NodeURLType.datatype)) :: Nil
+          `@range` = () => ListType(OptionType(NodeURLType.datatype)) :: Nil
         )
-    lazy val _rangeClassType: TypedProperty[List[List[Node]]] = range + ListType(ListType(NodeURLType.datatype))
+    lazy val _rangeClassType: TypedProperty[List[Option[Node]]] = range as ListType(OptionType(NodeURLType.datatype))
 //    object _1stRange
 //        extends PropertyDef(
 //          "@1stRange",

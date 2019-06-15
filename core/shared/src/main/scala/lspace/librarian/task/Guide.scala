@@ -16,7 +16,6 @@ import lspace.librarian.traversal.{
   RearrangeBarrierStep,
   ReducingBarrierStep,
   ResourceStep,
-  Segment,
   Step,
   Traversal,
   TraversalPath,
@@ -109,36 +108,29 @@ trait LocalGuide[F[_]] extends Guide[F] {
   def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
       implicit graph: Graph): Librarian[Any] => F[Any]
 
-  def buildNextStep(steps: List[Step], segments: List[Segment[_]])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
+  def buildNextStep(steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def resourceStep(step: ResourceStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Any]
+  def resourceStep(step: ResourceStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def moveStep(step: MoveStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Any]
+  def moveStep(step: MoveStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def filterStep(step: FilterStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Any]
+  def filterStep(step: FilterStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
   def clipStep[T](step: ClipStep)(implicit graph: Graph): F[T] => F[T]
 
-  def branchStep(step: BranchStep, steps: List[Step], segments: List[Segment[_]])(
+  def branchStep(step: BranchStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
+
+  def collectingBarrierStep(step: GroupingBarrierStep, steps: List[Step], isRootGroup: Boolean = false)(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def collectingBarrierStep(step: GroupingBarrierStep,
-                            steps: List[Step],
-                            segments: List[Segment[_]],
-                            isRootGroup: Boolean = false)(implicit graph: Graph): F[Librarian[Any]] => F[Any]
-
-  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step], segments: List[Segment[_]])(
+  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step], segments: List[Segment[_]])(
+  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Any]
+
+  def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 
-  def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step], segments: List[Segment[_]])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Any]
-
-  def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step], segments: List[Segment[_]])(
+  def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step])(
       implicit graph: Graph): F[Librarian[Any]] => F[Any]
 }

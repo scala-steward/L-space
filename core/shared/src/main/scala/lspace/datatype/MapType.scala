@@ -24,7 +24,7 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
           `@extends` = () => Property.default.`@range` :: Nil,
           `@range` = () => ListType() :: Nil
         )
-    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange + ListType(NodeURLType.datatype)
+    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange as ListType(NodeURLType.datatype)
 //    lazy val keyRangeProperty: TypedProperty[Property]      = keyRange + DataType.default.`@property`
 //    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keyRange + DataType.default.`@datatype`
   }

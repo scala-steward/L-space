@@ -19,7 +19,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
           "A role assigned to this user",
           `@range` = () => Role.ontology :: Nil
         ) {}
-    lazy val `lspace:Client/role@Role`: TypedProperty[Node] = `lspace:Client/role` + Role.ontology
+    lazy val `lspace:Client/role@Role`: TypedProperty[Node] = `lspace:Client/role` as Role.ontology
 
     object `lspace:Client/manager`
         extends PropertyDef(
@@ -28,7 +28,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
           "A user who can establish or revoke the sessions of this user.",
           `@range` = () => User.ontology :: Nil
         ) {}
-    lazy val `lspace:Client/manager@User`: TypedProperty[Node] = `lspace:Client/manager` + User.ontology
+    lazy val `lspace:Client/manager@User`: TypedProperty[Node] = `lspace:Client/manager` as User.ontology
 
     object `lspace:Client/session`
         extends PropertyDef(
@@ -38,7 +38,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:Client/session@ClientSession`
-      : TypedProperty[Node] = `lspace:Client/session` + ClientSession.ontology
+      : TypedProperty[Node] = `lspace:Client/session` as ClientSession.ontology
   }
   override lazy val properties
     : List[Property] = keys.`lspace:Client/role`.property :: keys.`lspace:Client/manager`.property :: keys.`lspace:Client/session`.property :: Nil

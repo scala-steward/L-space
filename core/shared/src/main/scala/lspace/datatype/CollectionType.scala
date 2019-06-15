@@ -26,7 +26,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
           `@extends` = () => Property.default.`@range` :: Nil,
           `@range` = () => ListType(NodeURLType.datatype) :: Nil
         )
-    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange + ListType(NodeURLType.datatype)
+    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange as ListType(NodeURLType.datatype)
   }
   override lazy val properties: List[Property] = keys.valueRange :: Nil //StructuredValue.properties
   trait Properties { //extends StructuredValue.Properties {

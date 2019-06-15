@@ -18,9 +18,9 @@ object V
           lspace.NS.vocab.Lspace + "librarian/step/V/value",
           "value",
           "A value",
-          `@range` = () => ListType(DataType.default.`@datatype` :: Nil) :: Nil
+          `@range` = () => ListType(DataType.default.`@datatype`) :: Nil
         )
-    val valueUrl: TypedProperty[List[Any]] = value.property + ListType(DataType.default.`@datatype` :: Nil)
+    val valueUrl: TypedProperty[List[Any]] = value.property as ListType(DataType.default.`@datatype`)
   }
   override lazy val properties: List[Property] = keys.value :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {

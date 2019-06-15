@@ -29,7 +29,7 @@ object OpenSession
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:OpenSession/expiration@Instant`
-      : TypedProperty[Instant] = `lspace:OpenSession/expiration` + DataType.default.`@datetime`
+      : TypedProperty[Instant] = `lspace:OpenSession/expiration` as DataType.default.`@datetime`
 
     object `lspace:OpenSession/startTime`
         extends PropertyDef(
@@ -39,7 +39,7 @@ object OpenSession
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:OpenSession/startTime@Instant`
-      : TypedProperty[Instant] = `lspace:OpenSession/startTime` + DataType.default.`@datetime`
+      : TypedProperty[Instant] = `lspace:OpenSession/startTime` as DataType.default.`@datetime`
 
     object `lspace:OpenSession/endTime`
         extends PropertyDef(
@@ -49,7 +49,7 @@ object OpenSession
           `@range` = () => DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:OpenSession/endTime@Instant`
-      : TypedProperty[Instant] = `lspace:OpenSession/endTime` + DataType.default.`@datetime`
+      : TypedProperty[Instant] = `lspace:OpenSession/endTime` as DataType.default.`@datetime`
 
   }
 

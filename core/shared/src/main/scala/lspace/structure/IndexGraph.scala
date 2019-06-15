@@ -20,7 +20,7 @@ trait IndexGraph extends Graph {
 
   lazy val init: Task[Unit] = Task.unit
 
-  implicit def stepListToTraversal(steps: List[Step]): Traversal[ClassType[Any], ClassType[Any], HList] =
+  implicit def stepListToTraversal(steps: List[Step]): Traversal[ClassType[Any], ClassType[Any], _ <: HList] =
     Traversal(steps.toVector)
 //  def findIndex(traversal: UntypedTraversal): List[Node] = {
 //    stepListToTraversal(

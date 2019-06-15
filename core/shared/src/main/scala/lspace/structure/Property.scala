@@ -258,7 +258,7 @@ object Property {
       NS.types.`@extends`,
       iris = Set(NS.types.`@extends`, NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf)) {
       rangeList = Coeval
-        .delay(ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil)
+        .delay(ListType() :: Nil)
         .memoizeOnSuccess
     }
     val inverseOf: Property =
@@ -317,11 +317,10 @@ object Property {
       lazy val irisUrlString: TypedProperty[String]   = `@ids` as `@string`
       lazy val containerString: TypedProperty[String] = `@container` as `@string`
       //  lazy val entryInt: TypedPropertyKey[Int] = entry as intType)
-      lazy val rangeOntology: TypedProperty[List[Node]] = `@range` as ListType(Ontology.ontology :: Nil)
-      lazy val rangeProperty: TypedProperty[List[Node]] = `@range` as ListType(Property.ontology :: Nil)
-      lazy val rangeDataType: TypedProperty[List[Node]] = `@range` as ListType(DataType.ontology :: Nil)
-      lazy val rangeListClassType: TypedProperty[List[Node]] = `@range` as ListType(
-        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
+      lazy val rangeOntology: TypedProperty[Node] = `@range` as Ontology.ontology
+      lazy val rangeProperty: TypedProperty[Node] = `@range` as Property.ontology
+      lazy val rangeDataType: TypedProperty[Node] = `@range` as DataType.ontology
+//      lazy val rangeListClassType: TypedProperty[Node] = `@range` as ListType()
 
       lazy val typeOntology: TypedProperty[Node] = `@type` as Ontology.ontology //Ontology.classType
       //  TYPE.addRange(ontology)
@@ -330,11 +329,11 @@ object Property {
       lazy val typeDatatype: TypedProperty[Node] = `@type` as DataType.ontology //as DataType.classType
       //  TYPE.addRange(datatype)
       lazy val extendsOntology
-        : TypedProperty[List[Node]] = `@extends` as ListType(Ontology.ontology :: Nil) //as Ontology.classType
+        : TypedProperty[List[Node]] = `@extends` as ListType(Ontology.ontology) //as Ontology.classType
       lazy val extendsProperty
-        : TypedProperty[List[Node]] = `@extends` as ListType(Property.ontology :: Nil) //as Property.classType
+        : TypedProperty[List[Node]] = `@extends` as ListType(Property.ontology) //as Property.classType
       lazy val extendsDataType
-        : TypedProperty[List[Node]]                  = `@extends` as ListType(DataType.ontology :: Nil) //as DataType.classType
+        : TypedProperty[List[Node]]                  = `@extends` as ListType(DataType.ontology) //as DataType.classType
       lazy val propertyProperty: TypedProperty[Node] = `@properties` as Property.ontology //as Property.classType
       lazy val languageString: TypedProperty[String] = `@language` as `@string`
       lazy val indexString: TypedProperty[String]    = `@index` as `@string`
@@ -425,7 +424,7 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
 ) extends ClassType[Edge[_, _]] { self =>
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
-  def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
+//  def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
 
   protected var rangeList
     : Coeval[List[ClassType[Any]]] = Coeval.now(List()).memoizeOnSuccess //_range() ++ extendedClasses.flatMap(_.range) distinct

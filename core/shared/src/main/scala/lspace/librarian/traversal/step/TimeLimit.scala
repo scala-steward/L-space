@@ -23,7 +23,7 @@ object TimeLimit
           "The maximum time the underlaying traversal may take",
           `@range` = () => DataType.default.`@duration` :: Nil
         )
-    val durationTime: TypedProperty[squants.time.Time] = duration.property + DataType.default.`@duration`
+    val durationTime: TypedProperty[squants.time.Time] = duration.property as DataType.default.`@duration`
   }
   override lazy val properties: List[Property] = keys.duration :: EnvironmentStep.properties
   trait Properties extends EnvironmentStep.Properties {

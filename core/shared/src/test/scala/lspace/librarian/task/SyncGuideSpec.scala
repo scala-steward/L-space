@@ -144,6 +144,46 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .task
         .runToFuture
     }
+    """N.hasIri(sampleGraph.iri + "/person/12345").out("https://example.org/knows").out("https://example.org/knows").path(_.out("name").head)""" in {
+      g.N
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .out("https://example.org/knows")
+        .out("https://example.org/knows")
+        .path(_.out("name").head)
+        .withGraph(sampleGraph)
+        .toListF
+        .map(_.toSet shouldBe Set(List(Some("Levi"), Some("Gray"), Some("Kevin")),
+                                  List(Some("Levi"), Some("Gray"), Some("Levi")),
+                                  List(Some("Levi"), Some("Yoshio"), Some("Levi"))))
+        .task
+        .runToFuture
+    }
+    """N.hasIri(sampleGraph.iri + "/person/12345").out("https://example.org/knows").out("https://example.org/knows").path(_.out("name"))""" in {
+      g.N
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .out("https://example.org/knows")
+        .out("https://example.org/knows")
+        .path(_.out("name"))
+        .withGraph(sampleGraph)
+        .toListF
+        .map(_.toSet shouldBe Set(List(List("Levi"), List("Gray"), List("Kevin")),
+                                  List(List("Levi"), List("Gray"), List("Levi")),
+                                  List(List("Levi"), List("Yoshio"), List("Levi"))))
+        .task
+        .runToFuture
+    }
+    """N.hasIri(sampleGraph.iri + "/person/12345").out("https://example.org/knows").out("https://example.org/knows").path(_.out("name").count)""" in {
+      g.N
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .out("https://example.org/knows")
+        .out("https://example.org/knows")
+        .path(_.out("name").count)
+        .withGraph(sampleGraph)
+        .toListF
+        .map(_.toSet shouldBe Set(List(1, 1, 1), List(1, 1, 1), List(1, 1, 1)))
+        .task
+        .runToFuture
+    }
     "N.where(_.has(properties.balance)).out(properties.name)" in {
       g.N
         .where(_.has(properties.balance))

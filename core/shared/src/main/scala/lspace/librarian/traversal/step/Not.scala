@@ -29,7 +29,7 @@ object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: 
           "A traversal which must have a empty result",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {

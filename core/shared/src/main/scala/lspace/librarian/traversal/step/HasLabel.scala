@@ -44,9 +44,9 @@ object HasLabel
           container = types.`@set` :: Nil,
           `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         )
-    val labelOntologyNode: TypedProperty[Node] = label.property + Ontology.ontology
-    val labelPropertyNode: TypedProperty[Node] = label.property + Property.ontology
-    val labelDataTypeNode: TypedProperty[Node] = label.property + DataType.ontology
+    val labelOntologyNode: TypedProperty[Node] = label.property as Ontology.ontology
+    val labelPropertyNode: TypedProperty[Node] = label.property as Property.ontology
+    val labelDataTypeNode: TypedProperty[Node] = label.property as DataType.ontology
   }
   override lazy val properties: List[Property] = keys.label :: HasStep.properties
   trait Properties extends HasStep.Properties {

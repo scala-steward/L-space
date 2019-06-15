@@ -184,7 +184,7 @@ object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", () => 
           "A label",
           `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         ) {}
-    lazy val labelUrl: TypedProperty[IriResource] = label.property + DataType.default.`@url`
+    lazy val labelUrl: TypedProperty[IriResource] = label.property as DataType.default.`@url`
   }
 
   override lazy val properties: List[Property] = keys.label.property :: TraverseStep.properties

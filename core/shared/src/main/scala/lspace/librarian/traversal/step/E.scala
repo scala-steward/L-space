@@ -22,9 +22,9 @@ object E
           lspace.NS.vocab.Lspace + "librarian/step/E/edge",
           "edge",
           "An edge",
-          `@range` = () => ListType(DataType.default.`@edgeURL` :: Nil) :: Nil
+          `@range` = () => ListType(DataType.default.`@edgeURL`) :: Nil
         )
-    val edgeUrl: TypedProperty[List[Edge[Any, Any]]] = edge.property + ListType(DataType.default.`@edgeURL` :: Nil)
+    val edgeUrl: TypedProperty[List[Edge[Any, Any]]] = edge.property as ListType(DataType.default.`@edgeURL`)
   }
   override lazy val properties: List[Property] = keys.edge :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {

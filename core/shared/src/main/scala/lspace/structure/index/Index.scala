@@ -19,7 +19,7 @@ object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Inde
             "and all segments start with an Out-step (except for the first segment)",
           `@range` = () => Traversal.ontology :: Nil
         )
-    val traversalNode: TypedProperty[Node] = traversal.property + Traversal.ontology
+    val traversalNode: TypedProperty[Node] = traversal.property as Traversal.ontology
   }
   override lazy val properties: List[Property] = keys.traversal.property :: Nil
   trait Properties {
@@ -31,7 +31,7 @@ object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Inde
     for {
       node <- DetachedGraph.nodes.create(ontology)
       u <- Task
-        .gather(index.traversal.segments.map(_.toNode))
+        .gather(index.traversal.steps.map(_.toNode))
         .flatMap(l => Task.gather(l.map(node.addOut(keys.traversalNode, _))))
     } yield node
   }

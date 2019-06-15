@@ -9,7 +9,7 @@ object ContainsRegex
     extends PredicateDef("ContainsRegex", `@extends` = () => List(SeqP.ontology))
     with PredicateWrapper[ContainsRegex] {
 
-  def toP(node: Node): ContainsRegex = ContainsRegex(node.out(SeqP.keys.value + DataType.default.`@string`).head.r)
+  def toP(node: Node): ContainsRegex = ContainsRegex(node.out(SeqP.keys.value as DataType.default.`@string`).head.r)
 
   object keys extends SeqP.Properties
   override lazy val properties: List[Property] = SeqP.properties

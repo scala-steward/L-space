@@ -560,24 +560,24 @@ trait Encoder {
       case dt: CollectionType[_] =>
         dt match {
           case dt: ListType[_] =>
-            val jip = ctListToJson(dt.valueRange)
+            val jip = ctListToJson(dt.valueRange.toList)
             if (dt.valueRange.isEmpty || jip.json.toString.isEmpty) Map() -> jip.activeContext
             else Map(CollectionType.keys.valueRange.iri -> jip.json) -> jip.activeContext
           case dt: ListSetType[_] =>
-            val jip = ctListToJson(dt.valueRange)
+            val jip = ctListToJson(dt.valueRange.toList)
             if (dt.valueRange.isEmpty || jip.json.toString.isEmpty) Map() -> jip.activeContext
             else Map(CollectionType.keys.valueRange.iri -> jip.json) -> jip.activeContext
           case dt: SetType[_] =>
-            val jip = ctListToJson(dt.valueRange)
+            val jip = ctListToJson(dt.valueRange.toList)
             if (dt.valueRange.isEmpty || jip.json.toString.isEmpty) Map() -> jip.activeContext
             else Map(CollectionType.keys.valueRange.iri -> jip.json) -> jip.activeContext
           case dt: VectorType[_] =>
-            val jip = ctListToJson(dt.valueRange)
+            val jip = ctListToJson(dt.valueRange.toList)
             if (dt.valueRange.isEmpty || jip.json.toString.isEmpty) Map() -> jip.activeContext
             else Map(CollectionType.keys.valueRange.iri -> jip.json) -> jip.activeContext
           case dt: MapType[_, _] =>
-            val jip  = ctListToJson(dt.keyRange)
-            val jip2 = ctListToJson(dt.valueRange)(jip.activeContext)
+            val jip  = ctListToJson(dt.keyRange.toList)
+            val jip2 = ctListToJson(dt.valueRange.toList)(jip.activeContext)
             if ((dt.keyRange.isEmpty || jip.json.toString.isEmpty) && (dt.valueRange.isEmpty || jip2.json.toString.isEmpty))
               Map() -> jip2.activeContext
             else if (dt.keyRange.isEmpty || jip.json.toString.isEmpty)

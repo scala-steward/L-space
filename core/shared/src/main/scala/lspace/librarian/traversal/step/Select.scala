@@ -51,7 +51,7 @@ object Select
           container = types.`@listset` :: Nil,
           `@range` = () => DataType.default.`@string` :: Nil
         )
-    val nameString: TypedProperty[List[String]] = name.property + ListType(DataType.default.`@string`)
+    val nameString: TypedProperty[List[String]] = name.property as ListType(DataType.default.`@string`)
   }
   override lazy val properties: List[Property] = keys.name :: Nil
 

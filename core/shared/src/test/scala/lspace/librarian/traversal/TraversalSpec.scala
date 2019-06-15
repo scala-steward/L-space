@@ -16,7 +16,8 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 
   import lspace.Implicits.Scheduler.global
 
-  def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], HList]](traversal: S)(toTraversal: Node => Task[S]) =
+  def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], _ <: HList]](traversal: S)(
+      toTraversal: Node => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]]) =
     (for {
       node         <- traversal.toNode
       newTraversal <- toTraversal(node)
@@ -25,18 +26,18 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
   "A traversal" which {
     "starts empty" in {
       val graphName = "data.example.com/test"
-      g.segmentList.flatMap(_.stepsList).size shouldBe 0
+      g.stepsList.size shouldBe 0
 //      g.toNode.graph shouldBe DetachedGraph
     }
     "start with a ResourceStep" in {
-      g.N.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 2
-      g.E.hasLabel(Property.default.`@label`).segmentList.flatMap(_.stepsList).size shouldBe 2
-      g.V.hasLabel(DataType.default.`@string`).segmentList.flatMap(_.stepsList).size shouldBe 2
+      g.N.hasLabel(Ontology.ontology).stepsList.size shouldBe 2
+      g.E.hasLabel(Property.default.`@label`).stepsList.size shouldBe 2
+      g.V.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 2
     }
     "start without a ResourceStep" in {
-      g.hasLabel(Ontology.ontology).segmentList.flatMap(_.stepsList).size shouldBe 1
-      g.hasLabel(Property.default.`@label`).segmentList.flatMap(_.stepsList).size shouldBe 1
-      g.hasLabel(DataType.default.`@string`).segmentList.flatMap(_.stepsList).size shouldBe 1
+      g.hasLabel(Ontology.ontology).stepsList.size shouldBe 1
+      g.hasLabel(Property.default.`@label`).stepsList.size shouldBe 1
+      g.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 1
     }
 //    "resolve a class-type for .hasLabel(name: String)" in {
 //      g.N.hasLabel("Officer")
@@ -81,40 +82,38 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       }
     }
     "start with any step extending TraversalStep" in {
-      lspace.g.N().in().segmentList.flatMap(_.stepsList).size shouldBe 2
-      lspace.g.N().out().segmentList.flatMap(_.stepsList).size shouldBe 2
-      lspace.g.N().out().hasIri("abc").segmentList.flatMap(_.stepsList).size shouldBe 3
+      lspace.g.N().in().stepsList.size shouldBe 2
+      lspace.g.N().out().stepsList.size shouldBe 2
+      lspace.g.N().out().hasIri("abc").stepsList.size shouldBe 3
       val pDouble =
         Property("schema/x")
       pDouble.range + DataType.default.`@double`
-      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
+      val typedPDouble: TypedProperty[Double] = pDouble as DataType.default.`@double`
       graph.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
 
       //      println(Traversal.g("biggraph").V().has(pDouble, 0.5).toString)
       //      println(Traversal.g("biggraph").V().has(pDouble, P.eq(0.5).gt(0.4)).toString)
-      lspace.g.N().has(pDouble).segmentList.flatMap(_.stepsList).size shouldBe 2
+      lspace.g.N().has(pDouble).stepsList.size shouldBe 2
       val testNode = graph.nodes.create()
 //      List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
 //      testNode.addOut(pDouble, 0.5)
 //      testNode.out(pDouble).size shouldBe 5
       //      testNode.property(pDouble, 1, 1.1, 0.5, 3l)
       //      Traversal[VStep, VStep]().has(NumericPropertyKey("", "")(TraversalSpec.DoubleType), 0L).steps.size shouldBe 1
-      lspace.g.N().has(pDouble, P.eqv(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
-      lspace.g.N().has(pDouble, P.gte(1.0) && P.lt(1.0)).segmentList.flatMap(_.stepsList).size shouldBe 2
+      lspace.g.N().has(pDouble, P.eqv(1.0)).stepsList.size shouldBe 2
+      lspace.g.N().has(pDouble, P.gte(1.0) && P.lt(1.0)).stepsList.size shouldBe 2
       //      DetachedGraph.g.N().has(pDouble, P.gte(1.0) lt (1.0)).steps.size shouldBe 3
       lspace.g
         .N()
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
-        .segmentList
-        .flatMap(_.stepsList)
+        .stepsList
         .last
         .isInstanceOf[step.Has] shouldBe true
       lspace.g
         .N()
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
-        .segmentList
-        .flatMap(_.stepsList)
+        .stepsList
         .last
         .asInstanceOf[step.Has]
         .predicate
@@ -124,8 +123,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       lspace.g
         .N()
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
-        .segmentList
-        .flatMap(_.stepsList)
+        .stepsList
         .last
         .asInstanceOf[step.Has]
         .predicate
@@ -135,8 +133,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       lspace.g
         .N()
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
-        .segmentList
-        .flatMap(_.stepsList)
+        .stepsList
         .last
         .asInstanceOf[step.Has]
         .predicate
@@ -147,13 +144,13 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       val pString = Property("aa")
       pString.range + DataType.default.`@string`
 
-      val typedPString: TypedProperty[String] = pString + DataType.default.`@string`
+      val typedPString: TypedProperty[String] = pString as DataType.default.`@string`
       graph.ns.properties.store(pString)
-      lspace.g.N().has(pDouble, P.startsWith("a")).segmentList.flatMap(_.stepsList).size shouldBe 2
+      lspace.g.N().has(pDouble, P.startsWith("a")).stepsList.size shouldBe 2
     }
     "consist of multiple steps" in {
       val traversal = lspace.g.N().out().out().in()
-      traversal.segmentList.flatMap(_.stepsList).size shouldBe 4
+      traversal.stepsList.size shouldBe 4
 //      val pDouble = Property("schema/x")
 //      pDouble.range + DataType.default.`@double`
 //      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
@@ -315,14 +312,11 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     }
     "be serialized" in {
       for {
-        _ <- testToNode(
-          g.N.has("abc").and(_.out(), _.in()).asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])(
-          Traversal.toTraversal)
+        _ <- testToNode(g.N.has("abc").and(_.out(), _.in()))(Traversal.toTraversal)
         _ <- testToNode(
           g.N
             .has("abc")
-            .and(_.union(_.out(), _.in(Label.P.`@createdon`)), _.id)
-            .asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])(Traversal.toTraversal)
+            .and(_.union(_.out(), _.in(Label.P.`@createdon`)), _.id))(Traversal.toTraversal)
       } yield succeed
     }
   }

@@ -1,3 +1,5 @@
 package lspace.graphql
 
-trait Query {}
+trait Query        {}
+trait Mutation     {}
+trait Subscription {}

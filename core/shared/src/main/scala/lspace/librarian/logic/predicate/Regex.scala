@@ -7,7 +7,7 @@ import monix.eval.Task
 
 object Regex extends PredicateDef("Regex", `@extends` = () => List(SeqP.ontology)) with PredicateWrapper[Regex] {
 
-  def toP(node: Node): Regex = Regex(node.out(SeqP.keys.value + DataType.default.`@string`).head.r)
+  def toP(node: Node): Regex = Regex(node.out(SeqP.keys.value as DataType.default.`@string`).head.r)
 
   object keys extends SeqP.Properties
   override lazy val properties: List[Property] = SeqP.properties

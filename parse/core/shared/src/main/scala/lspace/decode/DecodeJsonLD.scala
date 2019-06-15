@@ -134,9 +134,9 @@ object DecodeJsonLD {
 
   implicit def jsonldToTraversal(
       implicit decoder: Decoder,
-      activeContext: ActiveContext): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] =
-    new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], HList]] {
-      def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], HList]] =
+      activeContext: ActiveContext): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
+    new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] {
+      def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
         (string: String) =>
           decoder
             .stringToLabeledNode(string, Traversal.ontology)

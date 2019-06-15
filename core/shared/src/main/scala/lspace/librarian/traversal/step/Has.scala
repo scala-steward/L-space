@@ -39,7 +39,7 @@ object Has
           "A key",
           `@range` = () => Property.ontology :: Nil
         )
-    val keyUrl: TypedProperty[Node] = key.property + Property.ontology
+    val keyUrl: TypedProperty[Node] = key.property as Property.ontology
 
     object predicate
         extends PropertyDef(
@@ -48,7 +48,7 @@ object Has
           "A Predicate",
           `@range` = () => P.ontology :: Nil
         )
-    val predicateUrl: TypedProperty[Node] = predicate.property + P.ontology
+    val predicateUrl: TypedProperty[Node] = predicate.property as P.ontology
   }
   override lazy val properties: List[Property] = keys.key.property :: keys.predicate.property :: HasStep.properties
   trait Properties extends HasStep.Properties {

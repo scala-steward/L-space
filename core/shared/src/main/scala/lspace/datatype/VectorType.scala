@@ -53,7 +53,7 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
   def apply[V: DefaultsToAny](valueRange: ClassType[V]): VectorType[V] = {
     new VectorType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
-        List(NS.types.`@vector`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
+        List(NS.types.`@vector`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 
