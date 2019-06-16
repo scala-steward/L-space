@@ -1336,7 +1336,7 @@ trait Decoder {
                                     .map(_.iri)
                                     .map { iri =>
                                       prepareClassType(expandedJson - types.`@context`)
-                                        .timeout(5000.millis)
+                                        .timeout(15000.millis)
                                         .onErrorHandleWith {
                                           case e: NotAClassNorProperty => Task.unit
                                           case e                       => Task.raiseError(e)
@@ -1401,7 +1401,7 @@ trait Decoder {
                                 .map(_.iri)
                                 .map { iri =>
                                   prepareClassType(expandedJson - types.`@context`)
-                                    .timeout(5000.millis)
+                                    .timeout(15000.millis)
                                     .onErrorHandleWith {
                                       case e: NotAClassNorProperty => Task.unit
                                       case e                       => Task.raiseError(e)
@@ -1467,7 +1467,7 @@ trait Decoder {
                                 .map(_.iri)
                                 .map { iri =>
                                   prepareClassType(expandedJson - types.`@context`)
-                                    .timeout(5000.millis)
+                                    .timeout(15000.millis)
                                     .onErrorHandleWith {
                                       case e: NotAClassNorProperty => Task.unit
                                       case e                       => Task.raiseError(e)
@@ -1530,7 +1530,7 @@ trait Decoder {
                                 .map { iri =>
                                   if (ClassType.classtypes.get(iri).isEmpty)
                                     prepareClassType(expandedJson - types.`@context`)
-                                      .timeout(5000.millis)
+                                      .timeout(15000.millis)
                                       .onErrorHandleWith {
                                         case e: NotAClassNorProperty => Task.unit
                                         case e                       => Task.raiseError(e)
@@ -1595,7 +1595,7 @@ trait Decoder {
               s"""{"@id": "${iri}"}"""
             }
 //            .executeOn(monix.execution.Scheduler.io())
-            .timeout(5.second)
+            .timeout(15.second)
             .flatMap(parse)
         } else
           parse(s"""{"@id": "${iri}"}""")

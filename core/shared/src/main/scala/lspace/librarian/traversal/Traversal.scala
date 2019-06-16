@@ -756,8 +756,13 @@ object Traversal
 //    def st: ST[Start] = _traversal.st
 //    def et: ET[End]   = _traversal.et
 
-    def by[P <: ClassType[_], PSegments <: HList, ALLPROJECTIONS <: HList, Out <: HList, EndH <: HList, End0](
-        value: Traversal[PST, PST, HNil] => Traversal[PST, P, PSegments])(
+    def by[P <: ClassType[_],
+           PSegments <: HList,
+           ALLPROJECTIONS <: HList,
+           Out <: HList,
+           EndH <: HList,
+           REndH <: HList,
+           End0](value: Traversal[PST, PST, HNil] => Traversal[PST, P, PSegments])(
         implicit
         prepend: Prepend.Aux[Traversal[PST, P, PSegments] :: HNil,
                              Traversal[PST, PET, PHSteps] :: PROJECTIONS,
@@ -765,8 +770,8 @@ object Traversal
         mapper: shapeless.ops.hlist.Mapper.Aux[TMapper.type, ALLPROJECTIONS, Out],
         mapper2: shapeless.ops.hlist.Mapper.Aux[TOutMapper.type, ALLPROJECTIONS, EndH], //only for type-calculation, never executed
 //        mapper2: shapeless.ops.hlist.Mapper.Aux[CTOutMapper.type, Out, EndH], //only for type-calculation, never executed
-//        reverse: shapeless.ops.hlist.Reverse.Aux[EndH, REndH],
-        tupler: shapeless.ops.hlist.Tupler.Aux[EndH, End0] //only for type-calculation, never executed
+        reverse: shapeless.ops.hlist.Reverse.Aux[EndH, REndH],
+        tupler: shapeless.ops.hlist.Tupler.Aux[REndH, End0] //only for type-calculation, never executed
     ): Traversal[ST[Start], TupleType[End0], Project[ALLPROJECTIONS] :: Steps] = {
       val step = Project[ALLPROJECTIONS](
         prepend(
