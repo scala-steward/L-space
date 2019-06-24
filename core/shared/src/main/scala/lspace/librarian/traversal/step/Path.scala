@@ -50,7 +50,7 @@ object Path
 
 }
 
-case class Path[+ET <: ClassType[_], Segments <: HList](by: Traversal[_ <: ClassType[_], ET, Segments])
+case class Path[+ET <: ClassType[_], Steps <: HList](by: Traversal[_ <: ClassType[_], ET, Steps])
     extends ProjectionStep {
 
   lazy val toNode: Task[Node]      = this

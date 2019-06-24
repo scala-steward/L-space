@@ -1,5 +1,6 @@
 package lspace.librarian.traversal
 
+import lspace.datatype.ListType
 import lspace.librarian.task.Guide
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.{ClassType, Graph, Node}
@@ -61,7 +62,8 @@ case class UntypedTraversal(steps: Vector[Step] = Vector()) {
 //  def steps: List[Step]                                         = segments.flatMap(_.steps).toList
   def toTyped: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = Traversal(steps)
 
-  def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F], mapper: Mapper[F, HNil, Any]): mapper.FT =
+  def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F],
+                                    mapper: Mapper[F, ClassType[Any], ListType[List[Any]]]): mapper.FT =
     mapper(toTyped, graph).asInstanceOf[mapper.FT]
 
   def ++(traversal: UntypedTraversal): UntypedTraversal = {

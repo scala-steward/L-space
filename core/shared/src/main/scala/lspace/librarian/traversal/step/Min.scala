@@ -11,7 +11,7 @@ object Min
     extends StepDef(
       "Min",
       "A min-step finds the traverser with the resource with the smallest value within all traversers in-scope.",
-      () => FilterBarrierStep.ontology :: Nil
+      () => FilterBarrierStep.ontology :: ReducingStep.ontology :: Nil
     )
     with StepWrapper[Min] {
 
@@ -34,7 +34,7 @@ object Min
         .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
     } yield Min(by)
 
-  object keys extends FilterBarrierStep.Properties {
+  object keys extends FilterBarrierStep.Properties with ReducingStep.Properties {
     object by
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Min/by",
@@ -44,8 +44,8 @@ object Min
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }
-  override lazy val properties: List[Property] = keys.by :: FilterBarrierStep.properties
-  trait Properties extends FilterBarrierStep.Properties {
+  override lazy val properties: List[Property] = keys.by :: FilterBarrierStep.properties ++ ReducingStep.properties
+  trait Properties extends FilterBarrierStep.Properties with ReducingStep.Properties {
     val by          = keys.by
     val byTraversal = keys.byTraversal
   }
@@ -59,7 +59,9 @@ object Min
   }.memoizeOnSuccess
 }
 
-case class Min(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList]) extends FilterBarrierStep {
+case class Min(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList])
+    extends FilterBarrierStep
+    with ReducingStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "min(" + by.toString + ")"

@@ -7,7 +7,7 @@ import lspace.util.types.DefaultsToAny
 
 object OptionType extends DataTypeDef[OptionType[Any]] {
 
-  lazy val datatype = new OptionType[Any](None) {
+  lazy val datatype = new OptionType[Option[Any]](None) {
     val iri: String = NS.types.`@option`
     labelMap = Map("en" -> NS.types.`@option`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -19,18 +19,18 @@ object OptionType extends DataTypeDef[OptionType[Any]] {
 
   implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[TOut]](
       implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[OptionType[T], Option[TOut], OptionType[TOut]] =
+    : ClassTypeable.Aux[OptionType[T], Option[TOut], OptionType[Option[TOut]]] =
     new ClassTypeable[OptionType[T]] {
       type C  = Option[TOut]
-      type CT = OptionType[TOut]
+      type CT = OptionType[Option[TOut]]
       def ct: CT =
         if (clsTpbl.ct.iri.nonEmpty) OptionType(clsTpbl.ct)
-        else OptionType.datatype.asInstanceOf[OptionType[TOut]]
+        else OptionType.datatype.asInstanceOf[OptionType[Option[TOut]]]
     }
 
-  def apply(): OptionType[Any] = datatype
-  def apply[V](valueRange: ClassType[V]): OptionType[V] = {
-    new OptionType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+  def apply(): OptionType[Option[Any]] = datatype
+  def apply[V](valueRange: ClassType[V]): OptionType[Option[V]] = {
+    new OptionType[Option[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@option`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
           .filter(_.nonEmpty)
@@ -41,4 +41,4 @@ object OptionType extends DataTypeDef[OptionType[Any]] {
   }
 }
 
-abstract class OptionType[+V](val valueRange: Option[ClassType[V]]) extends CollectionType[Option[V]]
+abstract class OptionType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V]

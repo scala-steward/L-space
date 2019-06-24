@@ -51,6 +51,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
 //      g.N.out().withGraph(sampleGraph)
 
     """N.outMap()""" in {
+      g.N.out().is(P.eqv(300)).out(properties.name).withGraph(sampleGraph).toList
       g.N.outMap().withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).task.runToFuture
     }
 //    """N.outMap().hasLabel(`@int`)""" in {

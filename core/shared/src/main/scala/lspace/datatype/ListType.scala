@@ -7,7 +7,7 @@ import lspace.util.types.DefaultsToAny
 
 object ListType extends DataTypeDef[ListType[Any]] {
 
-  lazy val datatype = new ListType[Any](None) {
+  lazy val datatype = new ListType[List[Any]](None) {
     val iri: String = NS.types.`@list`
     labelMap = Map("en" -> NS.types.`@list`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -29,18 +29,19 @@ object ListType extends DataTypeDef[ListType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =
 //    new ListType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListType[TOut]]
 
-  implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[TOut]](
-      implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[ListType[T], List[TOut], ListType[TOut]] =
-    new ClassTypeable[ListType[T]] {
+  implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
+    : ClassTypeable.Aux[ListType[List[T]], List[TOut], ListType[List[TOut]]] =
+    new ClassTypeable[ListType[List[T]]] {
       type C  = List[TOut]
-      type CT = ListType[TOut]
+      type CT = ListType[List[TOut]]
       def ct: CT =
-        if (clsTpbl.ct.iri.nonEmpty) ListType(clsTpbl.ct) else ListType.datatype.asInstanceOf[ListType[TOut]]
+        if (clsTpbl.ct.iri.nonEmpty) ListType(clsTpbl.ct.asInstanceOf[ClassType[TOut]])
+        else ListType.datatype.asInstanceOf[ListType[List[TOut]]]
     }
 
-  def apply(): ListType[Any] = datatype
-  def apply[V](valueRange: ClassType[V]): ListType[V] = {
-    new ListType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+  def apply(): ListType[List[Any]] = datatype
+  def apply[V](valueRange: ClassType[V]): ListType[List[V]] = {
+    new ListType[List[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@list`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
           .filter(_.nonEmpty)
@@ -51,4 +52,4 @@ object ListType extends DataTypeDef[ListType[Any]] {
   }
 }
 
-abstract class ListType[+V](val valueRange: Option[ClassType[V]]) extends CollectionType[List[V]]
+abstract class ListType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T]

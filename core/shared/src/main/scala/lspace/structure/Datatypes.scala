@@ -123,7 +123,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                           case dataType: ListType[_] =>
                             Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
-                          case dataType: MapType[_, _] =>
+                          case dataType: MapType[_] =>
                             Seq(
                               store(dataType.keyRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
                                 node.addOut(MapType.keys.keyRange, List(dt))),

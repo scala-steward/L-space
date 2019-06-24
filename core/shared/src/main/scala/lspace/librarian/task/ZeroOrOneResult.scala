@@ -7,12 +7,6 @@ import monix.eval.{Coeval, Task}
 import monix.reactive.Observable
 import shapeless.HList
 
-object Result {
-  trait Is[T]
-  object Is {
-    implicit object default extends Is[Any]
-  }
-}
 trait Result[+F[_], O[_], Out] {
   def traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]
   def graph: Graph
@@ -22,38 +16,15 @@ trait Result[+F[_], O[_], Out] {
 
   def apply(): O[Out]
 }
-object OneResult {
-  sealed trait IsOne[T] extends Result.Is[T]
-  object IsOne {
-    implicit object Count extends IsOne[step.Count]
-  }
-}
+
 trait OneResult[+F[_], O[_], Out] extends Result[F, O, Out] {
   def headF: F[Out]
 }
-object ZeroOrOneResult {
-  sealed trait IsZeroOrOne[T] extends Result.Is[T]
-  object IsZeroOrOne {
-    implicit object Head extends IsZeroOrOne[step.Head]
-    implicit object Last extends IsZeroOrOne[step.Last]
-    implicit object Min  extends IsZeroOrOne[step.Min]
-    implicit object Max  extends IsZeroOrOne[step.Max]
-    implicit object Mean extends IsZeroOrOne[step.Mean]
-    implicit object Sum  extends IsZeroOrOne[step.Sum]
-  }
-}
+
 trait ZeroOrOneResult[+F[_], O[_], Out] extends OneResult[F, O, Out] {
   def headOptionF: F[Option[Out]]
 }
 
-object ListResult {
-  sealed trait IsList[T] extends Result.Is[T]
-  object IsList {
-    implicit def Project[T <: step.Project[_]]   = new IsList[T] {}
-    implicit def Path[T <: step.Path[_, _]]      = new IsList[T] {}
-    implicit def MapStep[T <: traversal.MapStep] = new IsList[T] {}
-  }
-}
 trait ListResult[+F[_], O[_], Out] extends ZeroOrOneResult[F, O, Out] {
   def lastF: F[Out]
   def lastOptionF: F[Option[Out]]
@@ -61,12 +32,7 @@ trait ListResult[+F[_], O[_], Out] extends ZeroOrOneResult[F, O, Out] {
   def toListF: F[List[Out]]
   def toSetF: F[Set[Out]]
 }
-object GroupedResult {
-  sealed trait IsGrouped[T] extends Result.Is[T]
-  object IsGrouped {
-    implicit def Group[T <: step.Group[_, _, _, _]] = new IsGrouped[T] {}
-  }
-}
+
 trait GroupedResult[+F[_], O[_], OutK, OutV] extends ListResult[F, O, (OutK, OutV)] {
   def toMapF: F[Map[OutK, OutV]]
 }

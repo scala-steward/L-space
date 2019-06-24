@@ -3,6 +3,8 @@ package lspace.librarian.task
 import java.time._
 
 import lspace.librarian.logic.Assistent
+import cats.Functor
+import cats.implicits._
 
 import scala.collection.mutable
 import scala.util.Try
@@ -15,119 +17,41 @@ import monix.eval.Coeval
 import shapeless.{=:!=, HList, HNil, :: => ::::}
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.FiniteDuration
 
 object SyncGuide {
   def apply()(implicit _assistent: Assistent): SyncGuide = new SyncGuide {
     val assistent: Assistent = _assistent
   }
 }
-trait SyncGuide extends LocalGuide[Stream] {
+abstract class SyncGuide extends LocalGuide[Stream] {
 
-//  implicit def segmentsToFlattenedSteps(segments: List[Segment[HList]]): List[Step] =
-//    segments.flatMap(_.stepsList)
+  type K[_] = Coeval[_]
 
-  def buildTraversal[Out](
-      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => Stream[Out] = {
-    implicit graph: Graph =>
-      traversal.stepsList match {
-//        case Nil => Stream.empty[Out]
-//        case segment :: segments =>
-//          segment.stepsList match {
-        case Nil => Stream.empty[Out]
-        case steps =>
-          findFirstContainer(steps) match {
-            case Some(step: Group[_, _, _, _]) =>
-              val (until, from) = steps.span(_ != step)
-              val nextStep = buildNextStep(until) andThen
-                collectingBarrierStep(step, from.tail, true).asInstanceOf[Stream[Any] => Stream[Any]]
-              nextStep(Stream(createLibrarian[Any](null)))
-            case step =>
-              val nextStep = buildNextStep(steps)
-              nextStep(Stream(createLibrarian[Any](null)))
-          }
-//          }
-      }
-  }.andThen(_.map {
-    case librarian: Librarian[Any] => toValue(librarian.get)
-    case v                         => toValue(v)
-  }.asInstanceOf[Stream[Out]])
+  def emptyF[T]: Stream[T]                    = Stream.empty[T]
+  def createF[T](t: T): Stream[T]             = Stream(t)
+  def raiseError[T](ex: Exception): Stream[T] = throw ex
 
-  def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
-      implicit graph: Lspace): Librarian[Any] => Stream[Any] = {
-    traversal.stepsList match {
-      case Nil =>
-        librarian: Librarian[Any] =>
-          Stream(librarian)
-      case steps =>
-        val nextStep = buildNextStep(steps)
-        librarian: Librarian[Any] =>
-          nextStep(Stream(librarian))
-    }
-  }
+  protected def head(f: Stream[Librarian[Any]]): Coeval[Librarian[Any]] =
+    Coeval(f.head)
+  protected def headOption(f: Stream[Librarian[Any]]): Coeval[Librarian[Any]] =
+    Coeval(f.headOption.map(l => l.copy(Some(l.get).map(toValue))).getOrElse(createLibrarian(None)))
+  protected def headOptionOption(f: Stream[Librarian[Any]]): Coeval[Librarian[Any]] =
+    Coeval(f.headOption.map(l => l.copy(toValue(l.get))).getOrElse(createLibrarian(None)))
+  protected def toList(f: Stream[Librarian[Any]]): Coeval[Librarian[Any]] =
+    Coeval(f.toList.map(toValue)).map(createLibrarian(_))
+  protected def toSet(f: Stream[Librarian[Any]]): Coeval[Librarian[Any]] =
+    Coeval(f.toList.map(toValue).toSet).map(createLibrarian(_))
+  protected def toMap(f: Stream[Librarian[(Any, Any)]]): Coeval[Librarian[Any]] =
+    Coeval(f.toList.map(_.get).map { case (k, v) => toValue(k) -> toValue(v) }.toMap).map(createLibrarian(_))
 
-  def traversalsToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    traversal.stepsList match {
-      case Nil =>
-        librarians: Stream[Librarian[Any]] =>
-          librarians
-      case steps =>
-        val nextStep = buildNextStep(steps)
-        librarians: Stream[Librarian[Any]] =>
-          nextStep(librarians)
-    }
-  }
-
-  def buildNextStep(steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    steps match {
-      case Nil =>
-        obs: Stream[Librarian[Any]] =>
-          obs
-      case step :: steps =>
-        step match {
-          case step: GraphStep =>
-            obs =>
-              throw new Exception("AsyncGuide does not support federated queries, RemoteGuide can!")
-          case step: ResourceStep =>
-            resourceStep(step, steps)
-          case step: MoveStep =>
-            moveStep(step, steps)
-          case step: ClipStep =>
-            clipStep(step) andThen buildNextStep(steps)
-          case step: FilterStep =>
-            step match {
-              case step: FilterBarrierStep =>
-                filterBarrierStep(step, steps)
-              case _ => filterStep(step, steps)
-            }
-          case step: BranchStep =>
-            branchStep(step, steps)
-          case step: GroupingBarrierStep =>
-            collectingBarrierStep(step, steps)
-          case step: RearrangeBarrierStep =>
-            rearrangeBarrierStep(step, steps)
-          case step: ReducingBarrierStep =>
-            reducingBarrierStep(step, steps)
-          case step: ProjectionStep =>
-            projectionStep(step, steps)
-          case step: EnvironmentStep =>
-            step match {
-              case step: TimeLimit =>
-                val timeLimit =
-                  step.time.map(_.millis).getOrElse(throw new Exception("TimeLimit step without strict time"))
-                val timeLimitStamp = Instant.ofEpochMilli(Instant.now().toEpochMilli + timeLimit)
-                val nextStep       = buildNextStep(steps)
-//                ((obs: Stream[Librarian[Any]]) => obs) andThen nextStep
-                nextStep andThen { obs: Stream[Any] =>
-                  obs.takeWhile(l => timeLimitStamp.isAfter(Instant.now())) //TODO: investigate, does not look efficient (checking after each stream element)
-                }
-            }
-        }
-    }
+  protected def takeByTimeSpan(f: Stream[Librarian[Any]], timespan: FiniteDuration): Stream[Librarian[Any]] = {
+    val timeLimitStamp = Instant.ofEpochMilli(Instant.now().toEpochMilli + timespan.toMillis)
+    f.takeWhile(l => timeLimitStamp.isAfter(Instant.now()))
   }
 
   def resourceStep(step: ResourceStep, steps: List[Step])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -228,66 +152,41 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def moveStep(step: MoveStep, steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+  def traverseStep(step: TraverseStep, steps: List[Step])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
     step match {
-      case step: MapStep =>
-        step match {
-          case step: OutMap =>
-            obs: Stream[Librarian[Any]] =>
-              obs.map(librarian =>
-                librarian.get match {
-                  case r: Resource[_] =>
-                    r.outEMap(step.label.toList: _*)
-                      .map {
-                        case (property, edges) =>
-                          property -> nextStep(edges.toStream.map(e =>
-                            librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))).toList
-                      }
-                  case v => Map()
-              })
-          case step: OutEMap =>
-            obs: Stream[Librarian[Any]] =>
-              obs.map(librarian =>
-                librarian.get match {
-                  case r: Resource[_] =>
-                    r.outEMap(step.label.toList: _*)
-                      .map {
-                        case (property, edges) =>
-                          property -> nextStep(edges.toStream.map(e =>
-                            librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e)))).toList
-                      }
-                  case v => Map()
-              })
-          case step: InMap =>
-            obs: Stream[Librarian[Any]] =>
-              obs.map(librarian =>
-                librarian.get match {
-                  case r: Resource[_] =>
-                    r.inEMap(step.label.toList: _*)
-                      .map {
-                        case (property, edges) =>
-                          property -> nextStep(
-                            edges.toStream.map(e =>
-                              librarian
-                                .copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from)))).toList
-                      }
-                  case v => Map()
-              })
-          case step: InEMap =>
-            obs: Stream[Librarian[Any]] =>
-              obs.map(librarian =>
-                librarian.get match {
-                  case r: Resource[_] =>
-                    r.inEMap(step.label.toList: _*)
-                      .map {
-                        case (property, edges) =>
-                          property -> nextStep(edges.toStream.map(e =>
-                            librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e)))).toList
-                      }
-                  case v => Map()
-              })
-        }
+      case step: Id =>
+        obs: Stream[Librarian[Any]] =>
+          nextStep(obs.collect {
+            case librarian if librarian.get.isInstanceOf[Resource[_]] =>
+              librarian.copy(librarian.get.asInstanceOf[Resource[_]].id)
+          })
+      case step: From =>
+        obs: Stream[Librarian[Any]] =>
+          nextStep(obs.flatMap(librarian =>
+            librarian.get match {
+              case e: Edge[_, _] =>
+                List(librarian.copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from)))
+              case v => List()
+          }))
+      case step: To =>
+        obs: Stream[Librarian[Any]] =>
+          nextStep(obs.flatMap(librarian =>
+            librarian.get match {
+              case e: Edge[_, _] =>
+                List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
+              case v => List()
+          }))
+      case step: Constant[_] =>
+        obs: Stream[Librarian[Any]] =>
+          nextStep(obs.map(librarian => librarian.copy(step.value)))
+    }
+  }
+  def moveStep(step: MoveStep, steps: List[Step])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
+    val nextStep = buildNextStep(steps)
+    step match {
       case step: Out =>
         obs: Stream[Librarian[Any]] =>
           nextStep(obs.flatMap(librarian =>
@@ -333,35 +232,11 @@ trait SyncGuide extends LocalGuide[Stream] {
                   librarian.copy(label, path = librarian.path.copy(librarian.path.resources :+ label)))
               case v => List()
           }))
-      case step: Id =>
-        obs: Stream[Librarian[Any]] =>
-          nextStep(obs.collect {
-            case librarian if librarian.get.isInstanceOf[Resource[_]] =>
-              librarian.copy(librarian.get.asInstanceOf[Resource[_]].id)
-          })
-      case step: From =>
-        obs: Stream[Librarian[Any]] =>
-          nextStep(obs.flatMap(librarian =>
-            librarian.get match {
-              case e: Edge[_, _] =>
-                List(librarian.copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from)))
-              case v => List()
-          }))
-      case step: To =>
-        obs: Stream[Librarian[Any]] =>
-          nextStep(obs.flatMap(librarian =>
-            librarian.get match {
-              case e: Edge[_, _] =>
-                List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
-              case v => List()
-          }))
-      case step: Constant[_] =>
-        obs: Stream[Librarian[Any]] =>
-          nextStep(obs.map(librarian => librarian.copy(step.value)))
     }
   }
 
-  def filterStep(step: FilterStep, steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+  def filterStep(step: FilterStep, steps: List[Step])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -494,29 +369,113 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def clipStep[T](step: ClipStep)(implicit graph: Lspace): Stream[T] => Stream[T] = {
+  def reducingStep[T](step: ReducingStep)(implicit graph: Lspace): Stream[Librarian[T]] => Stream[Librarian[T]] = {
 
     val f = step match {
       case step: Head =>
-        obs: Stream[T] =>
+        obs: Stream[Librarian[T]] =>
           obs.take(1)
       case step: Last =>
-        obs: Stream[T] =>
+        obs: Stream[Librarian[T]] =>
           obs.lastOption.toStream
+      case step: Min =>
+        val byObservable = traversalToF(step.by)
+        val byObsF = (obs: Stream[Librarian[T]]) =>
+          obs
+            .flatMap { librarian =>
+              byObservable(librarian)
+                .map {
+                  case l: Librarian[Any] => l.get
+                  case v                 => v
+                }
+                .map {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any                  => v
+                }
+                .map(librarian -> _)
+          }
+        import cats.implicits._
+        (step.by.et.iri match {
+          case lspace.NS.types.`@int` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Int]))
+          case lspace.NS.types.`@double` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Double]))
+          case lspace.NS.types.`@long` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Long]))
+          case lspace.NS.types.`@number` =>
+            byObsF andThen (_.minBy(_._2 match {
+              case v: Int    => v.toDouble
+              case v: Double => v
+              case v: Long   => v.toDouble
+            }))
+          case lspace.NS.types.`@datetime` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
+          case lspace.NS.types.`@localdatetime` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+          case lspace.NS.types.`@date` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+          case lspace.NS.types.`@time` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+        }).andThen(_._1).andThen(Stream(_))
+      case step: Max =>
+        val byObservable = traversalToF(step.by)
+        val byObsF = (obs: Stream[Librarian[T]]) =>
+          obs
+            .flatMap { librarian =>
+              byObservable(librarian)
+                .map {
+                  case l: Librarian[Any] => l.get
+                  case v                 => v
+                }
+                .map {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any                  => v
+                }
+                .map(librarian -> _)
+          }
+        (step.by.et.iri match {
+          case lspace.NS.types.`@int` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Int]))
+          case lspace.NS.types.`@double` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Double]))
+          case lspace.NS.types.`@long` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Long]))
+          case lspace.NS.types.`@number` =>
+            byObsF andThen (_.maxBy(_._2 match {
+              case v: Int    => v.toDouble
+              case v: Double => v
+              case v: Long   => v.toDouble
+            }))
+          case lspace.NS.types.`@datetime` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
+          case lspace.NS.types.`@localdatetime` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+          case lspace.NS.types.`@date` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+          case lspace.NS.types.`@time` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+        }).andThen(_._1).andThen(Stream(_))
+    }
+    f
+  }
+  def clipStep[T](step: ClipStep)(implicit graph: Lspace): Stream[Librarian[T]] => Stream[Librarian[T]] = {
+
+    val f = step match {
       case step: Limit =>
-        obs: Stream[T] =>
+        obs: Stream[Librarian[T]] =>
           obs.take(step.max)
       case step: Range =>
-        obs: Stream[T] =>
+        obs: Stream[Librarian[T]] =>
           obs.slice(step.low, step.high)
       case step: Tail =>
-        obs: Stream[T] =>
+        obs: Stream[Librarian[T]] =>
           obs.takeRight(step.max)
     }
     f
   }
 
-  def branchStep(step: BranchStep, steps: List[Step])(implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+  def branchStep(step: BranchStep, steps: List[Step])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -701,117 +660,70 @@ trait SyncGuide extends LocalGuide[Stream] {
     f.asInstanceOf[Stream[Librarian[Any]] => Stream[Librarian[Any]]] andThen nextStep
   }
 
-  //TODO: analyse tail
-  def clipper(value: Stream[Any], steps: List[Step]): Any =
-    collectContainers(steps) match {
-      case Count :: tail =>
-        if (tail.span(_ != Count)._2.filter { case step: Is => false; case _ => true }.isEmpty) value.head
-        else value.toList
-      case Head :: tail => //TODO: check for next containers
-        value.headOption
-      case Last :: tail => //TODO: check for next containers
-        value.lastOption
-      case Sum :: tail     => value.headOption
-      case Mean :: tail    => value.headOption
-      case Max(by) :: tail => value.headOption
-      case Min(by) :: tail => value.headOption
-      case _               => value.toList
-    }
-
   def collectingBarrierStep(step: GroupingBarrierStep, steps: List[Step], isRootGroup: Boolean = false)(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
 
     val nextStep = //buildNextStep(steps)
       steps match {
         case List(step: ClipStep) => clipStep[Any](step)
         case head :: tail =>
-          obs: Stream[Any] =>
+          obs: Stream[Librarian[Any]] =>
             throw new Exception("GroupStep can only be followed by a ClipStep (currently)")
         case Nil =>
-          obs: Stream[Any] =>
+          obs: Stream[Librarian[Any]] =>
             obs
       }
 
     val f = step match {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
+        val mapBy           = tweakEnd(step.by)
         val valueObservable = traversalsToF(step.value)
-        val valueSteps      = step.value.stepsList
+        val mapValue        = tweakEnd(step.value)
+        val valueSteps      = step.value.stepsList //.flatMap(_.stepsList)
 
-        step.by.stepsList.lastOption match {
-          case Some(Count) =>
-            obs: Stream[Librarian[Any]] =>
-              obs
-                .map { librarian =>
-                  librarian -> byObservable(librarian).head
-                }
-                .groupBy(l =>
-                  l._2.asInstanceOf[Librarian[Any]].get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                })
-                .toStream
-                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
-          case Some(step @ (_: Head | _: Min | _: Max | _: Mean)) =>
-            obs: Stream[Librarian[Any]] =>
-              obs
-                .map { librarian =>
-                  librarian -> byObservable(librarian).headOption
-                }
-                .groupBy(_._2
-                  .collect { case librarian: Librarian[Any] => librarian }
-                  .map(_.get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                  }))
-                .toStream
-                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
-          case Some(Last) =>
-            obs: Stream[Librarian[Any]] =>
-              obs
-                .map { librarian =>
-                  librarian -> byObservable(librarian).lastOption
-                }
-                .groupBy(_._2
-                  .collect { case librarian: Librarian[Any] => librarian }
-                  .map(_.get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                  }))
-                .toStream
-                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
-          case _ =>
-            obs: Stream[Librarian[Any]] =>
-              obs
-                .map { librarian =>
-                  librarian -> byObservable(librarian).toList
-                }
-                .groupBy(_._2
-                  .collect { case librarian: Librarian[Any] => librarian }
-                  .map(_.get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                  })
-                  .toSet)
-                .map(t => t._1.toList -> t._2)
-                .toStream
-                .map { case (key, obs) => key -> clipper(valueObservable(obs.map(_._1)), valueSteps) }
-
-        }
+        obs: Stream[Librarian[Any]] =>
+          obs
+            .map { librarian =>
+              mapBy(byObservable(librarian))
+                .asInstanceOf[Coeval[Librarian[Any]]]
+                .map(_.get)
+                .map(librarian -> _)
+                .value()
+            }
+            .groupBy(
+              l => l._2
+            )
+            .toStream
+            .map { group =>
+              group._1 -> mapValue(valueObservable(group._2.map(_._1)))
+                .asInstanceOf[Coeval[Librarian[Any]]]
+                .map(_.get)
+                .value()
+            }
+            .map(createLibrarian(_))
+            .asInstanceOf[Stream[Librarian[Any]]]
     }
-    if (isRootGroup) {
-      f andThen nextStep
-    } else f andThen nextStep andThen (obs => Stream(obs.asInstanceOf[Stream[(Any, Any)]].toMap))
+    f andThen nextStep
   }
 
-  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+  def countStep(step: Count, steps: List[Step])(
+      implicit graph: Graph): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: Count =>
         obs: Stream[Librarian[Any]] =>
           Stream(createLibrarian(obs.size.toLong))
+    }
+    f andThen nextStep
+  }
+
+  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
+    val nextStep = buildNextStep(steps)
+
+    val f = step match {
       case step: Mean =>
         obs: Stream[Librarian[Any]] =>
           val temp = obs
@@ -857,94 +769,18 @@ trait SyncGuide extends LocalGuide[Stream] {
     f andThen nextStep
   }
 
-  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
-    val nextStep = buildNextStep(steps)
-
-    val f = step match {
-      case step: Min =>
-        val byObservable = traversalToF(step.by)
-        val byObsF = (obs: Stream[Librarian[Any]]) =>
-          obs
-            .flatMap { librarian =>
-              byObservable(librarian)
-                .map {
-                  case l: Librarian[Any] => l.get
-                  case v                 => v
-                }
-                .map {
-                  case resource: Resource[Any] => resource.value
-                  case v: Any                  => v
-                }
-                .map(librarian -> _)
-          }
-        import cats.implicits._
-        (step.by.et.iri match {
-          case lspace.NS.types.`@int` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Int]))
-          case lspace.NS.types.`@double` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Double]))
-          case lspace.NS.types.`@long` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Long]))
-          case lspace.NS.types.`@number` =>
-            byObsF andThen (_.minBy(_._2 match {
-              case v: Int    => v.toDouble
-              case v: Double => v
-              case v: Long   => v.toDouble
-            }))
-          case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
-          case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
-          case lspace.NS.types.`@date` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
-          case lspace.NS.types.`@time` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
-        }).andThen(_._1).andThen(Stream(_))
-      case step: Max =>
-        val byObservable = traversalToF(step.by)
-        val byObsF = (obs: Stream[Librarian[Any]]) =>
-          obs
-            .flatMap { librarian =>
-              byObservable(librarian)
-                .map {
-                  case l: Librarian[Any] => l.get
-                  case v                 => v
-                }
-                .map {
-                  case resource: Resource[Any] => resource.value
-                  case v: Any                  => v
-                }
-                .map(librarian -> _)
-          }
-        (step.by.et.iri match {
-          case lspace.NS.types.`@int` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Int]))
-          case lspace.NS.types.`@double` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Double]))
-          case lspace.NS.types.`@long` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Long]))
-          case lspace.NS.types.`@number` =>
-            byObsF andThen (_.maxBy(_._2 match {
-              case v: Int    => v.toDouble
-              case v: Double => v
-              case v: Long   => v.toDouble
-            }))
-          case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
-          case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
-          case lspace.NS.types.`@date` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
-          case lspace.NS.types.`@time` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
-        }).andThen(_._1).andThen(Stream(_))
-    }
-    f andThen nextStep
-  }
+//  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
+//      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
+//    val nextStep = buildNextStep(steps)
+//
+//    val f = step match {
+//
+//    }
+//    f andThen nextStep
+//  }
 
   def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -1039,10 +875,66 @@ trait SyncGuide extends LocalGuide[Stream] {
   }
 
   def projectionStep(step: ProjectionStep, steps: List[Step])(
-      implicit graph: Graph): Stream[Librarian[Any]] => Stream[Any] = {
+      implicit graph: Graph): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
+      case step: MapStep =>
+        step match {
+          case step: OutMap =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map(librarian =>
+                librarian.copy(librarian.get match {
+                  case r: Resource[_] =>
+                    r.outEMap(step.label.toList: _*)
+                      .map {
+                        case (property, edges) =>
+                          property -> nextStep(edges.toStream.map(e =>
+                            librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))).toList
+                      }
+                  case v => Map()
+                }))
+          case step: OutEMap =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map(librarian =>
+                librarian.copy(librarian.get match {
+                  case r: Resource[_] =>
+                    r.outEMap(step.label.toList: _*)
+                      .map {
+                        case (property, edges) =>
+                          property -> nextStep(edges.toStream.map(e =>
+                            librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e)))).toList
+                      }
+                  case v => Map()
+                }))
+          case step: InMap =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map(librarian =>
+                librarian.copy(librarian.get match {
+                  case r: Resource[_] =>
+                    r.inEMap(step.label.toList: _*)
+                      .map {
+                        case (property, edges) =>
+                          property -> nextStep(edges.toStream.map(e =>
+                            librarian
+                              .copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from)))).toList
+                      }
+                  case v => Map()
+                }))
+          case step: InEMap =>
+            obs: Stream[Librarian[Any]] =>
+              obs.map(librarian =>
+                librarian.copy(librarian.get match {
+                  case r: Resource[_] =>
+                    r.inEMap(step.label.toList: _*)
+                      .map {
+                        case (property, edges) =>
+                          property -> nextStep(edges.toStream.map(e =>
+                            librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e)))).toList
+                      }
+                  case v => Map()
+                }))
+        }
       case step: Project[_] =>
         projectStep(step, steps)
       case step: Path[_, _] =>
@@ -1078,7 +970,7 @@ trait SyncGuide extends LocalGuide[Stream] {
     } andThen nextStep
   }
   def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step])(
-      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Any] = {
+      implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val pObs = step.by.runtimeList.reverse.map {

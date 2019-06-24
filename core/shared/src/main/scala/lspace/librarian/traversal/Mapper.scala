@@ -1,27 +1,24 @@
 package lspace.librarian.traversal
 
+import lspace.datatype.{ListType, MapType, OptionType, SetType, TupleType}
 import lspace.librarian.task.{
   AsyncGroupedResult,
   AsyncListResult,
   AsyncOneResult,
   AsyncZeroOrOneResult,
-  GroupedResult,
   Guide,
-  ListResult,
-  OneResult,
   Result,
   SyncGroupedResult,
   SyncListResult,
   SyncOneResult,
-  SyncZeroOrOneResult,
-  ZeroOrOneResult
+  SyncZeroOrOneResult
 }
 import lspace.structure.{ClassType, Graph}
 import monix.eval.{Coeval, Task}
 import monix.reactive.Observable
-import shapeless.{::, HList, HNil}
+import shapeless.{::, <:!<, HList, HNil}
 
-sealed trait Mapper[G[_], Containers <: HList, T] {
+sealed trait Mapper[G[_], -ET <: ClassType[_], nET <: ClassType[_]] {
   type F[_]
   type Out
   type FT <: Result[F, G, Out]
@@ -31,9 +28,8 @@ sealed trait Mapper[G[_], Containers <: HList, T] {
 
 object Mapper {
 //  type Aux[G[_], Out, F0] = Mapper[G, Out] { type F = F0 }
-  implicit def groupedStream[K, V, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                                   ev: GroupedResult.IsGrouped[Container]) =
-    new Mapper[Stream, Container :: Containers, (K, V)] {
+  implicit def groupedStream[K, V](implicit guide: Guide[Stream]) =
+    new Mapper[Stream, TupleType[(K, V)], MapType[Map[K, V]]] {
       type F[_] = Coeval[_]
       type Out  = (K, V)
       type FT   = SyncGroupedResult[K, V]
@@ -42,9 +38,8 @@ object Mapper {
         SyncGroupedResult[K, V](traversal, graph)
     }
 
-  implicit def streamh[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                          ev: ListResult.IsList[Container]) =
-    new Mapper[Stream, Container :: Containers, T] {
+  implicit def streamh[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Stream]) =
+    new Mapper[Stream, ET[T], ListType[List[T]]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncListResult[T]
@@ -52,9 +47,30 @@ object Mapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         SyncListResult[T](traversal, graph)
     }
-  implicit def streamone[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                            ev: OneResult.IsOne[Container]) =
-    new Mapper[Stream, Container :: Containers, T] {
+  implicit def streamhs[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Stream]) =
+    new Mapper[Stream, ET[T], SetType[Set[T]]] {
+      type F[_] = Coeval[_]
+      type Out  = T
+      type FT   = SyncListResult[T]
+
+      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
+        SyncListResult[T](traversal, graph)
+    }
+//  implicit def streamhg[K, V](implicit guide: Guide[Stream]) =
+//    new Mapper[Stream, MapType[Map[K, V]], ListType[List[Map[K, V]]]] {
+//      type F[_] = Coeval[_]
+//      type Out  = Map[K, V]
+//      type FT   = SyncListResult[Map[K, V]]
+//
+//      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
+//        SyncListResult[Map[K, V]](traversal, graph)
+//    }
+  implicit def streamone[T, ET1[+Z] <: ClassType[Z], ET2[+Z] <: ClassType[Z]](implicit guide: Guide[Stream],
+                                                                              ev0: ET2[_] <:!< MapType[_],
+                                                                              ev1: ET2[_] <:!< ListType[_],
+                                                                              ev2: ET2[_] <:!< SetType[_],
+                                                                              ev3: ET2[_] <:!< OptionType[_]) =
+    new Mapper[Stream, ET1[T], ET2[T]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncOneResult[T]
@@ -62,9 +78,8 @@ object Mapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         SyncOneResult[T](traversal, graph)
     }
-  implicit def streamzeroorone[T, Container, Containers <: HList](implicit guide: Guide[Stream],
-                                                                  ev: ZeroOrOneResult.IsZeroOrOne[Container]) =
-    new Mapper[Stream, Container :: Containers, T] {
+  implicit def streamzeroorone[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Stream]) =
+    new Mapper[Stream, ET[T], OptionType[Option[T]]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncZeroOrOneResult[T]
@@ -72,36 +87,54 @@ object Mapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         SyncZeroOrOneResult[T](traversal, graph)
     }
-  implicit def stream[T](implicit guide: Guide[Stream]) = new Mapper[Stream, HNil, T] {
-    type F[_] = Coeval[_]
-    type Out  = T
-    type FT   = SyncListResult[T]
 
-    def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
-      SyncListResult[T](traversal, graph)
-  }
-
-  implicit def groupedObservable[K, V, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                       ev: GroupedResult.IsGrouped[Container]) =
-    new Mapper[Observable, Container :: Containers, (K, V)] {
+  implicit def groupedObservable[K, V](implicit guide: Guide[Observable]) =
+    new Mapper[Observable, TupleType[(K, V)], MapType[Map[K, V]]] {
       type F[_] = Task[_]
       type Out  = (K, V)
       type FT   = AsyncGroupedResult[K, V]
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         AsyncGroupedResult[K, V](traversal, graph)
     }
-  implicit def observableh[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                              ev: ListResult.IsList[Container]) =
-    new Mapper[Observable, Container :: Containers, T] {
+
+  implicit def observableh[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+    new Mapper[Observable, ET[T], ListType[List[T]]] {
       type F[_] = Task[_]
       type Out  = T
       type FT   = AsyncListResult[T]
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         AsyncListResult[T](traversal, graph)
     }
-  implicit def observableone[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                ev: OneResult.IsOne[Container]) =
-    new Mapper[Observable, Container :: Containers, T] {
+//  implicit def observablehh[T](implicit guide: Guide[Observable]) =
+//    new Mapper[Observable, ListType[T], ListType[List[T]]] {
+//      type F[_] = Task[_]
+//      type Out  = List[T]
+//      type FT   = AsyncListResult[List[T]]
+//      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
+//        AsyncListResult[List[T]](traversal, graph)
+//    }
+  implicit def observablehs[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+    new Mapper[Observable, ET[T], SetType[Set[T]]] {
+      type F[_] = Task[_]
+      type Out  = T
+      type FT   = AsyncListResult[T]
+      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
+        AsyncListResult[T](traversal, graph)
+    }
+//  implicit def observablehg[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+//    new Mapper[Observable, ET[T], ListType[List[T]]] {
+//      type F[_] = Task[_]
+//      type Out  = T
+//      type FT   = AsyncListResult[T]
+//      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
+//        AsyncListResult[T](traversal, graph)
+//    }
+  implicit def observableone[T, ET1[+Z] <: ClassType[Z], ET2[+Z] <: ClassType[Z]](implicit guide: Guide[Observable],
+                                                                                  ev0: ET2[_] <:!< MapType[_],
+                                                                                  ev1: ET2[_] <:!< ListType[_],
+                                                                                  ev2: ET2[_] <:!< SetType[_],
+                                                                                  ev3: ET2[_] <:!< OptionType[_]) =
+    new Mapper[Observable, ET1[T], ET2[T]] {
       type F[_] = Task[_]
       type Out  = T
       type FT   = AsyncOneResult[T]
@@ -109,9 +142,8 @@ object Mapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         AsyncOneResult[T](traversal, graph)
     }
-  implicit def observablezeroorone[T, Container, Containers <: HList](implicit guide: Guide[Observable],
-                                                                      ev: ZeroOrOneResult.IsZeroOrOne[Container]) =
-    new Mapper[Observable, Container :: Containers, T] {
+  implicit def observablezeroorone[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+    new Mapper[Observable, ET[T], OptionType[Option[T]]] {
       type F[_] = Task[_]
       type Out  = T
       type FT   = AsyncZeroOrOneResult[T]
@@ -119,11 +151,4 @@ object Mapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         AsyncZeroOrOneResult[T](traversal, graph)
     }
-  implicit def observable[T](implicit guide: Guide[Observable]) = new Mapper[Observable, HNil, T] {
-    type F[_] = Task[_]
-    type Out  = T
-    type FT   = AsyncListResult[T]
-    def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
-      AsyncListResult[T](traversal, graph)
-  }
 }

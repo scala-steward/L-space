@@ -223,7 +223,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
                 .headF
                 .map(_ shouldBe 1)
             } yield ()
-          } yield succeed).timeout(400.millis).runToFuture
+          } yield succeed).timeout(1500.millis).runToFuture
 //          val traversal  = graph.g.N().hasIri("abc").where(_.hasIri("abc")).limit(10).outMap()
 //          val collection = Collection(Instant.now(), Instant.now(), traversal.toList, traversal.ct)
 //          collection.item.head.nonEmpty shouldBe true
@@ -243,7 +243,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { ontologyOption =>
               ontologyOption shouldBe Some(SampleGraph.Person.ontology)
             }
-            .timeout(400.millis)
+            .timeout(1400.millis)
             .runToFuture
         }
         "contains the person-ontology in cache" in {
@@ -258,7 +258,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { ontologyOption =>
               ontologyOption shouldBe Some(SampleGraph.Place.ontology)
             }
-            .timeout(400.millis)
+            .timeout(1400.millis)
             .runToFuture
         }
         "contains the place-ontology in cache" in {
@@ -273,7 +273,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { propertyOption =>
               propertyOption shouldBe Some(SampleGraph.properties.name.property)
             }
-            .timeout(400.millis)
+            .timeout(1400.millis)
             .runToFuture
         }
         "contains the name-property in cache" in {
@@ -301,7 +301,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           } yield succeed).timeout(4000.millis).runToFuture
         }
         "contains certain values" in {
-          sampleGraph.values.count().map(_ shouldBe 38).timeout(400.millis).runToFuture
+          sampleGraph.values.count().map(_ shouldBe 38).timeout(1400.millis).runToFuture
         }
       }
       //        "support inserting structures from other graphs (object + edges)" ignore {

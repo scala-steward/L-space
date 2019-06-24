@@ -7,20 +7,20 @@ import lspace.structure._
 import monix.eval.Task
 
 case object Last
-    extends StepDef("Last", "A last-step limits the traversal to last result.", () => ClipStep.ontology :: Nil)
+    extends StepDef("Last", "A last-step limits the traversal to last result.", () => ReducingStep.ontology :: Nil)
     with StepWrapper[Last]
     with Last {
 
   def toStep(node: Node): Task[Last] = Task.now(this)
 
-  object keys extends ClipStep.Properties
-  override lazy val properties: List[Property] = ClipStep.properties
-  trait Properties extends ClipStep.Properties
+  object keys extends ReducingStep.Properties
+  override lazy val properties: List[Property] = ReducingStep.properties
+  trait Properties extends ReducingStep.Properties
 
   implicit lazy val toNode: Task[Node] = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
 }
 
-trait Last extends ClipStep {
+trait Last extends ReducingStep {
 
   override def prettyPrint: String = "last"
 }

@@ -9,7 +9,7 @@ import scala.collection.immutable.ListSet
 
 object ListSetType extends DataTypeDef[ListSetType[Any]] {
 
-  lazy val datatype = new ListSetType[Any](None) {
+  lazy val datatype = new ListSetType[ListSet[Any]](None) {
     val iri: String = NS.types.`@listset`
     labelMap = Map("en" -> NS.types.`@listset`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -42,19 +42,20 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListSetType[TOut] =
 //    new ListSetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListSetType[TOut]]
 
-  implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListSetType[T], ListSet[TOut], ListSetType[TOut]] =
-    new ClassTypeable[ListSetType[T]] {
+  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
+    : ClassTypeable.Aux[ListSetType[ListSet[T]], ListSet[TOut], ListSetType[ListSet[TOut]]] =
+    new ClassTypeable[ListSetType[ListSet[T]]] {
       type C  = ListSet[TOut]
-      type CT = ListSetType[TOut]
+      type CT = ListSetType[ListSet[TOut]]
       def ct: CT = //ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
-        if (clsTpbl.ct.iri.nonEmpty) ListSetType(clsTpbl.ct)
-        else ListSetType.datatype.asInstanceOf[ListSetType[TOut]]
+        if (clsTpbl.ct.iri.nonEmpty)
+          ListSetType(clsTpbl.ct.asInstanceOf[ClassType[TOut]])
+        else ListSetType.datatype.asInstanceOf[ListSetType[ListSet[TOut]]]
     }
 
-  def apply(): ListSetType[Any] = datatype
-  def apply[V: DefaultsToAny](valueRange: ClassType[V]): ListSetType[V] = {
-    new ListSetType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+  def apply(): ListSetType[ListSet[Any]] = datatype
+  def apply[V](valueRange: ClassType[V]): ListSetType[ListSet[V]] = {
+    new ListSetType[ListSet[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
           .filter(_.nonEmpty)
@@ -64,4 +65,4 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
   }
 }
 
-abstract class ListSetType[V](val valueRange: Option[ClassType[V]]) extends CollectionType[ListSet[V]]
+abstract class ListSetType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V]

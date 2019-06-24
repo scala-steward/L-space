@@ -1,6 +1,6 @@
 package lspace.librarian.traversal.step
 
-import lspace.librarian.traversal.{FilterStep, MoveStep, StepDef, StepWrapper}
+import lspace.librarian.traversal.{FilterStep, MoveStep, StepDef, StepWrapper, TraverseStep}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.util.ClassTypeable
 import lspace.structure.{ClassType, Node, Property, PropertyDef}
@@ -9,7 +9,7 @@ import monix.eval.Task
 object Constant
     extends StepDef("Constant",
                     "A constant-step sets a strict value for the traverser.",
-                    () => MoveStep.ontology :: Nil)
+                    () => TraverseStep.ontology :: Nil)
     with StepWrapper[Constant[Any]] {
 
   def toStep(node: Node): Task[Constant[Any]] = {
@@ -17,7 +17,7 @@ object Constant
     Task.now(new Constant(value)(ClassType.valueToOntologyResource(value)))
   }
 
-  object keys extends MoveStep.Properties {
+  object keys extends TraverseStep.Properties {
     object value
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Constant/value",
@@ -25,9 +25,9 @@ object Constant
           "A strict value"
         )
   }
-  override lazy val properties: List[Property] = keys.value.property :: MoveStep.properties
+  override lazy val properties: List[Property] = keys.value.property :: TraverseStep.properties
 
-  trait Properties extends MoveStep.Properties {
+  trait Properties extends TraverseStep.Properties {
     val value = keys.value
   }
 
@@ -40,7 +40,7 @@ object Constant
 
 }
 
-case class Constant[T](value: T)(val label: ClassType[T]) extends MoveStep {
+case class Constant[T](value: T)(val label: ClassType[T]) extends TraverseStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "constant(" + value + ")"

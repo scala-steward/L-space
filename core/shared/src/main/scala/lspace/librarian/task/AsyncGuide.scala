@@ -2,6 +2,7 @@ package lspace.librarian.task
 
 import java.time._
 
+import lspace.datatype.{CollectionType, ListSetType, ListType, MapType, OptionType, SetType, TupleType, VectorType}
 import lspace.librarian.logic.Assistent
 import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal.step._
@@ -12,6 +13,7 @@ import monix.reactive.Observable
 import shapeless.HList
 
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
 
 object AsyncGuide {
   def apply()(implicit _assistent: Assistent): AsyncGuide = new AsyncGuide {
@@ -19,117 +21,32 @@ object AsyncGuide {
   }
 }
 //TODO: keep track of the end-type (needed for efficient calculations and assertions)
-trait AsyncGuide extends LocalGuide[Observable] {
+abstract class AsyncGuide extends LocalGuide[Observable] {
 
-  def buildTraversal[Out](
-      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => Observable[Out] = {
-    implicit graph: Graph =>
-      traversal.stepsList match {
-//        case Nil => Observable.empty[Out]
-//        case segment :: segments =>
-//          segment.stepsList match {
-        case Nil => Observable.empty[Out]
-        case steps =>
-          findFirstContainer(steps) match {
-            case Some(step: Group[_, _, _, _]) =>
-              val (until, from) = steps.span(_ != step)
-              val nextStep = buildNextStep(until) andThen
-                collectingBarrierStep(step, from.tail, true).asInstanceOf[Observable[Any] => Observable[Any]]
-              nextStep(Observable(createLibrarian[Any](null)))
-//              case Some(step: Max) =>
-//              case Some(step: Min) =>
-//              case Some(step: Count) =>
-//              case Some(step: Mean) =>
-//              case Some(step: Head) =>
-//              case Some(step: Last) =>
-            case _ =>
-              val nextStep = buildNextStep(steps)
-              nextStep(Observable(createLibrarian[Any](null)))
-          }
-//          }
-      }
-  }.andThen(_.map {
-    case librarian: Librarian[Any] => toValue(librarian.get)
-    case v                         => toValue(v)
-  }.asInstanceOf[Observable[Out]])
+  type K[_] = Task[_]
 
-  def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
-      implicit graph: Graph): Librarian[Any] => Observable[Any] = {
-    traversal.stepsList match {
-      case Nil =>
-        librarian: Librarian[Any] =>
-          Observable(librarian)
-      case steps =>
-        val nextStep = buildNextStep(steps)
-        librarian: Librarian[Any] =>
-          nextStep(Observable(librarian))
-    }
-  }
+  def emptyF[T]: Observable[T]                    = Observable.empty[T]
+  def createF[T](t: T): Observable[T]             = Observable(t)
+  def raiseError[T](ex: Exception): Observable[T] = Observable.raiseError[T](ex)
 
-  def traversalsToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
-    traversal.stepsList match {
-      case Nil =>
-        librarians: Observable[Librarian[Any]] =>
-          librarians
-      case steps =>
-        val nextStep = buildNextStep(steps)
-        librarians: Observable[Librarian[Any]] =>
-          nextStep(librarians)
-    }
-  }
+  protected def head(f: Observable[Librarian[Any]]): Task[Librarian[Any]] =
+    f.headL
+  protected def headOption(f: Observable[Librarian[Any]]): Task[Librarian[Any]] =
+    f.headOptionL.map(_.map(l => l.copy(Some(l.get).map(toValue))).getOrElse(createLibrarian(None)))
+  protected def headOptionOption(f: Observable[Librarian[Any]]): Task[Librarian[Any]] =
+    f.headOptionL.map(_.map(l => l.copy(toValue(l.get))).getOrElse(createLibrarian(None)))
+  protected def toList(f: Observable[Librarian[Any]]): Task[Librarian[Any]] =
+    f.toListL.map(toValue).map(createLibrarian(_))
+  protected def toSet(f: Observable[Librarian[Any]]): Task[Librarian[Any]] =
+    f.toListL.map(_.map(toValue).toSet).map(createLibrarian(_))
+  protected def toMap(f: Observable[Librarian[(Any, Any)]]): Task[Librarian[Any]] =
+    f.toListL.map(_.map(_.get).map { case (k, v) => toValue(k) -> toValue(v) }.toMap).map(createLibrarian(_))
 
-  def buildNextStep(steps: List[Step])(implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
-    steps match {
-      case Nil =>
-        obs: Observable[Librarian[Any]] =>
-          obs
-      case step :: steps =>
-        step match {
-          case step: GraphStep =>
-            obs =>
-              Observable.raiseError(new Exception("AsyncGuide does not support federated queries, RemoteGuide can!"))
-          case step: ResourceStep =>
-            resourceStep(step, steps)
-          case step: MoveStep =>
-            moveStep(step, steps)
-          case step: ClipStep =>
-            clipStep(step) andThen buildNextStep(steps)
-          case step: FilterStep =>
-            step match {
-              case step: FilterBarrierStep =>
-                filterBarrierStep(step, steps)
-              case _ => filterStep(step, steps)
-            }
-          case step: BranchStep =>
-            branchStep(step, steps)
-          case step: GroupingBarrierStep =>
-            collectingBarrierStep(step, steps)
-          case step: RearrangeBarrierStep =>
-            rearrangeBarrierStep(step, steps)
-          case step: ReducingBarrierStep =>
-            reducingBarrierStep(step, steps)
-          case step: ProjectionStep =>
-            projectionStep(step, steps)
-          case step: EnvironmentStep =>
-            step match {
-              case step: TimeLimit => //todo, scan for other TimeLimit steps with time == None (cancels the nearest preceding time limit step)
-                val nextStep = buildNextStep(steps)
-                import scala.concurrent.duration._
-                val f = (obs: Observable[Librarian[Any]]) =>
-                  step.time match {
-                    case Some(time) => obs.takeByTimespan(time.millis millis)
-                    case None       => obs
-                }
-                f andThen nextStep
-//                nextStep andThen f
-            }
-        }
-    }
-  }
+  protected def takeByTimeSpan(f: Observable[Librarian[Any]], timespan: FiniteDuration): Observable[Librarian[Any]] =
+    f.takeByTimespan(timespan)
 
   def resourceStep(step: ResourceStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -225,82 +142,44 @@ trait AsyncGuide extends LocalGuide[Observable] {
     f andThen nextStep
   }
 
-  def moveStep(step: MoveStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+  def traverseStep(step: TraverseStep, steps: List[Step])(
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
 
     val nextStep = buildNextStep(steps)
     step match {
-      case step: MapStep =>
-        step match {
-          case step: OutMap =>
-            obs: Observable[Librarian[Any]] =>
-              obs.flatMap(librarian =>
-                Observable.fromTask(librarian.get match {
-                  case r: Resource[_] =>
-                    Task
-                      .gather(
-                        r.outEMap(step.label.toList: _*)
-                          .map {
-                            case (property, edges) =>
-                              nextStep(Observable.fromIterable(edges.map { e =>
-                                librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to))
-                              })).toListL.map(property -> _)
-                          })
-                      .map(_.toMap)
-                  case v => Task.now(Map())
-                }))
-          case step: OutEMap =>
-            obs: Observable[Librarian[Any]] =>
-              obs.flatMap(librarian =>
-                Observable.fromTask(librarian.get match {
-                  case r: Resource[_] =>
-                    Task
-                      .gather(
-                        r.outEMap(step.label.toList: _*)
-                          .map {
-                            case (property, edges) =>
-                              nextStep(Observable.fromIterable(edges.map { e =>
-                                librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e))
-                              })).toListL.map(property -> _)
-                          })
-                      .map(_.toMap)
-                  case v => Task.now(Map())
-                }))
-          case step: InMap =>
-            obs: Observable[Librarian[Any]] =>
-              obs.flatMap(librarian =>
-                Observable.fromTask(librarian.get match {
-                  case r: Resource[_] =>
-                    Task
-                      .gather(
-                        r.inEMap(step.label.toList: _*)
-                          .map {
-                            case (property, edges) =>
-                              nextStep(Observable.fromIterable(edges.map { e =>
-                                librarian.copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from))
-                              })).toListL.map(property -> _)
-                          })
-                      .map(_.toMap)
-                  case v => Task.now(Map())
-                }))
-          case step: InEMap =>
-            obs: Observable[Librarian[Any]] =>
-              obs.flatMap(librarian =>
-                Observable.fromTask(librarian.get match {
-                  case r: Resource[_] =>
-                    Task
-                      .gather(
-                        r.inEMap(step.label.toList: _*)
-                          .map {
-                            case (property, edges) =>
-                              nextStep(Observable.fromIterable(edges.map { e =>
-                                librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e))
-                              })).toListL.map(property -> _)
-                          })
-                      .map(_.toMap)
-                  case v => Task.now(Map())
-                }))
-        }
+      case step: Id =>
+        obs: Observable[Librarian[Any]] =>
+          nextStep(obs.collect {
+            case librarian if librarian.get.isInstanceOf[Resource[_]] =>
+              librarian.copy(librarian.get.asInstanceOf[Resource[_]].id)
+          })
+      case step: From =>
+        obs: Observable[Librarian[Any]] =>
+          nextStep(obs.flatMap(librarian =>
+            Observable.fromIterable(librarian.get match {
+              case e: Edge[_, _] =>
+                List(librarian.copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from)))
+              case v => List()
+            })))
+      case step: To =>
+        obs: Observable[Librarian[Any]] =>
+          nextStep(obs.flatMap(librarian =>
+            Observable.fromIterable(librarian.get match {
+              case e: Edge[_, _] =>
+                List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
+              case v => List()
+            })))
+      case step: Constant[_] =>
+        obs: Observable[Librarian[Any]] =>
+          nextStep(obs.map(librarian => librarian.copy(step.value)))
+    }
+  }
+
+  def moveStep(step: MoveStep, steps: List[Step])(
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
+
+    val nextStep = buildNextStep(steps)
+    step match {
       case step: Out =>
         obs: Observable[Librarian[Any]] =>
           nextStep(obs.flatMap(librarian =>
@@ -346,36 +225,11 @@ trait AsyncGuide extends LocalGuide[Observable] {
                   librarian.copy(label, path = librarian.path.copy(librarian.path.resources :+ label)))
               case v => List()
             })))
-      case step: Id =>
-        obs: Observable[Librarian[Any]] =>
-          nextStep(obs.collect {
-            case librarian if librarian.get.isInstanceOf[Resource[_]] =>
-              librarian.copy(librarian.get.asInstanceOf[Resource[_]].id)
-          })
-      case step: From =>
-        obs: Observable[Librarian[Any]] =>
-          nextStep(obs.flatMap(librarian =>
-            Observable.fromIterable(librarian.get match {
-              case e: Edge[_, _] =>
-                List(librarian.copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from)))
-              case v => List()
-            })))
-      case step: To =>
-        obs: Observable[Librarian[Any]] =>
-          nextStep(obs.flatMap(librarian =>
-            Observable.fromIterable(librarian.get match {
-              case e: Edge[_, _] =>
-                List(librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to)))
-              case v => List()
-            })))
-      case step: Constant[_] =>
-        obs: Observable[Librarian[Any]] =>
-          nextStep(obs.map(librarian => librarian.copy(step.value)))
     }
   }
 
   def filterStep(step: FilterStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -534,30 +388,115 @@ trait AsyncGuide extends LocalGuide[Observable] {
 
   //  def hasStep(step: HasStep, steps: List[Step])(
   //      obs: Observable[Librarian[Any]]): Observable[Librarian[Any]]
-  def clipStep[T](step: ClipStep)(implicit graph: Graph): Observable[T] => Observable[T] = {
+  def reducingStep[T](step: ReducingStep)(
+      implicit graph: Graph): Observable[Librarian[T]] => Observable[Librarian[T]] = {
 
     val f = step match {
       case step: Head =>
-        obs: Observable[T] =>
+        obs: Observable[Librarian[T]] =>
           obs.head
       case step: Last =>
-        obs: Observable[T] =>
+        obs: Observable[Librarian[T]] =>
           obs.last
+      case step: Min =>
+        val byObservable = traversalToF(step.by)
+        val byObsF = (obs: Observable[Librarian[T]]) =>
+          obs
+            .flatMap { librarian =>
+              byObservable(librarian)
+                .map {
+                  case l: Librarian[Any] => l.get
+                  case v                 => v
+                }
+                .map {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any                  => v
+                }
+                .map(librarian -> _)
+          }
+        import cats.implicits._
+        (step.by.et.iri match {
+          case lspace.NS.types.`@int` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Int]))
+          case lspace.NS.types.`@double` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Double]))
+          case lspace.NS.types.`@long` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Long]))
+          case lspace.NS.types.`@number` =>
+            byObsF andThen (_.minBy(_._2 match {
+              case v: Int    => v.toDouble
+              case v: Double => v
+              case v: Long   => v.toDouble
+            }))
+          case lspace.NS.types.`@datetime` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
+          case lspace.NS.types.`@localdatetime` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+          case lspace.NS.types.`@date` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+          case lspace.NS.types.`@time` =>
+            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+        }).andThen(_.map(_._1))
+      case step: Max =>
+        val byObservable = traversalToF(step.by)
+        val byObsF = (obs: Observable[Librarian[T]]) =>
+          obs
+            .flatMap { librarian =>
+              byObservable(librarian)
+                .map {
+                  case l: Librarian[Any] => l.get
+                  case v                 => v
+                }
+                .map {
+                  case resource: Resource[Any] => resource.value
+                  case v: Any                  => v
+                }
+                .map(librarian -> _)
+          }
+        import cats.implicits._
+        (step.by.et.iri match {
+          case lspace.NS.types.`@int` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Int]))
+          case lspace.NS.types.`@double` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Double]))
+          case lspace.NS.types.`@long` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Long]))
+          case lspace.NS.types.`@number` =>
+            byObsF andThen (_.maxBy(_._2 match {
+              case v: Int    => v.toDouble
+              case v: Double => v
+              case v: Long   => v.toDouble
+            }))
+          case lspace.NS.types.`@datetime` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
+          case lspace.NS.types.`@localdatetime` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+          case lspace.NS.types.`@date` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+          case lspace.NS.types.`@time` =>
+            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+        }).andThen(_.map(_._1))
+    }
+    f
+  }
+  def clipStep[T](step: ClipStep)(implicit graph: Graph): Observable[Librarian[T]] => Observable[Librarian[T]] = {
+
+    val f = step match {
       case step: Limit =>
-        obs: Observable[T] =>
+        obs: Observable[Librarian[T]] =>
           obs.take(step.max)
       case step: Range =>
-        obs: Observable[T] =>
+        obs: Observable[Librarian[T]] =>
           obs.drop(step.low).take(step.high - step.low)
       case step: Tail =>
-        obs: Observable[T] =>
+        obs: Observable[Librarian[T]] =>
           obs.takeLast(step.max)
     }
     f
   }
 
   def branchStep(step: BranchStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -589,9 +528,29 @@ trait AsyncGuide extends LocalGuide[Observable] {
       case step: Local[_, _] =>
         val traveralObservable = traversalToF(step.traversal)
         obs: Observable[Librarian[Any]] =>
-          obs.flatMap { librarian =>
-            traveralObservable(librarian)
+          obs.mapEval { librarian =>
+            val result = traveralObservable(librarian)
+            step.traversal.et match {
+              case et: CollectionType[_] =>
+                et match {
+                  case et: MapType[_] =>
+                    result.toListL
+                      .map { l =>
+                        l.asInstanceOf[List[Librarian[(Any, Any)]]].map(_.get).toMap
+                      }
+                      .map(librarian.copy(_))
+                  case et: OptionType[_] => result.headOptionL
+                  case et =>
+                    result.toListL
+                      .map { l =>
+                        l.asInstanceOf[List[Librarian[Any]]].map(_.get)
+                      }
+                      .map(librarian.copy(_))
+                }
+              case et => result.headL
+            }
           }
+
       case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
         import scala.concurrent.duration._
         val repeatObs = traversalToF(step.traversal)
@@ -762,137 +721,67 @@ trait AsyncGuide extends LocalGuide[Observable] {
     f.asInstanceOf[Observable[Librarian[Any]] => Observable[Librarian[Any]]] andThen nextStep
   }
 
-  //TODO: analyse tail
-  def clipper(value: Observable[Any], steps: List[Step]): Task[Any] =
-    collectContainers(steps) match {
-      case Count :: tail =>
-        if (tail.span(_ != Count)._2.filter { case step: Is => false; case _ => true }.isEmpty) value.headL
-        else value.toListL
-      case Head :: tail => //TODO: check for next containers
-        value.headOptionL
-      case Last :: tail => //TODO: check for next containers
-        value.lastOptionL
-      case Sum :: tail     => value.headOptionL
-      case Mean :: tail    => value.headOptionL
-      case Max(by) :: tail => value.headOptionL
-      case Min(by) :: tail => value.headOptionL
-      case _               => value.toListL
-    }
-
   def collectingBarrierStep(step: GroupingBarrierStep, steps: List[Step], isRootGroup: Boolean = false)(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
 
     val nextStep = //buildNextStep(steps, segments)
       steps match {
-        case List(step: ClipStep) => clipStep[Any](step)
+        case List(step: ReducingStep) => reducingStep[Any](step)
+        case List(step: ClipStep)     => clipStep[Any](step)
         case head :: tail =>
-          obs: Observable[Any] =>
+          obs: Observable[Librarian[Any]] =>
             Observable.raiseError(new Exception("GroupStep can only be followed by a ClipStep (currently)"))
         case Nil =>
-          obs: Observable[Any] =>
+          obs: Observable[Librarian[Any]] =>
             obs
       }
 
     val f = step match {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
+        val mapBy           = tweakEnd(step.by)
         val valueObservable = traversalsToF(step.value)
+        val mapValue        = tweakEnd(step.value)
         val valueSteps      = step.value.stepsList //.flatMap(_.stepsList)
 
-        //TODO
-        collectContainers(step.by.stepsList).lastOption match {
-          case Some(step) =>
-            step match {
-              case Count =>
-                obs: Observable[Librarian[Any]] =>
-                  obs
-                    .flatMap { librarian =>
-                      Observable
-                        .from(byObservable(librarian).headL.map(librarian -> _))
-                    }
-                    .groupBy(l =>
-                      l._2.asInstanceOf[Librarian[Any]].get match {
-                        case resource: Resource[Any] => resource.value
-                        case v: Any                  => v
-                    })
-                    .flatMap { group =>
-                      Observable.fromTask(
-//                        clipper(nextStep(group.map(_._1)), steps ::: segments.flatMap(_.stepsList)).map(group.key -> _))
-                        clipper(valueObservable(group.map(_._1)), valueSteps)
-                          .map(group.key -> _))
-                    }
-              case step @ (_: Head | _: Min | _: Max | _: Mean) =>
-                obs: Observable[Librarian[Any]] =>
-                  obs
-                    .flatMap { librarian =>
-                      Observable
-                        .from(byObservable(librarian).headOptionL.map(librarian -> _))
-                    }
-                    .groupBy(_._2
-                      .collect { case librarian: Librarian[Any] => librarian }
-                      .map(_.get match {
-                        case resource: Resource[Any] => resource.value
-                        case v: Any                  => v
-                      }))
-                    .flatMap { group =>
-                      Observable.fromTask(clipper(valueObservable(group.map(_._1)), valueSteps).map(group.key -> _))
-                    }
-              case Last =>
-                obs: Observable[Librarian[Any]] =>
-                  obs
-                    .flatMap { librarian =>
-                      Observable
-                        .from(byObservable(librarian).lastOptionL.map(librarian -> _))
-                    }
-                    .groupBy(_._2
-                      .collect { case librarian: Librarian[Any] => librarian }
-                      .map(_.get match {
-                        case resource: Resource[Any] => resource.value
-                        case v: Any                  => v
-                      }))
-                    .flatMap { group =>
-                      Observable.fromTask(clipper(valueObservable(group.map(_._1)), valueSteps).map(group.key -> _))
-                    }
+        obs: Observable[Librarian[Any]] =>
+          obs
+            .mapEval { librarian =>
+              mapBy(byObservable(librarian)).asInstanceOf[Task[Librarian[Any]]].map(_.get).map(librarian -> _)
             }
-          case _ =>
-            obs: Observable[Librarian[Any]] =>
-//              Observable.fromTask(
-              obs
-                .flatMap { librarian =>
-                  Observable
-                    .from(byObservable(librarian).toListL.map(librarian -> _))
-                }
-                .groupBy(_._2
-                  .collect { case librarian: Librarian[Any] => librarian }
-                  .map(_.get match {
-                    case resource: Resource[Any] => resource.value
-                    case v: Any                  => v
-                  })
-                  .toSet)
-                .flatMap { group =>
-                  Observable.fromTask(
-                    clipper(valueObservable(group.map(_._1)), valueSteps)
-                      .map(group.key.toList -> _))
-              } //.toListL.map(_.toMap))
-//                .map(t => t._1.toList -> t._2)
-//                .mapValues(_.map(_._1))
-//                .mapValues(nextStep(_).toList))
-        }
+            .groupBy(
+              l => l._2
+            )
+            .mapEval { group =>
+              mapValue(valueObservable(group.map(_._1)))
+                .asInstanceOf[Task[Librarian[Any]]]
+                .map(l => group.key -> l.get)
+            }
+            .map(createLibrarian(_))
+
     }
-    if (isRootGroup)
-      f andThen nextStep
-    else
-      f andThen nextStep andThen (obs => Observable.fromTask(obs.toListL.map(_.asInstanceOf[List[(Any, Any)]].toMap)))
+    f andThen nextStep
+//    else
+//      f andThen nextStep andThen (obs =>
+//        Observable.fromTask(obs.toListL.map(_.asInstanceOf[List[(Any, Any)]].toMap).map()))
   }
 
-  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+  def countStep(step: Count, steps: List[Step])(
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
       case step: Count =>
         obs: Observable[Librarian[Any]] =>
           obs.count.map(createLibrarian(_))
+    }
+    f andThen nextStep
+  }
+  def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
+    val nextStep = buildNextStep(steps)
+
+    val f = step match {
       case step: Mean =>
         obs: Observable[Librarian[Any]] =>
           val temp = obs
@@ -914,120 +803,52 @@ trait AsyncGuide extends LocalGuide[Observable] {
             sum   <- temp.sum
             count <- temp.count
           } yield {
-            if (count == 0) Double.NaN else sum / count
-          }).map(createLibrarian(_))
+            if (count > 0) Some(sum / count) else None
+          }).flatMap(_.map(createLibrarian(_)).map(Observable(_)).getOrElse(Observable.empty[Librarian[Any]]))
       case step: Sum =>
         obs: Observable[Librarian[Any]] =>
-          obs
-            .map(_.get)
+          Observable
+            .fromTask(
+              obs
+                .map(_.get)
 //            .map {
 //              case l: Librarian[Any] => l.get
 //              case v                 => v
 //            }
-            .map {
-              case r: Resource[Any] => r.value
-              case v                => v
-            }
-            .collect {
-              case v: Int    => v
-              case v: Double => v
-              case v: Long   => v
-            }
-            .sum
-            .map(createLibrarian(_))
+                .map {
+                  case r: Resource[Any] => r.value
+                  case v                => v
+                }
+                .collect {
+                  case v: Int    => v
+                  case v: Double => v
+                  case v: Long   => v
+                }
+                .toListL
+                .map {
+                  case Nil  => None
+                  case list => Some(list.sum)
+                }
+//              .map(_.sum)
+//              .map(createLibrarian(_))
+            )
+            .flatMap(_.map(createLibrarian(_)).map(Observable(_)).getOrElse(Observable.empty[Librarian[Any]]))
     }
     f andThen nextStep
   }
 
-  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
-    val nextStep = buildNextStep(steps)
-
-    val f = step match {
-      case step: Min =>
-        val byObservable = traversalToF(step.by)
-        val byObsF = (obs: Observable[Librarian[Any]]) =>
-          obs
-            .flatMap { librarian =>
-              byObservable(librarian)
-                .map {
-                  case l: Librarian[Any] => l.get
-                  case v                 => v
-                }
-                .map {
-                  case resource: Resource[Any] => resource.value
-                  case v: Any                  => v
-                }
-                .map(librarian -> _)
-          }
-        import cats.implicits._
-        (step.by.et.iri match {
-          case lspace.NS.types.`@int` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Int]))
-          case lspace.NS.types.`@double` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Double]))
-          case lspace.NS.types.`@long` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Long]))
-          case lspace.NS.types.`@number` =>
-            byObsF andThen (_.minBy(_._2 match {
-              case v: Int    => v.toDouble
-              case v: Double => v
-              case v: Long   => v.toDouble
-            }))
-          case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
-          case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
-          case lspace.NS.types.`@date` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
-          case lspace.NS.types.`@time` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
-        }).andThen(_.map(_._1))
-      case step: Max =>
-        val byObservable = traversalToF(step.by)
-        val byObsF = (obs: Observable[Librarian[Any]]) =>
-          obs
-            .flatMap { librarian =>
-              byObservable(librarian)
-                .map {
-                  case l: Librarian[Any] => l.get
-                  case v                 => v
-                }
-                .map {
-                  case resource: Resource[Any] => resource.value
-                  case v: Any                  => v
-                }
-                .map(librarian -> _)
-          }
-        import cats.implicits._
-        (step.by.et.iri match {
-          case lspace.NS.types.`@int` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Int]))
-          case lspace.NS.types.`@double` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Double]))
-          case lspace.NS.types.`@long` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Long]))
-          case lspace.NS.types.`@number` =>
-            byObsF andThen (_.maxBy(_._2 match {
-              case v: Int    => v.toDouble
-              case v: Double => v
-              case v: Long   => v.toDouble
-            }))
-          case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
-          case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
-          case lspace.NS.types.`@date` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
-          case lspace.NS.types.`@time` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
-        }).andThen(_.map(_._1))
-    }
-    f andThen nextStep
-  }
+//  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
+//      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
+//    val nextStep = buildNextStep(steps)
+//
+//    val f = step match {
+//
+//    }
+//    f andThen nextStep
+//  }
 
   def rearrangeBarrierStep(step: RearrangeBarrierStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
@@ -1123,10 +944,85 @@ trait AsyncGuide extends LocalGuide[Observable] {
   }
 
   def projectionStep(step: ProjectionStep, steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
     val nextStep = buildNextStep(steps)
 
     val f = step match {
+      case step: MapStep =>
+        step match {
+          case step: OutMap =>
+            obs: Observable[Librarian[Any]] =>
+              obs.flatMap(librarian =>
+                Observable.fromTask(librarian.get match {
+                  case r: Resource[_] =>
+                    Task
+                      .gather(
+                        r.outEMap(step.label.toList: _*)
+                          .map {
+                            case (property, edges) =>
+                              nextStep(Observable.fromIterable(edges.map { e =>
+                                librarian.copy(e.to, path = librarian.path.copy(librarian.path.resources :+ e.to))
+                              })).toListL.map(property -> _)
+                          })
+                      .map(_.toMap)
+                      .map(librarian.copy(_))
+                  case v => Task.now(librarian.copy(Map()))
+                }))
+          case step: OutEMap =>
+            obs: Observable[Librarian[Any]] =>
+              obs.flatMap(librarian =>
+                Observable.fromTask(librarian.get match {
+                  case r: Resource[_] =>
+                    Task
+                      .gather(
+                        r.outEMap(step.label.toList: _*)
+                          .map {
+                            case (property, edges) =>
+                              nextStep(Observable.fromIterable(edges.map { e =>
+                                librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e))
+                              })).toListL.map(property -> _)
+                          })
+                      .map(_.toMap)
+                      .map(librarian.copy(_))
+                  case v => Task.now(librarian.copy(Map()))
+                }))
+          case step: InMap =>
+            obs: Observable[Librarian[Any]] =>
+              obs.flatMap(librarian =>
+                Observable.fromTask(librarian.get match {
+                  case r: Resource[_] =>
+                    Task
+                      .gather(
+                        r.inEMap(step.label.toList: _*)
+                          .map {
+                            case (property, edges) =>
+                              nextStep(Observable.fromIterable(edges.map { e =>
+                                librarian.copy(e.from, path = librarian.path.copy(librarian.path.resources :+ e.from))
+                              })).toListL.map(property -> _)
+                          })
+                      .map(_.toMap)
+                      .map(librarian.copy(_))
+                  case v => Task.now(librarian.copy(Map()))
+                }))
+          case step: InEMap =>
+            obs: Observable[Librarian[Any]] =>
+              obs.flatMap(librarian =>
+                Observable.fromTask(librarian.get match {
+                  case r: Resource[_] =>
+                    Task
+                      .gather(
+                        r.inEMap(step.label.toList: _*)
+                          .map {
+                            case (property, edges) =>
+                              nextStep(Observable.fromIterable(edges.map { e =>
+                                librarian.copy(e, path = librarian.path.copy(librarian.path.resources :+ e))
+                              })).toListL.map(property -> _)
+                          })
+                      .map(_.toMap)
+                      .map(librarian.copy(_))
+                  case v => Task.now(librarian.copy(Map()))
+                }))
+        }
       case step: Project[_] =>
         projectStep(step, steps)
       case step: Path[_, _] =>
@@ -1225,41 +1121,30 @@ trait AsyncGuide extends LocalGuide[Observable] {
     } andThen nextStep
   }
   def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step])(
-      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Any] = {
+      implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
 
     val nextStep = buildNextStep(steps)
     val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
-        traversalToF(traversal) -> collectContainers(traversal.stepsList).lastOption
+        traversalToF(traversal) -> tweakEnd(traversal)
     }
     val f =
       (obs: Observable[Librarian[Any]]) =>
         obs.flatMap { librarian =>
           Observable
             .fromTask(Task.gather(pObs.map {
-              case (pOb, Some(step)) =>
-                step match {
-                  case step: Count =>
-                    pOb(librarian).headL
-                  case step @ (_: Head | _: Min | _: Max |
-                      _: Mean) => //Some(min: Min) | Some(max: Max) | Some(mean: Mean)
-                    pOb(librarian).headOptionL
-                  case step: Last =>
-                    pOb(librarian).lastOptionL
-                  case step: Project[_] =>
-                    pOb(librarian).toListL
-                }
-              case (pOb, _) =>
-                pOb(librarian).toListL
+              case (pOb, endMap) => endMap(pOb(librarian)).asInstanceOf[Task[Librarian[Any]]].map(_.get)
             }))
             .map {
-              case List(v1)                         => v1
-              case List(v1, v2)                     => (v1, v2)
-              case List(v1, v2, v3)                 => (v1, v2, v3)
-              case List(v1, v2, v3, v4)             => (v1, v2, v3, v4)
-              case List(v1, v2, v3, v4, v5)         => (v1, v2, v3, v4, v5)
-              case List(v1, v2, v3, v4, v5, v6)     => (v1, v2, v3, v4, v5, v6)
-              case List(v1, v2, v3, v4, v5, v6, v7) => (v1, v2, v3, v4, v5, v6, v7)
+              case List(v1)                                 => v1
+              case List(v1, v2)                             => (v1, v2)
+              case List(v1, v2, v3)                         => (v1, v2, v3)
+              case List(v1, v2, v3, v4)                     => (v1, v2, v3, v4)
+              case List(v1, v2, v3, v4, v5)                 => (v1, v2, v3, v4, v5)
+              case List(v1, v2, v3, v4, v5, v6)             => (v1, v2, v3, v4, v5, v6)
+              case List(v1, v2, v3, v4, v5, v6, v7)         => (v1, v2, v3, v4, v5, v6, v7)
+              case List(v1, v2, v3, v4, v5, v6, v7, v8)     => (v1, v2, v3, v4, v5, v6, v7, v8)
+              case List(v1, v2, v3, v4, v5, v6, v7, v8, v9) => (v1, v2, v3, v4, v5, v6, v7, v8, v9)
             }
             .map(librarian.copy(_))
       }

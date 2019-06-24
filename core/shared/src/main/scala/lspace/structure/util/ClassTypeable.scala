@@ -113,36 +113,37 @@ object ClassTypeable {
     def ct: CT = TextType.datatype
   }
 
-  implicit def defaultList[T, TOut, CTOut <: ClassType[_]](
-      implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[List[T], List[TOut], ListType[TOut]] =
+  implicit def defaultList[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
+    : ClassTypeable.Aux[List[T], List[TOut], ListType[List[TOut]]] =
     new ClassTypeable[List[T]] {
       type C  = List[TOut]
-      type CT = ListType[TOut]
-      def ct: CT = ListType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListType[TOut]]
+      type CT = ListType[List[TOut]]
+      def ct: CT = ListType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListType[List[TOut]]]
     }
 
   implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](
-      implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): ClassTypeable.Aux[Set[T], List[TOut], SetType[TOut]] =
+      implicit clsTpbl: ClassTypeable.Aux[Set[T], Set[TOut], SetType[Set[TOut]]])
+    : ClassTypeable.Aux[Set[T], Set[TOut], SetType[Set[TOut]]] =
     new ClassTypeable[Set[T]] {
-      type C  = List[TOut]
-      type CT = SetType[TOut]
-      def ct: CT = SetType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[SetType[TOut]]
+      type C  = Set[TOut]
+      type CT = SetType[Set[TOut]]
+      def ct: CT = SetType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[SetType[Set[TOut]]]
     }
 
   implicit def defaultVector[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[Vector[T], Vector[TOut], VectorType[TOut]] =
+    : ClassTypeable.Aux[Vector[T], Vector[TOut], VectorType[Vector[TOut]]] =
     new ClassTypeable[Vector[T]] {
       type C  = Vector[TOut]
-      type CT = VectorType[TOut]
-      def ct: CT = VectorType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[VectorType[TOut]]
+      type CT = VectorType[Vector[TOut]]
+      def ct: CT = VectorType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[VectorType[Vector[TOut]]]
     }
 
   implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListSet[T], ListSet[TOut], ListSetType[TOut]] =
+    : ClassTypeable.Aux[ListSet[T], ListSet[TOut], ListSetType[ListSet[TOut]]] =
     new ClassTypeable[ListSet[T]] {
       type C  = ListSet[TOut]
-      type CT = ListSetType[TOut]
-      def ct: CT = ListSetType[TOut](clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListSetType[TOut]]
+      type CT = ListSetType[ListSet[TOut]]
+      def ct: CT = ListSetType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListSetType[ListSet[TOut]]]
     }
 
   implicit def defaultMap[
@@ -153,12 +154,12 @@ object ClassTypeable {
       VOut,
       VTOut[+Z] <: ClassType[Z]
   ](implicit clsTpblK: ClassTypeable.Aux[K, KOut, KTOut[KOut]], clsTpblV: ClassTypeable.Aux[V, VOut, VTOut[VOut]])
-    : ClassTypeable.Aux[Map[K, V], Map[KOut, VOut], MapType[KOut, VOut]] =
+    : ClassTypeable.Aux[Map[K, V], Map[KOut, VOut], MapType[Map[KOut, VOut]]] =
     new ClassTypeable[Map[K, V]] {
       type C  = Map[KOut, VOut]
-      type CT = MapType[KOut, VOut]
+      type CT = MapType[Map[KOut, VOut]]
       def ct: CT =
-        MapType[KOut, VOut](clsTpblK.ct.asInstanceOf[ClassType[KOut]], clsTpblV.ct.asInstanceOf[ClassType[VOut]])
+        MapType(clsTpblK.ct.asInstanceOf[ClassType[KOut]], clsTpblV.ct.asInstanceOf[ClassType[VOut]])
     }
 
   implicit def defaultTuple2[

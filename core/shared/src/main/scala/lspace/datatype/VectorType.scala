@@ -7,7 +7,7 @@ import lspace.util.types.DefaultsToAny
 
 object VectorType extends DataTypeDef[VectorType[Any]] {
 
-  lazy val datatype = new VectorType[Any](None) {
+  lazy val datatype = new VectorType[Vector[Any]](None) {
     val iri: String = NS.types.`@vector`
     labelMap = Map("en" -> NS.types.`@vector`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -39,19 +39,19 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): VectorType[TOut] =
 //    new VectorType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[VectorType[TOut]]
 
-  implicit def defaultCls[T, TOut, CTOut <: ClassType[TOut]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[VectorType[T], Vector[TOut], VectorType[TOut]] =
-    new ClassTypeable[VectorType[T]] {
+  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
+    : ClassTypeable.Aux[VectorType[Vector[T]], Vector[TOut], VectorType[Vector[TOut]]] =
+    new ClassTypeable[VectorType[Vector[T]]] {
       type C  = Vector[TOut]
-      type CT = VectorType[TOut]
+      type CT = VectorType[Vector[TOut]]
       def ct: CT =
-        if (clsTpbl.ct.iri.nonEmpty) VectorType(clsTpbl.ct)
-        else VectorType.datatype.asInstanceOf[VectorType[TOut]]
+        if (clsTpbl.ct.iri.nonEmpty) VectorType(clsTpbl.ct.asInstanceOf[ClassType[TOut]])
+        else VectorType.datatype.asInstanceOf[VectorType[Vector[TOut]]]
     }
 
-  def apply(): VectorType[Any] = datatype
-  def apply[V: DefaultsToAny](valueRange: ClassType[V]): VectorType[V] = {
-    new VectorType[V](Some(valueRange).filter(_.iri.nonEmpty)) {
+  def apply(): VectorType[Vector[Any]] = datatype
+  def apply[V](valueRange: ClassType[V]): VectorType[Vector[V]] = {
+    new VectorType[Vector[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@vector`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
           .filter(_.nonEmpty)
@@ -62,4 +62,4 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
   }
 }
 
-abstract class VectorType[+V](val valueRange: Option[ClassType[V]]) extends CollectionType[Vector[V]]
+abstract class VectorType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V]

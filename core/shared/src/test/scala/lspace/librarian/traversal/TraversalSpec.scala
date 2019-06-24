@@ -236,14 +236,11 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
                                                                                         listType())
     }
     """g.N.project(_.out()).by(_.inMap())""" in {
-      g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(),
-                                                               listType(mapType(Property.urlType, listType())))
+      g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(), mapType(Property.urlType, listType()))
     }
     """g.N.project(_.out()).by(_.inMap()).by(_.outMap())""" in {
       g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
-        tupleType(listType(),
-                  listType(mapType(Property.urlType, listType())),
-                  listType(mapType(Property.urlType, listType())))
+        tupleType(listType(), mapType(Property.urlType, listType()), mapType(Property.urlType, listType()))
     }
     """g.hasLabel[...].max()""" in {
       g.hasLabel[Int].max().et shouldBe `@int`

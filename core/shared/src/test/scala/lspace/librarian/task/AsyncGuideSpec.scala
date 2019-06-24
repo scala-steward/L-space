@@ -400,6 +400,45 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(400.millis)
           .runToFuture
       }
+      """g.V.coalesce(_.hasLabel[String], _.hasLabel[Int], _.hasLabel[Boolean])""" in {
+        g.V
+          .coalesce(_.out().hasLabel[String], _.hasLabel[Int], _.out().hasLabel[Boolean])
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.nonEmpty shouldBe true)
+          .timeout(400.millis)
+          .runToFuture
+      }
+      """g.N.hasIri(sampleGraph.iri + "/person/12345").project(_.coalesce(_.out(properties.name).hasLabel[String],
+        |                              _.out(properties.birthDate).hasLabel[LocalDate],
+        |                              _.out(properties.rate).hasLabel[Int]))
+        |          .by(_.coalesce(_.out(properties.name).hasLabel[Int],
+        |                         _.out(properties.birthDate).hasLabel[LocalDate],
+        |                         _.out(properties.rate).hasLabel[Int]))
+        |          .by(
+        |            _.coalesce(_.out(properties.name).hasLabel[Int],
+        |                       _.out(properties.birthDate).hasLabel[Int],
+        |                       _.out(properties.rate).hasLabel[Int])
+        |          )""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .project(_.coalesce(_.out(properties.name).hasLabel[String],
+                              _.out(properties.birthDate).hasLabel[LocalDate],
+                              _.out(properties.rate).hasLabel[Int]))
+          .by(_.coalesce(_.out(properties.name).hasLabel[Int],
+                         _.out(properties.birthDate).hasLabel[LocalDate],
+                         _.out(properties.rate).hasLabel[Int]))
+          .by(
+            _.coalesce(_.out(properties.name).hasLabel[Int],
+                       _.out(properties.birthDate).hasLabel[Int],
+                       _.out(properties.rate).hasLabel[Int])
+          )
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe (List("Levi"), List(LocalDate.parse("2008-12-20")), List(2)))
+          .timeout(400.millis)
+          .runToFuture
+      }
       """N.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/place/123")
@@ -429,7 +468,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(400.millis)
           .runToFuture
       }
-      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label()).mapValues(_.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))""" in {
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label).mapValues(_.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.label())
@@ -439,6 +478,19 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .map(r =>
             (r: (List[Ontology], List[(List[Any], List[Double])])) shouldBe ((List(ontologies.person),
                                                                               List((List("Levi"), List())))))
+          .timeout(400.millis)
+          .runToFuture
+      }
+      """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label().dedup).mapValues(_.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .group(_.label().dedup)
+          .mapValues(_.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
+          .withGraph(sampleGraph)
+          .headF
+          .map(r =>
+            (r: (Set[Ontology], List[(List[Any], List[Double])])) shouldBe ((Set(ontologies.person),
+                                                                             List((List("Levi"), List())))))
           .timeout(400.millis)
           .runToFuture
       }
@@ -526,9 +578,9 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .group(_.label())
           .head
           .withGraph(sampleGraph)
-          .toListF
+          .headF
           .map { groupedNodes =>
-            groupedNodes.size shouldBe 1
+            succeed
           }
           .timeout(400.millis)
           .runToFuture

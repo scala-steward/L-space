@@ -7,9 +7,9 @@ import lspace.util.types.DefaultsToAny
 
 //import scala.collection.immutable.ListSet
 
-object MapType extends DataTypeDef[MapType[Any, Any]] {
+object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
 
-  lazy val datatype = new MapType[Any, Any](None, None) {
+  lazy val datatype = new MapType[Map[Any, Any]](None, None) {
     val iri: String = NS.types.`@map`
     labelMap = Map("en" -> NS.types.`@map`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
@@ -47,18 +47,18 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
       VTOut[+Z] <: ClassType[Z]
   ](implicit clsTpblK: ClassTypeable.Aux[KT[K], KOut, KTOut[KOut]],
     clsTpblV: ClassTypeable.Aux[VT[V], VOut, VTOut[VOut]])
-    : ClassTypeable.Aux[MapType[K, V], Map[KOut, VOut], MapType[KOut, VOut]] =
-    new ClassTypeable[MapType[K, V]] {
+    : ClassTypeable.Aux[MapType[Map[K, V]], Map[KOut, VOut], MapType[Map[KOut, VOut]]] =
+    new ClassTypeable[MapType[Map[K, V]]] {
       type C  = Map[KOut, VOut]
-      type CT = MapType[KOut, VOut]
+      type CT = MapType[Map[KOut, VOut]]
       def ct: CT = //MapType(List(clsTpblK.ct), List(clsTpblV.ct))
         if (clsTpblK.ct.iri.nonEmpty || clsTpblV.ct.iri.nonEmpty) MapType(clsTpblK.ct, clsTpblV.ct)
-        else MapType.datatype.asInstanceOf[MapType[KOut, VOut]]
+        else MapType.datatype.asInstanceOf[MapType[Map[KOut, VOut]]]
     }
 
-  def apply(): MapType[Any, Any] = datatype
-  def apply[K: DefaultsToAny, V: DefaultsToAny](keyRange: ClassType[K], valueRange: ClassType[V]): MapType[K, V] = {
-    new MapType[K, V](Some(keyRange).filter(_.iri.nonEmpty), Some(valueRange).filter(_.iri.nonEmpty)) {
+  def apply(): MapType[Map[Any, Any]] = datatype
+  def apply[K, V](keyRange: ClassType[K], valueRange: ClassType[V]): MapType[Map[K, V]] = {
+    new MapType[Map[K, V]](Some(keyRange).filter(_.iri.nonEmpty), Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         //        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
         //        else
@@ -69,5 +69,5 @@ object MapType extends DataTypeDef[MapType[Any, Any]] {
   }
 }
 
-abstract class MapType[K, V](val keyRange: Option[ClassType[K]], val valueRange: Option[ClassType[V]])
-    extends CollectionType[Map[K, V]]
+abstract class MapType[+T](val keyRange: Option[ClassType[Any]], val valueRange: Option[ClassType[Any]])
+    extends CollectionType[T]

@@ -300,7 +300,7 @@ trait Encoder {
           case v: List[_] => toArray(v, label.valueRange.headOption)
           case _          => throw ToJsonException(s"list expected ${value.getClass} found")
         }
-      case label: MapType[_, _] =>
+      case label: MapType[_] =>
         value match {
           case v: Map[_, _] =>
             val (tuples, ac) = v.foldLeft((List[(Json, Json)](), activeContext)) {
@@ -575,7 +575,7 @@ trait Encoder {
             val jip = ctListToJson(dt.valueRange.toList)
             if (dt.valueRange.isEmpty || jip.json.toString.isEmpty) Map() -> jip.activeContext
             else Map(CollectionType.keys.valueRange.iri -> jip.json) -> jip.activeContext
-          case dt: MapType[_, _] =>
+          case dt: MapType[_] =>
             val jip  = ctListToJson(dt.keyRange.toList)
             val jip2 = ctListToJson(dt.valueRange.toList)(jip.activeContext)
             if ((dt.keyRange.isEmpty || jip.json.toString.isEmpty) && (dt.valueRange.isEmpty || jip2.json.toString.isEmpty))

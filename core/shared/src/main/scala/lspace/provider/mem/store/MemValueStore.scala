@@ -182,7 +182,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
       //        iriTypeCache += value.value
       //          .asInstanceOf[Point] -> (geopointCache.getOrElse(value.value.asInstanceOf[Point], Set()) + value
       //          .asInstanceOf[graph.GValue[Point]])
-      case dt: MapType[_, _] =>
+      case dt: MapType[_] =>
         mapCache.synchronized {
           mapCache += value.value
             .asInstanceOf[Map[Any, Any]] -> (mapCache
@@ -301,7 +301,7 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
             if (values.exists(_ == value)) geopointCache -= value.value.asInstanceOf[Point]
             else geopointCache += value.value.asInstanceOf[Point] -> (values - value.asInstanceOf[graph.GValue[Point]])
           }
-        case dt: MapType[_, _] =>
+        case dt: MapType[_] =>
           mapCache.synchronized {
             val values = mapCache.getOrElse(value.value.asInstanceOf[Map[Any, Any]], Set())
             if (values.exists(_ == value)) mapCache -= value.value.asInstanceOf[Map[Any, Any]]

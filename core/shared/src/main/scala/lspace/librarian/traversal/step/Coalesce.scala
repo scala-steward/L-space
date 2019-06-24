@@ -57,6 +57,7 @@ object Coalesce
   }.memoizeOnSuccess
 }
 
+//TODO: traversals needs to be an HList for OutTweaker calculations
 case class Coalesce[S <: ClassType[_], E <: ClassType[_]](traversals: List[Traversal[S, E, _ <: HList]])
     extends BranchStep {
 

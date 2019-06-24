@@ -603,7 +603,7 @@ trait Decoder {
       case label: VectorType[_]  => toVector(json, label.valueRange).map(_.asInstanceOf[T])
       case label: SetType[_]     => toSet(json, label.valueRange).map(_.asInstanceOf[T])
       case label: ListSetType[_] => toListSet(json, label.valueRange).map(_.asInstanceOf[T])
-      case label: MapType[_, _]  => toMap(json, label.keyRange, label.valueRange).map(_.asInstanceOf[T])
+      case label: MapType[_]     => toMap(json, label.keyRange, label.valueRange).map(_.asInstanceOf[T])
       case _                     => Task.raiseError(UnexpectedJsonException(s"unknown CollectionType ${label.iri}"))
     }
 

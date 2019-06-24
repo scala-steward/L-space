@@ -35,52 +35,52 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
 
   "The GraphQL Decoder" should {
     "parse ' { name }'" in {
-      val (traversal, graphql) = decoder.process(""" { name }""".stripMargin)(activeContext)
-      val expectedTraversal    = g.project(_.out(schemaName))
+      val (query, graphql)  = decoder.process(""" { name }""".stripMargin)(activeContext)
+      val expectedTraversal = g.project(_.out(schemaName))
       Future {
-        traversal.steps shouldBe expectedTraversal.untyped.steps
-        traversal.toTyped shouldBe expectedTraversal
-        traversal shouldBe expectedTraversal.untyped
-        traversal.toTyped.et shouldBe expectedTraversal.et
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
         graphql shouldBe ""
       }
     }
     "parse ' { name  description }'" in {
-      val (traversal, graphql) = decoder.process(""" { name  description }""".stripMargin)(activeContext)
-      val expectedTraversal    = g.project(_.out(schemaName)).by(_.out(schemaDescription))
+      val (query, graphql)  = decoder.process(""" { name  description }""".stripMargin)(activeContext)
+      val expectedTraversal = g.project(_.out(schemaName)).by(_.out(schemaDescription))
       Future {
-        traversal.steps shouldBe expectedTraversal.untyped.steps
-        traversal.toTyped shouldBe expectedTraversal
-        traversal shouldBe expectedTraversal.untyped
-        traversal.toTyped.et shouldBe expectedTraversal.et
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
         graphql shouldBe ""
       }
     }
     "parse ' { name { description2 } description }'" in {
-      val (traversal, graphql) =
+      val (query, graphql) =
         decoder.process(""" { name { description2 } description }""".stripMargin)(activeContext)
       val expectedTraversal = g
         .project(_.out(schemaName).project(_.out(schemaDescription2)))
         .by(_.out(schemaDescription))
       Future {
-        traversal.steps shouldBe expectedTraversal.untyped.steps
-        traversal.toTyped shouldBe expectedTraversal
-        traversal shouldBe expectedTraversal.untyped
-        traversal.toTyped.et shouldBe expectedTraversal.et
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
         graphql shouldBe ""
       }
     }
     "parse ' { name { description2 name2 } description }'" in {
-      val (traversal, graphql) =
+      val (query, graphql) =
         decoder.process(""" { name { description2 name2 } description }""".stripMargin)(activeContext)
       val expectedTraversal = g
         .project(_.out(schemaName).project(_.out(schemaDescription2)).by(_.out(schemaName2)))
         .by(_.out(schemaDescription))
       Future {
-        traversal.steps shouldBe expectedTraversal.untyped.steps
-        traversal.toTyped shouldBe expectedTraversal
-        traversal shouldBe expectedTraversal.untyped
-        traversal.toTyped.et shouldBe expectedTraversal.et
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
         graphql shouldBe ""
       }
     }

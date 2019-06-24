@@ -109,6 +109,7 @@ object ClassType {
 //    type CT = ClassType[T]
 //    def ct: CT = default[T]
 //  }
+
 }
 
 /**
@@ -151,7 +152,7 @@ trait ClassType[+T] extends IriResource {
                 case (ct1: ListType[_], ct2: ListType[_]) => ListType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
                 case (ct1: ListSetType[_], ct2: ListSetType[_]) =>
                   ListSetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case (ct1: MapType[_, _], ct2: MapType[_, _]) =>
+                case (ct1: MapType[_], ct2: MapType[_]) =>
                   MapType(ct1.keyRange ++ ct2.keyRange reduce (_ + _), ct1.valueRange ++ ct2.valueRange reduce (_ + _))
                 case (ct1: SetType[_], ct2: SetType[_]) => SetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
                 case (ct1: VectorType[_], ct2: VectorType[_]) =>

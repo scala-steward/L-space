@@ -329,7 +329,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
             .asInstanceOf[Point] -> (geopointCache.getOrElse(value.value.asInstanceOf[Point], Set()) + value
             .asInstanceOf[graph._Value[Point]])
         }
-      case dt: MapType[_, _] =>
+      case dt: MapType[_] =>
         mapCacheLock.synchronized {
           mapCache += value.value
             .asInstanceOf[Map[Any, Any]] -> (mapCache.getOrElse(value.value.asInstanceOf[Map[Any, Any]], Set()) + value
@@ -457,7 +457,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
           if (values.exists(_ == value)) geopointCache -= value.value.asInstanceOf[Point]
           else geopointCache += value.value.asInstanceOf[Point] -> (values - value.asInstanceOf[graph._Value[Point]])
         }
-      case dt: MapType[_, _] =>
+      case dt: MapType[_] =>
         mapCacheLock.synchronized {
           val values = mapCache.getOrElse(value.value.asInstanceOf[Map[Any, Any]], Set())
           if (values.exists(_ == value)) mapCache -= value.value.asInstanceOf[Map[Any, Any]]

@@ -9,9 +9,11 @@ import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Max
-    extends StepDef("Max",
-                    "A max-step finds the traverser with the largest value within all traversers in-scope.",
-                    () => FilterBarrierStep.ontology :: Nil)
+    extends StepDef(
+      "Max",
+      "A max-step finds the traverser with the largest value within all traversers in-scope.",
+      () => FilterBarrierStep.ontology :: ReducingStep.ontology :: Nil
+    )
     with StepWrapper[Max] {
 
   sealed trait Maxable[T]
@@ -33,7 +35,7 @@ object Max
         .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
     } yield Max(by)
 
-  object keys extends FilterBarrierStep.Properties {
+  object keys extends FilterBarrierStep.Properties with ReducingStep.Properties {
     object by
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Max/by",
@@ -43,8 +45,8 @@ object Max
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }
-  override lazy val properties: List[Property] = keys.by :: FilterBarrierStep.properties
-  trait Properties extends FilterBarrierStep.Properties {
+  override lazy val properties: List[Property] = keys.by :: FilterBarrierStep.properties ++ ReducingStep.properties
+  trait Properties extends FilterBarrierStep.Properties with ReducingStep.Properties {
     val by          = keys.by
     val byTraversal = keys.byTraversal
   }
@@ -58,7 +60,9 @@ object Max
   }.memoizeOnSuccess
 }
 
-case class Max(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList]) extends FilterBarrierStep {
+case class Max(by: Traversal[_ <: ClassType[_], _ <: DataType[_], _ <: HList])
+    extends FilterBarrierStep
+    with ReducingStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "max(" + by.toString + ")"

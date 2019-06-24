@@ -311,13 +311,11 @@ trait Graph extends IriResource with GraphUtils { self =>
 //  def *>[Out](traversalObservable: TraversalTask[Out]): Out = traversalObservable.run(this)
 //  def map[T](traversalTask: TraversalTask[T]): T            = traversalTask.run(this)
   import lspace.librarian.traversal._
-  def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, RSteps <: HList, Containers <: HList, F[_]](
-      traversal: Traversal[ST, ET[End], Steps])(
-      implicit //flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, Segments, Steps],
-      reverse: Reverse.Aux[Steps, RSteps],
-      f: Collect.Aux[RSteps, ContainerSteps.type, Containers],
-      guide: Guide[F],
-      mapper: Mapper[F, Containers, End]): mapper.FT =
+  def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, Out, OutCT <: ClassType[_], F[_]](
+      traversal: Traversal[ST, ET[End], Steps])(implicit
+                                                tweaker: OutTweaker.Aux[ET[End], Steps, Out, OutCT],
+                                                guide: Guide[F],
+                                                mapper: Mapper[F, ET[End], OutCT]): mapper.FT =
     mapper.apply(traversal, this).asInstanceOf[mapper.FT]
 
   protected[lspace] def executeTraversal[F[_]](
