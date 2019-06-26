@@ -11,22 +11,23 @@ import lspace.structure.ClassType
 import shapeless.=:!=
 
 object Encode {
-  type JsonLD[A] = io.finch.Encode.Aux[A, Application.JsonLD]
-  type Json[A]   = io.finch.Encode.Aux[A, io.finch.Application.Json]
-  type Text[A]   = io.finch.Encode.Aux[A, Text.Plain]
+  type GraphQL[A] = io.finch.Encode.Aux[A, Application.GraphQL]
+  type JsonLD[A]  = io.finch.Encode.Aux[A, Application.JsonLD]
+  type Json[A]    = io.finch.Encode.Aux[A, io.finch.Application.Json]
+  type Text[A]    = io.finch.Encode.Aux[A, Text.Plain]
 
-  implicit def encodeArgonautText[A](implicit e: EncodeText[A], activeContext: ActiveContext): Text[A] = {
+  implicit def encodeText[A](implicit e: EncodeText[A], activeContext: ActiveContext): Text[A] = {
     io.finch.Encode
       .instance[A, Text.Plain]((a, cs) => Buf.ByteArray.Owned(e.encode(activeContext)(a).getBytes(cs.name)))
   }
 
-  implicit def encodeArgonautJson[A](implicit e: EncodeJson[A], activeContext: ActiveContext): Json[A] = {
+  implicit def encodeJson[A](implicit e: EncodeJson[A], activeContext: ActiveContext): Json[A] = {
     io.finch.Encode
       .instance[A, io.finch.Application.Json]((a, cs) =>
         Buf.ByteArray.Owned(e.encode(activeContext)(a).getBytes(cs.name)))
   }
 
-  implicit def encodeArgonautJsonLD[A](implicit e: EncodeJsonLD[A], activeContext: ActiveContext): JsonLD[A] = {
+  implicit def encodeJsonLD[A](implicit e: EncodeJsonLD[A], activeContext: ActiveContext): JsonLD[A] = {
     io.finch.Encode.instance[A, Application.JsonLD]((a, cs) =>
       Buf.ByteArray.Owned(e.encode(activeContext)(a).getBytes(cs.name)))
   }
@@ -42,5 +43,4 @@ object Encode {
       implicit
       A: JsonLD[A]): EncodeStream.Aux[F, _root_.fs2.Stream, A, codecs.Application.JsonLD] =
     streamEncoders.encodeJsonLDFs2Stream[A, F]
-
 }

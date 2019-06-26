@@ -1,15 +1,21 @@
 package lspace.services.rest.endpoints
 
+import cats.Applicative
 import cats.effect.IO
+import com.twitter.finagle.{Service, SimpleFilter}
+import com.twitter.finagle.http.{Request, Response}
+import com.twitter.util.Future
 import io.finch._
 import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
 import lspace.codec.{jsonld, ActiveContext, ActiveProperty, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
-import lspace.decode.{DecodeJson, DecodeJsonLD}
+import lspace.decode.{DecodeGraphQL, DecodeJson, DecodeJsonLD}
 import lspace.encode.{EncodeJson, EncodeJsonLD}
+import lspace.graphql.{Query, QueryResult}
 import lspace.provider.detached.DetachedGraph
 import lspace.services.LApplication
+import lspace.services.rest.endpoints.util.MatchHeader
 import monix.eval.Task
 import shapeless.{:+:, ::, CNil, HList, HNil}
 
@@ -36,16 +42,21 @@ class LabeledNodeApi(val ontology: Ontology,
   implicit val bd: NativeTypeDecoder.Aux[Json] = baseDecoder.asInstanceOf[NativeTypeDecoder.Aux[Json]]
 
   import lspace.services.codecs.Decode._
-  implicit val decoder = jsonld.Decoder(DetachedGraph)
+  implicit val decoderJsonLD  = jsonld.Decoder(DetachedGraph)
+  implicit val decoderGraphQL = codec.graphql.Decoder()
+
+  import DecodeJson._
+  import DecodeJsonLD._
+  import DecodeGraphQL._
+  import lspace.Implicits.Scheduler.global
+  val label = ontology.iri.reverse.takeWhile(_ != '/').reverse.toLowerCase() //label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
 
   implicit val jsonldToNode = DecodeJsonLD
     .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
   implicit val jsonToNode = DecodeJson
     .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
-  import DecodeJson._
-  import DecodeJsonLD._
-  import lspace.Implicits.Scheduler.global
-  val label = ontology.iri.reverse.takeWhile(_ != '/').reverse.toLowerCase() //label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
+  implicit val graphqlToNode = DecodeGraphQL
+    .graphqlToQuery(allowedProperties, forbiddenProperties)
 
   import lspace._
   import Implicits.AsyncGuide._
@@ -296,6 +307,25 @@ class LabeledNodeApi(val ontology: Ontology,
     }
   }
 
+  /**
+    * GET /
+    * BODY graphql
+    */
+  def getByGraphQL = {
+    MatchHeader.beGraphQL :: post(body[Task[Query], lspace.services.codecs.Application.GraphQL])
+      .mapOutputAsync {
+        case queryTask: Task[Query] =>
+          queryTask.flatMap { query =>
+            (g.N.hasLabel(ontology).untyped ++ query.toTraversal.untyped)
+              .withGraph(graph)
+              .toListF
+              .map(result => QueryResult(query, result))
+              .map(ContextedT(_))
+              .map(Ok)
+          }.toIO
+      }
+  }
+
 //  val getBySPARQL: Endpoint[IO, PagedResult]
 
 //  val postNode: Endpoint[IO, Node] = post(zero :: jsonldToNode).mapOutputAsync { node: Node =>
@@ -314,7 +344,7 @@ class LabeledNodeApi(val ontology: Ontology,
     implicit val be: NativeTypeEncoder.Aux[Json] = baseEncoder.asInstanceOf[NativeTypeEncoder.Aux[Json]]
 
     import lspace.services.codecs.Encode._
-    implicit val encoder = jsonld.Encoder.apply(be)
+    implicit val encoderJsonLD = jsonld.Encoder.apply(be)
 
     import EncodeJson._
     import EncodeJsonLD._
@@ -322,6 +352,7 @@ class LabeledNodeApi(val ontology: Ontology,
     Bootstrap
       .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
       .serve[LApplication.JsonLD :+: Application.Json :+: CNil](api)
+      .serve[Application.Json :+: CNil](getByGraphQL)
       .compile
   }
 }

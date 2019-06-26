@@ -57,11 +57,7 @@ object Project
 
 }
 
-case class Project[Traversals <: HList](by: Traversals)
-//                                       (
-//    implicit
-//    lub: LUBConstraint[Traversals, Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-    extends ProjectionStep {
+case class Project[Traversals <: HList](by: Traversals) extends ProjectionStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =

@@ -58,6 +58,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
         case list if list.contains(step.Head.ontology)      => Head.toStep(node)
         case list if list.contains(step.Last.ontology)      => Last.toStep(node)
         case list if list.contains(step.Limit.ontology)     => Limit.toStep(node)
+        case list if list.contains(step.Skip.ontology)      => Skip.toStep(node)
         case list if list.contains(step.Tail.ontology)      => Tail.toStep(node)
         case list if list.contains(step.Order.ontology)     => Order.toStep(node)
         case list if list.contains(step.Count.ontology)     => Count.toStep(node)
@@ -120,6 +121,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
     Head,
     Last,
     Limit,
+    Skip,
     Tail,
     Order,
     Count,

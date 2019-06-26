@@ -2,15 +2,15 @@ package lspace.services.rest.endpoints
 
 import com.twitter.finagle.http.{Request, Response, Status}
 import com.twitter.util.Await
-import io.finch.{Application, Bootstrap, Endpoint, Input}
+import io.finch.{Application, Bootstrap, Endpoint, Input, Text}
 import lspace.codec.argonaut._
-import lspace.codec.ActiveContext
+import lspace.codec.{ActiveContext, ActiveProperty}
 import lspace.encode.EncodeJsonLD
-import lspace.datatype.TextType
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.services.LApplication
-import lspace.structure._
+import lspace._
+import lspace.Label.D
 import lspace.structure.Property.default.`@id`
 import lspace.util.SampleGraph
 import monix.eval.Task
@@ -61,12 +61,13 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     `@prefix` = ListMap(
       "naam"      -> "name",
       "naam_naam" -> "name"
-    )
+    ),
+    definitions = Map("name" -> ActiveProperty(person.keys.name, `@type` = D.`@string` :: Nil)())
   )
   lazy val personApiService: LabeledNodeApi = LabeledNodeApi(sampleGraph, person, defaultContext)
 
   val toCC = { node: Node =>
-    Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as TextType).headOption)
+    Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as D.`@string`).headOption)
   }
   val toNode = { cc: Person =>
     for {
@@ -463,6 +464,18 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .withHeaders("Accept" -> "application/json")
         _ <- Task.deferFuture(service(input.request)).map { r =>
           r.status shouldBe Status.Created
+        }
+      } yield succeed).runToFuture
+    }
+    "support POST with application/graphql" in {
+      (for {
+        graphql <- Task.now(" { naam } ")
+        input = Input
+          .post("/")
+          .withBody[Text.Plain](graphql)
+          .withHeaders("Accept" -> "application/json", "Content-Type" -> "application/graphql")
+        _ <- Task.deferFuture(service(input.request)).map { r =>
+          r.status shouldBe Status.Ok
         }
       } yield succeed).runToFuture
     }

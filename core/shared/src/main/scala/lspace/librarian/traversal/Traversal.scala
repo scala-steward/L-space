@@ -724,6 +724,7 @@ object Traversal
       )
     }
 
+    //TODO: HList for Coalesce traversals
     def coalesce[ET0 <: ClassType[Any],
                  End1,
                  ET1 <: ClassType[End1],
@@ -798,6 +799,7 @@ object Traversal
     def head(): Traversal[ST[Start], ET[End], Head :: Steps]           = add(Head)
     def last(): Traversal[ST[Start], ET[End], Last :: Steps]           = add(Last)
     def limit(max: Int): Traversal[ST[Start], ET[End], Limit :: Steps] = add(Limit(max))
+    def skip(n: Int): Traversal[ST[Start], ET[End], Skip :: Steps]     = add(Skip(n))
     def tail(max: Int): Traversal[ST[Start], ET[End], Tail :: Steps]   = add(Tail(max))
 
     /**

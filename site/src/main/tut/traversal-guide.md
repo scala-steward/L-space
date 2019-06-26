@@ -9,8 +9,8 @@ position: 3
 * [The traverser](#the-traverser)
 * [The traversal](#the-traversal)
 * [Steps](#steps)
-  * [Graph](#graph)
   * [Resource steps](#resource-steps)
+    * [G](#g)
     * [N](#n)
     * [E](#e)
     * [V](#v)
@@ -33,41 +33,48 @@ position: 3
   * [Clip steps](#clip-steps)
     * [Range](#range)
     * [Limit](#limit)
+    * [Skip](#skip)
     * [Tail](#tail)
-    * [Head](#head)
-    * [Last](#last)
-  * [Move steps](#move-steps)
-    * [Out](#out)
-    * [OutE](#oute)
-    * [In](#in)
-    * [InE](#ine)
-    * [Label](#label)
-    * [Id](#id)
-    * [Constant](#constant)
   * [Branche steps](#branche-steps)
     * [Union](#union)
     * [Local](#local)
     * [Repeat](#repeat)
     * [Coalesce](#coalesce)
     * [Choose](#choose)
-  * [Map steps](#map-steps)
+    * [Move steps](#move-steps)
+      * [Out](#out)
+      * [OutE](#oute)
+      * [In](#in)
+      * [InE](#ine)
+      * [Label](#label)
+  * [Traverse steps](#traverse-steps)
+    * [Id](#id)
+    * [Constant](#constant)
+    * [From](#from)
+    * [To](#to)
+  * [Projection steps](#projection-steps)
+    * [Project](#project)
     * [Path](#path)
-    * [OutMap](#outmap)
-    * [OutEMap](#outemap)
-    * [InMap](#inmap)
-    * [InEMap](#inemap)
+    * [Select](#select)
+    * [Map steps](#map-steps)
+      * [OutMap](#outmap)
+      * [OutEMap](#outemap)
+      * [InMap](#inmap)
+      * [InEMap](#inemap)
   * [Barrier steps](#barrier-steps)
     * [Collecting barrier steps](#collecting-barrier-steps)
       * [Group](#group)
     * [Reducing barrier steps](#reducing-barrier-steps)
       * [Mean](#mean)
       * [Sum](#sum)
-      * [Count](#count)
     * [Filter barrier steps](#filter-barrier-steps)
       * [Min](#min)
       * [Max](#max)
     * [Rearrange barrier steps](#rearrange-barrier-steps)
       * [Order](#order)
+    * [Head](#head)
+    * [Last](#last)
+    * [Count](#count)
   * [Side-Effect steps](#side-effect-steps)
     * [Drop](#drop)
   * [Environment steps](#environment-steps)
@@ -106,7 +113,10 @@ depending on the nature of the traversal, guide and the result-type the user can
 when synchronous operations are available each of these methods has a synchronous counterpart without the 'F'-suffix
 ## Steps
 The librarian is able to execute the following steps.
-### Graph
+
+### Resource steps
+Resource-step to start specify what type of resources the traversal should start in.
+#### Graph
 Graph-selection step to point the librarian to a specific part of the L-space 
 (we would not want to defy the large quantity of knowledge from the whole multiverse has to offer).
 ```tut:book
@@ -116,8 +126,6 @@ scala.concurrent.Await.ready(lspace.util.SampleGraph.loadSocial(graph).runToFutu
 val labels = SampleGraph.ontologies
 val keys = SampleGraph.properties
 ```
-### Resource steps
-Resource-step to start specify what type of resources the traversal should start in.
 #### N
 N-step is a node selection step
 #### E
@@ -209,22 +217,15 @@ Limit-step takes the first x-number of traversers
 ```tut:book
 g.N.limit(12).iri.withGraph(graph).toList //takes only the first 12 nodes
 ```
+#### Skip
+Skip-step ignores the first x-number of traversers
+```tut:book
+g.N.skip(12).iri.withGraph(graph).toList //ignores the first 12 nodes
+```
 #### Tail
 Tail-step takes the last x-number of traversers
 ```tut:book
 g.N.tail(12).iri.withGraph(graph).toList //takes only the last 12 nodes
-```
-#### Head
-Head-step takes the first traverser
-```tut:book
-g.N.head.iri.withGraph(graph).head //takes only the first node
-g.N.group(_.out("name").head).mapValues(_.iri).withGraph(graph).toList //
-```
-#### Last
-Last-step takes the last traverser
-```tut:book
-g.N.last.iri.withGraph(graph).head //takes only the last 12 nodes
-g.N.group(_.out("name").last).mapValues(_.iri).withGraph(graph).toList //
 ```
 ### Move steps
 Move steps lets the traverser move through the graph. The path can be stored within the traverer
@@ -252,16 +253,6 @@ g.N.outE("name").withGraph(graph).toList
 Label-step traverses to the label-nodes if any
 ```tut:book
 g.N.label().withGraph(graph).toList
-```
-#### Id
-Id-step returns the resource-id (long)
-```tut:book
-g.N.id.withGraph(graph).toList
-```
-#### Constant
-Constant-step returns a traverser with the provided constant-value
-```tut:book
-g.N.constant(42).withGraph(graph).head
 ```
 ### Branche steps
 Branche steps can execute one or more separate traversals, execute those in a specific way and merges any results back into the original traversal
@@ -302,9 +293,9 @@ Choose-step takes a right or left traversal, right if the by-traversal is non-em
 g.N.choose(_.has(keys.rate, P.gte(4)), _.constant(true), _.constant(false)).withGraph(graph).toList 
 g.N.hasIri(graph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false)).withGraph(graph).head
 ```
-### Map steps
+#### Map steps
 Map steps ...
-#### OutMap
+##### OutMap
 OutMap-step groups the resultset into a ```Map[Property,List[Value]]``` where OutMap is the edge label by which it is grouped and 
 ```List[Value]``` is the list of values for a certain Property. If the traversal has any succeeding steps after the OutMap-step, 
 the traversal will continue to operate with a traverser for each Value. 
@@ -313,17 +304,38 @@ g.N.outMap() //returns a property-map on all out-going connected resources
 g.N.has("name", P.eqv("Garrison")).outMap().withGraph(graph).head
 g.N.outMap("name", "knows") //returns a property-map for edges with label "name" or "knows"
 ```
-#### OutEMap
+##### OutEMap
 ```tut:book
 g.N.has("name", P.eqv("Garrison")).outEMap().withGraph(graph).head //should return all out-going edges grouped by key
 ```
-#### InMap
+##### InMap
 ```tut:book
 g.N.has("name", P.eqv("Garrison")).inMap().withGraph(graph).head //returns a property-map on all incoming connected resources
 ```
-#### InEMap
+##### InEMap
 ```tut:book
 g.N.has("name", P.eqv("Garrison")).inEMap().withGraph(graph).head //should return all in-coming edges grouped by key
+```
+### Traverse steps
+#### Id
+Id-step returns the resource-id (long)
+```tut:book
+g.N.id.withGraph(graph).toList
+```
+#### Constant
+Constant-step returns a traverser with the provided constant-value
+```tut:book
+g.N.constant(42).withGraph(graph).head
+```
+#### From
+From-step ...
+```tut:book
+g.E.from.withGraph(graph).toList
+```
+#### To
+To-step ...
+```tut:book
+g.E.to.withGraph(graph).toList
 ```
 ### Barrier steps
 Barrier steps can operate on the entire resultset of a traversal
@@ -350,13 +362,6 @@ Sum-step passes a traverser where the value is the sum of the values of incoming
 ```tut:book
 g.N.out("balance").hasLabel(`@double`).sum.withGraph(graph).head //should be 2496.09
 ```
-##### Count
-Count-step returns the number of incoming traversers
-```tut:book
-g.N.hasLabel(Ontology("https://example.org/Person")).count.withGraph(graph).head //should be 6
-g.N.hasLabel(Ontology("https://example.org/Person")).where(_.out(Property("https://example.org/knows")).count.is(P.gt(1))).count.withGraph(graph).head //should be 5
-g.N.hasLabel(Ontology("https://example.org/Person")).where(_.out(Property("https://example.org/knows")).count.is(P.lt(2))).count.withGraph(graph).head //should be 1
-```
 #### Filter barrier steps
 Filter barrier steps filters traversers based on some comparison against the complete stream of traversers.
 ##### Min
@@ -375,6 +380,25 @@ g.N.out("balance").hasLabel(`@double`).max.in("balance").out("name").withGraph(g
 Rearrange barrier steps manipulates the position of all the traversers in the stream.
 ##### Order
 Order-step sorts the resultset
+#### Head
+Head-step takes the first traverser
+```tut:book
+g.N.head.iri.withGraph(graph).head //takes only the first node
+g.N.group(_.out("name").head).mapValues(_.iri).withGraph(graph).toList //
+```
+#### Last
+Last-step takes the last traverser
+```tut:book
+g.N.last.iri.withGraph(graph).head //takes only the last 12 nodes
+g.N.group(_.out("name").last).mapValues(_.iri).withGraph(graph).toList //
+```
+#### Count
+Count-step returns the number of incoming traversers
+```tut:book
+g.N.hasLabel(Ontology("https://example.org/Person")).count.withGraph(graph).head //should be 6
+g.N.hasLabel(Ontology("https://example.org/Person")).where(_.out(Property("https://example.org/knows")).count.is(P.gt(1))).count.withGraph(graph).head //should be 5
+g.N.hasLabel(Ontology("https://example.org/Person")).where(_.out(Property("https://example.org/knows")).count.is(P.lt(2))).count.withGraph(graph).head //should be 1
+```
 ### Side-Effect steps
 Side-Effect steps ...
 #### Drop

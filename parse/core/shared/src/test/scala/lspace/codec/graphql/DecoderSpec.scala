@@ -35,7 +35,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
 
   "The GraphQL Decoder" should {
     "parse ' { name }'" in {
-      val (query, graphql)  = decoder.process(""" { name }""".stripMargin)(activeContext)
+      val (query, graphql)  = decoder.findQuery(""" { name }""".stripMargin)(activeContext)
       val expectedTraversal = g.project(_.out(schemaName))
       Future {
         query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
@@ -46,7 +46,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
       }
     }
     "parse ' { name  description }'" in {
-      val (query, graphql)  = decoder.process(""" { name  description }""".stripMargin)(activeContext)
+      val (query, graphql)  = decoder.findQuery(""" { name  description }""".stripMargin)(activeContext)
       val expectedTraversal = g.project(_.out(schemaName)).by(_.out(schemaDescription))
       Future {
         query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
@@ -58,7 +58,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
     }
     "parse ' { name { description2 } description }'" in {
       val (query, graphql) =
-        decoder.process(""" { name { description2 } description }""".stripMargin)(activeContext)
+        decoder.findQuery(""" { name { description2 } description }""".stripMargin)(activeContext)
       val expectedTraversal = g
         .project(_.out(schemaName).project(_.out(schemaDescription2)))
         .by(_.out(schemaDescription))
@@ -72,9 +72,70 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
     }
     "parse ' { name { description2 name2 } description }'" in {
       val (query, graphql) =
-        decoder.process(""" { name { description2 name2 } description }""".stripMargin)(activeContext)
+        decoder.findQuery(""" { name { description2 name2 } description }""".stripMargin)(activeContext)
       val expectedTraversal = g
         .project(_.out(schemaName).project(_.out(schemaDescription2)).by(_.out(schemaName2)))
+        .by(_.out(schemaDescription))
+      Future {
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
+        graphql shouldBe ""
+      }
+    }
+
+    "parse '{ _:( limit: 1) { name } }'" in {
+      val (query, graphql)  = decoder.findQuery(""" { _( limit: 1) { name } }""".stripMargin)(activeContext)
+      val expectedTraversal = g.project(_.out(schemaName)).limit(1)
+      Future {
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
+        graphql shouldBe ""
+      }
+    }
+    "parse '{ _:( limit: 1, offset: 3) { name } }'" in {
+      val (query, graphql)  = decoder.findQuery(""" { _( limit: 1, offset: 3) { name } }""".stripMargin)(activeContext)
+      val expectedTraversal = g.project(_.out(schemaName)).range(3, 4)
+      Future {
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
+        graphql shouldBe ""
+      }
+    }
+    "parse '{ _:( limit: 1 offset: 3) { name } }'" in {
+      val (query, graphql)  = decoder.findQuery(""" { _( limit: 4 offset: 3) { name } }""".stripMargin)(activeContext)
+      val expectedTraversal = g.project(_.out(schemaName)).range(3, 7)
+      Future {
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
+        graphql shouldBe ""
+      }
+    }
+    "parse '{ _:( name2: \"abc\") { name } }'" in {
+      val (query, graphql)  = decoder.findQuery(""" { _( name2: "abc") { name } }""".stripMargin)(activeContext)
+      val expectedTraversal = g.has(schemaName2, P.eqv("abc")).project(_.out(schemaName))
+      Future {
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
+        graphql shouldBe ""
+      }
+
+    }
+    "parse ' { name(name2: \"abc\") { description2 name2 } description }'" in {
+      val (query, graphql) =
+        decoder.findQuery(""" { name(name2: "abc") { description2 name2 } description }""".stripMargin)(activeContext)
+      val expectedTraversal = g
+        .project(
+          _.has(schemaName2, P.eqv("abc")).out(schemaName).project(_.out(schemaDescription2)).by(_.out(schemaName2)))
         .by(_.out(schemaDescription))
       Future {
         query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps

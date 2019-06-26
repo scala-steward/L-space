@@ -1,13 +1,14 @@
 package lspace.services.codecs
 
 import io.finch.Text
-import lspace.decode.{DecodeJson, DecodeJsonLD}
+import lspace.decode.{DecodeGraphQL, DecodeJson, DecodeJsonLD}
 import monix.eval.Task
 
 object Decode {
-  type JsonLD[A] = io.finch.Decode.Aux[A, Application.JsonLD]
-  type Json[A]   = io.finch.Decode.Aux[A, io.finch.Application.Json]
-  type Text[A]   = io.finch.Decode.Aux[A, Text.Plain]
+  type GraphQL[A] = io.finch.Decode.Aux[A, Application.GraphQL]
+  type JsonLD[A]  = io.finch.Decode.Aux[A, Application.JsonLD]
+  type Json[A]    = io.finch.Decode.Aux[A, io.finch.Application.Json]
+  type Text[A]    = io.finch.Decode.Aux[A, Text.Plain]
 
   import io.finch.internal.HttpContent
   implicit def decodeArgonautText[A](implicit e: DecodeJsonLD[A]): Text[Task[A]] =
@@ -22,6 +23,11 @@ object Decode {
 
   implicit def decodeJsonLD[A](implicit e: DecodeJsonLD[A]): JsonLD[Task[A]] =
     io.finch.Decode.instance[Task[A], Application.JsonLD] { (b, cs) =>
+      Right(e.decode(b.asString(cs)))
+    }
+
+  implicit def decodeGraphQL[A](implicit e: DecodeGraphQL[A]): GraphQL[Task[A]] =
+    io.finch.Decode.instance[Task[A], Application.GraphQL] { (b, cs) =>
       Right(e.decode(b.asString(cs)))
     }
 

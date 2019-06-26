@@ -6,6 +6,7 @@ import lspace.codec.jsonld.Encoder
 import lspace.librarian.traversal.Collection
 import lspace._
 import Label.P._
+import lspace.graphql.{Projection, QueryResult}
 
 trait EncodeJson[A] extends Encode[A] {
   def encode(implicit activeContext: ActiveContext): A => String
@@ -101,5 +102,48 @@ object EncodeJson {
   }
   implicit val encodeLongJson = new EncodeJson[Long] {
     def encode(implicit activeContext: ActiveContext) = (value: Long) => value.toString
+  }
+
+  private def namedProjection(projection: Projection, result: List[Any])(
+      implicit encoder: Encoder,
+      activeContext: ActiveContext): Option[encoder.Json] = {
+    import encoder._
+
+    result match {
+      case Nil => None
+      case result =>
+        projection.projections match {
+          case Nil =>
+            val expKey = activeContext.expandIri(projection.name).iri
+            result match {
+              case List(value) =>
+                Some(encoder.fromAny(value, activeContext.expectedType(expKey)).json)
+              case values =>
+                Some(encoder.listToJson(values.map(value =>
+                  encoder.fromAny(value, activeContext.expectedType(expKey)).json)))
+            }
+          case projections =>
+            Some((projection.projections zip result.productIterator.toList) flatMap {
+              case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
+            } toMap).map(encoder.mapToJson(_))
+        }
+    }
+  }
+
+  private def _queryresultToJsonMap(queryResult: QueryResult)(implicit encoder: Encoder,
+                                                              activeContext: ActiveContext): encoder.Json = {
+    queryResult.result match {
+      case Nil => encoder.listToJson(List())
+      case result =>
+        encoder.mapToJson((queryResult.query.projections zip result.productIterator.toList) flatMap {
+          case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
+        } toMap)
+    }
+  }
+
+  implicit def queryResultToJson[T <: QueryResult](implicit encoder: Encoder) = new EncodeJson[T] {
+    import encoder._
+    def encode(implicit activeContext: ActiveContext) =
+      (node: T) => _queryresultToJsonMap(node).asInstanceOf[encoder.Json].noSpaces
   }
 }

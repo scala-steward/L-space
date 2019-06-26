@@ -1,7 +1,5 @@
 package lspace.sparql
 
-import lspace.types.string.Iri
-
 trait Query {}
 
 object Variable {

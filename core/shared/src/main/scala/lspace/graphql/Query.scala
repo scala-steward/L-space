@@ -7,28 +7,31 @@ import shapeless.{HList, HNil}
 
 import scala.collection.immutable.ListMap
 
-case class Query(projections: List[Projection]) extends GraphQL {
+object Query {}
+case class Query(projections: List[Projection] = List(),
+                 limit: Option[Int] = None,
+                 offset: Option[Int] = None,
+                 parameters: ListMap[Property, Any] = ListMap()) //add direction to parameter property (in/out)
+    extends GraphQL {
   def toTraversal: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = {
-    projections
-      .map { projection =>
-        projection.query match {
-          case Some(query) =>
-            //          (projection.toTraversal.untyped ++ UntypedTraversal(
-            //            Vector(Project[HList](query.projections.foldLeft[HList](HNil) {
-            //              case (r, t) => t.toTraversal :: r
-            //            })))).toTyped.retype()
-            projection.toTraversal.untyped ++ query.toTraversal.untyped
-          case None =>
-            projection.toTraversal.untyped
-          //.retype() //causes unnecessary retyping for nested queries, only retype most parent traversal
-        }
-      } match {
-      case Nil               => g
-      case projection :: Nil => g ++ UntypedTraversal(Vector(Project[HList](projection.toTyped :: HNil))).toTyped
+    val traversal = projections
+      .map(_.toTraversal) match {
+      case Nil               => g.untyped
+      case projection :: Nil => UntypedTraversal(Vector(Project[HList](projection :: HNil)))
       case projections =>
-        g ++ UntypedTraversal(Vector(Project[HList](projections.foldLeft[HList](HNil) {
-          case (r, t) => t.toTyped :: r
-        }))).toTyped
+        UntypedTraversal(Vector(Project[HList](projections.foldLeft[HList](HNil) {
+          case (r, t) => t :: r
+        })))
     }
+    val startFilter = parameters.foldLeft(g: Traversal[ClassType[Any], ClassType[Any], HList]) {
+      case (t, (property, value)) => g.has(property, P.eqv(value))
+    }
+    val endFilter = (limit, offset) match {
+      case (Some(limit), Some(offset)) if limit > 0 && offset >= 0 => g.range(offset, offset + limit)
+      case (Some(limit), None) if limit > 0                        => g.limit(limit)
+      case (None, Some(offset)) if offset >= 0                     => g.skip(offset)
+      case (None, None)                                            => g
+    }
+    (startFilter.untyped ++ traversal ++ endFilter.untyped).toTyped
   }
 }
