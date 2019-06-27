@@ -153,8 +153,7 @@ lazy val graph = (project in file("graph"))
   .settings(settings)
   .settings(
     name := "lspace-graph",
-    libraryDependencies ++= graphDeps,
-    Test / parallelExecution := false
+    libraryDependencies ++= graphDeps
   )
 
 lazy val cassandra = (project in file("store/cassandra"))
@@ -189,8 +188,7 @@ lazy val services = (project in file("services"))
   .settings(settings)
   .settings(
     name := "lspace-services",
-    libraryDependencies ++= servicesDeps,
-    Test / parallelExecution := true
+    libraryDependencies ++= servicesDeps
   )
 
 val makeSettingsYml = Def.task {

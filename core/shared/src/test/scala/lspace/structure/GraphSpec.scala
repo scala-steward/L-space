@@ -34,7 +34,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { ids =>
               ids.toSet.size shouldBe 100
             }
-            .timeout(400.millis)
+            .timeout(4000.millis)
             .runToFuture
         }
       }
@@ -48,7 +48,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               node.in().size shouldBe 0
               node.labels.size shouldBe 0
 //              graph.nodes.hasId(node.id).isDefined shouldBe true
-            }).timeout(400.millis).runToFuture
+            }).timeout(4000.millis).runToFuture
           }
           "have a label when a label is provided" in {
             (for {
@@ -59,7 +59,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               node.hasLabel(SampleGraph.ontologies.person).isDefined shouldBe true
               node.hasLabel(SampleGraph.ontologies.place).isDefined shouldBe false
 //              graph.nodes.hasId(node.id).isDefined shouldBe true
-            }).timeout(400.millis).runToFuture
+            }).timeout(4000.millis).runToFuture
           }
         }
         "upsert a node by iri" which {
@@ -80,7 +80,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               node.out().size shouldBe 1
               node.in().size shouldBe 0
               node.labels.size shouldBe 0
-            }).timeout(400.millis).runToFuture
+            }).timeout(4000.millis).runToFuture
           }
           "returns an existing node when a node is already identified by this iri" in {
             (for {
@@ -96,7 +96,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               node.out().size shouldBe 1
               node.in().size shouldBe 0
               node.labels.size shouldBe 0
-            }).timeout(400.millis).runToFuture
+            }).timeout(4000.millis).runToFuture
           }
         }
         "merges existing nodes when multiple nodes in the graph are identified by the same iri" in {
@@ -118,7 +118,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               _ <- //merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
               graph.nodes.hasIri("dup-existing-node-123").toListL.map(_.size shouldBe 1) //.delayExecution(200.millis)
             } yield ()) //.delayExecution(200.millis)
-          } yield { succeed }).timeout(800.millis).runToFuture
+          } yield { succeed }).timeout(4000.millis).runToFuture
         }
       }
 //      "have an edges API" which {}
@@ -133,7 +133,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             value.out().size shouldBe 0
             value.in().size shouldBe 0
             value.labels.size shouldBe 1
-          }).timeout(400.millis).runToFuture
+          }).timeout(4000.millis).runToFuture
         }
         "upsert a value" in {
           (for {
@@ -146,7 +146,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             value.out().size shouldBe 0
             value.in().size shouldBe 0
             value.labels.size shouldBe 1
-          }).timeout(400.millis).runToFuture
+          }).timeout(4000.millis).runToFuture
         }
       }
 //      "have a resources API" which {}
@@ -173,7 +173,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           _ <- graph.nodes.hasIri("someuniqueurl").toListL.map(_.size shouldBe 0)
           c <- transaction.commit()
           _ <- graph.nodes.hasIri("someuniqueurl").toListL.map(_.size shouldBe 1)
-        } yield succeed).timeout(1200.millis).runToFuture
+        } yield succeed).timeout(4000.millis).runToFuture
       }
 
       "support traversals" which {
@@ -223,7 +223,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
                 .headF
                 .map(_ shouldBe 1)
             } yield ()
-          } yield succeed).timeout(1500.millis).runToFuture
+          } yield succeed).timeout(4000.millis).runToFuture
 //          val traversal  = graph.g.N().hasIri("abc").where(_.hasIri("abc")).limit(10).outMap()
 //          val collection = Collection(Instant.now(), Instant.now(), traversal.toList, traversal.ct)
 //          collection.item.head.nonEmpty shouldBe true
@@ -243,7 +243,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { ontologyOption =>
               ontologyOption shouldBe Some(SampleGraph.Person.ontology)
             }
-            .timeout(1400.millis)
+            .timeout(4000.millis)
             .runToFuture
         }
         "contains the person-ontology in cache" in {
@@ -258,7 +258,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { ontologyOption =>
               ontologyOption shouldBe Some(SampleGraph.Place.ontology)
             }
-            .timeout(1400.millis)
+            .timeout(4000.millis)
             .runToFuture
         }
         "contains the place-ontology in cache" in {
@@ -273,7 +273,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .map { propertyOption =>
               propertyOption shouldBe Some(SampleGraph.properties.name.property)
             }
-            .timeout(1400.millis)
+            .timeout(4000.millis)
             .runToFuture
         }
         "contains the name-property in cache" in {
@@ -301,7 +301,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           } yield succeed).timeout(4000.millis).runToFuture
         }
         "contains certain values" in {
-          sampleGraph.values.count().map(_ shouldBe 38).timeout(1400.millis).runToFuture
+          sampleGraph.values.count().map(_ shouldBe 38).timeout(4000.millis).runToFuture
         }
       }
       //        "support inserting structures from other graphs (object + edges)" ignore {

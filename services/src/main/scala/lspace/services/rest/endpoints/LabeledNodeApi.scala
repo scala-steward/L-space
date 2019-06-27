@@ -85,29 +85,29 @@ class LabeledNodeApi(val ontology: Ontology,
     * GET /{id}
     */
   def byId: Endpoint[IO, ContextedT[Node]] = get(path[Long]).mapOutputAsync { id =>
-    idToNodeTask(id).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
+    idToNodeTask(id).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).to[IO]
   }
 
 //  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
-//    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).toIO
+//    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).to[IO]
 //  }
 
   /**
     * GET /
     */
 //  def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
-//    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
+//    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
 //  }
 
 //  def list2: Endpoint[IO, ContextedT[List[Node]]] =
 //    get(params[String]("out") :: params[String]("in") :: paramOption[Int]("from") :: paramOption[Int]("to"))
 //      .mapOutputAsync {
 //        case out :: in :: fromOption :: toOption :: HNil =>
-//          g.N.hasLabel(ontology).union(_.out(),_.in()).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
+//          g.N.hasLabel(ontology).union(_.out(),_.in()).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
 //      }
 
   def list: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
-    case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).toIO
+    case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
     case List(id) =>
       g.N
         .hasIri(graph.iri + "/" + label + "/" + id)
@@ -116,7 +116,7 @@ class LabeledNodeApi(val ontology: Ontology,
         .toListF
         .map(ContextedT(_))
         .map(Ok)
-        .toIO
+        .to[IO]
     case List(id, key) =>
       val expKey = activeContext.expandIri(key).iri
       activeContext.definitions
@@ -135,7 +135,7 @@ class LabeledNodeApi(val ontology: Ontology,
                   .toListF
                   .map(ContextedT(_))
                   .map(Ok)
-                  .toIO
+                  .to[IO]
               case property: Property =>
                 g.N
                   .hasIri(graph.iri + "/" + label + "/" + id)
@@ -146,7 +146,7 @@ class LabeledNodeApi(val ontology: Ontology,
                   .toListF
                   .map(ContextedT(_))
                   .map(Ok)
-                  .toIO
+                  .to[IO]
               case datatype: DataType[_] =>
                 g.N
                   .hasIri(graph.iri + "/" + label + "/" + id)
@@ -157,7 +157,7 @@ class LabeledNodeApi(val ontology: Ontology,
                   .toListF
                   .map(ContextedT(_))
                   .map(Ok)
-                  .toIO
+                  .to[IO]
             }
             .getOrElse {
               g.N
@@ -168,10 +168,10 @@ class LabeledNodeApi(val ontology: Ontology,
                 .toListF
                 .map(ContextedT(_))
                 .map(Ok)
-                .toIO
+                .to[IO]
             }
         }
-        .getOrElse(Task.now(Forbidden(new Exception(s"path $key not supported"))).toIO)
+        .getOrElse(Task.now(Forbidden(new Exception(s"path $key not supported"))).to[IO])
     case List(id, key1, key2) =>
       val expKey1 = activeContext.expandIri(key1).iri
       val expKey2 = activeContext.expandIri(key2).iri
@@ -192,26 +192,28 @@ class LabeledNodeApi(val ontology: Ontology,
           .toListF
           .map(ContextedT(_))
           .map(Ok)
-          .toIO
-      }).getOrElse(Task.now(Forbidden(new Exception(s"path $key1/$key2 not supported"))).toIO)
-    case paths => Task.now(Forbidden(new Exception(s"path ${paths.mkString("/")} not supported"))).toIO
+          .to[IO]
+      }).getOrElse(Task.now(Forbidden(new Exception(s"path $key1/$key2 not supported"))).to[IO])
+    case paths => Task.now(Forbidden(new Exception(s"path ${paths.mkString("/")} not supported"))).to[IO]
   }
 
   def create: Endpoint[IO, ContextedT[Node]] = {
     post(body[Task[Node], lspace.services.codecs.Application.JsonLD :+: Application.Json :+: CNil]) {
       nodeTask: Task[Node] =>
-        nodeTask.flatMap { node =>
-          val t = graph.transaction
-          for {
-            newNode <- t.nodes.create(node.labels: _*)
-            _       <- newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
-            _       <- newNode.addLabel(ontology)
-            _       <- Task.sequence(node.outE().map(e => newNode --- e.key --> e.to))
-            _       <- t.commit()
-            r       <- graph.nodes.hasId(newNode.id)
-            out = ContextedT(r.get)
-          } yield Created(out).withHeader("Location" -> newNode.iri)
-        }.toIO //(catsEffect(global))
+        nodeTask
+          .flatMap { node =>
+            val t = graph.transaction
+            for {
+              newNode <- t.nodes.create(node.labels: _*)
+              _       <- newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+              _       <- newNode.addLabel(ontology)
+              _       <- Task.sequence(node.outE().map(e => newNode --- e.key --> e.to))
+              _       <- t.commit()
+              r       <- graph.nodes.hasId(newNode.id)
+              out = ContextedT(r.get)
+            } yield Created(out).withHeader("Location" -> newNode.iri)
+          }
+          .to[IO] //(catsEffect(global))
     }
   }
 
@@ -239,7 +241,7 @@ class LabeledNodeApi(val ontology: Ontology,
             } yield Ok(out)
           }
           .onErrorHandle(f => NotFound(new Exception("cannot PUT a resource which does not exist"))) //TODO: handle 'unexpected' multiple results
-          .toIO
+          .to[IO]
     }
   }
 
@@ -272,7 +274,7 @@ class LabeledNodeApi(val ontology: Ontology,
             } yield Ok(out)
           }
           .onErrorHandle(f => NotFound(new Exception("cannot PATCH a resource which does not exist")))
-          .toIO
+          .to[IO]
     }
   }
   def removeById: Endpoint[IO, Node] = delete(path[String]) { id: String =>
@@ -282,8 +284,9 @@ class LabeledNodeApi(val ontology: Ontology,
         .hasIri(graph.iri + "/" + label + "/" + id)
         .headL //TODO: handle 'unexpected' multiple results
       _ <- node.remove() //TODO: decide if values or blank nodes need to be explicitly removed
-    } yield
-      NoContent[Node]).onErrorHandle(f => NotFound(new Exception("cannot DELETE a resource which does not exist"))).toIO
+    } yield NoContent[Node])
+      .onErrorHandle(f => NotFound(new Exception("cannot DELETE a resource which does not exist")))
+      .to[IO]
   }
 
   /**
@@ -295,15 +298,17 @@ class LabeledNodeApi(val ontology: Ontology,
       "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                        lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
-        traversalTask.flatMap { traversal =>
-          traversal.untyped
-            .withGraph(graph)
-            .toListF
-            .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
-            .map(_.toList)
-            .map(ContextedT(_))
-            .map(Ok)
-        }.toIO
+        traversalTask
+          .flatMap { traversal =>
+            traversal.untyped
+              .withGraph(graph)
+              .toListF
+              .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
+              .map(_.toList)
+              .map(ContextedT(_))
+              .map(Ok)
+          }
+          .to[IO]
     }
   }
 
@@ -315,14 +320,16 @@ class LabeledNodeApi(val ontology: Ontology,
     MatchHeader.beGraphQL :: post(body[Task[Query], lspace.services.codecs.Application.GraphQL])
       .mapOutputAsync {
         case queryTask: Task[Query] =>
-          queryTask.flatMap { query =>
-            (g.N.hasLabel(ontology).untyped ++ query.toTraversal.untyped)
-              .withGraph(graph)
-              .toListF
-              .map(result => QueryResult(query, result))
-              .map(ContextedT(_))
-              .map(Ok)
-          }.toIO
+          queryTask
+            .flatMap { query =>
+              (g.N.hasLabel(ontology).untyped ++ query.toTraversal.untyped)
+                .withGraph(graph)
+                .toListF
+                .map(result => QueryResult(query, result))
+                .map(ContextedT(_))
+                .map(Ok)
+            }
+            .to[IO]
       }
   }
 
@@ -331,7 +338,7 @@ class LabeledNodeApi(val ontology: Ontology,
 //  val postNode: Endpoint[IO, Node] = post(zero :: jsonldToNode).mapOutputAsync { node: Node =>
 //    Task {
 //      graph.nodes.post(node)
-//    }.map(Created(_)).toIO
+//    }.map(Created(_)).to[IO]
 //  }
 
   def api =

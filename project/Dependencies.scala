@@ -19,7 +19,7 @@ object Dependencies {
       "org.typelevel" %%% "squants"        % "1.4.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"      %%% "scribe"    % "2.7.7",
-      "org.scalatest" %%% "scalatest" % "3.0.7" % "test"
+      "org.scalatest" %%% "scalatest" % "3.0.8" % "test"
     ))
 
   val coreJsDeps = Def.setting(
@@ -81,6 +81,6 @@ object Dependencies {
     "com.vmunier"        %% "scalajs-scripts"      % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi"   %% "scalatags" % "0.7.0",
-    "org.scalatest" %% "scalatest" % "3.0.7" % "test"
+    "org.scalatest" %% "scalatest" % "3.0.8" % "test"
   )
 }
