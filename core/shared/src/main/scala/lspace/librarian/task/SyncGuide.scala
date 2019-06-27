@@ -47,6 +47,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
 
   protected def takeByTimeSpan(f: Stream[Librarian[Any]], timespan: FiniteDuration): Stream[Librarian[Any]] = {
     val timeLimitStamp = Instant.ofEpochMilli(Instant.now().toEpochMilli + timespan.toMillis)
+    def now            = Instant.now()
     f.takeWhile(l => timeLimitStamp.isAfter(Instant.now()))
   }
 

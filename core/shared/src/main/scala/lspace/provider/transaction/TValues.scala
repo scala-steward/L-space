@@ -32,7 +32,7 @@ abstract class TValues[G <: Transaction](override val graph: G) extends Values(g
     val fromParent = parent.values
       .hasIri(iris)
       .asInstanceOf[Observable[parent.GValue[Any]]]
-      .mapEval(_TValue(_).task)
+      .mapEval(_TValue(_).to[Task])
       .filter(n => !deleted.contains(n.id))
     val idSet: scala.collection.concurrent.Map[Long, Value[_]] =
       new ConcurrentHashMap[Long, Value[_]]().asScala
@@ -49,7 +49,7 @@ abstract class TValues[G <: Transaction](override val graph: G) extends Values(g
     val fromParent = parent.values
       .byValue(valueSet)
       .asInstanceOf[Observable[parent.GValue[T]]]
-      .mapEval(_TValue(_).task)
+      .mapEval(_TValue(_).to[Task])
       .filter(n => !deleted.contains(n.id))
     val idSet: scala.collection.concurrent.Map[Long, Value[_]] =
       new ConcurrentHashMap[Long, Value[_]]().asScala
@@ -70,7 +70,7 @@ abstract class TValues[G <: Transaction](override val graph: G) extends Values(g
             v <- parent.values
               .hasId(id)
             v1 <- if (v.nonEmpty) {
-              _TValue(v.get.asInstanceOf[parent.GValue[Any]]).map(Some(_)).task
+              _TValue(v.get.asInstanceOf[parent.GValue[Any]]).map(Some(_)).to[Task]
             } else Task.now(v)
           } yield v1
       } yield r1

@@ -63,6 +63,7 @@ package object lspace {
 
     object Scheduler {
       implicit def global: Scheduler = ExecutionHelper.scheduler
+//      implicit def sync: Scheduler   = ExecutionHelper.syncscheduler
     }
   }
 

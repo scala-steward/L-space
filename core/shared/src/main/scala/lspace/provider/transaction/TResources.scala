@@ -26,9 +26,9 @@ abstract class TResources[G <: Transaction](override val graph: G) extends Resou
     val fromParent = parent.resources
       .hasIri(iris)
       .mapEval {
-        case n: parent._Node                      => _TNode(n).task
-        case e: parent._Edge[Any, Any] @unchecked => _TEdge(e).task
-        case v: parent._Value[Any] @unchecked     => _TValue(v).task
+        case n: parent._Node                      => _TNode(n).to[Task]
+        case e: parent._Edge[Any, Any] @unchecked => _TEdge(e).to[Task]
+        case v: parent._Value[Any] @unchecked     => _TValue(v).to[Task]
       }
       .filter(n => nodes.deleted.contains(n.id) || edges.deleted.contains(n.id) || values.deleted.contains(n.id))
     val ids = fromTransaction.map(_.id)
@@ -53,9 +53,9 @@ abstract class TResources[G <: Transaction](override val graph: G) extends Resou
             .flatMap {
               case Some(value) =>
                 (value match {
-                  case n: parent._Node                      => _TNode(n).task
-                  case e: parent._Edge[Any, Any] @unchecked => _TEdge(e).task
-                  case v: parent._Value[Any] @unchecked     => _TValue(v).task
+                  case n: parent._Node                      => _TNode(n).to[Task]
+                  case e: parent._Edge[Any, Any] @unchecked => _TEdge(e).to[Task]
+                  case v: parent._Value[Any] @unchecked     => _TValue(v).to[Task]
                 }) map (Some(_))
               case None => Task.now(None)
             }

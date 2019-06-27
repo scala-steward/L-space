@@ -11,9 +11,9 @@ class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with
   implicit lazy val guide = lspace.Implicits.AsyncGuide.guide
   import lspace._
 
-  val graph: Graph                    = MemGraph("memgraphspec")
-  val sampleGraph                     = SampledGraph(MemGraph("memgraphspec-sample"))
-  def createGraph(iri: String): Graph = MemGraph("memgraphspec-" + iri)
+  val graph: Graph                    = MemGraph("MemAsyncGraphSpec")
+  val sampleGraph                     = SampledGraph(MemGraph("MemAsyncGraphSpec-sample"))
+  def createGraph(iri: String): Graph = MemGraph("MemAsyncGraphSpec-" + iri)
 
   val initTask = (for {
     sample <- sampleGraph.load

@@ -31,7 +31,7 @@ abstract class TEdges[G <: Transaction](override val graph: G) extends Edges(gra
     val fromParent = parent.edges
       .hasIri(iris)
       .asInstanceOf[Observable[parent._Edge[Any, Any]]]
-      .mapEval(_TEdge(_).task)
+      .mapEval(_TEdge(_).to[Task])
       .filter(n => !deleted.contains(n.id))
     val idSet: scala.collection.concurrent.Map[Long, Edge[_, _]] =
       new ConcurrentHashMap[Long, Edge[_, _]]().asScala
@@ -51,7 +51,7 @@ abstract class TEdges[G <: Transaction](override val graph: G) extends Edges(gra
           parent.edges
             .hasId(id)
             .flatMap {
-              case Some(edge) => _TEdge(edge.asInstanceOf[parent._Edge[Any, Any]]).task.map(Some(_))
+              case Some(edge) => _TEdge(edge.asInstanceOf[parent._Edge[Any, Any]]).to[Task].map(Some(_))
               case None       => Task.now(None)
             }
       } yield r1

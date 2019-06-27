@@ -23,7 +23,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
       .get(iri)
       .map(Coeval.now)
       .map(_.map(Some(_)))
-      .map(_.task)
+      .map(_.to[Task])
       .getOrElse {
         nodeStore
           .hasIri(iri)
@@ -45,7 +45,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                   }
                   .map(Some(_))
               }
-              .map(_.task)
+              .map(_.to[Task])
               .getOrElse {
                 Task.now(None)
               }
@@ -76,7 +76,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                   }
                   .map(Some(_))
               }
-              .map(_.task)
+              .map(_.to[Task])
               .getOrElse(Task.now(None))))
 
   def all: List[Ontology] = byId.values.toList

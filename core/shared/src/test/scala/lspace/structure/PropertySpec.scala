@@ -33,7 +33,7 @@ class PropertySpec extends AsyncWordSpec with Matchers {
       val p = new Property("a")
       (for {
         _ <- Task.gatherUnordered {
-          (1 to 1000).map(i => new Property(s"a$i")).grouped(100).map(p.properties.++(_)).map(Task.now)
+          (1 to 1000).map(i => new Property(s"a$i")).grouped(100).map(p.properties.++(_)).map(Task.now).toIterable
         }
       } yield p.properties().size shouldBe 1000).runToFuture
     }

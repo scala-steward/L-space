@@ -3,10 +3,10 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
   val scala     = "2.12.8"
-  val finch     = "0.28.0"
-  val monix     = "3.0.0-RC2"
-  val sttp      = "1.5.12"
-  val elastic4s = "6.5.1"
+  val finch     = "0.29.0"
+  val monix     = "3.0.0-RC3"
+  val sttp      = "1.6.0"
+  val elastic4s = "7.0.1"
   val phantom   = "2.37.0"
 }
 
@@ -18,14 +18,14 @@ object Dependencies {
       "com.chuusai"   %%% "shapeless"      % "2.3.3",
       "org.typelevel" %%% "squants"        % "1.4.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
-      "com.outr"      %%% "scribe"    % "2.7.3",
+      "com.outr"      %%% "scribe"    % "2.7.7",
       "org.scalatest" %%% "scalatest" % "3.0.7" % "test"
     ))
 
   val coreJsDeps = Def.setting(
     Seq(
-      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC1",
-      "org.scala-js"      %%% "scalajs-dom"     % "0.9.6"
+      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3",
+      "org.scala-js"      %%% "scalajs-dom"     % "0.9.7"
     ))
 
   val coreJvmDeps = Seq()
@@ -61,13 +61,13 @@ object Dependencies {
   )
 
   val storeKafkaDeps = Seq(
-    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC2"
+    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC4"
   )
 
   val indexElasticsearchDeps = Seq(
-    "com.sksamuel.elastic4s" %% "elastic4s-core"  % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-http"  % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-monix" % Version.elastic4s exclude ("io.monix", "monix")
+    "com.sksamuel.elastic4s" %% "elastic4s-core"         % Version.elastic4s,
+    "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % Version.elastic4s,
+    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
   val servicesDeps = Seq(
@@ -76,11 +76,11 @@ object Dependencies {
     "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
     "com.github.finagle" %% "finchx-fs2"           % Version.finch,
     "com.github.finagle" %% "finchx-refined"       % Version.finch,
-    "co.fs2"             %% "fs2-reactive-streams" % "1.0.4",
+    "co.fs2"             %% "fs2-reactive-streams" % "1.0.5",
     "com.twitter"        %% "twitter-server"       % "19.4.0",
     "com.vmunier"        %% "scalajs-scripts"      % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
-    "com.lihaoyi"   %% "scalatags" % "0.6.7",
+    "com.lihaoyi"   %% "scalatags" % "0.7.0",
     "org.scalatest" %% "scalatest" % "3.0.7" % "test"
   )
 }

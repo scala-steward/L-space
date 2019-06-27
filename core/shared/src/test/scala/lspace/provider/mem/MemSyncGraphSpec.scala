@@ -4,15 +4,17 @@ import lspace.librarian.task.SyncGuideSpec
 import lspace.structure.{Graph, SampledGraph}
 import org.scalatest.FutureOutcome
 
+import scala.concurrent.Future
+
 class MemSyncGraphSpec extends SyncGuideSpec {
   implicit lazy val guide = lspace.Implicits.SyncGuide.guide
   import lspace.Implicits.Scheduler.global
 
-  val graph: Graph                    = MemGraph("memgraphspec")
-  val sampleGraph                     = SampledGraph(MemGraph("memgraphspec-sample"))
-  def createGraph(iri: String): Graph = MemGraph("memgraphspec-" + iri)
+  val graph: Graph                    = MemGraph("MemSyncGraphSpec")
+  val sampleGraph                     = SampledGraph(MemGraph("MemSyncGraphSpec-sample"))
+  def createGraph(iri: String): Graph = MemGraph("MemSyncGraphSpec-" + iri)
 
-  val initTask = (for {
+  lazy val initTask = (for {
     _ <- sampleGraph.load
   } yield ()).memoizeOnSuccess
 
@@ -22,5 +24,8 @@ class MemSyncGraphSpec extends SyncGuideSpec {
     })
   }
 
+//  "ab" should {
+//    "de" in Future { succeed }
+//  }
   sampledGraphComputerTests(sampleGraph)
 }

@@ -8,33 +8,37 @@ import lspace.datatype.{IntType, NodeURLType}
 import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
+import monix.execution.Scheduler
 import org.scalatest.{AsyncWordSpec, Matchers}
 import shapeless._
+
+import scala.concurrent.Future
 
 class TraversalSpec extends AsyncWordSpec with Matchers {
   val graph = MemGraph("TraversalSpec")
 
   import lspace.Implicits.Scheduler.global
+//  implicit def global: Scheduler = monix.execution.Scheduler.global
 
   def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], _ <: HList]](traversal: S)(
       toTraversal: Node => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]]) =
     (for {
       node         <- traversal.toNode
       newTraversal <- toTraversal(node)
-    } yield traversal shouldBe newTraversal).runToFuture
+    } yield traversal shouldBe newTraversal) //.runToFuture
 
   "A traversal" which {
-    "starts empty" in {
+    "starts empty" in Future {
       val graphName = "data.example.com/test"
       g.stepsList.size shouldBe 0
 //      g.toNode.graph shouldBe DetachedGraph
     }
-    "start with a ResourceStep" in {
+    "start with a ResourceStep" in Future {
       g.N.hasLabel(Ontology.ontology).stepsList.size shouldBe 2
       g.E.hasLabel(Property.default.`@label`).stepsList.size shouldBe 2
       g.V.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 2
     }
-    "start without a ResourceStep" in {
+    "start without a ResourceStep" in Future {
       g.hasLabel(Ontology.ontology).stepsList.size shouldBe 1
       g.hasLabel(Property.default.`@label`).stepsList.size shouldBe 1
       g.hasLabel(DataType.default.`@string`).stepsList.size shouldBe 1
@@ -44,14 +48,14 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 ////      g.N.repeat(_.out("knows"), _.hasLabel(Ontology("Officer")), 3, true)
 //    }
     "end-type is numeric" can {
-      "be summed up" in {
+      "be summed up" in Future {
         "g.V.hasLabel[Int].sum" should compile
         "g.V.hasLabel[Double].sum" should compile
         "g.V.hasLabel[Long].sum" should compile
         "g.V.hasLabel[String].sum" shouldNot compile
         "g.V.hasLabel[Any].sum" shouldNot compile
       }
-      "be averaged" in {
+      "be averaged" in Future {
         "g.V.hasLabel[Int].mean" should compile
         "g.V.hasLabel[Double].mean" should compile
         "g.V.hasLabel[Long].mean" should compile
@@ -60,7 +64,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       }
     }
     "end-type is numeric or temporal" can {
-      "be filtered for a max-value" in {
+      "be filtered for a max-value" in Future {
         "g.V.hasLabel[Int].max" should compile
         "g.V.hasLabel[Double].max" should compile
         "g.V.hasLabel[Long].max" should compile
@@ -70,7 +74,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         "g.V.hasLabel[String].max" shouldNot compile
         "g.V.hasLabel[Any].max" shouldNot compile
       }
-      "be filtered for a min-value" in {
+      "be filtered for a min-value" in Future {
         "g.V.hasLabel[Int].min" should compile
         "g.V.hasLabel[Double].min" should compile
         "g.V.hasLabel[Long].min" should compile
@@ -81,7 +85,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         "g.V.hasLabel[Any].min" shouldNot compile
       }
     }
-    "start with any step extending TraversalStep" in {
+    "start with any step extending TraversalStep" ignore {
       lspace.g.N().in().stepsList.size shouldBe 2
       lspace.g.N().out().stepsList.size shouldBe 2
       lspace.g.N().out().hasIri("abc").stepsList.size shouldBe 3
@@ -148,7 +152,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       graph.ns.properties.store(pString)
       lspace.g.N().has(pDouble, P.startsWith("a")).stepsList.size shouldBe 2
     }
-    "consist of multiple steps" in {
+    "consist of multiple steps" in Future {
       val traversal = lspace.g.N().out().out().in()
       traversal.stepsList.size shouldBe 4
 //      val pDouble = Property("schema/x")
@@ -159,90 +163,90 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //      lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
     "contains labels (as-steps)" can {
-      "be selected by valid name" ignore {
+      "be selected by valid name" ignore Future {
         """g.V.as("aname").select("aname")""" should compile
         """g.V.as("aname").select("wrongname")""" shouldNot compile
       }
     }
   }
 
-  "A traversal" must {
+//  "A traversal" must {
 //    "have a defined end-type" in {
-    import shapeless.::
+  import shapeless.::
 //      g.N.outMap().hasLabel(`@int`).et shouldBe `@int`
 //    }
-  }
+//  }
   "A traversal has an expected result type" can {
-    """g.out()""" in {
+    """g.out()""" in Future {
       g.out().et shouldBe ClassType.stubAny
     }
-    """g.N""" in {
+    """g.N""" in Future {
       g.N.et shouldBe Node.nodeUrl
     }
-    """g.E""" in {
+    """g.E""" in Future {
       g.E.et shouldBe Edge.edgeUrl
     }
-    """g.N.group(_.out()).mapValues(_.head)""" in {
+    """g.N.group(_.out()).mapValues(_.head)""" in Future {
       g.N
         .group(_.out())
         .mapValues(_.head)
         .et shouldBe tupleType(listType(), optionType(Node.nodeUrl))
     }
-    """g.N.group(_.out())""" in {
+    """g.N.group(_.out())""" in Future {
       g.N
         .group(_.out())
         .et shouldBe tupleType(listType(), listType(Node.nodeUrl))
     }
-    """g.E.group(_.out()).mapValues(_.head)""" in {
+    """g.E.group(_.out()).mapValues(_.head)""" in Future {
       g.E
         .group(_.out())
         .mapValues(_.head)
         .et shouldBe tupleType(listType(), optionType(Edge.edgeUrl))
     }
-    """g.E.group(_.out())""" in {
+    """g.E.group(_.out())""" in Future {
       g.E
         .group(_.out())
         .et shouldBe tupleType(listType(), listType(Edge.edgeUrl))
     }
-    """g.V.group(_.out()).mapValues(_.hasLabel[Int].head)""" in {
+    """g.V.group(_.out()).mapValues(_.hasLabel[Int].head)""" in Future {
       g.V
         .group(_.out())
         .mapValues(_.hasLabel[Int].head)
         .et shouldBe tupleType(listType(), optionType(`@int`))
     }
-    """g.V.group(_.out()).mapValues(_.hasLabel[Int])""" in {
+    """g.V.group(_.out()).mapValues(_.hasLabel[Int])""" in Future {
       g.V
         .group(_.out())
         .mapValues(_.hasLabel[Int])
         .et shouldBe tupleType(listType(), listType(`@int`))
     }
-    """g.N.group(_.label()) .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))""" in {
+    """g.N.group(_.label()) .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))""" in Future {
       g.N
         .group(_.label())
         .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
         .et shouldBe tupleType(listType(Ontology.urlType), listType(tupleType(listType(), listType(`@double`))))
     }
-    """g.N.project(_.out()).by(_.in())""" in {
+    """g.N.project(_.out()).by(_.in())""" in Future {
       g.N.project(_.out()).by(_.in()).et shouldBe tupleType(listType(), listType())
     }
-    """g.N.project(_.out().hasLabel[Int].head)""" in {
+    """g.N.project(_.out().hasLabel[Int].head)""" in Future {
       g.N.project(_.out().hasLabel[Int].head).et shouldBe tupleType(optionType(`@int`))
     }
-    """g.N.project(_.out().hasLabel[Int].head).by(_.in())""" in {
+    """g.N.project(_.out().hasLabel[Int].head).by(_.in())""" in Future {
       g.N.project(_.out().hasLabel[Int].head).by(_.in()).et shouldBe tupleType(optionType(`@int`), listType())
     }
-    """g.N.project(_.group()).by(_.in())""" in {
+    """g.N.project(_.group()).by(_.in())""" in Future {
       g.N.project(_.group(_.out()).mapValues(_.out())).by(_.in()).et shouldBe tupleType(mapType(listType(), listType()),
                                                                                         listType())
     }
-    """g.N.project(_.out()).by(_.inMap())""" in {
+    """g.N.project(_.out()).by(_.inMap())""" in Future {
       g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(), mapType(Property.urlType, listType()))
     }
-    """g.N.project(_.out()).by(_.inMap()).by(_.outMap())""" in {
+    """g.N.project(_.out()).by(_.inMap()).by(_.outMap())""" in Future {
       g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
         tupleType(listType(), mapType(Property.urlType, listType()), mapType(Property.urlType, listType()))
     }
-    """g.hasLabel[...].max()""" in {
+    """g.hasLabel[...].max()""" in Future {
       g.hasLabel[Int].max().et shouldBe `@int`
       g.hasLabel[Double].max().et shouldBe `@double`
       g.hasLabel[Long].max().et shouldBe `@long`
@@ -251,7 +255,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.hasLabel[LocalTime].max().et shouldBe `@time`
       g.hasLabel[LocalDateTime].max().et shouldBe `@localdatetime`
     }
-    """g.N.max(_....)""" in {
+    """g.N.max(_....)""" in Future {
       g.N.max(_.out().hasLabel[Int]).et shouldBe NodeURLType.datatype
       g.N.max(_.out().hasLabel[Double]).et shouldBe NodeURLType.datatype
       g.N.max(_.out().hasLabel[Long]).et shouldBe NodeURLType.datatype
@@ -259,7 +263,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.max(_.out().hasLabel[LocalDate]).et shouldBe NodeURLType.datatype
       g.N.max(_.out().hasLabel[LocalDateTime]).et shouldBe NodeURLType.datatype
     }
-    """g.hasLabel[...].min()""" in {
+    """g.hasLabel[...].min()""" in Future {
       g.hasLabel[Int].min().et shouldBe `@int`
       g.hasLabel[Double].min().et shouldBe `@double`
       g.hasLabel[Long].min().et shouldBe `@long`
@@ -268,7 +272,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.hasLabel[LocalTime].min().et shouldBe `@time`
       g.hasLabel[LocalDateTime].min().et shouldBe `@localdatetime`
     }
-    """g.N.min(_....)""" in {
+    """g.N.min(_....)""" in Future {
       g.N.min(_.out().hasLabel[Int]).et shouldBe NodeURLType.datatype
       g.N.min(_.out().hasLabel[Double]).et shouldBe NodeURLType.datatype
       g.N.min(_.out().hasLabel[Long]).et shouldBe NodeURLType.datatype
@@ -276,7 +280,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.min(_.out().hasLabel[LocalDate]).et shouldBe NodeURLType.datatype
       g.N.min(_.out().hasLabel[LocalDateTime]).et shouldBe NodeURLType.datatype
     }
-    """g.hasLabel[...].order()""" in {
+    """g.hasLabel[...].order()""" in Future {
       g.hasLabel[Int].order().et shouldBe `@int`
       g.hasLabel[Double].order().et shouldBe `@double`
       g.hasLabel[Long].order().et shouldBe `@long`
@@ -285,7 +289,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.hasLabel[LocalTime].order().et shouldBe `@time`
       g.hasLabel[LocalDateTime].order().et shouldBe `@localdatetime`
     }
-    """g.N.order(_....)""" in {
+    """g.N.order(_....)""" in Future {
       g.N.order(_.out().hasLabel[Int]).et shouldBe NodeURLType.datatype
       g.N.order(_.out().hasLabel[Double]).et shouldBe NodeURLType.datatype
       g.N.order(_.out().hasLabel[Long]).et shouldBe NodeURLType.datatype
@@ -295,7 +299,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     }
   }
   "Traversals" can {
-    "be compared" in {
+    "be compared" in Future {
       g.N().count shouldBe g.N().count
       g.N().hasId(1) shouldBe g.N().hasId(1)
       g.N().hasId(1) should not be g.N().hasId(2)
@@ -308,13 +312,13 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.has("abc").and(_.out(), _.in()) should not be g.N.has("abc").and(_.out(), _.in().out())
     }
     "be serialized" in {
-      for {
+      (for {
         _ <- testToNode(g.N.has("abc").and(_.out(), _.in()))(Traversal.toTraversal)
         _ <- testToNode(
           g.N
             .has("abc")
             .and(_.union(_.out(), _.in(Label.P.`@createdon`)), _.id))(Traversal.toTraversal)
-      } yield succeed
+      } yield succeed).runToFuture
     }
   }
 }

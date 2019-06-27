@@ -32,7 +32,7 @@ abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(gra
       parent.nodes
         .hasIri(iris)
         .asInstanceOf[Observable[parent._Node]]
-        .mapEval(_TNode(_).task)
+        .mapEval(_TNode(_).to[Task])
         .filter(n => !deleted.contains(n.id))
     val idSet: scala.collection.concurrent.Map[Long, Node] =
       new ConcurrentHashMap[Long, Node]().asScala
@@ -52,7 +52,7 @@ abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(gra
           parent.nodes
             .hasId(id)
             .flatMap {
-              case Some(node) => _TNode(node.asInstanceOf[parent._Node]).task.map(Some(_))
+              case Some(node) => _TNode(node.asInstanceOf[parent._Node]).to[Task].map(Some(_))
               case None       => Task.now(None)
             }
       } yield r1
@@ -69,7 +69,7 @@ abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(gra
             nodeOrEdgeOption <- if (nodeOption.nonEmpty) Task.now(nodeOption)
             else
               parent.nodes.hasId(id).flatMap {
-                case Some(node) => _TNode(node.asInstanceOf[parent._Node]).task.map(Some(_))
+                case Some(node) => _TNode(node.asInstanceOf[parent._Node]).to[Task].map(Some(_))
                 case None       => Task.now(None)
               }
           } yield nodeOrEdgeOption)

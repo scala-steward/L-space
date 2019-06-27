@@ -36,7 +36,7 @@ object Encode {
     implicit def encodeJsonLDFs2Stream[A, F[_]: Effect](
         implicit
         A: JsonLD[A]): EncodeStream.Aux[F, _root_.fs2.Stream, A, codecs.Application.JsonLD] =
-      new EncodeNewLineDelimitedFs2Stream[F, A, codecs.Application.JsonLD]
+      new EncodeNewLineDelimitedEffectFs2Stream[F, A, codecs.Application.JsonLD]
   }
 
   implicit def encodeJsonLDFs2Stream[A, F[_]: Effect](

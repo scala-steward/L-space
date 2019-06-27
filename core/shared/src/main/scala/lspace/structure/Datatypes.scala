@@ -50,7 +50,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                 .map(Some(_))
             }
             .getOrElse(Coeval.now(None))
-            .task))
+            .to[Task]))
 
   def all: List[DataType[Any]] = datatypes.byId.values.toList
 

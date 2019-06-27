@@ -68,7 +68,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
     _ <- SampleGraph.loadSocial(graph)
   } yield ()).memoizeOnSuccess
 
-  import util._
+  import lspace.services.util._
   override def afterAll(): Unit = {
     (for {
       _ <- graph.close()
