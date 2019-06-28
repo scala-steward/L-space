@@ -80,7 +80,7 @@ object Dependencies {
     "com.twitter"        %% "twitter-server"       % "19.4.0",
     "com.vmunier"        %% "scalajs-scripts"      % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
-    "com.lihaoyi"   %% "scalatags" % "0.7.0",
+    "com.lihaoyi"   %% "scalatags" % "0.6.8",
     "org.scalatest" %% "scalatest" % "3.0.8" % "test"
   )
 }

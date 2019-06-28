@@ -1,18 +1,21 @@
 package lspace.structure
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.Label
 import lspace.structure.Property.default
 import monix.eval.Task
 
-import scala.collection.mutable
+import scala.collection.{concurrent, mutable}
+import scala.collection.JavaConverters._
 
 abstract class Properties(val graph: NameSpaceGraph) {
   import graph._
 
-  protected[lspace] val byId: mutable.HashMap[Long, Property] =
-    mutable.HashMap[Long, Property]()
-  protected[lspace] val byIri: mutable.HashMap[String, Node] =
-    mutable.HashMap[String, Node]()
+  protected[lspace] val byId: concurrent.Map[Long, Property] =
+    new ConcurrentHashMap[Long, Property]().asScala
+  protected[lspace] val byIri: concurrent.Map[String, Node] =
+    new ConcurrentHashMap[String, Node]().asScala
 
   def get(iri: String): Task[Option[Property]] = {
     Property.properties

@@ -73,7 +73,8 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-core",
-    libraryDependencies ++= coreDeps.value
+    libraryDependencies ++= coreDeps.value,
+    Test / parallelExecution := false
   )
   .jvmSettings(
     libraryDependencies ++= coreJvmDeps
@@ -90,7 +91,8 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse",
-    libraryDependencies ++= parseDeps.value
+    libraryDependencies ++= parseDeps.value,
+    Test / parallelExecution := false
   )
   .jvmSettings(
     libraryDependencies ++= parseJvmDeps
@@ -107,7 +109,8 @@ lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse-argonaut",
-    libraryDependencies ++= parseArgonautDeps.value
+    libraryDependencies ++= parseArgonautDeps.value,
+    Test / parallelExecution := false
   )
   .jvmSettings(
   )
@@ -122,7 +125,8 @@ lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse-circe",
-    libraryDependencies ++= parseCirceDeps.value
+    libraryDependencies ++= parseCirceDeps.value,
+    Test / parallelExecution := false
   )
   .jvmSettings(
   )
@@ -138,7 +142,8 @@ lazy val client =
     .settings(settings)
     .settings(
       name := "lspace-client",
-      libraryDependencies ++= clientDeps.value
+      libraryDependencies ++= clientDeps.value,
+      Test / parallelExecution := false
     )
     .jvmSettings(
       libraryDependencies ++= clientJvmDeps
