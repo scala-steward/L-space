@@ -62,7 +62,12 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       "naam"      -> "name",
       "naam_naam" -> "name"
     ),
-    definitions = Map("name" -> ActiveProperty(person.keys.name, `@type` = D.`@string` :: Nil)())
+    definitions = Map(
+      "knows"         -> ActiveProperty(person.keys.knows, `@type` = person.ontology :: Nil)(),
+      "name"          -> ActiveProperty(person.keys.name, `@type` = D.`@string` :: Nil)(),
+      "waardering"    -> ActiveProperty(person.keys.rate, `@type` = D.`@int` :: Nil)(),
+      "geboortedatum" -> ActiveProperty(person.keys.birthDate, `@type` = D.`@date` :: Nil)()
+    )
   )
   lazy val personApiService: LabeledNodeApi = LabeledNodeApi(sampleGraph, person, defaultContext)
 
@@ -469,12 +474,13 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     }
     "support POST with application/graphql" in {
       (for {
-        graphql <- Task.now(" { naam } ")
+        graphql <- Task.now(" { name geboortedatum waardering knows { name } } ")
         input = Input
           .post("/")
           .withBody[Text.Plain](graphql)
           .withHeaders("Accept" -> "application/json", "Content-Type" -> "application/graphql")
         _ <- Task.deferFuture(service(input.request)).map { r =>
+//          println(r.contentString)
           r.status shouldBe Status.Ok
         }
       } yield succeed).runToFuture

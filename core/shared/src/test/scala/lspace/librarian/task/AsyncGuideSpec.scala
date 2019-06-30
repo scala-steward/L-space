@@ -242,8 +242,23 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
-      "N.hasNot(`@label`)" in {
-        g.N.hasNot(`@label`).withGraph(sampleGraph).toListF.map(_.nonEmpty shouldBe true).runToFuture
+      """g.N.hasIri(sampleGraph.iri + "/place/123").hasNot(properties.birthDate)""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/place/123")
+          .hasNot(properties.birthDate)
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.nonEmpty shouldBe true)
+          .runToFuture
+      }
+      """g.N.hasIri(sampleGraph.iri + "/place/123").hasNot(properties.name)""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/place/123")
+          .hasNot(properties.name)
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.isEmpty shouldBe true)
+          .runToFuture
       }
       "a HasId-step" in {
         g.N

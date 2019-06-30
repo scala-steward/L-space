@@ -24,5 +24,8 @@ class MatchHeader[F[_]](key: String, value: String)(implicit
 }
 
 object MatchHeader {
+  def apply[F[_]](key: String, value: String)(implicit
+                                              F: Applicative[F]): MatchHeader[F] = new MatchHeader[F](key, value)
+
   val beGraphQL = new MatchHeader[IO]("Content-Type", "application/graphql")
 }

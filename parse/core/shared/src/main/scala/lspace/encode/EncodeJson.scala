@@ -135,9 +135,20 @@ object EncodeJson {
     queryResult.result match {
       case Nil => encoder.listToJson(List())
       case result =>
-        encoder.mapToJson((queryResult.query.projections zip result.productIterator.toList) flatMap {
-          case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
-        } toMap)
+        encoder.listToJson(result.map {
+          case result: List[Any] =>
+            encoder.mapToJson((queryResult.query.projections zip result.productIterator.toList) flatMap {
+              case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
+              case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
+            } toMap)
+          case result: Product =>
+            encoder.mapToJson((queryResult.query.projections zip result.productIterator.toList) flatMap {
+              case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
+              case (projection, result: List[Any]) => namedProjection(projection, result).map(projection.alias -> _)
+            } toMap)
+        })
+
+      case _ => throw new Exception("XXX")
     }
   }
 
