@@ -12,17 +12,17 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
-    - stage: test
-      scala: 2.11.12
-      install:
-        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-      cache:
-        directories:
-          - $HOME/.ivy2/cache
-          - $HOME/.sbt
-          - $HOME/.coursier
-          - node_modules
+#    - stage: test
+#      scala: 2.11.12
+#      install:
+#        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+#      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+#      cache:
+#        directories:
+#          - $HOME/.ivy2/cache
+#          - $HOME/.sbt
+#          - $HOME/.coursier
+#          - node_modules
     - scala: 2.12.8
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
