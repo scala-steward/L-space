@@ -5,6 +5,7 @@ import org.scalatest.{AsyncWordSpec, Matchers}
 
 class PropertySpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   "Properties" can {
     "be compared by iri" in {

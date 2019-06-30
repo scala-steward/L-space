@@ -6,6 +6,7 @@ import org.scalatest.{AsyncWordSpec, Matchers}
 
 class OntologySpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   "Ontologies" can {
     "be compared by iri" in {

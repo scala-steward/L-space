@@ -9,6 +9,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
   val graph: Graph                         = Graph("lspace.codec.turtle.DecoderSpec")
   val decoder: lspace.codec.turtle.Decoder = lspace.codec.turtle.Decoder(graph)
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   val sample =
     """

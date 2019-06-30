@@ -19,6 +19,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 
   import lspace.Implicits.Scheduler.global
 //  implicit def global: Scheduler = monix.execution.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], _ <: HList]](traversal: S)(
       toTraversal: Node => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]]) =

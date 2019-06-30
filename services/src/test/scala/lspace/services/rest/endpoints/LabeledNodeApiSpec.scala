@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
-//  override def executionContext = lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
 //  implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder

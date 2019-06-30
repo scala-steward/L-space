@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 class NameSpaceLServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
-//  override def executionContext = lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
   implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder

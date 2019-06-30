@@ -12,6 +12,7 @@ import shapeless.{HList, HNil}
 
 class StepSpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   def testToNode[S <: Step, S1 <: Step](step: S)(toStep: Node => Task[S1]) =
     (for {

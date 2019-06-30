@@ -13,6 +13,7 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
   val graph: Graph                          = Graph("lspace.codec.turtle.DecoderSpec")
   val decoder: lspace.codec.graphql.Decoder = lspace.codec.graphql.Decoder()
   import lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   val schemaName         = Property.properties.getOrCreate("http://schema.org/name")
   val schemaName2        = Property.properties.getOrCreate("http://schema.org/name2")

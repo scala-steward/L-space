@@ -29,7 +29,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
 
   import lspace.Implicits.Scheduler.global
   import lspace.Implicits.AsyncGuide.guide
-//  override def executionContext = lspace.Implicits.Scheduler.global
+  override def executionContext = lspace.Implicits.Scheduler.global
 
   implicit val graph    = MemGraph("LibrarianApiSpec")
   implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
