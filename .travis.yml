@@ -12,7 +12,7 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
-#    - stage: test
+    - stage: test
 #      scala: 2.11.12
 #      install:
 #        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
@@ -23,7 +23,7 @@ jobs:
 #          - $HOME/.sbt
 #          - $HOME/.coursier
 #          - node_modules
-    - scala: 2.12.8
+      scala: 2.12.8
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
@@ -33,21 +33,21 @@ jobs:
           - $HOME/.sbt
           - $HOME/.coursier
           - node_modules
-    - stage: test coverage
-      name: "Publish to Codecov"
-      scala: 2.12.8
-      install:
-        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-      script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
-      after_success:
-        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
-      cache:
-        directories:
-          - $HOME/.ivy2/cache
-          - $HOME/.sbt
-          - $HOME/.coursier
+#    - stage: test coverage
+#      name: "Publish to Codecov"
+#      scala: 2.12.8
+#      install:
+#        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+#      script:
+#        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+#        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
+#      after_success:
+#        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+#      cache:
+#        directories:
+#          - $HOME/.ivy2/cache
+#          - $HOME/.sbt
+#          - $HOME/.coursier
     - stage: publish pages
       name: "Publish to GitHub"
       scala: 2.12.8
