@@ -490,7 +490,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           obs.drop(step.n)
       case step: Range =>
         obs: Observable[Librarian[T]] =>
-          obs.drop(step.low).take(step.high - step.low)
+          obs.drop(step.low - 1).take(step.high + 1 - step.low)
       case step: Tail =>
         obs: Observable[Librarian[T]] =>
           obs.takeLast(step.max)

@@ -685,6 +685,28 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
+      """N.hasIri(sampleGraph.iri + "/person/56789").out(properties.knows).skip(1).count""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/56789")
+          .out(properties.knows)
+          .skip(1)
+          .count
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe 1)
+          .runToFuture
+      }
+      """N.hasIri(sampleGraph.iri + "/person/56789").out(properties.knows).range(1,1).count""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/56789")
+          .out(properties.knows)
+          .range(1, 1)
+          .count
+          .withGraph(sampleGraph)
+          .headF
+          .map(_ shouldBe 1)
+          .runToFuture
+      }
 
 //      "a Is-step" which {
 //        "has an equivalent node-type value" in {

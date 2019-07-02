@@ -470,7 +470,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
           obs.drop(step.n)
       case step: Range =>
         obs: Stream[Librarian[T]] =>
-          obs.slice(step.low, step.high)
+          obs.slice(step.low - 1, step.high)
       case step: Tail =>
         obs: Stream[Librarian[T]] =>
           obs.takeRight(step.max)
