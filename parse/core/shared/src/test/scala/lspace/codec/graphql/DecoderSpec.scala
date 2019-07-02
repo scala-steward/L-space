@@ -119,6 +119,17 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
         graphql shouldBe ""
       }
     }
+    "parse '{ _:( offset: 3) { name } }'" in {
+      val (query, graphql)  = decoder.findQuery(""" { _( offset: 3) { name } }""".stripMargin)(activeContext)
+      val expectedTraversal = g.project(_.out(schemaName)).skip(3)
+      Future {
+        query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps
+        query.toTraversal shouldBe expectedTraversal
+        query.toTraversal.untyped shouldBe expectedTraversal.untyped
+        query.toTraversal.et shouldBe expectedTraversal.et
+        graphql shouldBe ""
+      }
+    }
     "parse '{ _:( name2: \"abc\") { name } }'" in {
       val (query, graphql)  = decoder.findQuery(""" { _( name2: "abc") { name } }""".stripMargin)(activeContext)
       val expectedTraversal = g.has(schemaName2, P.eqv("abc")).project(_.out(schemaName))

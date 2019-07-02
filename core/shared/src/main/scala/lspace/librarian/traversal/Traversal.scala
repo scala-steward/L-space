@@ -1403,6 +1403,10 @@ object Traversal
         val typedTraversal = step match {
           case step: ReducingBarrierStep =>
             step match {
+              case step: Head =>
+                new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
+              case step: Last =>
+                new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
               case step: Mean =>
                 new Traversal(step :: traversal.steps)(traversal.st, traversal.et) //int to double?
               case step: Sum =>
@@ -1436,15 +1440,13 @@ object Traversal
             }
           case step: ClipStep =>
             step match {
-              case step: Head =>
-                new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
-              case step: Last =>
-                new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
               case step: Limit =>
                 new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
               case step: Range =>
                 new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
               case step: Tail =>
+                new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
+              case step: Skip =>
                 new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
             }
           case step: HasStep =>
