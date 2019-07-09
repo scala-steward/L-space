@@ -1,9 +1,8 @@
 package lspace.lgraph.provider.elasticsearch
 
-import com.sksamuel.elastic4s.RefreshPolicy
-import com.sksamuel.elastic4s.http.search.SearchResponse
-import com.sksamuel.elastic4s.http.Response
-import com.sksamuel.elastic4s.http.ElasticClient
+import com.sksamuel.elastic4s.{ElasticClient, Response}
+import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
 import lspace.lgraph.LGraph
 import lspace.lgraph.index.IndexManager
@@ -21,7 +20,7 @@ class ESIndexManager[G <: LGraph, Json](override val graph: G, val client: Elast
   import encoder.{baseEncoder => _, Json => _, _}
 
   // you must import the DSL to use the syntax helpers
-  import com.sksamuel.elastic4s.http.ElasticDsl._
+  import com.sksamuel.elastic4s.ElasticDsl._
 
   client.execute {
     bulk(
