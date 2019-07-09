@@ -58,5 +58,5 @@ class AppApi(app: JsApp) extends Api {
           }: ScFuture[Buf])))).withHeader(getContentType(path))
   }
 
-  val api = get(empty) { Ok(htmlResponse(app.rendered)) } :+: static
+  val api = get(pathEmpty) { Ok(htmlResponse(app.rendered)) } :+: static
 }
