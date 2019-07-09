@@ -1,6 +1,5 @@
 package lspace.services.rest.endpoints
 
-import com.twitter.concurrent.AsyncStream
 import com.twitter.finagle.http.Response
 import com.twitter.io.{Buf, Reader}
 import io.finch._
@@ -9,7 +8,7 @@ import cats.effect.IO._
 import com.twitter.finagle.Http
 import lspace.services.app.JsApp
 
-class AppApi(apps: List[JsApp]) extends Api {
+class AppApi(app: JsApp) extends Api {
 
   private def htmlResponse(document: String): Response = {
     val rep = Response()
@@ -59,9 +58,5 @@ class AppApi(apps: List[JsApp]) extends Api {
           }: ScFuture[Buf])))).withHeader(getContentType(path))
   }
 
-  val api = apps
-    .map { app =>
-      get(app.id) { Ok(htmlResponse(app.rendered)) }
-    }
-    .reduce(_.coproduct(_)) :+: static
+  val api = get(empty) { Ok(htmlResponse(app.rendered)) } :+: static
 }
