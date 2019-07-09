@@ -6,8 +6,8 @@ object Version {
   val finch     = "0.29.0"
   val monix     = "3.0.0-RC3"
   val sttp      = "1.6.0"
-  val elastic4s = "7.0.1"
-  val phantom   = "2.37.0"
+  val elastic4s = "7.1.0"
+  val phantom   = "2.42.0"
 }
 
 object Dependencies {
@@ -52,6 +52,8 @@ object Dependencies {
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
+    "com.github.pureconfig" %% "pureconfig"         % "0.11.1",
+    "com.github.pureconfig" %% "pureconfig-generic" % "0.11.1"
   )
 
   val storeCassandraDeps = Seq(
@@ -66,8 +68,8 @@ object Dependencies {
 
   val indexElasticsearchDeps = Seq(
     "com.sksamuel.elastic4s" %% "elastic4s-core"         % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
+    "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % Version.elastic4s
+//    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
   val servicesDeps = Seq(
@@ -77,7 +79,7 @@ object Dependencies {
     "com.github.finagle" %% "finchx-fs2"           % Version.finch,
     "com.github.finagle" %% "finchx-refined"       % Version.finch,
     "co.fs2"             %% "fs2-reactive-streams" % "1.0.5",
-    "com.twitter"        %% "twitter-server"       % "19.4.0",
+    "com.twitter"        %% "twitter-server"       % "19.4.0" % "test",
     "com.vmunier"        %% "scalajs-scripts"      % "1.1.2",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi"   %% "scalatags" % "0.6.8",

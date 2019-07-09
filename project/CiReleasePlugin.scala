@@ -1,13 +1,16 @@
 import com.typesafe.sbt.GitPlugin
-import sbtdynver.DynVerPlugin.autoImport._
 import com.typesafe.sbt.SbtPgp
 import com.typesafe.sbt.SbtPgp.autoImport._
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.Base64
 import sbt.Def
-import sbt._
 import sbt.Keys._
+import sbt._
 import sbt.plugins.JvmPlugin
 import sbtdynver.DynVerPlugin
-import sys.process._
+import sbtdynver.DynVerPlugin.autoImport._
+import scala.sys.process._
 import xerial.sbt.Sonatype
 import xerial.sbt.Sonatype.autoImport._
 
@@ -18,12 +21,33 @@ object CiReleasePlugin extends AutoPlugin {
     JvmPlugin && SbtPgp && DynVerPlugin && GitPlugin && Sonatype
 
   def isTravisTag: Boolean =
-    Option(System.getenv("TRAVIS_TAG")).exists(_.nonEmpty)
+    Option(System.getenv("TRAVIS_TAG")).exists(_.nonEmpty) ||
+      Option(System.getenv("BUILD_SOURCEBRANCH")).exists(_.startsWith("refs/tags"))
   def isTravisSecure: Boolean =
-    System.getenv("TRAVIS_SECURE_ENV_VARS") == "true"
+    System.getenv("TRAVIS_SECURE_ENV_VARS") == "true" ||
+      System.getenv("BUILD_REASON") == "IndividualCI"
+  def travisTag: String =
+    Option(System.getenv("TRAVIS_TAG"))
+      .orElse(Option(System.getenv("BUILD_SOURCEBRANCH")))
+      .getOrElse("<unknown>")
+  def travisBranch: String =
+    Option(System.getenv("TRAVIS_BRANCH"))
+      .orElse(Option(System.getenv("BUILD_SOURCEBRANCH")))
+      .getOrElse("<unknown>")
+  def isAzure: Boolean =
+    System.getenv("TF_BUILD") == "True"
 
   def setupGpg(): Unit = {
-    (s"echo ${sys.env("PGP_SECRET")}" #| "base64 --decode" #| "gpg --import").!
+    val secret = sys.env("PGP_SECRET")
+    if (isAzure) {
+      // base64 encoded gpg secrets are too large for Azure variables but
+      // they fit within the 4k limit when compressed.
+      Files.write(Paths.get("gpg.zip"), Base64.getDecoder.decode(secret))
+      s"unzip gpg.zip".!
+      "gpg --import gpg.key".!
+    } else {
+      (s"echo $secret" #| "base64 --decode" #| "gpg --import").!
+    }
   }
 
   override def buildSettings: Seq[Def.Setting[_]] = List(
@@ -69,6 +93,9 @@ object CiReleasePlugin extends AutoPlugin {
           sys.env.getOrElse("CI_RELEASE", "+publishSigned") ::
             s"sonatypeReleaseAll" ::
             currentState
+//          sys.env.getOrElse("CI_RELEASE", "+publishSigned") ::
+//            sys.env.getOrElse("CI_SONATYPE_RELEASE", "sonatypeRelease") ::
+//            currentState
         }
       }
     }

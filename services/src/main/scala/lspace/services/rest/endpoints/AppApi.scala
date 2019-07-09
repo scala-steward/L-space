@@ -4,7 +4,8 @@ import com.twitter.concurrent.AsyncStream
 import com.twitter.finagle.http.Response
 import com.twitter.io.{Buf, Reader}
 import io.finch._
-import cats.effect.IO
+import cats.effect._
+import cats.effect.IO._
 import com.twitter.finagle.Http
 import lspace.services.app.JsApp
 
@@ -33,15 +34,29 @@ class AppApi(apps: List[JsApp]) extends Api {
     "Content-Type" -> contentType
   }
 
-  val static: Endpoint[IO, AsyncStream[Buf]] = get("assets" :: paths[String]) { segments: Seq[String] =>
+  import com.twitter.util.{Future => TwFuture}
+
+  import scala.concurrent.{Future => ScFuture, Promise => ScPromise}
+  implicit def twFutureToScala[T](twFuture: TwFuture[T]): ScFuture[T] = {
+    val prom = ScPromise[T]()
+    twFuture.onSuccess { res: T =>
+      prom.success(res)
+    }
+    twFuture.onFailure { t: Throwable =>
+      prom.failure(t)
+    }
+    prom.future
+  }
+  val static: Endpoint[IO, _root_.fs2.Stream[IO, Buf]] = get("assets" :: paths[String]) { segments: Seq[String] =>
     val path = segments.mkString("/")
+
     Ok(
-      AsyncStream.fromFuture(
-        Reader
+      _root_.fs2.Stream.eval(
+        IO.fromFuture(IO(Reader
           .readAll(Reader.fromStream(getClass.getResourceAsStream(s"/public/$path")))
           .map { buf =>
             buf
-          })).withHeader(getContentType(path))
+          }: ScFuture[Buf])))).withHeader(getContentType(path))
   }
 
   val api = apps
