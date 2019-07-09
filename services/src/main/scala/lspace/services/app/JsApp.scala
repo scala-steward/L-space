@@ -16,9 +16,8 @@ case class JsApp(id: String, title: String, resources: Seq[Text.TypedTag[String]
           tags2.title(title),
           link(rel := "shortcut icon", `type` := "image/png", href := "/assets/images/favicon.png")
         ) ++ resources),
-      body(
-        raw(scripts(projectName = id,
-                    name => s"/assets/$title",
-                    name => getClass.getResource(s"/public/$title") != null).body))
+      body(raw(scripts(projectName = id,
+                       name => s"/assets/$name",
+                       name => getClass.getResource(s"/public/$name") != null).body))
     ).render
 }
