@@ -68,7 +68,7 @@ trait LibrarianApi extends ExecutionApi {
               .toStream[IO]()
           }
           .map(Ok(_))
-          .toIO
+          .to[IO]
     }
   }
 //  def query2: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
@@ -95,14 +95,16 @@ trait LibrarianApi extends ExecutionApi {
       "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                        lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
-        traversalTask.flatMap { traversal =>
-          val start = Instant.now()
-          traversal.untyped
-            .withGraph(graph)
-            .headOptionF
-            .map(_.isDefined)
-            .map(Ok)
-        }.toIO
+        traversalTask
+          .flatMap { traversal =>
+            val start = Instant.now()
+            traversal.untyped
+              .withGraph(graph)
+              .headOptionF
+              .map(_.isDefined)
+              .map(Ok)
+          }
+          .to[IO]
     }
   }
   def subscribe: Endpoint[IO, List[Node]] = ???

@@ -7,7 +7,6 @@ import cats.effect.Effect
 import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Request, Response, Status}
 import com.twitter.finagle.param.Stats
-import com.twitter.server.TwitterServer
 import com.twitter.util.{Await, Awaitable}
 import io.finch._
 import lspace._
@@ -44,19 +43,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
 
   lazy val service: Service[Request, Response] = Endpoint.toService(graphService.compiled)
 
-  object Main extends TwitterServer {
-
-    def main(): Unit = {
-      val server = Http.server
-//        .configured(Stats(statsReceiver))
-        .serve(":8082", service)
-
-      onExit { server.close() }
-
-//      Await.ready(adminHttpServer)
-    }
-  }
-  Main.main()
+  Http.server.serve(":8082", service)
 //  Main.ready(com.twitter.util.Duration(5, TimeUnit.SECONDS))
 //  Await.ready(Main, com.twitter.util.Duration(5, TimeUnit.SECONDS))
 
@@ -72,7 +59,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
   override def afterAll(): Unit = {
     (for {
       _ <- graph.close()
-      _ <- Task.fromFuture(Main.close())
+//      _ <- Task.fromFuture(Main.close())
     } yield ()).timeout(5.seconds).runToFuture
   }
 
@@ -102,7 +89,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
           .withHeaders("Accept" -> "application/ld+json")
         _ <- {
           Task
-            .fromIO(
+            .from(
               graphService
                 .query(input)
                 .output
@@ -111,7 +98,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
               //          if (output.isLeft) println(output.left.get.getMessage)
               output.status shouldBe Status.Ok
               val collection = output.value.compile.toList
-              Task.fromIO(output.value.compile.toList).map(_.head.t.item shouldBe List(2))
+              Task.from(output.value.compile.toList).map(_.head.t.item shouldBe List(2))
             }
         }
       } yield succeed).runToFuture

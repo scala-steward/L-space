@@ -58,7 +58,7 @@ trait NameSpaceService extends Api {
       .map(Ok)
       .map(_.withHeader("Content-Type", "application/ld+json"))
       .onErrorHandle(f => io.finch.NotFound(new Exception("unknown path")))
-      .toIO
+      .to[IO]
   }
 
   val byIri: Endpoint[IO, String] = get(param[String]("iri")) { iri: String =>
@@ -79,7 +79,7 @@ trait NameSpaceService extends Api {
       .map(Ok)
       .map(_.withHeader("Content-Type", "application/ld+json"))
       .onErrorHandle(f => io.finch.NotFound(new Exception("unknown iri")))
-      .toIO
+      .to[IO]
   }
 
   val api = getResource :+: byIri
