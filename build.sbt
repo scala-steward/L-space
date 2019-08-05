@@ -47,7 +47,7 @@ lazy val projectSettings = Seq(
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
   scalaVersion := "2.12.8",
-  crossScalaVersions := Seq("2.11.12", "2.12.8"),
+  crossScalaVersions := Seq("2.12.8"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
@@ -60,6 +60,8 @@ def stripTime(version: String) = dirtyEnd.findFirstIn(version) match {
 
 ThisBuild / version ~= stripTime
 ThisBuild / dynver ~= stripTime
+
+ThisBuild / testFrameworks += new TestFramework("minitest.runner.Framework")
 
 lazy val lspace = project
   .in(file("."))
