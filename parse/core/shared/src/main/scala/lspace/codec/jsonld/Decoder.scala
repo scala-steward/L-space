@@ -999,7 +999,7 @@ trait Decoder {
                            expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             property = Property.properties.getAndUpdate(node)
             _ <- (for {
-              node <- graph.nodes.upsert(node.iri)
+              node <- graph.nodes.upsert(node.iri, Property.ontology)
               _ <- withEdges(
                 node,
                 expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
