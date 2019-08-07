@@ -37,7 +37,9 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
       .fromTask(
         Observable
           .fromIterable(iri)
-          .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).filter(_.isInstanceOf[Value[_]]))
+          .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).map(_.in(`@id`, `@ids`)
+            .filter(_.isInstanceOf[Value[_]])))
+          .flatMap(Observable.fromIterable)
           .toListL
           .map(_.asInstanceOf[List[T2]].distinct))
       .flatMap(Observable.fromIterable(_))

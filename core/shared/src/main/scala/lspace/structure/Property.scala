@@ -145,13 +145,13 @@ object Property {
                   .getOrElse {
                     ClassType.classtypes.getAndUpdate(node)
                   } //orElse???
-              case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
-//                println(s"found ct by iri ${node.iri}")
-                ClassType.classtypes.get(node.iri).get
-              case iri: String =>
-                ClassType.classtypes
-                  .get(iri)
-                  .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+//              case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
+////                println(s"found ct by iri ${node.iri}")
+//                ClassType.classtypes.get(node.iri).get
+//              case iri: String =>
+//                ClassType.classtypes
+//                  .get(iri)
+//                  .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
             }
           case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
             List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getAndUpdate(node)))

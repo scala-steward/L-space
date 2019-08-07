@@ -44,7 +44,9 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       .fromTask(
         Observable
           .fromIterable(iri)
-          .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).filter(_.isInstanceOf[Edge[_, _]]))
+          .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).map(_.in(`@id`, `@ids`)
+            .filter(_.isInstanceOf[Edge[_, _]])))
+          .flatMap(Observable.fromIterable)
           .toListL
           .map(_.asInstanceOf[List[T2]].distinct))
       .flatMap(Observable.fromIterable(_))

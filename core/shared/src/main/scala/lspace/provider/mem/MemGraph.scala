@@ -4,6 +4,8 @@ import lspace.NS
 import lspace.datatype.DataType
 import monix.eval.Task
 import lspace.librarian.traversal._
+import lspace.Label.P
+import lspace.Label.D
 import lspace.provider.mem.store.{MemEdgeStore, MemNodeStore, MemValueStore}
 import lspace.provider.transaction.Transaction
 import lspace.structure._
@@ -168,13 +170,32 @@ trait MemGraph extends Graph {
     * @param resource
     */
   protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] = {
-    Observable.fromIterable(resource.outEMap()).flatMap {
-      case (key, properties) =>
-        Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
-    } ++ Observable.fromIterable(resource.inEMap()).flatMap {
-      case (key, properties) =>
-        Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
-    } completedL
+    Observable.fromIterable(resource.outE()).mapEval(_.remove()) ++ Observable
+      .fromIterable(resource.inE())
+      .mapEval(_.remove()) completedL
+//    Observable.fromIterable(resource.outEMap()).flatMap {
+//      case (key, properties) =>
+//        Observable
+//          .fromIterable(properties)
+//          .mapEval(edge =>
+//            for {
+////              _ <- if ((edge.key == P.`@id` || edge.key == P.`@ids`) && edge.to
+////                         .in(P.`@id`, P.`@ids`)
+////                         .isEmpty && edge.to
+////                         .isInstanceOf[_Value[_]] && edge.to.asInstanceOf[_Value[_]].label == lspace.Label.D.`@string`)
+////                `@idStore`.delete(edge.to.asInstanceOf[GValue[_]])
+////              else Task.unit
+//              _ <- edge.to.removeIn(edge)
+//            } yield ())
+//    } ++ Observable.fromIterable(resource.inEMap()).flatMap {
+//      case (key, properties) =>
+//        Observable
+//          .fromIterable(properties)
+//          .mapEval(edge =>
+//            for {
+//              _ <- edge.from.removeOut(edge)
+//            } yield ())
+//    } completedL
   }
 
   def toFile(path: String = "defaultname.json",

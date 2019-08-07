@@ -175,10 +175,10 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
   def sampledNodeTests(sampledGraph: SampledGraph) = {
     val sampleGraph = sampledGraph.graph
 
-    val Talca    = sampleGraph.nodes.hasIri(sampleGraph.iri + "/place/34567").headL.memoizeOnSuccess
-    val Garrison = sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/56789").headL.memoizeOnSuccess
-    val Yoshio   = sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headL.memoizeOnSuccess
-    val YoshioName = for {
+    lazy val Talca    = sampleGraph.nodes.hasIri(sampleGraph.iri + "/place/34567").headL.memoizeOnSuccess
+    lazy val Garrison = sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/56789").headL.memoizeOnSuccess
+    lazy val Yoshio   = sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headL.memoizeOnSuccess
+    lazy val YoshioName = for {
       y <- Yoshio
       e <- sampleGraph.edges().find(e => e.key == name.property && e.from.iri == y.iri).headL
     } yield e

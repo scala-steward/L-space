@@ -98,12 +98,12 @@ trait MemResource[T] extends Resource[T] {
     Lock.synchronized {
       Observable
         .fromIterable(linksIn.get(edge.key))
-        .mapEval { links =>
+        .map { links =>
           if (links.contains(edge.asInstanceOf[Edge[_, T]])) {
             val newSet = links - edge.asInstanceOf[Edge[_, T]]
             if (newSet.isEmpty) linksIn -= edge.key
             else linksIn += edge.key -> newSet
-            edge.remove()
+//            edge.remove()
           } else Task.unit
       } completedL
     }
@@ -112,12 +112,12 @@ trait MemResource[T] extends Resource[T] {
     Lock.synchronized {
       Observable
         .fromIterable(linksOut.get(edge.key))
-        .mapEval { links =>
+        .map { links =>
           if (links.contains(edge.asInstanceOf[Edge[T, _]])) {
             val newSet = links - edge.asInstanceOf[Edge[T, _]]
             if (newSet.isEmpty) linksOut -= edge.key
             else linksOut += edge.key -> newSet
-            edge.remove()
+//            edge.remove()
           } else Task.unit
       } completedL
     }

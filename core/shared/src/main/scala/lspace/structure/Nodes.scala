@@ -22,11 +22,13 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     //    println(s"get nodes $iris")
     val validIris = iris.distinct.filter(_.nonEmpty)
     if (validIris.nonEmpty)
-      Observable.fromIterable(validIris).flatMap { iri =>
-        nodeStore
-          .hasIri(iri)
-          .asInstanceOf[Observable[Node]]
-      } else Observable[Node]()
+      nodeStore.hasIri(validIris.toSet)
+//      Observable.fromIterable(validIris).flatMap { iri =>
+//        nodeStore
+//          .hasIri(iri)
+//          .asInstanceOf[Observable[Node]]
+//      }
+    else Observable[Node]()
   }
 
   def create(ontology: Ontology*): Task[Node] = {
@@ -56,7 +58,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
         case Nil =>
           for {
             node <- create()
-            iriEdge <- if (iri.nonEmpty) node.addOut(Label.P.typed.iriUrlString, iri)
+            _ <- if (iri.nonEmpty) node.addOut(Label.P.typed.iriUrlString, iri)
             else if (iris.headOption.exists(_.nonEmpty))
               node.addOut(Label.P.typed.iriUrlString, iris.head)
             else Task.unit
@@ -68,48 +70,17 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
           mergeNodes(nodes.toSet)
       }
       .flatMap { node =>
-        node.out(lspace.Label.P.`@id`, lspace.Label.P.`@ids`)
         val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty)
         for {
-          iriEdges <- Task.sequence(newIris.map(node.addOut(Label.P.`@ids`, _)))
-          _        <- Task.sequence(ontologies.map(node.addLabel))
+          _ <- Task.sequence(newIris.map(node.addOut(Label.P.`@ids`, _)))
+          _ <- Task.sequence(ontologies.map(node.addLabel))
         } yield node
       }
   }
 
   def upsert(node: Node): Task[Node] = {
     if (node.graph != thisgraph) { //
-      lspace.g.N.out().hasLabel[Double].withGraph(node.graph).toListF
-      lspace.g.N.out().hasLabel[Double].head.withGraph(node.graph).headOptionF
-      lspace.g.N.out().hasLabel[Double].is(lspace.P.gt(200.0)).withGraph(node.graph).toListF
-      lspace.g.N.group(_.out()).withGraph(node.graph).toListF
-      lspace.g.N.group(_.out().outMap()).withGraph(node.graph).toListF
-      lspace.g.N.group(_.out()).mapValues(_.head).withGraph(node.graph).toListF
-      lspace.g.N.group(_.out().path(_.out())).withGraph(node.graph).toListF
-      lspace.g.N.path(_.out()).withGraph(node.graph).toListF
-      lspace.g.N.path(_.project(_.out()).by(_.out())).withGraph(node.graph).toListF
-      lspace.g.N.project(_.out()).withGraph(node.graph).toListF
-      lspace.g.V.project(_.hasLabel[Double]).withGraph(node.graph).toListF
-      lspace.g.V.project(_.hasLabel[Double].out()).withGraph(node.graph).toListF
-      lspace.g.V.project(_.out().hasLabel[Double]).withGraph(node.graph).toListF
-      lspace.g.N.project(_.out()).by(_.out()).withGraph(node.graph).toListF
-      lspace.g.N.project(_.out()).by(_.out().out()).withGraph(node.graph).toListF
-      lspace.g.N.project(_.out()).by(_.out().hasLabel[Double]).withGraph(node.graph).toListF
-      lspace.g.N.project(_.out()).by(_.out().is(lspace.P.gt(200.0))).withGraph(node.graph).toListF
-      lspace.g.N.project(_.out()).by(_.out().hasLabel[Double].is(lspace.P.gt(200.0))).withGraph(node.graph).toListF
       for {
-//        _     <- lspace.g.withGraph(node.graph).toListF
-//        _     <- node.g.out().withGraph(node.graph).headF
-//        _     <- node.g.out().count().withGraph(node.graph).headF
-//        _     <- node.g.out().count().is(lspace.P.eqv(2l)).withGraph(node.graph).headOptionF
-//        _     <- node.g.out().head().withGraph(node.graph).headOptionF
-//        _     <- node.g.out().max(_.hasLabel[Int]).withGraph(node.graph).headOptionF
-//        _     <- node.g.out().dedup().withGraph(node.graph).toSetF
-//        _     <- node.g.out().group(_.count).withGraph(node.graph).toListF
-//        _     <- node.g.out().group(_.count.is(lspace.P.eqv(2l))).withGraph(node.graph).toListF
-//        _     <- node.g.out().group(_.count.constant(1)).withGraph(node.graph).toListF
-//        _     <- node.g.out().group(_.head).withGraph(node.graph).toListF
-//        _     <- node.g.out().group(_.out()).withGraph(node.graph).toListF
         edges <- node.g.outE().withGraph(node.graph).toListF
         newNode <- if (node.iri.nonEmpty) upsert(node.iri)
         else {
