@@ -848,8 +848,8 @@ trait Decoder {
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
-            _ <- withEdges(node,
-                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
+//            _ <- withEdges(node,
+//                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             ontology = Ontology.ontologies.getAndUpdate(node)
             _ <- (for {
               _ <- withEdges(
@@ -923,10 +923,11 @@ trait Decoder {
           .exists(iris => Property.ontology.iris.intersect(iris.toSet).nonEmpty)) {
       val iri  = expandedJson.extractId
       val iris = expandedJson.extractIds.toSet
+      if (iri.exists(_.iri.isEmpty)) println(s"empty iri ${iris.map(_.iri)}")
       iri
         .map {
           //          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //property without fqdn? local-node?
-          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri))
+          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri), Property.ontology)
         }
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
@@ -995,8 +996,8 @@ trait Decoder {
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
-            _ <- withEdges(node,
-                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
+//            _ <- withEdges(node,
+//                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             property = Property.properties.getAndUpdate(node)
             _ <- (for {
               node <- graph.nodes.upsert(node.iri, Property.ontology)
@@ -1145,8 +1146,8 @@ trait Decoder {
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
-            _ <- withEdges(node,
-                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
+//            _ <- withEdges(node,
+//                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             datatype = DataType.datatypes.getAndUpdate(node)
             _ <- (for {
               _ <- withEdges(

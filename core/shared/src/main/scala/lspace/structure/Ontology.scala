@@ -191,7 +191,9 @@ class Ontology(val iri: String,
     def +(parent: Ontology): this.type = this.synchronized {
       if (!parent.`@extends`(self))
         extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
-      else scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
+      else
+        scribe.warn(
+          s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect ${extendedClassesList.value().map(_.iri)}")
       this
     }
     def ++(parent: Iterable[Ontology]): this.type = this.synchronized {
