@@ -326,8 +326,10 @@ trait Decoder {
             .map(_ -> value)
             .map(Task.now)
             .getOrElse(
-              toProperty(key).map(
-                property =>
+//              toProperty(key).map(
+              Task
+                .now(Property.properties.getOrCreate(key))
+                .map(property =>
                   activeContext.definitions
                     .get(key)
                     .map(_ -> value)
@@ -831,18 +833,18 @@ trait Decoder {
                   .map(graph.nodes
                     .upsert(_, Ontology.ontology)))
             _ <- node.addOut(Label.P.`@extends`, extending)
-            _ <- Task
-              .gatherUnordered(
-                extending
-                  .filter(_.hasLabel(Ontology.ontology).isEmpty)
-                  .filter(o => o.iris.flatMap(Ontology.ontologies.get(_).toList).isEmpty)
-                  .map(node =>
-                    if (!owip.contains(node.iri)) toOntology(node.iri)
-                    else
-                      Task.unit.delayExecution(50.millis).flatMap { f =>
-                        if (Ontology.ontologies.get(node.iri).nonEmpty) Task.unit
-                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-                    }))
+//            _ <- Task
+//              .gatherUnordered(
+//                extending
+//                  .filter(_.hasLabel(Ontology.ontology).isEmpty)
+//                  .filter(o => o.iris.flatMap(Ontology.ontologies.get(_).toList).isEmpty)
+//                  .map(node =>
+//                    if (!owip.contains(node.iri)) toOntology(node.iri)
+//                    else
+//                      Task.unit.delayExecution(50.millis).flatMap { f =>
+//                        if (Ontology.ontologies.get(node.iri).nonEmpty) Task.unit
+//                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+//                    }))
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
@@ -852,14 +854,19 @@ trait Decoder {
             _ <- (for {
               _ <- withEdges(
                 node,
-                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type` - types.`@extends` - types.rdfsSubClassOf - types.`@label` - types.rdfsLabel - types.`@comment` - types.rdfsComment - types.`@properties`
+                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
+                  - types.`@extends` - types.rdfsSubClassOf
+                  - types.`@label` - types.rdfsLabel
+                  - types.`@comment` - types.rdfsComment
+                  - types.`@properties`
               )
               _ <- Task.gatherUnordered(
                 properties
                   .filter(_.hasLabel(Property.ontology).isEmpty)
                   .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
                   .map(node =>
-                    if (!pwip.contains(node.iri)) toProperty(node.iri)
+                    if (!pwip.contains(node.iri))
+                      Task.now(Property.properties.getOrCreate(node.iri)) //toProperty(node.iri)
                     else
                       Task.unit.delayExecution(50.millis).flatMap { f =>
                         if (Property.properties.get(node.iri).nonEmpty) Task.unit
@@ -867,7 +874,7 @@ trait Decoder {
                     }))
             } yield {
               Ontology.ontologies.getAndUpdate(node)
-            }).forkAndForget
+            }) //.forkAndForget
           } yield ontology
         })
         .getOrElse(Task.raiseError(FromJsonException(s"ontology without iri $expandedJson")))
@@ -891,7 +898,13 @@ trait Decoder {
               nsDecoder
                 .fetchOntology(iri)
                 .doOnFinish { f =>
-                  Task.delay(owip.remove(iri)).delayExecution(5 seconds).forkAndForget
+                  Task
+                    .delay {
+//                      println(s"removing $iri")
+                      owip.remove(iri)
+                    }
+                    .delayExecution(1 seconds)
+                    .forkAndForget
                 }
                 .memoizeOnSuccess
             )
@@ -957,17 +970,17 @@ trait Decoder {
                   .map(graph.nodes
                     .upsert(_, Property.ontology)))
             _ <- node.addOut(Label.P.`@extends`, extending)
-            _ <- Task.gatherUnordered(
-              extending
-                .filter(_.hasLabel(Property.ontology).isEmpty)
-                .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
-                .map(node =>
-                  if (!pwip.contains(node.iri)) toProperty(node.iri)
-                  else
-                    Task.unit.delayExecution(50.millis).flatMap { f =>
-                      if (Property.properties.get(node.iri).nonEmpty) Task.unit
-                      else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-                  }))
+//            _ <- Task.gatherUnordered(
+//              extending
+//                .filter(_.hasLabel(Property.ontology).isEmpty)
+//                .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
+//                .map(node =>
+//                  if (!pwip.contains(node.iri)) toProperty(node.iri)
+//                  else
+//                    Task.unit.delayExecution(50.millis).flatMap { f =>
+//                      if (Property.properties.get(node.iri).nonEmpty) Task.unit
+//                      else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+//                  }))
             range <- Task
               .gather(rangeIris
                 .map(graph.nodes.upsert(_)))
@@ -976,9 +989,9 @@ trait Decoder {
               .gather(inverseOf
                 .map(graph.nodes.upsert(_)))
             _ <- node.addOut(Label.P.inverseOf, inverse)
-            includedIn <- Task.gather(domainIncludeIris
+            includedIn <- Task.gatherUnordered(domainIncludeIris
               .map(graph.nodes.upsert(_)))
-            _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))).forkAndForget
+            _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))) //.forkAndForget
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
@@ -986,9 +999,16 @@ trait Decoder {
                            expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             property = Property.properties.getAndUpdate(node)
             _ <- (for {
+              node <- graph.nodes.upsert(node.iri)
               _ <- withEdges(
                 node,
-                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type` - types.`@extends` - types.rdfsSubPropertyOf - types.`@label` - types.rdfsLabel - types.`@comment` - types.rdfsComment - types.`@properties`
+                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
+                  - types.`@extends` - types.rdfsSubPropertyOf
+                  - types.`@label` - types.rdfsLabel
+                  - types.`@comment` - types.rdfsComment
+                  - types.`@range` - types.schemaRange
+                  - types.schemaDomainIncludes
+                  - types.`@properties`
               )
 //              _ <- Task.gatherUnordered(
 //                range
@@ -1017,15 +1037,20 @@ trait Decoder {
                   .filter(_.hasLabel(Property.ontology).isEmpty)
                   .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
                   .map(node =>
-                    if (!pwip.contains(node.iri)) toProperty(node.iri)
+                    if (!pwip.contains(node.iri))
+                      Task.now(Property.properties.getOrCreate(node.iri)) //toProperty(node.iri)
                     else
                       Task.unit.delayExecution(50.millis).flatMap { f =>
                         if (Property.properties.get(node.iri).nonEmpty) Task.unit
                         else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
                     }))
-            } yield {
-              Property.properties.getAndUpdate(node)
-            }).forkAndForget
+              _ = Property.properties.getAndUpdate(node)
+              _ <- Observable
+                .fromIterable(includedIn)
+                .map(ClassType.classtypes.getAndUpdate)
+                .onErrorHandle(f => ())
+                .toListL
+            } yield ()) //.forkAndForget
           } yield property
         })
         .getOrElse(Task.raiseError(FromJsonException(s"property without iri $expandedJson")))
@@ -1045,7 +1070,21 @@ trait Decoder {
 //            println(s"toProperty ${iri}")
             //            val property = Property.properties.getOrCreate(iri, Set())
             pwip
-              .getOrElseUpdate(iri, nsDecoder.fetchProperty(iri).memoizeOnSuccess)
+              .getOrElseUpdate(
+                iri,
+                nsDecoder
+                  .fetchProperty(iri)
+                  .doOnFinish { f =>
+                    Task
+                      .delay {
+//                        println(s"removing $iri")
+                        pwip.remove(iri)
+                      }
+                      .delayExecution(1 seconds)
+                      .forkAndForget
+                  }
+                  .memoizeOnSuccess
+              )
           }
       }
   }
@@ -1097,12 +1136,12 @@ trait Decoder {
                   .filter(_.hasLabel(DataType.ontology).isEmpty)
                   .filter(o => o.iris.flatMap(DataType.datatypes.get(_).toList).isEmpty)
                   .map(node =>
-                    if (!owip.contains(node.iri)) toOntology(node.iri)
-                    else
-                      Task.unit.delayExecution(50.millis).flatMap { f =>
-                        if (DataType.datatypes.get(node.iri).nonEmpty) Task.unit
-                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-                    }))
+//                    if (!owip.contains(node.iri)) toOntology(node.iri)
+//                    else
+                    Task.unit.delayExecution(50.millis).flatMap { f =>
+                      if (DataType.datatypes.get(node.iri).nonEmpty) Task.unit
+                      else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
+                  }))
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
@@ -1112,14 +1151,19 @@ trait Decoder {
             _ <- (for {
               _ <- withEdges(
                 node,
-                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type` - types.`@extends` - types.rdfsSubClassOf - types.`@label` - types.rdfsLabel - types.`@comment` - types.rdfsComment - types.`@properties`
+                expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
+                  - types.`@extends` - types.rdfsSubClassOf
+                  - types.`@label` - types.rdfsLabel
+                  - types.`@comment` - types.rdfsComment
+                  - types.`@properties`
               )
               _ <- Task.gatherUnordered(
                 properties
                   .filter(_.hasLabel(Property.ontology).isEmpty)
                   .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
                   .map(node =>
-                    if (!pwip.contains(node.iri)) toProperty(node.iri)
+                    if (!pwip.contains(node.iri))
+                      Task.now(Property.properties.getOrCreate(node.iri)) //toProperty(node.iri)
                     else
                       Task.unit.delayExecution(50.millis).flatMap { f =>
                         if (Property.properties.get(node.iri).nonEmpty) Task.unit
@@ -1127,7 +1171,7 @@ trait Decoder {
                     }))
             } yield {
               DataType.datatypes.getAndUpdate(node)
-            }).forkAndForget
+            }) //.forkAndForget
           } yield datatype
         })
         .getOrElse(Task.raiseError(FromJsonException(s"ontology without iri $expandedJson")))
@@ -1181,28 +1225,43 @@ trait Decoder {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareDataType(expandedJson).flatMap { node =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).forkAndForget.map { f =>
             node
           }
-        }.memoizeOnSuccess
+        }
+//          .timeout(5.seconds)
+//          .onErrorHandle { f =>
+//            println(iris.toString + " :: " + f.getMessage); throw f
+//          }
+        .memoizeOnSuccess
       )
     } else if (Ontology.ontology.iris & typeIris nonEmpty) {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareOntology(expandedJson).flatMap { ontology =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).forkAndForget.map { f =>
             ontology
           }
-        }.memoizeOnSuccess
+        }
+//          .timeout(5.seconds)
+//          .onErrorHandle { f =>
+//            println(iris.toString + " :: " + f.getMessage); throw f
+//          }
+        .memoizeOnSuccess
       )
     } else if (Property.ontology.iris & typeIris nonEmpty) {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareProperty(expandedJson).flatMap { node =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(30 seconds).forkAndForget.map { f =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).forkAndForget.map { f =>
             node
           }
-        }.memoizeOnSuccess
+        }
+//          .timeout(5.seconds)
+//          .onErrorHandle { f =>
+//            println(iris.toString + " :: " + f.getMessage); throw f
+//          }
+        .memoizeOnSuccess
       )
     } else {
       scribe.warn(s"preparingClassTypeNode $iris without type ${typeIris}")
@@ -1327,7 +1386,7 @@ trait Decoder {
                       .flatMap {
                         list =>
                           Task
-                            .sequence { //gatherUnordered seems to deadlock?
+                            .gatherUnordered { //gatherUnordered seems to deadlock?
                               list.map {
                                 case (ac, obj) =>
                                   val expandedJson = obj.expand(ac)
@@ -1336,10 +1395,14 @@ trait Decoder {
                                     .map(_.iri)
                                     .map { iri =>
                                       prepareClassType(expandedJson - types.`@context`)
-                                        .timeout(15000.millis)
+                                        .timeout(45000.millis)
                                         .onErrorHandleWith {
-                                          case e: NotAClassNorProperty => Task.unit
-                                          case e                       => Task.raiseError(e)
+                                          case e: NotAClassNorProperty =>
+//                                            println(s"notaclass $iri")
+                                            Task.unit
+                                          case e =>
+//                                            println(s"error $iri")
+                                            Task.raiseError(e)
                                         }
                                         .memoizeOnSuccess
                                     }
@@ -1351,7 +1414,7 @@ trait Decoder {
                         graph.ns.nodes
                           .hasIri(iri)
                           .headOptionL
-                          .flatMap(_.map(n => Task.now(Ontology.ontologies.getAndUpdate(n)))
+                          .flatMap(_.map(n => Task(Ontology.ontologies.getAndUpdate(n)))
                             .getOrElse(Task.raiseError(
                               throw FromJsonException(s"could not find $iri after fetching and preparing"))))
                       }
@@ -1360,7 +1423,7 @@ trait Decoder {
             } else {
               scribe.warn(
                 s"cannot fetch ontology $iri, creating by iri (it is unknown if this ontology extends others)")
-              Task.now(Ontology.ontologies.getOrCreate(iri))
+              Task(Ontology.ontologies.getOrCreate(iri))
 //              Task.raiseError(FromJsonException(s"cannot parse ontology, not @type or @graph ${expandedJson.keys}"))
             }
           }
@@ -1392,7 +1455,7 @@ trait Decoder {
                               .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
                           })
                       .flatMap { list =>
-                        Task.sequence {
+                        Task.gatherUnordered {
                           list.map {
                             case (ac, obj) =>
                               val expandedJson = obj.expand(ac)
@@ -1416,7 +1479,7 @@ trait Decoder {
                         graph.ns.nodes
                           .hasIri(iri)
                           .headOptionL
-                          .flatMap(_.map(n => Task.now(Property.properties.getAndUpdate(n)))
+                          .flatMap(_.map(n => Task(Property.properties.getAndUpdate(n)))
                             .getOrElse(Task.raiseError(
                               throw FromJsonException(s"could not find $iri after fetching and preparing"))))
                       }
@@ -1429,7 +1492,7 @@ trait Decoder {
                 .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
             } else
               scribe.warn(s"fetching and building $iri failed, empty property created")
-            Task.now(Property.properties.getOrCreate(iri, Set()))
+            Task(Property.properties.getOrCreate(iri, Set()))
 //              Task.raiseError(FromJsonException(s"cannot parse property, not @type or @graph ${expandedJson.keys}"))
           }
         }
@@ -1458,7 +1521,7 @@ trait Decoder {
                               .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
                           })
                       .flatMap { list =>
-                        Task.sequence {
+                        Task.gatherUnordered {
                           list.map {
                             case (ac, obj) =>
                               val expandedJson = obj.expand(ac)
@@ -1482,7 +1545,7 @@ trait Decoder {
                         graph.ns.nodes
                           .hasIri(iri)
                           .headOptionL
-                          .flatMap(_.map(n => Task.now(ClassType.classtypes.getAndUpdate(n)))
+                          .flatMap(_.map(n => Task(ClassType.classtypes.getAndUpdate(n)))
                             .getOrElse(Task.raiseError(
                               throw FromJsonException(s"could not find $iri after fetching and preparing"))))
                       }
@@ -1520,7 +1583,7 @@ trait Decoder {
                               .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
                           })
                       .flatMap { list =>
-                        Task.sequence {
+                        Task.gatherUnordered {
                           list.map {
                             case (ac, obj) =>
                               val expandedJson = obj.expand(ac)
@@ -1596,6 +1659,9 @@ trait Decoder {
             }
 //            .executeOn(monix.execution.Scheduler.io())
             .timeout(15.second)
+//            .onErrorHandle { f =>
+//              println(s"url $eIri timed out after 15 seconds"); throw f
+//            }
             .flatMap(parse)
         } else
           parse(s"""{"@id": "${iri}"}""")
@@ -1603,11 +1669,11 @@ trait Decoder {
         case None =>
           import scala.concurrent.duration._
           scribe.trace(s"adding remove task, $iri is build")
-          Task.delay(fetchingInProgress.remove(iri)).delayExecution(30 seconds).forkAndForget
+          Task.delay(fetchingInProgress.remove(iri)).delayExecution(1 seconds).forkAndForget
         case Some(e) =>
           e.printStackTrace()
           scribe.error(s"failure? : ${e.getMessage}")
-          Task.now(fetchingInProgress.remove(iri))
+          Task(fetchingInProgress.remove(iri))
       }.memoizeOnSuccess
     )
   }
@@ -1790,7 +1856,9 @@ trait Decoder {
                 graph.ns.properties
                   .get(key)
                   .flatMap(_.map(Task.now).getOrElse {
-                    toProperty(key)(activeContext)
+//                    toProperty(key)(activeContext)
+                    Task
+                      .now(Property.properties.getOrCreate(key))
                   })
                   .map(property => ActiveProperty(property, `@reverse` = true)()))
             .getOrElse(Task.raiseError(FromJsonException("invalid IRI mapping")))
@@ -1808,7 +1876,9 @@ trait Decoder {
               graph.ns.properties
                 .get(key)
                 .flatMap(_.map(Task.now).getOrElse {
-                  toProperty(key)(activeContext)
+//                  toProperty(key)(activeContext)
+                  Task
+                    .now(Property.properties.getOrCreate(key))
                 })
                 .map(property => ActiveProperty(property)()))
           .getOrElse(Task.raiseError(FromJsonException("invalid IRI mapping")))
@@ -1855,7 +1925,9 @@ trait Decoder {
                               .getOrElse(graph.ns.properties
                                 .get(expKey)
                                 .flatMap(_.map(Task.now).getOrElse {
-                                  toProperty(expKey)(activeContext)
+//                                  toProperty(expKey)(activeContext)
+                                  Task
+                                    .now(Property.properties.getOrCreate(expKey))
                                 })
                                 .map(property => ActiveProperty(property)()))
                               .flatMap(processType(obj)(_))
