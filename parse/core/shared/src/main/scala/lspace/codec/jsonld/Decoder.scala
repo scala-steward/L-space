@@ -828,10 +828,6 @@ trait Decoder {
             .toList
             .flatMap(extractIris(_))
           for {
-//            _ <- expandedJson.extractOntologies.flatMap { ontologies =>
-//              if (ontologies.isEmpty) node.addLabel(Ontology.ontology)
-//              else Task.gather(ontologies.map(node.addLabel))
-//            }
             extending <- Task
               .gather(
                 extendsIris
@@ -841,8 +837,6 @@ trait Decoder {
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
-//            _ <- withEdges(node,
-//                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             ontology = Ontology.ontologies.getAndUpdate(node)
             _ <- (for {
               _ <- withEdges(
