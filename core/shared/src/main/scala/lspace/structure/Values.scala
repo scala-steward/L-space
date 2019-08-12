@@ -1,11 +1,15 @@
 package lspace.structure
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.datatype.DataType
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 import monix.reactive.Observable
 
+import scala.collection.concurrent
 import scala.collection.immutable.ListSet
+import scala.collection.JavaConverters._
 
 abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   import graph._
@@ -129,25 +133,44 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     } yield { b }
   }
 
+  private val upsertingTasks: concurrent.Map[Any, Task[Value[_]]] =
+    new ConcurrentHashMap[Any, Task[Value[_]]]().asScala
+
   def upsert[V, TOut, CTOut <: ClassType[_]](value: V)(
       implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Task[Value[V]] = {
-    byValue(value).toListL.flatMap {
-      case Nil         => create(value)
-      case List(value) => Task.now(value)
-      case values =>
-        mergeValues(values.toSet)
-    }
+    upsertingTasks
+      .getOrElseUpdate(
+        value,
+        byValue(value).toListL
+          .flatMap {
+            case Nil         => create(value)
+            case List(value) => Task.now(value)
+            case values =>
+              mergeValues(values.toSet)
+          }
+          .doOnFinish(f => Task(upsertingTasks.remove(value)))
+          .memoize
+      )
+      .asInstanceOf[Task[Value[V]]]
   }
 
   final def upsert[V](value: V, dt: DataType[V]): Task[Value[V]] = {
     //      val values = byValue(List(value -> dt))
     //      values.headOptionL.flatMap(_.map(Task.now).getOrElse(create(value, dt)))
-    byValue(List(value -> dt)).toListL.flatMap {
-      case Nil         => create(value, dt)
-      case List(value) => Task.now(value)
-      case values =>
-        mergeValues(values.toSet)
-    }
+    upsertingTasks
+      .getOrElseUpdate(
+        value,
+        byValue(List(value -> dt)).toListL
+          .flatMap {
+            case Nil         => create(value, dt)
+            case List(value) => Task.now(value)
+            case values =>
+              mergeValues(values.toSet)
+          }
+          .doOnFinish(f => Task(upsertingTasks.remove(value)))
+          .memoize
+      )
+      .asInstanceOf[Task[Value[V]]]
     //      val _value: Value[V] = if (values.isEmpty) {
     //        create(value, dt)
     ////      } else if (values.size > 1) {

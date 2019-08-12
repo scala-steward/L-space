@@ -88,7 +88,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
               mergeNodes(nodes.toSet)
           }
           .doOnFinish(f => Task(upsertingTasks.remove(iri)))
-          .memoizeOnSuccess
+          .memoize
       )
       .flatMap { node =>
         val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty) //only add new iris
