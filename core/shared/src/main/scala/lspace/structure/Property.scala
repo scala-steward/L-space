@@ -168,10 +168,12 @@ object Property {
 //      println(property.range().map(_.iri))
 
       property.properties ++ (node
-        .out(Property.default.typed.propertyProperty) ++ node
+        .out(Property.default.typed.propertyProperty)
+        .filter(_.out("http://schema.org/supersededBy").isEmpty) ++ node
         .in(lspace.NS.types.schemaDomainIncludes, "http://schema.org/domainIncludes")
         .collect { case node: Node => node })
         .filter(_.labels.contains(Property.ontology))
+        .filter(_.out("http://schema.org/supersededBy").isEmpty)
         .map(Property.properties.getAndUpdate)
 
       property.extendedClasses ++ node

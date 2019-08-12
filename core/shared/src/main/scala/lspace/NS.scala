@@ -103,6 +103,7 @@ object NS {
     val rdfProperty           = NS.vocab.rdf + "Property"
     val schemaClass           = NS.vocab.schema + "Class"
     val schemaDomainIncludes  = NS.vocab.schema + "domainIncludes"
+    val schemaSupersededBy    = NS.vocab.schema + "supersededBy"
     val schemaSameAs          = NS.vocab.schema + "sameAs"
     val schemaInverseOf       = NS.vocab.schema + "inverseOf"
     val schemaRange           = NS.vocab.schema + "rangeIncludes"

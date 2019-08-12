@@ -838,18 +838,6 @@ trait Decoder {
                   .map(graph.nodes
                     .upsert(_, Ontology.ontology)))
             _ <- node.addOut(Label.P.`@extends`, extending)
-//            _ <- Task
-//              .gatherUnordered(
-//                extending
-//                  .filter(_.hasLabel(Ontology.ontology).isEmpty)
-//                  .filter(o => o.iris.flatMap(Ontology.ontologies.get(_).toList).isEmpty)
-//                  .map(node =>
-//                    if (!owip.contains(node.iri)) toOntology(node.iri)
-//                    else
-//                      Task.unit.delayExecution(50.millis).flatMap { f =>
-//                        if (Ontology.ontologies.get(node.iri).nonEmpty) Task.unit
-//                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-//                    }))
             properties <- Task
               .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
             _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
@@ -969,27 +957,12 @@ trait Decoder {
             .flatMap(extractIris(_))
 
           for {
-//            _ <- expandedJson.extractOntologies.flatMap { properties =>
-//              if (properties.isEmpty) node.addLabel(Property.ontology)
-//              else Task.gather(properties.map(node.addLabel))
-//            }
             extending <- Task
               .sequence(
                 extendsIris
                   .map(graph.nodes
                     .upsert(_, Property.ontology)))
             _ <- node.addOut(Label.P.`@extends`, extending)
-//            _ <- Task.gatherUnordered(
-//              extending
-//                .filter(_.hasLabel(Property.ontology).isEmpty)
-//                .filter(p => p.iris.flatMap(Property.properties.get(_).toList).isEmpty)
-//                .map(node =>
-//                  if (!pwip.contains(node.iri)) toProperty(node.iri)
-//                  else
-//                    Task.unit.delayExecution(50.millis).flatMap { f =>
-//                      if (Property.properties.get(node.iri).nonEmpty) Task.unit
-//                      else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-//                  }))
             range <- Task
               .gather(rangeIris
                 .map(graph.nodes.upsert(_)))
@@ -998,17 +971,8 @@ trait Decoder {
               .gather(inverseOf
                 .map(graph.nodes.upsert(_)))
             _ <- node.addOut(Label.P.inverseOf, inverse)
-            includedIn <- Task.gatherUnordered(domainIncludeIris
-              .map(graph.nodes.upsert(_)))
-            _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))) //.forkAndForget
-            properties <- Task
-              .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
-            _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
-//            _ <- withEdges(node,
-//                           expandedJson.filter(types.`@label`, types.rdfsLabel, types.`@comment`, types.rdfsComment))
             property = Property.properties.getAndUpdate(node)
             _ <- (for {
-              node <- graph.nodes.upsert(node.iri, Property.ontology)
               _ <- withEdges(
                 node,
                 expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
@@ -1019,28 +983,12 @@ trait Decoder {
                   - types.schemaDomainIncludes
                   - types.`@properties`
               )
-//              _ <- Task.gatherUnordered(
-//                range
-//                  .filter(ct => ct.hasLabel(Ontology.ontology).isEmpty && ct.hasLabel(Property.ontology).isEmpty)
-//                  .filter(ct => ct.iris.flatMap(ClassType.classtypes.get(_).toList).isEmpty)
-//                  .map(node =>
-//                    if (!ctwip.contains(node.iri)) toClasstype(node.iri)
-//                    else
-//                      Task.unit.delayExecution(50.millis).flatMap { f =>
-//                        if (ClassType.classtypes.get(node.iri).nonEmpty) Task.unit
-//                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-//                    }))
-//              _ <- Task.gatherUnordered(
-//                includedIn
-//                  .filter(ct => ct.hasLabel(Ontology.ontology).isEmpty && ct.hasLabel(Property.ontology).isEmpty)
-//                  .filter(ct => ct.iris.flatMap(ClassType.classtypes.get(_).toList).isEmpty)
-//                  .map(node =>
-//                    if (!ctwip.contains(node.iri)) toClasstype(node.iri)
-//                    else
-//                      Task.unit.delayExecution(50.millis).flatMap { f =>
-//                        if (ClassType.classtypes.get(node.iri).nonEmpty) Task.unit
-//                        else Task.raiseError(FromJsonException(s"could not build ${node.iri}"))
-//                    }))
+              includedIn <- Task.gatherUnordered(domainIncludeIris
+                .map(graph.nodes.upsert(_)))
+              _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))) //.forkAndForget
+              properties <- Task
+                .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
+              _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
               _ <- Task.gatherUnordered(
                 properties
                   .filter(_.hasLabel(Property.ontology).isEmpty)

@@ -40,7 +40,7 @@ abstract class DecoderSpec(decoder: Decoder) extends AsyncWordSpec with Matchers
             ontology
               .properties("http://schema.org/additionalName")
               .exists(_.range(`@string`.iri).isDefined) shouldBe true
-            ontology.properties("http://schema.org/colleagues").isDefined shouldBe true
+            ontology.properties("http://schema.org/colleagues").isDefined shouldBe false //superseded
           }
           .timeout(60.seconds)
           .runToFuture
