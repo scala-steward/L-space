@@ -861,8 +861,8 @@ trait Decoder {
                 node,
                 expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
                   - types.`@extends` - types.rdfsSubClassOf
-                  - types.`@label` - types.rdfsLabel
-                  - types.`@comment` - types.rdfsComment
+//                  - types.`@label` - types.rdfsLabel
+//                  - types.`@comment` - types.rdfsComment
                   - types.`@properties`
               )
               _ <- Task.gatherUnordered(
@@ -1013,8 +1013,8 @@ trait Decoder {
                 node,
                 expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
                   - types.`@extends` - types.rdfsSubPropertyOf
-                  - types.`@label` - types.rdfsLabel
-                  - types.`@comment` - types.rdfsComment
+//                  - types.`@label` - types.rdfsLabel
+//                  - types.`@comment` - types.rdfsComment
                   - types.`@range` - types.schemaRange
                   - types.schemaDomainIncludes
                   - types.`@properties`
@@ -1162,8 +1162,8 @@ trait Decoder {
                 node,
                 expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@type`
                   - types.`@extends` - types.rdfsSubClassOf
-                  - types.`@label` - types.rdfsLabel
-                  - types.`@comment` - types.rdfsComment
+//                  - types.`@label` - types.rdfsLabel
+//                  - types.`@comment` - types.rdfsComment
                   - types.`@properties`
               )
               _ <- Task.gatherUnordered(
