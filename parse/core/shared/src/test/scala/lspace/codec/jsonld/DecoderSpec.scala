@@ -34,9 +34,12 @@ abstract class DecoderSpec(decoder: Decoder) extends AsyncWordSpec with Matchers
           .toOntology("http://schema.org/Person")(ActiveContext())
           .map { ontology =>
             ontology.iri shouldBe "http://schema.org/Person"
-//            ontology
-//              .properties("http://schema.org/additionalName")
-//              .exists(_.range(`@string`.iri).isDefined) shouldBe true
+            ontology
+              .properties("http://schema.org/additionalName")
+              .isDefined shouldBe true
+            ontology
+              .properties("http://schema.org/additionalName")
+              .exists(_.range(`@string`.iri).isDefined) shouldBe true
             ontology.properties("http://schema.org/colleagues").isDefined shouldBe true
           }
           .timeout(60.seconds)

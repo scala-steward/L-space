@@ -4,6 +4,7 @@ import lspace.NS
 import lspace.datatype.{DataType, IriType, NodeURLType}
 import lspace.librarian.traversal.{step, Traversal}
 import lspace.structure.util.ClassTypeable
+import lspace.util.CacheStatus
 import monix.eval.Task
 import shapeless.{::, HNil}
 
@@ -31,6 +32,9 @@ object Node {
 trait Node extends Resource[Node] {
 
   val value: Node = this
+
+  @transient var status: CacheStatus.CacheStatus = CacheStatus.EMPTY
+  @transient var memento: Long                   = 0L
 
   def labels: List[Ontology]
 

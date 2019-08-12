@@ -55,9 +55,6 @@ trait Resource[+T] extends IriResource {
     */
   def iris: Set[String] = out(default.`@id`, default.`@ids`).collect { case url: String => url }.toSet
 
-  @transient var status: CacheStatus.CacheStatus = CacheStatus.EMPTY
-  @transient var memento: Long                   = 0L
-
   /**
     * @return set of all available edge-labels (keys)
     */

@@ -109,6 +109,7 @@ object Property {
     def getAndUpdate(node: Node): Property = {
       if (node.hasLabel(Property.ontology).isEmpty)
         throw new Exception("cannot create Property from node without label @property")
+      if (node.iri.isEmpty) throw new Exception("cannot create Property with empty iri")
       val property = getOrCreate(node.iri, node.iris)
 
       property.label ++ node
@@ -145,13 +146,15 @@ object Property {
                   .getOrElse {
                     ClassType.classtypes.getAndUpdate(node)
                   } //orElse???
-//              case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
-////                println(s"found ct by iri ${node.iri}")
-//                ClassType.classtypes.get(node.iri).get
-//              case iri: String =>
-//                ClassType.classtypes
-//                  .get(iri)
-//                  .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+              case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
+                ClassType.classtypes.get(node.iri).get
+              case node: Node =>
+                if (node.iri.nonEmpty) Ontology.ontologies.getOrCreate(node.iri)
+                else throw new Exception(s"s node ${property.iri} with range iri ${node.iri} ${node.iris}")
+              case iri: String =>
+                ClassType.classtypes
+                  .get(iri)
+                  .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
             }
           case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
             List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getAndUpdate(node)))

@@ -796,6 +796,7 @@ trait Decoder {
       .getOrElse(List())
       .map(activeContext.expandIri)
       .map(_.iri)
+      .filter(_.nonEmpty)
 
   def prepareOntology(expandedJson: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[Ontology] = {
 //    scribe.trace(s"prepare ontology ${obj}")
@@ -810,7 +811,11 @@ trait Decoder {
       iri
         .map {
 //          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //ontology without fqdn? local-node?
-          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri))
+          case Iri(iri) =>
+            for {
+              node <- graph.nodes.upsert(iri, Ontology.ontology)
+              _    <- Task.sequence((iris.map(_.iri) + iri toList).map(node.addOut(Label.P.`@ids`, _)))
+            } yield node
         }
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
@@ -823,10 +828,10 @@ trait Decoder {
             .toList
             .flatMap(extractIris(_))
           for {
-            _ <- expandedJson.extractOntologies.flatMap { ontologies =>
-              if (ontologies.isEmpty) node.addLabel(Ontology.ontology)
-              else Task.gather(ontologies.map(node.addLabel))
-            }
+//            _ <- expandedJson.extractOntologies.flatMap { ontologies =>
+//              if (ontologies.isEmpty) node.addLabel(Ontology.ontology)
+//              else Task.gather(ontologies.map(node.addLabel))
+//            }
             extending <- Task
               .gather(
                 extendsIris
@@ -923,11 +928,14 @@ trait Decoder {
           .exists(iris => Property.ontology.iris.intersect(iris.toSet).nonEmpty)) {
       val iri  = expandedJson.extractId
       val iris = expandedJson.extractIds.toSet
-      if (iri.exists(_.iri.isEmpty)) println(s"empty iri ${iris.map(_.iri)}")
       iri
         .map {
           //          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //property without fqdn? local-node?
-          case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri), Property.ontology)
+          case Iri(iri) =>
+            for {
+              node <- graph.nodes.upsert(iri, Property.ontology)
+              _    <- Task.sequence((iris.map(_.iri) + iri toList).map(node.addOut(Label.P.`@ids`, _)))
+            } yield node
         }
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
@@ -961,12 +969,12 @@ trait Decoder {
             .flatMap(extractIris(_))
 
           for {
-            _ <- expandedJson.extractOntologies.flatMap { properties =>
-              if (properties.isEmpty) node.addLabel(Property.ontology)
-              else Task.gather(properties.map(node.addLabel))
-            }
+//            _ <- expandedJson.extractOntologies.flatMap { properties =>
+//              if (properties.isEmpty) node.addLabel(Property.ontology)
+//              else Task.gather(properties.map(node.addLabel))
+//            }
             extending <- Task
-              .gather(
+              .sequence(
                 extendsIris
                   .map(graph.nodes
                     .upsert(_, Property.ontology)))

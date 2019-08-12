@@ -1,8 +1,13 @@
 package lspace.structure
 
+import java.util.concurrent.ConcurrentHashMap
+
 import lspace.Label
 import monix.eval.Task
 import monix.reactive.Observable
+
+import scala.collection.concurrent
+import scala.collection.JavaConverters._
 
 abstract class Nodes(val graph: Graph) extends RApi[Node] {
   import graph._
@@ -39,12 +44,22 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     } yield node
   }
 
-  def upsert(iri: String, ontologies: Ontology*): Task[Node] = {
+  def create(iri: String, ontology: Ontology*): Task[Node] = {
     for {
-      node <- upsert(iri, Set[String]())
-      u    <- Task.gatherUnordered(ontologies.toList map node.addLabel)
+      id <- idProvider.next
+      node = newNode(id)
+      u <- Task.sequence(ontology.map(node.addLabel))
+      _ <- if (iri.nonEmpty) node.addOut(Label.P.`@id`, iri) else Task.unit
+      _ <- if (iri.nonEmpty) node.addOut(Label.P.`@ids`, iri) else Task.unit
     } yield node
   }
+
+  def upsert(iri: String, ontologies: Ontology*): Task[Node] = {
+    upsert(iri, Set[String](), ontologies: _*)
+  }
+
+  private val upsertingTasks: concurrent.Map[String, Task[Node]] =
+    new ConcurrentHashMap[String, Task[Node]]().asScala
 
   /**
     *
@@ -53,24 +68,30 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
     */
   def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] = {
-    hasIri(iri :: iris.toList).toListL
-      .flatMap {
-        case Nil =>
-          for {
-            node <- create()
-            _ <- if (iri.nonEmpty) node.addOut(Label.P.typed.iriUrlString, iri)
-            else if (iris.headOption.exists(_.nonEmpty))
-              node.addOut(Label.P.typed.iriUrlString, iris.head)
-            else Task.unit
-          } yield {
-            node
+    upsertingTasks
+      .getOrElseUpdate(
+        iri,
+        hasIri(iri :: iris.toList).toListL
+          .flatMap {
+            case Nil =>
+              for {
+                node <- create()
+                _ <- if (iri.nonEmpty) node.addOut(Label.P.typed.iriUrlString, iri)
+                else if (iris.headOption.exists(_.nonEmpty))
+                  node.addOut(Label.P.typed.iriUrlString, iris.head)
+                else Task.unit
+              } yield {
+                node
+              }
+            case List(node) => Task.now(node)
+            case nodes =>
+              mergeNodes(nodes.toSet)
           }
-        case List(node) => Task.now(node)
-        case nodes =>
-          mergeNodes(nodes.toSet)
-      }
+          .doOnFinish(f => Task(upsertingTasks.remove(iri)))
+          .memoizeOnSuccess
+      )
       .flatMap { node =>
-        val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty)
+        val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty) //only add new iris
         for {
           _ <- Task.sequence(newIris.map(node.addOut(Label.P.`@ids`, _)))
           _ <- Task.sequence(ontologies.map(node.addLabel))
@@ -82,7 +103,17 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     if (node.graph != thisgraph) { //
       for {
         edges <- node.g.outE().withGraph(node.graph).toListF
-        newNode <- if (node.iri.nonEmpty) upsert(node.iri)
+        newNode <- if (node.iri.nonEmpty)
+          for {
+            newNode <- upsert(node.iri)
+            _ <- {
+              val newIris = ((node.iris) diff newNode.iris).toList.filter(_.nonEmpty) //only add new iris
+              for {
+                _ <- Task.sequence(newIris.map(newNode.addOut(Label.P.`@ids`, _)))
+                _ <- Task.sequence(node.labels.map(newNode.addLabel))
+              } yield ()
+            }
+          } yield newNode
         else {
           for {
             newNode <- create()
@@ -106,7 +137,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
       Task.now(node)
     case _ =>
       for {
-        newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create()
+        newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create() //FIX: ignores node.iris for empty node.iri
         u       <- Task.gather(node.labels.map(node.addLabel))
         v       <- addMeta(node, newNode)
       } yield node
