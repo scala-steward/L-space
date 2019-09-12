@@ -3,7 +3,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
 //  val scala     = "2.12.8"
-  val finch     = "0.29.0"
+  val finch     = "0.30.0"
   val monix     = "3.0.0-RC3"
   val sttp      = "1.6.4"
   val elastic4s = "7.1.0"
@@ -20,7 +20,7 @@ object Dependencies {
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"      %%% "scribe"    % "2.7.9",
       "org.scalatest" %%% "scalatest" % "3.0.8" % "test",
-      "io.monix"      %%% "minitest"  % "2.5.0" % "test"
+      "io.monix"      %%% "minitest"  % "2.6.0" % "test"
     ))
 
   val coreJsDeps = Def.setting(
