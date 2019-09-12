@@ -563,6 +563,21 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
+      """N.hasIri(sampleGraph.iri + "/person/12345").project().by(_.out(properties.knows).count())
+      """.stripMargin in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .project()
+          .by(_.out(properties.knows).count())
+          .withGraph(sampleGraph)
+          .headF
+          .map {
+            case (node: Node, count: Long) =>
+              count shouldBe 2
+          }
+          .timeout(4000.millis)
+          .runToFuture
+      }
       "N.union(_.has(properties.balance, P.lt(0.0)), _.has(properties.balance, P.gt(2000.0)))" in {
         g.N
           .union(
@@ -584,6 +599,8 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .toListF
           .map { groupedNodes =>
             groupedNodes.size shouldBe 2
+            groupedNodes.head._1.size shouldBe 1
+            groupedNodes.head._2.size should be > 1
           }
           .timeout(4000.millis)
           .runToFuture

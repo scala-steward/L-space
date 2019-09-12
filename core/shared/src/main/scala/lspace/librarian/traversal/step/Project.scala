@@ -61,9 +61,12 @@ case class Project[Traversals <: HList](by: Traversals) extends ProjectionStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =
-    "project(" + by.runtimeList.reverse
-      .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-      .map(_.prettyPrint)
-      .map("_." + _)
-      .mkString(", ") + ")"
+    by.runtimeList.reverse.map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]]) match {
+      case Nil => "[error:invalid projection]"
+      case head :: tail =>
+        (head.stepsList match {
+          case Nil => "project()"
+          case _   => "project(_." + head.prettyPrint + ")"
+        }) + (if (tail.nonEmpty) ".by(_." + tail.map(_.prettyPrint).mkString(").by(_.") + ")" else "")
+    }
 }

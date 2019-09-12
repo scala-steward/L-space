@@ -343,6 +343,21 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
       Task(x.toSet shouldBe Set((List("Gray"), List(2230.3)), (List("Yoshio"), List()))).runToFuture
 
     }
+    """N.hasIri(sampleGraph.iri + "/person/12345").project().by(_.out(properties.knows).count())
+      """.stripMargin in {
+      g.N
+        .hasIri(sampleGraph.iri + "/person/12345")
+        .project()
+        .by(_.out(properties.knows).count())
+        .withGraph(sampleGraph)
+        .headF
+        .map {
+          case (node: Node, count: Long) =>
+            count shouldBe 2
+        }
+        .to[Task]
+        .runToFuture
+    }
     "N.union(_.has(properties.balance, P.lt(0.0)), _.has(properties.balance, P.gt(2000.0)))" in {
       g.N
         .union(
@@ -356,14 +371,17 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .map(_.toSet shouldBe Set("Levi", "Gray"))
         .to[Task]
         .runToFuture
-
     }
     "N.group(_.label())" in {
       g.N
         .group(_.label())
         .withGraph(sampleGraph)
         .toListF
-        .map(_.nonEmpty shouldBe true)
+        .map { groupedNodes =>
+          groupedNodes.size shouldBe 2
+          groupedNodes.head._1.size shouldBe 1
+          groupedNodes.head._2.size should be > 1
+        }
         .to[Task]
         .runToFuture
     }

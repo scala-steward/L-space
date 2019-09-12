@@ -469,18 +469,33 @@ object Traversal
   }
 
   object TMapper extends Poly1 {
-    implicit def traversal[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList, Out, COut <: ClassType[Any]](
+    implicit def traversal[ST <: ClassType[Any],
+                           ET <: ClassType[Any],
+                           Step,
+                           Steps <: HList,
+                           Out,
+                           COut <: ClassType[Any]](
         implicit
-        out: OutTweaker.Aux[ET, Steps, Out, COut]
-    ): Case.Aux[Traversal[ST, ET, Steps], COut] = at[Traversal[ST, ET, Steps]](t => out.tweak(t.et))
+        out: OutTweaker.Aux[ET, Step :: Steps, Out, COut]
+    ): Case.Aux[Traversal[ST, ET, Step :: Steps], COut] = at[Traversal[ST, ET, Step :: Steps]](t => out.tweak(t.et))
+    implicit def empty[ST <: ClassType[Any], ET <: ClassType[Any]]: Case.Aux[Traversal[ST, ET, HNil], ET] =
+      at[Traversal[ST, ET, HNil]](t => t.et)
 //    implicit def traversal2[Start, End, Steps <: HList, Out, COut <: ClassType[Any]]
 //    /*: Case.Aux[Traversal[ST, ET, Steps], ET]*/ = at[Traversal[ClassType[Start], ClassType[End], Steps]](t => t.et)
   }
   object TOutMapper extends Poly1 {
-    implicit def traversal[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList, Out, COut <: ClassType[Any]](
+    implicit def traversal[ST <: ClassType[Any],
+                           ET <: ClassType[Any],
+                           Step,
+                           Steps <: HList,
+                           Out,
+                           COut <: ClassType[Any]](
         implicit
-        out: OutTweaker.Aux[ET, Steps, Out, COut]
-    ): Case.Aux[Traversal[ST, ET, Steps], Out] = at[Traversal[ST, ET, Steps]](t => 1.asInstanceOf[out.Out])
+        out: OutTweaker.Aux[ET, Step :: Steps, Out, COut]
+    ): Case.Aux[Traversal[ST, ET, Step :: Steps], Out] =
+      at[Traversal[ST, ET, Step :: Steps]](t => 1.asInstanceOf[out.Out])
+    implicit def empty[ST <: ClassType[Any], E, ET[+Z] <: ClassType[Z]]: Case.Aux[Traversal[ST, ET[E], HNil], E] =
+      at[Traversal[ST, ET[E], HNil]](t => 1.asInstanceOf[E])
 //    implicit def traversal2[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList]
 //    /*: Case.Aux[Traversal[ST, ET, Steps], Int]*/ = at[Traversal[ST, ET, Steps]](t => 1)
 //    implicit def default                          = at[Int](identity)

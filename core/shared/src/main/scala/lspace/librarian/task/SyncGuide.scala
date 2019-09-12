@@ -700,7 +700,8 @@ abstract class SyncGuide extends LocalGuide[Stream] {
             )
             .toStream
             .map { group =>
-              group._1 -> mapValue(valueObservable(group._2.map(_._1)))
+              group._1 -> (if (step.value.stepsList.isEmpty) toList(valueObservable(group._2.map(_._1)))
+                           else mapValue(valueObservable(group._2.map(_._1))))
                 .asInstanceOf[Coeval[Librarian[Any]]]
                 .map(_.get)
                 .value()
@@ -979,18 +980,22 @@ abstract class SyncGuide extends LocalGuide[Stream] {
 
     val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
-        traversalToF(traversal) -> traversal.stepsList.lastOption
+        traversalToF(traversal) -> {
+          (if (traversal.stepsList.isEmpty) { observable: Stream[Librarian[Any]] =>
+             head(observable)
+           } else tweakEnd(traversal))
+//          traversal.stepsList.lastOption
+        }
     }
 
     val f = (obs: Stream[Librarian[Any]]) =>
       obs
-        .map(librarian =>
-          librarian -> pObs.map {
-            case (pOb, Some(Count))                                        => pOb(librarian).head
-            case (pOb, Some(step @ (_: Head | _: Min | _: Max | _: Mean))) => pOb(librarian).headOption
-            case (pOb, Some(Last))                                         => pOb(librarian).lastOption
-            case (pOb, _)                                                  => pOb(librarian).toList
-        })
+        .map(
+          librarian =>
+            librarian -> pObs.map {
+              case (pOb, endMap) => endMap(pOb(librarian)).asInstanceOf[Coeval[Librarian[Any]]].map(_.get).value()
+          }
+        )
         .map {
           case (librarian, tuple) =>
             librarian.copy(tuple match {

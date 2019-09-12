@@ -756,7 +756,8 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               l => l._2
             )
             .mapEval { group =>
-              mapValue(valueObservable(group.map(_._1)))
+              (if (step.value.stepsList.isEmpty) toList(valueObservable(group.map(_._1)))
+               else mapValue(valueObservable(group.map(_._1))))
                 .asInstanceOf[Task[Librarian[Any]]]
                 .map(l => group.key -> l.get)
             }
@@ -1129,7 +1130,9 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
     val nextStep = buildNextStep(steps)
     val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
-        traversalToF(traversal) -> tweakEnd(traversal)
+        traversalToF(traversal) -> (if (traversal.stepsList.isEmpty) { observable: Observable[Librarian[Any]] =>
+                                      head(observable)
+                                    } else tweakEnd(traversal))
     }
     val f =
       (obs: Observable[Librarian[Any]]) =>
