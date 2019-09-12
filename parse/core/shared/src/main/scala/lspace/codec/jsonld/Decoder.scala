@@ -19,6 +19,7 @@ import scala.collection.JavaConverters._
 import scala.collection.concurrent
 import scala.collection.immutable.{ListSet, Map}
 import scala.concurrent.duration._
+import scala.util.Try
 
 object Decoder {
   type Aux[Json0] = Decoder { type Json = Json0 }
@@ -56,17 +57,18 @@ trait Decoder {
 //  implicit def decoder: Decoder = this
   def parse(string: String): Task[Json] = baseDecoder.parse(string)
 
-  implicit def jsonToList(json: Json): Option[List[Json]]             = baseDecoder.jsonToList(json)
-  implicit def jsonToMap(json: Json): Option[Map[String, Json]]       = baseDecoder.jsonToMap(json)
-  implicit def jsonToString(json: Json): Option[String]               = baseDecoder.jsonToString(json)
-  implicit def jsonToBoolean(json: Json): Option[Boolean]             = baseDecoder.jsonToBoolean(json)
-  implicit def jsonToInt(json: Json): Option[Int]                     = baseDecoder.jsonToInt(json)
-  implicit def jsonToDouble(json: Json): Option[Double]               = baseDecoder.jsonToDouble(json)
-  implicit def jsonToLong(json: Json): Option[Long]                   = baseDecoder.jsonToLong(json)
-  implicit def jsonToDateTime(json: Json): Option[Instant]            = json.string.map(Instant.parse(_))
-  implicit def jsonToLocalDateTime(json: Json): Option[LocalDateTime] = json.string.map(LocalDateTime.parse(_))
-  implicit def jsonToDate(json: Json): Option[LocalDate]              = json.string.map(LocalDate.parse(_))
-  implicit def jsonToTime(json: Json): Option[LocalTime]              = json.string.map(LocalTime.parse(_))
+  implicit def jsonToList(json: Json): Option[List[Json]]       = baseDecoder.jsonToList(json)
+  implicit def jsonToMap(json: Json): Option[Map[String, Json]] = baseDecoder.jsonToMap(json)
+  implicit def jsonToString(json: Json): Option[String]         = baseDecoder.jsonToString(json)
+  implicit def jsonToBoolean(json: Json): Option[Boolean]       = baseDecoder.jsonToBoolean(json)
+  implicit def jsonToInt(json: Json): Option[Int]               = baseDecoder.jsonToInt(json)
+  implicit def jsonToDouble(json: Json): Option[Double]         = baseDecoder.jsonToDouble(json)
+  implicit def jsonToLong(json: Json): Option[Long]             = baseDecoder.jsonToLong(json)
+  implicit def jsonToDateTime(json: Json): Option[Instant]      = json.string.flatMap(s => Try(Instant.parse(s)).toOption)
+  implicit def jsonToLocalDateTime(json: Json): Option[LocalDateTime] =
+    json.string.flatMap(s => Try(LocalDateTime.parse(s)).toOption)
+  implicit def jsonToDate(json: Json): Option[LocalDate] = json.string.flatMap(s => Try(LocalDate.parse(s)).toOption)
+  implicit def jsonToTime(json: Json): Option[LocalTime] = json.string.flatMap(s => Try(LocalTime.parse(s)).toOption)
   implicit def jsonToGeopoint(json: Json): Option[Point] =
     lspace.decode.fromGeoJson(json).toOption.collect { case point: Point => point }
   implicit def jsonToGeopolygon(json: Json): Option[Polygon] =
@@ -878,7 +880,6 @@ trait Decoder {
       .flatMap(_.map(Task.now)
         .getOrElse {
 //          println(s"toOntology ${iri}")
-          //          val ontology = Ontology.ontologies.getOrCreate(iri, Set())
           owip
             .getOrElseUpdate(
               iri,
