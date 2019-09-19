@@ -1,17 +1,19 @@
-package lspace.codec.jsonld
+package lspace.codec.json.jsonld
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.Label
 import lspace.NS.types
-import lspace.codec.exception.{FromJsonException, NotAClassNorProperty, NotAcceptableException, UnexpectedJsonException}
 import lspace.codec._
+import lspace.codec.exception.{FromJsonException, NotAClassNorProperty, NotAcceptableException, UnexpectedJsonException}
+import lspace.codec.json.JsonDecoder
+import lspace.codec.json.geojson.GeoJsonDecoder
 import lspace.datatype._
 import lspace.parse.util.HttpClient
 import lspace.structure._
+import lspace.types.geo.{Line, MultiGeometry, MultiLine, MultiPoint, MultiPolygon, Point, Polygon}
 import lspace.types.string.{Blank, Iri}
-import lspace.types.geo.{Point, Polygon}
 import monix.eval.Task
 import monix.reactive.Observable
 
@@ -22,28 +24,31 @@ import scala.concurrent.duration._
 import scala.util.Try
 
 object Decoder {
-  type Aux[Json0] = Decoder { type Json = Json0 }
+//  type Aux[Json0] = Decoder { type Json = Json0 }
 
-  def apply[Json0](graph0: Lspace)(implicit
-                                   baseDecoder0: NativeTypeDecoder.Aux[Json0]): Decoder.Aux[Json0] =
-    new Decoder {
-      type Json = Json0
-      val graph: Graph                                      = graph0
-      implicit def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
-      lazy val nsDecoder = new Decoder {
-        type Json = Json0
-        val graph: Graph                                      = graph0.ns
-        implicit def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
-        lazy val nsDecoder                                    = this
+  def apply[Json](graph0: Lspace)(implicit
+                                  baseDecoder0: JsonDecoder[Json]): Decoder[Json] =
+    new Decoder()(baseDecoder0) {
+//      type Json = Json0
+      val graph: Graph = graph0
+//      implicit def baseDecoder: JsonDecoder = baseDecoder0
+      lazy val nsDecoder = new Decoder()(baseDecoder0) {
+//        type Json = Json0
+        val graph: Graph = graph0.ns
+//        implicit def baseDecoder: JsonDecoder = baseDecoder0
+        lazy val nsDecoder = this
       }
     }
 }
 
-trait Decoder {
+abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extends lspace.codec.Decoder {
   def graph: Graph
-  def nsDecoder: Decoder
-  type Json
-  implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
+  def nsDecoder: Decoder[Json]
+//  type Json = baseDecoder.Json
+//  implicit def baseDecoder: JsonDecoder[Json]
+  implicit def geoJsonDecoder: GeoJsonDecoder[Json] = GeoJsonDecoder(baseDecoder)
+
+  import baseDecoder._
 
   protected lazy val blankNodes: concurrent.Map[String, Task[Node]] =
     new ConcurrentHashMap[String, Task[Node]](16, 0.9f, 32).asScala
@@ -52,44 +57,49 @@ trait Decoder {
   protected lazy val blankValues: concurrent.Map[String, Task[Value[_]]] =
     new ConcurrentHashMap[String, Task[Value[_]]](16, 0.9f, 32).asScala
 
-  def apply(graph0: Lspace): Decoder.Aux[Json] = Decoder.apply(graph0)(baseDecoder)
+  def apply(graph0: Lspace): Decoder[Json] = Decoder.apply(graph0)(baseDecoder)
 
 //  implicit def decoder: Decoder = this
   def parse(string: String): Task[Json] = baseDecoder.parse(string)
 
-  implicit def jsonToList(json: Json): Option[List[Json]]       = baseDecoder.jsonToList(json)
-  implicit def jsonToMap(json: Json): Option[Map[String, Json]] = baseDecoder.jsonToMap(json)
-  implicit def jsonToString(json: Json): Option[String]         = baseDecoder.jsonToString(json)
-  implicit def jsonToBoolean(json: Json): Option[Boolean]       = baseDecoder.jsonToBoolean(json)
-  implicit def jsonToInt(json: Json): Option[Int]               = baseDecoder.jsonToInt(json)
-  implicit def jsonToDouble(json: Json): Option[Double]         = baseDecoder.jsonToDouble(json)
-  implicit def jsonToLong(json: Json): Option[Long]             = baseDecoder.jsonToLong(json)
-  implicit def jsonToDateTime(json: Json): Option[Instant]      = json.string.flatMap(s => Try(Instant.parse(s)).toOption)
-  implicit def jsonToLocalDateTime(json: Json): Option[LocalDateTime] =
-    json.string.flatMap(s => Try(LocalDateTime.parse(s)).toOption)
-  implicit def jsonToDate(json: Json): Option[LocalDate] = json.string.flatMap(s => Try(LocalDate.parse(s)).toOption)
-  implicit def jsonToTime(json: Json): Option[LocalTime] = json.string.flatMap(s => Try(LocalTime.parse(s)).toOption)
-  implicit def jsonToGeopoint(json: Json): Option[Point] =
-    lspace.decode.fromGeoJson(json).toOption.collect { case point: Point => point }
-  implicit def jsonToGeopolygon(json: Json): Option[Polygon] =
-    lspace.decode.fromGeoJson(json).toOption.collect { case polygon: Polygon => polygon }
+//  implicit def jsonToList(json: Json): Option[List[Json]]       = baseDecoder.jsonToList(json)
+//  implicit def jsonToMap(json: Json): Option[Map[String, Json]] = baseDecoder.jsonToMap(json)
+//  implicit def jsonToString(json: Json): Option[String]         = baseDecoder.jsonToString(json)
+//  implicit def jsonToBoolean(json: Json): Option[Boolean]       = baseDecoder.jsonToBoolean(json)
+//  implicit def jsonToInt(json: Json): Option[Int]               = baseDecoder.jsonToInt(json)
+//  implicit def jsonToDouble(json: Json): Option[Double]         = baseDecoder.jsonToDouble(json)
+//  implicit def jsonToLong(json: Json): Option[Long]             = baseDecoder.jsonToLong(json)
+//  implicit def jsonToDateTime(json: Json): Option[Instant]      = json.string.flatMap(s => Try(Instant.parse(s)).toOption)
+//  implicit def jsonToLocalDateTime(json: Json): Option[LocalDateTime] =
+//    json.string.flatMap(s => Try(LocalDateTime.parse(s)).toOption)
+//  implicit def jsonToDate(json: Json): Option[LocalDate] = json.string.flatMap(s => Try(LocalDate.parse(s)).toOption)
+//  implicit def jsonToTime(json: Json): Option[LocalTime] = json.string.flatMap(s => Try(LocalTime.parse(s)).toOption)
+//  implicit def jsonToGeopoint(json: Json): Option[Point] =
+//    lspace.decode.fromGeoJson(json).toOption.collect { case point: Point => point }
+//  implicit def jsonToGeopolygon(json: Json): Option[Polygon] =
+//    lspace.decode.fromGeoJson(json).toOption.collect { case polygon: Polygon => polygon }
 
   implicit class WithDJson(json: Json) {
-    def isNull: Boolean                      = baseDecoder.jsonIsNull(json)
-    def int: Option[Int]                     = jsonToInt(json)
-    def double: Option[Double]               = jsonToDouble(json)
-    def long: Option[Long]                   = jsonToLong(json)
-    def localdatetime: Option[LocalDateTime] = jsonToLocalDateTime(json)
-    def datetime: Option[Instant]            = jsonToDateTime(json)
-    def time: Option[LocalTime]              = jsonToTime(json)
-    def date: Option[LocalDate]              = jsonToDate(json)
-    def string: Option[String]               = jsonToString(json)
-    def list: Option[List[Json]]             = jsonToList(json)
-    def obj: Option[Map[String, Json]]       = jsonToMap(json)
-    def boolean: Option[Boolean]             = jsonToBoolean(json)
+//    def isNull: Boolean                      = baseDecoder.jsonIsNull(json)
+//    def int: Option[Int]                     = jsonToInt(json)
+//    def double: Option[Double]               = jsonToDouble(json)
+//    def long: Option[Long]                   = jsonToLong(json)
+//    def localdatetime: Option[LocalDateTime] = jsonToLocalDateTime(json)
+//    def datetime: Option[Instant]            = jsonToDateTime(json)
+//    def time: Option[LocalTime]              = jsonToTime(json)
+//    def date: Option[LocalDate]              = jsonToDate(json)
+//    def string: Option[String]               = jsonToString(json)
+//    def list: Option[List[Json]]             = jsonToList(json)
+//    def obj: Option[Map[String, Json]]       = jsonToMap(json)
+//    def boolean: Option[Boolean]             = jsonToBoolean(json)
 //    def geo: Option[Geometry] = ???
-    def geoPoint: Option[Point]     = jsonToGeopoint(json)
-    def geoPolygon: Option[Polygon] = jsonToGeopolygon(json)
+    def geoPoint: Option[Point]                 = geoJsonDecoder.jsonToPoint(json)
+    def geoMultiPoint: Option[MultiPoint]       = geoJsonDecoder.jsonToMultiPoint(json)
+    def geoLine: Option[Line]                   = geoJsonDecoder.jsonToLine(json)
+    def geoMultiLine: Option[MultiLine]         = geoJsonDecoder.jsonToMultiLine(json)
+    def geoPolygon: Option[Polygon]             = geoJsonDecoder.jsonToPolygon(json)
+    def geoMultiPolygon: Option[MultiPolygon]   = geoJsonDecoder.jsonToMultiPolygon(json)
+    def geoMultiGeometry: Option[MultiGeometry] = geoJsonDecoder.jsonToMultiGeometry(json)
   }
 
   implicit class WithObj(obj: Map[String, Json]) {
@@ -593,9 +603,14 @@ trait Decoder {
 
   def toGeometric[T](json: Json, label: GeometricType[T])(implicit activeContext: ActiveContext): Task[T] = {
     (label match { //TODO: create specific parsers
-      case label: GeopointType[_]   => json.geoPoint
-      case label: GeoPolygonType[_] => json.geoPolygon
-      case _                        => None
+      case label: GeopointType[_]         => json.geoPoint
+      case label: GeoMultipointType[_]    => json.geoMultiPoint
+      case label: GeoLineType[_]          => json.geoLine
+      case label: GeoMultiLineType[_]     => json.geoMultiLine
+      case label: GeoPolygonType[_]       => json.geoPolygon
+      case label: GeoMultiPolygonType[_]  => json.geoMultiPolygon
+      case label: GeoMultiGeometryType[_] => json.geoMultiGeometry
+      case _                              => None
     }).map(_.asInstanceOf[T])
       .map(Task.now)
       .getOrElse(Task.raiseError(UnexpectedJsonException(s"unknown GeometricType ${label.iri}")))

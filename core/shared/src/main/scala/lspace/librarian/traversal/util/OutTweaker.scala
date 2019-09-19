@@ -1,41 +1,10 @@
-package lspace.librarian.traversal
+package lspace.librarian.traversal.util
 
-import lspace.datatype.{
-  CollectionType,
-  ListSetType,
-  ListType,
-  LongType,
-  MapType,
-  OptionType,
-  SetType,
-  TupleType,
-  VectorType
-}
-import lspace.Label.D._
-import lspace.librarian.traversal.step.{
-  Constant,
-  Count,
-  Dedup,
-  From,
-  Group,
-  Head,
-  Id,
-  Is,
-  Last,
-  Local,
-  Max,
-  Mean,
-  Min,
-  Path,
-  Project,
-  Sum,
-  To
-}
+import lspace.datatype._
+import lspace.librarian.traversal.step._
+import lspace.librarian.traversal._
 import lspace.structure.ClassType
-import shapeless.{::, <:!<, =:!=, HList, HNil, Poly, Poly1, Poly2}
-import shapeless.ops.hlist._
-
-import scala.collection.immutable.ListSet
+import shapeless.{::, =:!=, HList, HNil, Poly1}
 
 sealed trait OutTweaker[ET <: ClassType[Any], Steps <: HList] {
   type Out

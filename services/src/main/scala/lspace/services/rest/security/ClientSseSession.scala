@@ -24,4 +24,6 @@ object ClientSseSession {
   }
 }
 
-class ClientSseSession(override val session: ClientSession) extends OpenSseSession(session)
+class ClientSseSession(override val session: ClientSession) extends OpenSseSession(session) with ClientSession {
+  override def client: Client = session.client
+}

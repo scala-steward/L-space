@@ -4,25 +4,18 @@ import java.util.concurrent.ConcurrentHashMap
 
 import lspace.structure
 import monix.eval.Task
-import lspace.librarian.traversal._
-import lspace.structure.Property.default
-import lspace.structure.util.ClassTypeable
 import lspace.datatype.{DataType, GraphType, TextType}
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
-import lspace.librarian.task.{AsyncGuide, Guide, ZeroOrOneResult}
+import lspace.librarian.task.{AsyncGuide, Guide}
 import lspace.provider.transaction.Transaction
-import lspace.provider.wrapped.WrappedResource
-import lspace.librarian.traversal.Traversal
+import lspace.librarian.traversal.util.{OutTweaker, ResultMapper}
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider}
-import monix.execution.{Cancelable, CancelableFuture}
 import monix.reactive.Observable
-import shapeless.ops.hlist.{Collect, Reverse}
 import shapeless.{::, HList, HNil}
 
-import scala.collection.immutable.ListSet
 import scala.collection.mutable
 
 object Graph {
@@ -161,9 +154,9 @@ trait Graph extends IriResource with GraphUtils { self =>
     for {
       _ <- (if (Property.properties.default.byIri.get(key.iri).isEmpty)
               ns.properties.store(key)
-            else Task.unit).forkAndForget
+            else Task.unit).startAndForget
       edge <- Task.now(newEdge(id, from, key, to))
-      u    <- storeEdge(edge.asInstanceOf[_Edge[_, _]]) //.forkAndForget //what if this fails?
+      u    <- storeEdge(edge.asInstanceOf[_Edge[_, _]]) //.startAndForget //what if this fails?
       _ <- {
         if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
           case node: _Node =>
@@ -315,7 +308,7 @@ trait Graph extends IriResource with GraphUtils { self =>
       traversal: Traversal[ST, ET[End], Steps])(implicit
                                                 tweaker: OutTweaker.Aux[ET[End], Steps, Out, OutCT],
                                                 guide: Guide[F],
-                                                mapper: Mapper[F, ET[End], OutCT]): mapper.FT =
+                                                mapper: ResultMapper[F, ET[End], OutCT]): mapper.FT =
     mapper.apply(traversal, this).asInstanceOf[mapper.FT]
 
   protected[lspace] def executeTraversal[F[_]](

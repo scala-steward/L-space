@@ -6,13 +6,21 @@ import lspace.datatype._
 import lspace.librarian.logic.predicate.P
 import lspace.librarian.task._
 import lspace.librarian.traversal.Traversal.keys
-import lspace.structure.util.{ClassTypeable, Selector}
+import lspace.structure.util.ClassTypeable
 import lspace.librarian.traversal.step.Order.Orderable
 import lspace.librarian.traversal.step.Select.Selection
 import lspace.librarian.traversal.step._
+import lspace.librarian.traversal.util.{
+  LabelStepTypes,
+  LabelSteps,
+  OutTweaker,
+  ResultMapper,
+  Selector,
+  SelectorSelecter
+}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
-import lspace.types.vector.Geometry
+import lspace.types.geo.Geometry
 import lspace.util.types.DefaultsToAny
 import monix.eval.{Coeval, Task}
 import shapeless.{::, <:!<, =:!=, HList, HNil, LUBConstraint, Poly1, Id => _, Path => _, Select => _}
@@ -229,7 +237,7 @@ object Traversal
     def isQuantity: Traversal[ST[Start], QuantityType[Any], HasLabel :: Steps] =
       add(HasLabel(DataType.default.`@quantity` :: Nil), st, DataType.default.`@quantity`)
 
-    def isDuration: Traversal[ST[Start], DurationType, HasLabel :: Steps] =
+    def isDuration: Traversal[ST[Start], DurationType[Any], HasLabel :: Steps] =
       add(HasLabel(DataType.default.`@duration` :: Nil), st, DataType.default.`@duration`)
 
     def isGeo: Traversal[ST[Start], GeometricType[Geometry], HasLabel :: Steps] =
@@ -468,39 +476,6 @@ object Traversal
 //        _traversal.et)
   }
 
-  object TMapper extends Poly1 {
-    implicit def traversal[ST <: ClassType[Any],
-                           ET <: ClassType[Any],
-                           Step,
-                           Steps <: HList,
-                           Out,
-                           COut <: ClassType[Any]](
-        implicit
-        out: OutTweaker.Aux[ET, Step :: Steps, Out, COut]
-    ): Case.Aux[Traversal[ST, ET, Step :: Steps], COut] = at[Traversal[ST, ET, Step :: Steps]](t => out.tweak(t.et))
-    implicit def empty[ST <: ClassType[Any], ET <: ClassType[Any]]: Case.Aux[Traversal[ST, ET, HNil], ET] =
-      at[Traversal[ST, ET, HNil]](t => t.et)
-//    implicit def traversal2[Start, End, Steps <: HList, Out, COut <: ClassType[Any]]
-//    /*: Case.Aux[Traversal[ST, ET, Steps], ET]*/ = at[Traversal[ClassType[Start], ClassType[End], Steps]](t => t.et)
-  }
-  object TOutMapper extends Poly1 {
-    implicit def traversal[ST <: ClassType[Any],
-                           ET <: ClassType[Any],
-                           Step,
-                           Steps <: HList,
-                           Out,
-                           COut <: ClassType[Any]](
-        implicit
-        out: OutTweaker.Aux[ET, Step :: Steps, Out, COut]
-    ): Case.Aux[Traversal[ST, ET, Step :: Steps], Out] =
-      at[Traversal[ST, ET, Step :: Steps]](t => 1.asInstanceOf[out.Out])
-    implicit def empty[ST <: ClassType[Any], E, ET[+Z] <: ClassType[Z]]: Case.Aux[Traversal[ST, ET[E], HNil], E] =
-      at[Traversal[ST, ET[E], HNil]](t => 1.asInstanceOf[E])
-//    implicit def traversal2[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList]
-//    /*: Case.Aux[Traversal[ST, ET, Steps], Int]*/ = at[Traversal[ST, ET, Steps]](t => 1)
-//    implicit def default                          = at[Int](identity)
-  }
-
   object CTOutMapper extends Poly1 {
     //    implicit def ct[T] = at[ClassType[T]](ct => 1.asInstanceOf[T])
     implicit def traversalC[End, ET[+Z] <: ClassType[Z]] = at[ET[End]](t => 1.asInstanceOf[End])
@@ -515,8 +490,7 @@ object Traversal
                                                 Project[Traversal[PST, PET, PHSteps] :: PROJECTIONS] :: Steps])
       extends BaseMod[Start, ST, End, ET, Project[Traversal[PST, PET, PHSteps] :: PROJECTIONS] :: Steps] {
 
-//    def st: ST[Start] = _traversal.st
-//    def et: ET[End]   = _traversal.et
+    import util.{ProjectStepDataTypeMapper, ProjectStepTypeMapper}
 
     def by[P <: ClassType[Any],
            PSteps <: HList,
@@ -529,10 +503,8 @@ object Traversal
         prepend: Prepend.Aux[Traversal[PST, P, PSteps] :: HNil,
                              Traversal[PST, PET, PHSteps] :: PROJECTIONS,
                              ALLPROJECTIONS],
-        mapper: shapeless.ops.hlist.Mapper.Aux[TMapper.type, ALLPROJECTIONS, Out],
-        mapper2: shapeless.ops.hlist.Mapper.Aux[TOutMapper.type, ALLPROJECTIONS, EndH], //only for type-calculation, never executed
-//        mapper2: shapeless.ops.hlist.Mapper.Aux[CTOutMapper.type, Out, EndH], //only for type-calculation, never executed
-//        mapper2: shapeless.ops.hlist.Mapper.Aux[CTOutMapper.type, Out, EndH], //only for type-calculation, never executed
+        datatypeMapper: shapeless.ops.hlist.Mapper.Aux[ProjectStepDataTypeMapper.type, ALLPROJECTIONS, Out],
+        typeMapper: shapeless.ops.hlist.Mapper.Aux[ProjectStepTypeMapper.type, ALLPROJECTIONS, EndH], //only for type-calculation, never executed
         reverse: shapeless.ops.hlist.Reverse.Aux[EndH, REndH],
         tupler: shapeless.ops.hlist.Tupler.Aux[REndH, End0] //only for type-calculation, never executed
     ): Traversal[ST[Start], TupleType[End0], Project[ALLPROJECTIONS] :: Steps] = {
@@ -544,47 +516,13 @@ object Traversal
       Traversal[ST[Start], TupleType[End0], Project[ALLPROJECTIONS] :: Steps](step :: _traversal.steps.tail)(
         _traversal.st,
         TupleType[End0](
-          mapper(step.by).runtimeList.reverse
+          datatypeMapper(step.by).runtimeList.reverse
             .asInstanceOf[List[ClassType[Any]]]
             .map(Some(_))
-            .map(_.filter(_.iri.nonEmpty))))
+            .map(_.filter(_.iri.nonEmpty)))
+      )
     }
   }
-
-//  def testTOutMapper[T <: HList, /*T0 <: HList, */ T1 <: HList, T2 <: HList, T3](t: T)(
-//      implicit
-////    prepend: shapeless.ops.hlist.Prepend.Aux[T, T, T0],
-//      mapper: shapeless.ops.hlist.Mapper.Aux[TOutMapper.type, T, T1],
-//      //      collect: shapeless.ops.hlist.Collect.Aux[T0, MyMapper.type, T0],
-//      reverse: shapeless.ops.hlist.Reverse.Aux[T1, T2],
-//      tupler: shapeless.ops.hlist.Tupler.Aux[T2, T3]): T3 = ???
-//  val x = testTOutMapper(
-//    1.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], Out :: HNil] :: Traversal[ClassType[Any],
-//                                                                                       ClassType[Any],
-//                                                                                       Out :: HNil] :: HNil])
-//  x
-//  val x2 = testTOutMapper(1.asInstanceOf[Int :: Int :: HNil])
-//  x2
-
-//  object MyMapper extends Poly1 {
-//    implicit def stringToBoolean = at[String](_.length == 1)
-//    implicit def intToString     = at[Int](_.toString)
-//    implicit def longToDouble    = at[Long](_.toDouble)
-//  }
-////  object MyMapper extends Poly1 {
-////    implicit def stringToBoolean = at[String](identity)
-////    implicit def intToString     = at[Int](identity)
-////    implicit def longToDouble    = at[Long](identity)
-////  }
-//  def testHListToTuple[T <: HList, T0 <: HList, T1 <: HList, T2 <: HList, T3](t: T)(
-//      implicit
-//      prepend: shapeless.ops.hlist.Prepend.Aux[T, T, T0],
-//      mapper: shapeless.ops.hlist.Mapper.Aux[MyMapper.type, T0, T1],
-////      collect: shapeless.ops.hlist.Collect.Aux[T0, MyMapper.type, T0],
-//      reverse: shapeless.ops.hlist.Reverse.Aux[T1, T2],
-//      tupler: shapeless.ops.hlist.Tupler.Aux[T2, T3]): T3 = ???
-//  val x                                                   = testHListToTuple(1 :: 2 :: "a" :: HNil)
-//  x
 
   trait CommonStepsHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList]
       extends BaseMod[Start, ST, End, ET, Steps] {
@@ -597,14 +535,9 @@ object Traversal
       add(As[End, S](name())(et))
 
     //TODO: add a 'byValue' traversal, so a traversal on the grouped result is contained within the step
-    def group[CK <: ClassType[_],
-              KSteps <: HList,
-//              KContainers <: HList,
-              KOut,
-              CKOut <: ClassType[_]](by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CK, KSteps])(
+    def group[CK <: ClassType[_], KSteps <: HList, KOut, CKOut <: ClassType[_]](
+        by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CK, KSteps])(
         implicit
-//        flatK: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, KeySegments, KSteps],
-//        fK: Collect.Aux[KSteps, ContainerSteps.type, KContainers],
         outK: OutTweaker.Aux[CK, KSteps, KOut, CKOut]
     ) /*: Traversal[ST[Start],
                  TupleType[(KOut, List[End])],
@@ -626,8 +559,6 @@ object Traversal
     def project[CP <: ClassType[_], PSteps <: HList, POut, CPOut <: ClassType[_]](
         by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CP, PSteps])(
         implicit
-//        flat: shapeless.ops.hlist.FlatMapper.Aux[Traversal.SegmentMapper.type, PSegments, PSteps],
-//        f: Collect.Aux[PSteps, ContainerSteps.type, PContainers],
         out: OutTweaker.Aux[CP, PSteps, POut, CPOut]
     ): Traversal[ST[Start], TupleType[POut], Project[Traversal[ET[End], CP, PSteps] :: HNil] :: Steps] = {
       val tby1 = by1(Traversal(et, et))
@@ -802,7 +733,12 @@ object Traversal
   trait ClipStepsHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList]
       extends BaseMod[Start, ST, End, ET, Steps] {
 
-    def timeLimit(time: squants.time.Time): Traversal[ST[Start], ET[End], TimeLimit :: Steps] =
+    /**
+      *
+      * @param time in millis
+      * @return
+      */
+    def timeLimit(time: Long): Traversal[ST[Start], ET[End], TimeLimit :: Steps] =
       add(TimeLimit(Some(time)))
 
     def noTimeLimit(): Traversal[ST[Start], ET[End], TimeLimit :: Steps] =
@@ -1154,7 +1090,6 @@ object Traversal
       implicit
       //      val st: ST,
       //          val reverse: Reverse.Aux[Steps, RSteps],
-//      protected val flat: shapeless.ops.hlist.FlatMapper.Aux[SegmentMapper.type, Steps] :: Segments, AllSteps],
       protected val f: Collect.Aux[Steps, LabelSteps.type, Labels],
       protected val lub: LUBConstraint[Labels, As[_, _]],
       protected val selector: SelectorSelecter.Aux[Labels, SelectorOut])
@@ -1196,7 +1131,6 @@ object Traversal
                                SelectorOut <: Selector[_, HNil]]
       extends BaseMod[Start, ST, End, ET, Steps] {
 
-//    protected def flat: shapeless.ops.hlist.FlatMapper.Aux[SegmentMapper.type, Segments1, AllSteps]
     protected def f: Collect.Aux[Steps, LabelSteps.type, Labels]
     protected def lub: LUBConstraint[Labels, As[_, _]]
     protected def selector: SelectorSelecter.Aux[Labels, SelectorOut]
@@ -1279,36 +1213,14 @@ object Traversal
   def apply[ST0 <: ClassType[_], ET0 <: ClassType[_]](st: ST0, et: ET0): Traversal[ST0, ET0, HNil] =
     new Traversal(HNil: HNil)(st, et)
 
-//  implicit class WithMapTyped[Start, ST[+Z] <: ClassType[Z], K, V, Steps <: HList, Out, OutCT <: ClassType[_]](
-//      val traversal: Traversal[ST[Start], MapType[K, V], Steps])(
-//      implicit
-//      val tweaker: OutTweaker.Aux[MapType[K, V], Steps, Out, OutCT]
-//  ) {
-//
-//    @implicitNotFound("could not find a Guide or could not build the result type")
-//    def withGraph[F[_]](graph: Graph)(implicit
-//                                      guide: Guide[F],
-//                                      mapper: Mapper[F, MapType[K, V], OutCT]): mapper.FT =
-//      mapper
-//        .apply(traversal.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]], graph)
-//        .asInstanceOf[mapper.FT]
-//    //    lazy val ct =
-//    //      getCT[Start, ST, ET, Steps, Segments, RSteps, Containers, Out, CT, Out2](traversal)(flat, reverse, f, lf, tweaker)
-//  }
-
   implicit class WithTraversalStreamTyped[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList](
-      val traversal: Traversal[ST, ET, Steps])
-//                                                                (
-//      implicit
-//      val tweaker: OutTweaker.Aux[ET[End], Steps, Out, OutCT]
-//  )
-  {
+      val traversal: Traversal[ST, ET, Steps]) {
 
     @implicitNotFound("could not find a Guide or could not build the result type")
     def withGraph[Out, OutCT <: ClassType[Any], F[_]](graph: Graph)(implicit
                                                                     tweaker: OutTweaker.Aux[ET, Steps, Out, OutCT],
                                                                     guide: Guide[F],
-                                                                    mapper: Mapper[F, ET, OutCT]): mapper.FT =
+                                                                    mapper: ResultMapper[F, ET, OutCT]): mapper.FT =
       mapper
         .apply(traversal.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]], graph)
         .asInstanceOf[mapper.FT]
@@ -1553,8 +1465,6 @@ case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], +Steps <: HLi
       node  <- DetachedGraph.nodes.create(Traversal.ontology)
       steps <- Task.gather(stepsList.map(_.toNode).toVector)
       e     <- if (steps.nonEmpty) node.addOut(keys.stepsNode, steps) else Task.unit
-//      segments <- Task.gather(segmentList.map(_.toNode).toVector)
-//      _        <- if (segments.nonEmpty) node.addOut(keys.segmentNode, segments) else Task.unit
     } yield node
   }.memoizeOnSuccess
 

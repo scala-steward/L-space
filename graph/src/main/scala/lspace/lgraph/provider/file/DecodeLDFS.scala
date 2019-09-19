@@ -1,27 +1,28 @@
 package lspace.lgraph.provider.file
 
 import lspace.NS.types
-import lspace.codec.{ActiveContext, ExpandedMap, NativeTypeDecoder}
+import lspace.codec.{ActiveContext, ExpandedMap}
 import lspace.codec.exception.FromJsonException
-import lspace.codec.jsonld.Decoder
+import lspace.codec.json.JsonDecoder
+import lspace.codec.json.jsonld.Decoder
 import lspace.structure._
 import monix.eval.Task
 
-case class DecodeLDFS[Json0](override val graph: Graph, idMaps: IdMaps = IdMaps())(
-    implicit val baseDecoder: NativeTypeDecoder.Aux[Json0])
+case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps())(
+    implicit override val baseDecoder: JsonDecoder[Json])
     extends Decoder {
-  type Json = Json0
-  override def apply(graph0: Lspace): lspace.codec.jsonld.Decoder.Aux[Json] =
+  import baseDecoder._
+
+  override def apply(graph0: Lspace): lspace.codec.json.jsonld.Decoder[Json] =
     DecodeLDFS.apply(graph0, idMaps)(baseDecoder)
 
   lazy val nsDecoder = {
     def graph0       = graph
     def baseDecoder0 = baseDecoder
-    new Decoder {
-      type Json = Json0
-      val graph: Graph                                      = graph0.ns
-      implicit def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
-      lazy val nsDecoder                                    = this
+    new Decoder()(baseDecoder) {
+      val graph: Graph = graph0.ns
+//      implicit def baseDecoder: JsonDecoder[Json] = baseDecoder0
+      lazy val nsDecoder = this
     }
   }
 

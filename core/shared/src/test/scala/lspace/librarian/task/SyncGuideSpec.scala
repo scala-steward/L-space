@@ -9,7 +9,6 @@ import lspace.structure.{GraphFixtures, SampledGraph}
 import lspace.util.SampleGraph
 import monix.eval.Task
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
-import squants.time.Time
 
 //trait GuideSpec[F[_]] extends Matchers {
 //  implicit def guide: Guide[F]
@@ -699,7 +698,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
       g.N
         .limit(1)
         .local(_.repeat(_.out(), max = 20, collect = true))
-        .timeLimit(Time(20.millis))
+        .timeLimit(20l)
         .count
         .withGraph(sampleGraph)
         .headF

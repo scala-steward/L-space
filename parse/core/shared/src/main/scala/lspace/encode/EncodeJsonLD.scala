@@ -1,8 +1,9 @@
 package lspace.encode
 
 import lspace.NS.types
-import lspace.codec.jsonld.Encoder
-import lspace.codec.{ActiveContext, ActiveProperty, ContextedT, NativeTypeEncoder}
+import lspace.codec.json.JsonEncoder
+import lspace.codec.json.jsonld.{Encoder, JsonLDEncoder}
+import lspace.codec.{ActiveContext, ActiveProperty, ContextedT}
 import lspace.librarian.traversal.Collection
 import lspace.structure.{ClassType, Node}
 
@@ -21,14 +22,15 @@ object EncodeJsonLD {
       (ct: ContextedT[T]) => en.encode(activeContext ++ ct.activeContext)(ct.t)
   }
 
-  implicit def nodeToJsonLD[T <: Node](implicit encoder: Encoder) = new EncodeJsonLD[T] {
+  implicit def nodeToJsonLD[T <: Node, Json](implicit encoder: JsonLDEncoder[Json]) = new EncodeJsonLD[T] {
     def encode(implicit activeContext: ActiveContext) = (node: T) => encoder(node)(activeContext)
   }
 
-  implicit def nodesToJsonLD[T](implicit encoder: Encoder) = {
-    implicit val bd: NativeTypeEncoder.Aux[encoder.Json] =
-      encoder.baseEncoder.asInstanceOf[NativeTypeEncoder.Aux[encoder.Json]]
+  implicit def nodesToJsonLD[T, Json](implicit encoder: JsonLDEncoder[Json]) = {
+    implicit val bd: JsonEncoder[Json] =
+      encoder.baseEncoder.asInstanceOf[JsonEncoder[Json]]
     import encoder._
+    import encoder.baseEncoder._
 
     new EncodeJsonLD[List[T]] {
       def encode(implicit activeContext: ActiveContext): List[T] => String =
@@ -36,11 +38,13 @@ object EncodeJsonLD {
     }
   }
 
-  implicit def collectionToJsonLD[T, CT <: ClassType[_]](implicit encoder: Encoder) =
+  implicit def collectionToJsonLD[T, CT <: ClassType[_], Json](implicit encoder: JsonLDEncoder[Json]) =
     new EncodeJsonLD[Collection[T, CT]] {
 //      implicit val nte = encoder.baseEncoder
 //      import nte._
       import encoder._
+      import encoder.baseEncoder._
+
       def encode(implicit activeContext: ActiveContext): Collection[T, CT] => String =
         (collection: Collection[T, CT]) => {
           val jip            = encoder.fromAny(collection.item, collection.ct)
@@ -65,8 +69,8 @@ object EncodeJsonLD {
         }
     }
 
-  implicit def activeContextToJsonLD(implicit encoder: Encoder) = {
-    import encoder._
+  implicit def activeContextToJsonLD[Json](implicit encoder: JsonLDEncoder[Json]) = {
+    import encoder.baseEncoder._
 
     new EncodeJsonLD[ActiveContext] {
       def encode(implicit activeContext: ActiveContext): ActiveContext => String =
@@ -74,7 +78,7 @@ object EncodeJsonLD {
           Map(
             types.`@context` -> encoder
               .fromActiveContext(activeContext)
-              .getOrElse(Map[String, encoder.Json]().asJson)).asJson.noSpaces
+              .getOrElse(Map[String, Json]().asJson)).asJson.noSpaces
     }
   }
 

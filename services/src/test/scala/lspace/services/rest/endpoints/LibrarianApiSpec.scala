@@ -31,9 +31,9 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
   override def executionContext = lspace.Implicits.Scheduler.global
 
   implicit val graph    = MemGraph("LibrarianApiSpec")
-  implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
-  implicit val encoder  = lspace.codec.jsonld.Encoder(nencoder)
-  implicit val ndecoder = lspace.codec.argonaut.NativeTypeDecoder
+  implicit val nencoder = lspace.codec.argonaut.Encoder
+  implicit val encoder  = lspace.codec.json.jsonld.JsonLDEncoder(nencoder)
+  implicit val ndecoder = lspace.codec.argonaut.Decoder
   lazy val graphService = LibrarianApi(graph)
 
   import lspace.services.codecs

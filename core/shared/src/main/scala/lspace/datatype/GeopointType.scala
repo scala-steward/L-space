@@ -3,7 +3,7 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure._
 import lspace.structure.util.ClassTypeable
-import lspace.types.vector._
+import lspace.types.geo._
 
 object GeopointType extends DataTypeDef[GeopointType[Point]] {
 

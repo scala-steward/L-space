@@ -29,7 +29,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
 //  implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder
-  implicit val encoder = lspace.codec.jsonld.Encoder.apply
+  implicit val encoder = lspace.codec.json.jsonld.JsonLDEncoder.apply
 //  implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
 
   val initTask = (for {
@@ -69,7 +69,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       "geboortedatum" -> ActiveProperty(person.keys.birthDate, `@type` = D.`@date` :: Nil)()
     )
   )
-  lazy val personApiService: LabeledNodeApi = LabeledNodeApi(sampleGraph, person, defaultContext)
+  lazy val personApiService: LabeledNodeApi[_] = LabeledNodeApi(sampleGraph, person, defaultContext)
 
   val toCC = { node: Node =>
     Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as D.`@string`).headOption)

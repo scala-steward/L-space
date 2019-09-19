@@ -2,6 +2,7 @@ package lspace.librarian.traversal
 
 import lspace.datatype.ListType
 import lspace.librarian.task.Guide
+import lspace.librarian.traversal.util.ResultMapper
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.{ClassType, Graph, Node}
 import monix.eval.Task
@@ -63,7 +64,7 @@ case class UntypedTraversal(steps: Vector[Step] = Vector()) {
   def toTyped: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = Traversal(steps)
 
   def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F],
-                                    mapper: Mapper[F, ClassType[Any], ListType[List[Any]]]): mapper.FT =
+                                    mapper: ResultMapper[F, ClassType[Any], ListType[List[Any]]]): mapper.FT =
     mapper(toTyped, graph).asInstanceOf[mapper.FT]
 
   def ++(traversal: UntypedTraversal): UntypedTraversal = {
@@ -79,32 +80,13 @@ case class UntypedTraversal(steps: Vector[Step] = Vector()) {
 //    }
   }
 
-  lazy val toNode: Task[Node] = {
-    for {
-      node  <- DetachedGraph.nodes.create(Traversal.ontology)
-      steps <- Task.gather(steps.map(_.toNode).toVector)
-      e     <- node.addOut(Traversal.keys.stepsNode, steps)
-//      segments <- Task.gather(segments.map(_.toNode))
-//      _        <- node.addOut(Traversal.keys.segmentNode, segments)
-    } yield node
-  }
-}
-
-//case class UntypedSegment(steps: Vector[Step] = Vector()) {
-//
-//  def toTyped: Segment[HList] = new Segment(steps.reverse.foldLeft[HList](HNil) { case (r, s) => s :: r })
-//
-//  def ++(segment: UntypedSegment): UntypedSegment = this.copy(steps ++ segment.steps)
-//
 //  lazy val toNode: Task[Node] = {
 //    for {
-//      node  <- DetachedGraph.nodes.create(Segment.ontology)
+//      node  <- DetachedGraph.nodes.create(Traversal.ontology)
 //      steps <- Task.gather(steps.map(_.toNode).toVector)
-//      e     <- node.addOut(Segment.keys.stepsNode, steps)
+//      e     <- node.addOut(Traversal.keys.stepsNode, steps)
+////      segments <- Task.gather(segments.map(_.toNode))
+////      _        <- node.addOut(Traversal.keys.segmentNode, segments)
 //    } yield node
 //  }
-//
-//  def prettyPrint: String = {
-//    steps.map(_.prettyPrint).mkString(".")
-//  }
-//}
+}

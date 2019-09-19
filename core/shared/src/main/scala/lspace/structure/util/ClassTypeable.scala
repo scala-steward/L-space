@@ -4,7 +4,7 @@ import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.datatype._
 import lspace.structure._
-import lspace.types.vector.{Geometry, Point, Polygon}
+import lspace.types.geo.{Geometry, Point, Polygon}
 
 import scala.annotation.implicitNotFound
 import scala.collection.immutable.ListSet

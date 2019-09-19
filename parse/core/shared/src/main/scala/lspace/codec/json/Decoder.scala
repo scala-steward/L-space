@@ -1,18 +1,17 @@
-package lspace.codec
+package lspace.codec.json
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
-import lspace.types.geo.{Geometry, Point, Polygon}
 import monix.eval.Task
 
 import scala.collection.immutable.Map
 import scala.util.Try
 
-object NativeTypeDecoder {
-  type Aux[Json0] = NativeTypeDecoder { type Json = Json0 }
+object Decoder {
+//  type Aux[Json0] = Decoder[Json0] { type Json = Json0 }
 }
-trait NativeTypeDecoder {
-  type Json
+trait Decoder[Json] extends lspace.codec.Decoder {
+//  type Json
   def parse(string: String): Task[Json]
 
   def jsonIsNull(json: Json): Boolean
@@ -29,9 +28,9 @@ trait NativeTypeDecoder {
     json.string.flatMap(s => Try(LocalDateTime.parse(s)).toOption)
   implicit def jsonToDate(json: Json): Option[LocalDate] = json.string.flatMap(s => Try(LocalDate.parse(s)).toOption)
   implicit def jsonToTime(json: Json): Option[LocalTime] = json.string.flatMap(s => Try(LocalTime.parse(s)).toOption)
-  def jsonToGeo(json: Json): Option[Geometry]
-  implicit def jsonToGeopoint(json: Json): Option[Point]
-  implicit def jsonToGeopolygon(json: Json): Option[Polygon]
+//  def jsonToGeo(json: Json): Option[Geometry]
+//  implicit def jsonToGeopoint(json: Json): Option[Point]
+//  implicit def jsonToGeopolygon(json: Json): Option[Polygon]
 
   implicit class WithJson(json: Json) {
     def isNull: Boolean                      = jsonIsNull(json)
@@ -47,7 +46,7 @@ trait NativeTypeDecoder {
     def obj: Option[Map[String, Json]]       = jsonToMap(json)
     def boolean: Option[Boolean]             = jsonToBoolean(json)
     //    def geo: Option[Geometry] = ???
-    def geoPoint: Option[Point]     = jsonToGeopoint(json)
-    def geoPolygon: Option[Polygon] = jsonToGeopolygon(json)
+//    def geoPoint: Option[Point]     = jsonToGeopoint(json)
+//    def geoPolygon: Option[Polygon] = jsonToGeopolygon(json)
   }
 }

@@ -3,7 +3,7 @@ package lspace.lgraph.provider.elasticsearch
 import com.sksamuel.elastic4s.{ElasticClient, Response}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
-import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.Decoder
 import lspace.lgraph.LGraph
 import lspace.lgraph.index.IndexManager
 import lspace.lgraph.provider.file.{DecodeLDFS, EncodeLDFS}
@@ -11,7 +11,7 @@ import monix.eval.Task
 
 class ESIndexManager[G <: LGraph, Json](override val graph: G, val client: ElasticClient)(
     implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: NativeTypeDecoder.Aux[Json])
+    baseDecoder: Decoder.Aux[Json])
     extends IndexManager(graph) {
 
   val encoder: EncodeLDFS[Json] = EncodeLDFS()

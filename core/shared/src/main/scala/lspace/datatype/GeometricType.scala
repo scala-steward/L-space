@@ -3,7 +3,7 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure.Property
-import lspace.types.vector.Geometry
+import lspace.types.geo.Geometry
 
 object GeometricType extends DataTypeDef[GeometricType[Geometry]] {
 

@@ -1,6 +1,6 @@
 package lspace.librarian.traversal
 
-import lspace.structure.{IriResource, Resource}
+import lspace.structure.IriResource
 
 import scala.collection.immutable.ListMap
 

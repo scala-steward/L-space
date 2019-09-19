@@ -75,8 +75,6 @@ object Property {
     }
     private[lspace] val byIri: concurrent.Map[String, Property] =
       new ConcurrentHashMap[String, Property]().asScala
-//    private[lspace] val building: concurrent.Map[String, Coeval[Property]] =
-//      new ConcurrentHashMap[String, Coeval[Property]]().asScala
 
     def all: List[Property] = byIri.values.toList.distinct
     def get(iri: String, iris: Set[String] = Set()): Option[Property] = {
@@ -165,8 +163,6 @@ object Property {
         .toList
         .flatten
 
-//      println(property.range().map(_.iri))
-
       property.properties ++ (node
         .out(Property.default.typed.propertyProperty)
         .filter(_.out("http://schema.org/supersededBy").isEmpty) ++ node
@@ -227,16 +223,7 @@ object Property {
       property
     }
 
-//    def cache(property: Property): Unit = {
-//      byIri += property.iri -> property
-//      property.iris.foreach { iri =>
-//        properties.byIri += iri -> property
-//      }
-//    }
     def cached(long: Long): Option[Property] = default.byId.get(long)
-//    def cached(iri: String): Option[Property] = default.byIri.get(iri).orElse(byIri.get(iri))
-
-//    def remove(iri: String): Unit = byIri.remove(iri)
   }
 
   object default {
@@ -471,13 +458,9 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
   }
   def `@range` = range
 
-//  def container: Option[String] = containers.headOption
-//  def `@container`              = container
-
   protected var extendedClassesList
     : Coeval[List[Property]] = Coeval.now(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
 
-//  override def extendedClasses: List[Property] = extendedClassesList.value()
   object extendedClasses {
     def apply(): List[Property] = extendedClassesList()
 
@@ -512,7 +495,6 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
   protected var inverseOfOption
     : Coeval[Option[Property]] = Coeval.now(None).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
 
-  //  override def extendedClasses: List[Property] = extendedClassesList.value()
   object inverseOf {
     def apply(): Option[Property] = inverseOfOption()
 
@@ -533,5 +515,3 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
 
   override def hashCode(): Int = iri.hashCode
 }
-
-case class UnknownProperty(override val iri: String) extends Property(iri)

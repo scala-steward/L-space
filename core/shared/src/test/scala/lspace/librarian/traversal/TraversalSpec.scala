@@ -21,12 +21,12 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //  implicit def global: Scheduler = monix.execution.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], _ <: HList]](traversal: S)(
-      toTraversal: Node => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]]) =
-    (for {
-      node         <- traversal.toNode
-      newTraversal <- toTraversal(node)
-    } yield traversal shouldBe newTraversal) //.runToFuture
+//  def testToNode[S <: Traversal[ClassType[Any], ClassType[Any], _ <: HList]](traversal: S)(
+//      toTraversal: Node => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]]) =
+//    (for {
+//      node         <- traversal.toNode
+//      newTraversal <- toTraversal(node)
+//    } yield traversal shouldBe newTraversal) //.runToFuture
 
   "A traversal" which {
     "starts empty" in Future {
@@ -312,14 +312,14 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.has("abc").and(_.out(), _.in()) shouldBe g.N.has("abc").and(_.out(), _.in())
       g.N.has("abc").and(_.out(), _.in()) should not be g.N.has("abc").and(_.out(), _.in().out())
     }
-    "be serialized" in {
-      (for {
-        _ <- testToNode(g.N.has("abc").and(_.out(), _.in()))(Traversal.toTraversal)
-        _ <- testToNode(
-          g.N
-            .has("abc")
-            .and(_.union(_.out(), _.in(Label.P.`@createdon`)), _.id))(Traversal.toTraversal)
-      } yield succeed).runToFuture
-    }
+//    "be serialized" in {
+//      (for {
+//        _ <- testToNode(g.N.has("abc").and(_.out(), _.in()))(Traversal.toTraversal)
+//        _ <- testToNode(
+//          g.N
+//            .has("abc")
+//            .and(_.union(_.out(), _.in(Label.P.`@createdon`)), _.id))(Traversal.toTraversal)
+//      } yield succeed).runToFuture
+//    }
   }
 }

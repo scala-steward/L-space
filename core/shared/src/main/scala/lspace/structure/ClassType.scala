@@ -3,15 +3,26 @@ package lspace.structure
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.datatype._
-import lspace.librarian.traversal.{OutTweaker, Traversal}
-import lspace.types.vector._
+import lspace.types.geo._
 import monix.eval.{Coeval, Task}
-import shapeless.HList
-import squants.time.Time
 
 import scala.collection.immutable.ListSet
+import scala.collection.mutable
 
 object ClassType {
+  trait DataTypeMatcher {
+    def detect[V](value: V): Option[DataType[V]]
+  }
+
+  object matchers {
+    private lazy val datatypeMatchers = mutable.HashSet[DataTypeMatcher]()
+    def add(matcher: DataTypeMatcher): Unit = datatypeMatchers.synchronized {
+      datatypeMatchers += matcher
+    }
+    def +(matcher: DataTypeMatcher): Unit = add(matcher)
+    def findDataType[V](value: V): Option[DataType[V]] =
+      datatypeMatchers.toStream.map(_.detect(value)).collectFirst { case Some(datatype) => datatype }
+  }
 
   def valueToOntologyResource[T](value: T): DataType[T] = {
     (value match {
@@ -30,8 +41,8 @@ object ClassType {
       case v: LocalDateTime => DataType.default.`@localdatetime`
       case v: LocalDate     => DataType.default.`@date`
       case v: LocalTime     => DataType.default.`@time`
-      case v: Time          => DataType.default.`@duration`
-      case v: Boolean       => DataType.default.`@boolean`
+//      case v: Time          => DataType.default.`@duration`
+      case v: Boolean => DataType.default.`@boolean`
       case v: Geometry =>
         v match {
           case v: Point         => DataType.default.`@geopoint`
@@ -51,8 +62,8 @@ object ClassType {
       case v: (_, _)       => TupleType(List(None, None))
       case v: (_, _, _)    => TupleType(List(None, None, None))
       case v: (_, _, _, _) => TupleType(List(None, None, None, None))
-      case _ =>
-        throw new Exception(s"not a known range ${value.getClass}")
+      case v =>
+        matchers.findDataType(v).getOrElse(throw new Exception(s"not a known range ${value.getClass}"))
     }).asInstanceOf[DataType[T]]
   }
 
@@ -121,6 +132,7 @@ trait ClassType[+T] extends IriResource {
   def iris: Set[String] //TODO var iriList: Coeval[Set[String]]
   def `@ids` = iris
 
+  //TODO: improve
   def +[T1](ct: ClassType[T1]): ClassType[Any] = (this, ct) match {
     case (ct1: DataType[_], ct2: DataType[_]) =>
       (ct1, ct2) match {
@@ -145,7 +157,7 @@ trait ClassType[+T] extends IriResource {
             case (ct1: BoolType[_], ct2: BoolType[_]) => ct1
             case _                                    => LiteralType.datatype
           }
-        case (ct1: StructuredType[_], ct2: StructuredType[_]) =>
+        case (ct1: StructuredType[_], ct2: StructuredType[_]) => //TODO: improve
           (ct1, ct2) match {
             case (ct1: CollectionType[_], ct2: CollectionType[_]) =>
               (ct1, ct2) match {
@@ -170,8 +182,8 @@ trait ClassType[+T] extends IriResource {
               }
             case (ct1: QuantityType[_], ct2: QuantityType[_]) =>
               (ct1, ct2) match {
-                case (ct1: DurationType, ct2: DurationType) => ct1
-                case _                                      => QuantityType.datatype
+                case (ct1: DurationType[_], ct2: DurationType[_]) => ct1
+                case _                                            => QuantityType.datatype
               }
             case (ct1: TupleType[_], ct2: TupleType[_]) =>
               if (ct1.rangeTypes.size == ct2.rangeTypes.size) {
@@ -180,7 +192,8 @@ trait ClassType[+T] extends IriResource {
                   case (Some(ct1), Some(ct2))                   => Some(ct1 + ct2)
                 })
               } else TupleType.datatype
-            case (ct1: ColorType[_], ct2: ColorType[_]) => ct1
+            case (ct1: ColorType[_], ct2: ColorType[_]) => ct1 //TODO: wrong
+            case _                                      => StructuredType.datatype
           }
         case (ct1: IriType[_], ct2: IriType[_]) =>
           (ct1, ct2) match {

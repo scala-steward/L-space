@@ -3,7 +3,7 @@ package lspace.decode
 import java.util.UUID
 
 import lspace.codec.ActiveContext
-import lspace.codec.jsonld.Decoder
+import lspace.codec.json.jsonld.Decoder
 import lspace.provider.mem.MemGraph
 import lspace.structure.{ClassType, Edge, Node, Ontology, Property}
 import monix.eval.Task
@@ -17,7 +17,7 @@ object DecodeJson {
   case class NotAcceptableJson(message: String) extends NotAcceptable(message)
 
   def jsonToNode(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder,
+      implicit decoder: Decoder[_],
       activeContext: ActiveContext) = {
     val validProperty = (property: Property) =>
       if (allowedProperties.nonEmpty) {
@@ -51,7 +51,7 @@ object DecodeJson {
         }
       }
   }
-//  implicit def decodeJsonEdge(implicit decoder: lspace.codec.jsonld.Decoder) = new DecodeJson[Edge[Any, Any]] {
+//  implicit def decodeJsonEdge(implicit decoder: lspace.codec.json.jsonld.Decoder) = new DecodeJson[Edge[Any, Any]] {
 //    def decode =
 //      (json: String) =>
 //        decoder
@@ -68,7 +68,7 @@ object DecodeJson {
   def jsonToLabeledNode(label: Ontology,
                         allowedProperties: List[Property] = List(),
                         forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder,
+      implicit decoder: Decoder[_],
       activeContext: ActiveContext): DecodeJson[Node] = {
     val filter = if (allowedProperties.nonEmpty) { node: Node =>
       val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
@@ -107,7 +107,7 @@ object DecodeJson {
   def jsonToNodeToT[T](label: Ontology,
                        nodeToT: Node => T,
                        allowedProperties: List[Property] = List(),
-                       forbiddenProperties: List[Property] = List())(implicit decoder: Decoder,
+                       forbiddenProperties: List[Property] = List())(implicit decoder: Decoder[_],
                                                                      activeContext: ActiveContext): DecodeJson[T] =
     new DecodeJson[T] {
       def decode: String => Task[T] = { json: String =>

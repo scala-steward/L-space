@@ -7,8 +7,9 @@ import lspace.structure._
 object DoubleType extends DataTypeDef[DoubleType[Double]] {
 
   lazy val datatype: DoubleType[Double] = new DoubleType[Double] {
-    val iri: String                = NS.types.`@double`
-    override val iris: Set[String] = Set(NS.types.`@double`, NS.types.schemaFloat, NS.types.xsdDouble)
+    val iri: String = NS.types.`@double`
+    override val iris: Set[String] =
+      Set(NS.types.`@double`, NS.types.schemaFloat, "http://schema.org/Float", NS.types.xsdDouble)
     labelMap = Map("en" -> NS.types.`@double`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.datatype)
   }

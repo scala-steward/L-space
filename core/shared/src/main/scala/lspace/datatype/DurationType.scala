@@ -2,13 +2,13 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.Property
-import squants.time.Time
 
-object DurationType extends DataTypeDef[DurationType] {
+object DurationType extends DataTypeDef[DurationType[Any]] {
 
-  lazy val datatype: DurationType = new DurationType {
-    val iri: String                = NS.types.`@duration`
-    override val iris: Set[String] = Set(NS.types.`@duration`, NS.types.xsdDuration)
+  lazy val datatype: DurationType[Any] = new DurationType[Any] {
+    val iri: String = NS.types.`@duration`
+    override val iris: Set[String] =
+      Set(NS.types.`@duration`, NS.types.schemaDuration, "http://schema.org/Duration", NS.types.xsdDuration)
     labelMap = Map("en" -> NS.types.`@duration`)
     override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(QuantityType.datatype)
   }
@@ -17,4 +17,4 @@ object DurationType extends DataTypeDef[DurationType] {
   override lazy val properties: List[Property] = QuantityType.properties
   trait Properties extends QuantityType.Properties
 }
-trait DurationType extends QuantityType[Time]
+trait DurationType[+T] extends QuantityType[T]

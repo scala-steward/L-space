@@ -81,7 +81,7 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
       _ <- graph.storeManager
         .storeNodes(nodes)
         .executeOn(LStore.ec)
-        .forkAndForget
+        .startAndForget
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)

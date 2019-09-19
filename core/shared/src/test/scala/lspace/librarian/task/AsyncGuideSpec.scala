@@ -7,11 +7,10 @@ import lspace.Label.D._
 import lspace.Label.P._
 import lspace.structure.{GraphFixtures, SampledGraph}
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
-import lspace.types.vector.Point
+import lspace.types.geo.Point
 import lspace.util.SampleGraph
 import monix.eval.Task
 import monix.reactive.Observable
-import squants.time.Time
 
 import scala.concurrent.duration._
 import scala.language._
@@ -981,7 +980,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         import scala.concurrent.duration._
         g.N
           .repeat(_.out(), collect = true)
-          .timeLimit(Time.apply(200.millis))
+          .timeLimit(200l)
           .count
           .withGraph(sampleGraph)
           .headF

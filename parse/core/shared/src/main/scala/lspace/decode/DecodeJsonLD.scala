@@ -3,7 +3,7 @@ package lspace.decode
 import java.util.UUID
 
 import lspace.codec.ActiveContext
-import lspace.codec.jsonld.Decoder
+import lspace.codec.json.jsonld.Decoder
 import lspace.librarian.traversal.Traversal
 import lspace.provider.mem.MemGraph
 import lspace.structure._
@@ -29,7 +29,7 @@ object DecodeJsonLD {
   def jsonldToLabeledNode(label: Ontology,
                           allowedProperties: List[Property] = List(),
                           forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder,
+      implicit decoder: Decoder[_],
       activeContext: ActiveContext): DecodeJsonLD[Node] = {
     val filter = {
       if (allowedProperties.nonEmpty) { node: Node =>
@@ -71,7 +71,7 @@ object DecodeJsonLD {
                          nodeToT: Node => T,
                          allowedProperties: List[Property] = List(),
                          forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder,
+      implicit decoder: Decoder[_],
       activeContext: ActiveContext): DecodeJsonLD[T] = {
     val df = jsonldToLabeledNode(label, allowedProperties, forbiddenProperties)
     new DecodeJsonLD[T] {
@@ -89,7 +89,7 @@ object DecodeJsonLD {
     * @return
     */
   def jsonldToNode(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder,
+      implicit decoder: Decoder[_],
       activeContext: ActiveContext): DecodeJsonLD[Node] = {
 
     val validProperty = (property: Property) =>
@@ -125,7 +125,7 @@ object DecodeJsonLD {
       }
   }
 
-  def jsonldToEdge(implicit decoder: Decoder, activeContext: ActiveContext) = new DecodeJsonLD[Edge[Any, Any]] {
+  def jsonldToEdge(implicit decoder: Decoder[_], activeContext: ActiveContext) = new DecodeJsonLD[Edge[Any, Any]] {
     def decode =
       (json: String) =>
         decoder
@@ -133,7 +133,7 @@ object DecodeJsonLD {
   }
 
   implicit def jsonldToTraversal(
-      implicit decoder: Decoder,
+      implicit decoder: Decoder[_],
       activeContext: ActiveContext): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
     new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] {
       def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =

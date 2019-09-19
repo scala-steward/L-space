@@ -25,7 +25,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
 
       _ <- graph.storeManager
         .storeEdges(List(edge))
-    } yield ()).executeOn(LStore.ec).forkAndForget
+    } yield ()).executeOn(LStore.ec).startAndForget
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
@@ -35,7 +35,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
       _ <- Task.gatherUnordered(edges.map(super.store))
       _ <- graph.storeManager
         .storeEdges(edges)
-    } yield ()).executeOn(LStore.ec).forkAndForget
+    } yield ()).executeOn(LStore.ec).startAndForget
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
   }
@@ -174,7 +174,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
       _ <- graph.storeManager
         .deleteEdges(List(edge))
         .executeOn(LStore.ec)
-        .forkAndForget
+        .startAndForget
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
@@ -188,7 +188,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
       _ <- graph.storeManager
         .deleteEdges(edges)
         .executeOn(LStore.ec)
-        .forkAndForget
+        .startAndForget
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)

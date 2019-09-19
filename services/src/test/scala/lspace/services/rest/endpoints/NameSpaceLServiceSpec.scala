@@ -17,9 +17,9 @@ class NameSpaceLServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAf
   override def executionContext = lspace.Implicits.Scheduler.global
 
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
-  implicit val nencoder = lspace.codec.argonaut.NativeTypeEncoder
-  implicit val encoder  = lspace.codec.jsonld.Encoder(nencoder)
-  implicit val ndecoder = lspace.codec.argonaut.NativeTypeDecoder
+  implicit val nencoder = lspace.codec.argonaut.Encoder
+  implicit val encoder  = lspace.codec.json.jsonld.JsonLDEncoder(nencoder)
+  implicit val ndecoder = lspace.codec.argonaut.Decoder
   lazy val nsService    = NameSpaceService(graph)
 
   val initTask = (for {

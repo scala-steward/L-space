@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.codec.ActiveContext
 import lspace.structure._
 import lspace.types.string.{Blank, Identifier, Iri}
-import lspace.types.vector.{Point, Polygon}
+import lspace.types.geo.{Point, Polygon}
 import monix.eval.Task
 import monix.reactive.Observable
 

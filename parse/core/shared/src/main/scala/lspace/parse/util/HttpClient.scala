@@ -39,7 +39,7 @@ trait HttpClient {
               Task
                 .delay(wip.remove(iri + accept))
                 .delayExecution(30 seconds)
-                .forkAndForget //this should prevent fetching the same resource(-representation) multiple times within a small period of time
+                .startAndForget //this should prevent fetching the same resource(-representation) multiple times within a small period of time
             case Some(e) => Task(wip.remove(iri + accept))
           }
       }.memoizeOnSuccess

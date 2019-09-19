@@ -5,7 +5,10 @@ import java.time.Instant
 import cats.effect.IO
 import io.finch.{Application, Bootstrap, Endpoint, Ok}
 import lspace._
-import lspace.codec.{jsonld, ActiveContext, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.{JsonDecoder, JsonEncoder}
+import lspace.codec.json.jsonld
+import lspace.codec.json.jsonld.JsonLDEncoder
+import lspace.codec.{ActiveContext, ContextedT}
 import lspace.librarian.traversal.Collection
 import lspace.provider.detached.DetachedGraph
 import lspace.services.LApplication
@@ -14,29 +17,27 @@ import shapeless.{:+:, CNil, HList}
 import scribe._
 
 object LibrarianApi {
-  def apply[Json0](graph0: Graph, activeContext0: ActiveContext = ActiveContext())(
-      implicit baseDecoder0: NativeTypeDecoder.Aux[Json0],
-      baseEncoder0: NativeTypeEncoder.Aux[Json0]): LibrarianApi =
-    new LibrarianApi {
-      val graph: Graph = graph0
-      type Json = Json0
-      implicit val activeContext                                     = activeContext0
-      implicit override def baseDecoder: NativeTypeDecoder.Aux[Json] = baseDecoder0
-      implicit override def baseEncoder: NativeTypeEncoder.Aux[Json] = baseEncoder0
+  def apply[Json](graph0: Graph, activeContext0: ActiveContext = ActiveContext())(
+      implicit baseDecoder0: JsonDecoder[Json],
+      baseEncoder0: JsonEncoder[Json]): LibrarianApi[Json] =
+    new LibrarianApi[Json] {
+      val graph: Graph                                     = graph0
+      implicit val activeContext                           = activeContext0
+      implicit override def baseDecoder: JsonDecoder[Json] = baseDecoder0
+      implicit override def baseEncoder: JsonEncoder[Json] = baseEncoder0
     }
 }
 
-trait LibrarianApi extends ExecutionApi {
+trait LibrarianApi[JSON] extends ExecutionApi {
   def graph: Graph
 
-  type Json
-  implicit def baseDecoder: NativeTypeDecoder.Aux[Json]
-  implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
+  implicit def baseDecoder: JsonDecoder[JSON]
+  implicit def baseEncoder: JsonEncoder[JSON]
   implicit def activeContext: ActiveContext
 
   import lspace.services.codecs.Decode._
   import lspace.decode.DecodeJsonLD.jsonldToTraversal
-  implicit lazy val decoder = lspace.codec.jsonld.Decoder(DetachedGraph)
+  implicit lazy val decoder = lspace.codec.json.jsonld.Decoder(DetachedGraph)
   import Implicits.AsyncGuide.guide
   import Implicits.Scheduler.global
 
@@ -112,7 +113,7 @@ trait LibrarianApi extends ExecutionApi {
   import lspace.services.codecs.Encode._
   import lspace.encode.EncodeJsonLD._
 
-  implicit lazy val encoder: jsonld.Encoder = jsonld.Encoder(baseEncoder)
+  implicit lazy val encoder: JsonLDEncoder[JSON] = jsonld.Encoder(baseEncoder)
 
   def raw = query
 

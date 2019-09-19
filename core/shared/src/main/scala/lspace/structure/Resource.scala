@@ -71,7 +71,7 @@ trait Resource[+T] extends IriResource {
     */
   def labels: List[ClassType[_]]
 
-  def sameResource(resource: Resource[_]): Boolean = resource.id == id
+  protected def sameResource(resource: Resource[_]): Boolean = resource.id == id
 
 //  override def equals(o: scala.Any): Boolean = o match {
 //    case resource: graph._Resource[_] =>

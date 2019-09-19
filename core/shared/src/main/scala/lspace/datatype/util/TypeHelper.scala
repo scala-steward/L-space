@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDate, LocalTime}
 import lspace.NS
 import lspace.NS.types
 import lspace.structure.IriResource
-import lspace.types.vector.Geometry
+import lspace.types.geo.Geometry
 
 import scala.annotation.tailrec
 

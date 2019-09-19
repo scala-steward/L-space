@@ -21,4 +21,17 @@ object OpenSseSession {
   }
 }
 
-class OpenSseSession(val session: OpenSession) extends WithSse
+class OpenSseSession(val session: OpenSession) extends OpenSession with WithSse {
+  override def expiration: Instant = session.expiration
+
+  override def startTime: Instant = session.startTime
+
+  override def endTime: Option[Instant] = session.endTime
+
+  /**
+    * An empty uri means that there is no URI assigned.
+    *
+    * @return
+    */
+  override def iri: String = session.iri
+}

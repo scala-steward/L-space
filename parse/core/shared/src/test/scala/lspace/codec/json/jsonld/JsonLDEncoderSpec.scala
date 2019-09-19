@@ -1,9 +1,7 @@
-package lspace.codec.jsonld
+package lspace.codec.json.jsonld
 
-import lspace._
 import lspace.Label.D._
-import lspace.Label.P._
-import lspace.codec.json.jsonld.JsonLDEncoder
+import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty, NamedActiveContext}
 import lspace.provider.mem.MemGraph
 import lspace.structure.SampledGraph
@@ -14,9 +12,8 @@ import scribe.format.Formatter
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 
-abstract class EncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends AsyncWordSpec with Matchers {
+abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends AsyncWordSpec with Matchers {
 
-  import encoder._
   import encoder.baseEncoder._
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global

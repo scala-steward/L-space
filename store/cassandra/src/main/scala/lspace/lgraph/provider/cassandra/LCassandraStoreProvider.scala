@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import com.datastax.driver.core.SocketOptions
 import com.outworkers.phantom.connectors.KeySpaceBuilder
 import com.outworkers.phantom.dsl._
-import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.Decoder
 import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.lgraph.{GraphManager, LGraph}
 import monix.eval.Task
@@ -15,9 +15,8 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 object LCassandraStoreProvider {
-  def apply[Json](iri: String, host: String, port: Int)(
-      implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-      baseDecoder: NativeTypeDecoder.Aux[Json]): LCassandraStoreProvider[Json] =
+  def apply[Json](iri: String, host: String, port: Int)(implicit baseEncoder: NativeTypeEncoder.Aux[Json],
+                                                        baseDecoder: Decoder.Aux[Json]): LCassandraStoreProvider[Json] =
     new LCassandraStoreProvider(iri, host, port)
 
   val keySpaceBuilders: concurrent.Map[StoragePoint, KeySpaceBuilder] =
@@ -25,7 +24,7 @@ object LCassandraStoreProvider {
 }
 class LCassandraStoreProvider[Json](val iri: String, host: String, port: Int)(
     implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: NativeTypeDecoder.Aux[Json])
+    baseDecoder: Decoder.Aux[Json])
     extends StoreProvider {
 
   private def createBuilder =

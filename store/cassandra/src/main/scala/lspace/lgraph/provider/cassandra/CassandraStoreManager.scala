@@ -3,7 +3,7 @@ package lspace.lgraph.provider.cassandra
 import com.datastax.driver.core.PagingState
 import com.outworkers.phantom.builder.batch.BatchQuery
 import com.outworkers.phantom.dsl._
-import lspace.codec.{ActiveContext, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.ActiveContext
 import lspace.lgraph._
 import lspace.lgraph.store.{LEdgeStore, LNodeStore, LValueStore, StoreManager}
 import lspace.datatype.DataType

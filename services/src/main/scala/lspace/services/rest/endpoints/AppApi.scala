@@ -35,6 +35,7 @@ class AppApi(app: JsApp) extends Api {
     "Content-Type" -> contentType
   }
 
+  implicit private val S: ContextShift[IO] = IO.contextShift(lspace.Implicits.Scheduler.global)
   val static: Endpoint[IO, _root_.fs2.Stream[IO, Buf]] = get("assets" :: paths[String]) { segments: Seq[String] =>
     val path = segments.mkString("/")
     import lspace.services.util.twFutureToScala

@@ -13,27 +13,29 @@ import lspace.structure.{ClassType, Graph, NameSpaceGraph, Property}
 import monix.eval.Task
 import shapeless.HList
 import com.softwaremill.sttp._
-import lspace.codec.{jsonld, ActiveContext, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.{JsonDecoder, JsonEncoder}
+import lspace.codec.json.jsonld.{JsonLDDecoder, JsonLDEncoder}
+import lspace.codec.ActiveContext
 import lspace.parse.util.HttpClient
 import monix.reactive.Observable
 
 object RemoteGraph {
   def apply[F[_], Json](iri: String, host: String, port: Int, path: String)(
-      implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-      baseDecoder: NativeTypeDecoder.Aux[Json]): RemoteGraph[Json] =
+      implicit baseEncoder: JsonEncoder[Json],
+      baseDecoder: JsonDecoder[Json]): RemoteGraph[Json] =
     new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder) {}
 }
 abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: String)(
-    implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: NativeTypeDecoder.Aux[Json])
+    implicit baseEncoder: JsonEncoder[Json],
+    baseDecoder: JsonDecoder[Json])
     extends Graph {
 
   implicit val httpClient: HttpClient = lspace.parse.util.HttpClientImpl
   implicit val backend                = httpClient.backend
   val cache: Graph                    = Graph.apply(iri)
 
-  val encoder: jsonld.Encoder = jsonld.Encoder(baseEncoder)
-  val decoder: jsonld.Decoder = jsonld.Decoder(cache)(baseDecoder)
+  val encoder: JsonLDEncoder[Json] = JsonLDEncoder(baseEncoder)
+  val decoder: JsonLDDecoder[Json] = JsonLDDecoder(cache)(baseDecoder)
 
   val serviceUri = uri"$host:$port/$path"
 

@@ -6,6 +6,7 @@ import java.time.{Instant, LocalDate, LocalTime}
 import cats.effect.{Resource => CResource}
 import lspace.codec._
 import lspace.codec.exception.FromJsonException
+import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.lgraph._
 import lspace.lgraph.store.StoreManager
 import lspace.datatype._
@@ -19,8 +20,8 @@ import scala.io.BufferedSource
 
 object FileStoreManager {
 
-  def apply[G <: LGraph, Json](graph: G, path: String)(implicit encoder: NativeTypeEncoder.Aux[Json],
-                                                       decoder: NativeTypeDecoder.Aux[Json]) =
+  def apply[G <: LGraph, Json](graph: G, path: String)(implicit encoder: JsonEncoder[Json],
+                                                       decoder: JsonDecoder[Json]) =
     new FileStoreManager(graph, path) {}
 
   implicit val ec = monix.execution.Scheduler.io("filestore-io")
@@ -32,15 +33,16 @@ object FileStoreManager {
   * @param graph
   * @tparam G
   */
-class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
-    implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: NativeTypeDecoder.Aux[Json])
+class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(implicit baseEncoder: JsonEncoder[Json],
+                                                                               baseDecoder: JsonDecoder[Json])
     extends StoreManager(graph) {
 
   val encoder: EncodeLDFS[Json] = EncodeLDFS()
   val decoder: DecodeLDFS[Json] = DecodeLDFS(graph)
-  import decoder.{baseDecoder => _, Json => _, _}
-  import encoder.{baseEncoder => _, Json => _, _}
+  import decoder._
+  import encoder._
+  import baseEncoder._
+  import baseDecoder._
 
   private val directory = new java.io.File(path)
   directory.mkdirs
@@ -186,7 +188,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 
 //  import argonaut._
 //  import Argonaut._
-//  implicit private val encoder: lspace.codec.jsonld.Encoder[Json] = EncodeLDFS()
+//  implicit private val encoder: lspace.codec.json.jsonld.Encoder[Json] = EncodeLDFS()
 //  private val decoder                                      = DecodeLDFS(graph)
 
   private def parse(buf: BufferedSource): Observable[Json] = {
@@ -347,7 +349,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 
   private def readLiteralEdges(idMaps: IdMaps): Task[IdMaps] = {
     scribe.info(s"read literals edges ${graph.iri}")
-    val decoder = DecodeLDFS(graph, idMaps)
+    val decoder = DecodeLDFS(graph, idMaps)(baseDecoder)
     graphfiles.read.context.literalEdges
       .use(parseContext)
       .flatMap { implicit context =>
@@ -482,7 +484,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 
   private def readStructuredEdges(idMaps: IdMaps): Task[IdMaps] = {
     scribe.info(s"read structures edges ${graph.iri}")
-    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)
+    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)(baseDecoder)
     graphfiles.read.context.structuredEdges
       .use(parseContext)
       .flatMap { implicit context =>
@@ -630,7 +632,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
 
   private def readStructures(idMaps: IdMaps): Task[IdMaps] = {
     scribe.info(s"read structures ${graph.iri}")
-    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)
+    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)(baseDecoder)
     graphfiles.read.context.structures
       .use(parseContext)
       .flatMap { implicit context =>
@@ -651,7 +653,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
                           }
                           .collect { case dt: DataType[_] => dt }
                       } yield {
-                        decoder.toValue(value.asInstanceOf[decoder.Json], datatype).map(_.id).map(longId -> _)
+                        decoder.toValue(value.asInstanceOf[Json], datatype).map(_.id).map(longId -> _)
                       }).getOrElse(throw FromJsonException("id not a long, label unknown or value not parsable"))
                     case _ =>
                       Task.raiseError(FromJsonException("nodes-line should be an [[label-ref*][id*]]"))
@@ -919,7 +921,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(
       }
 
   override def persist: Task[Unit] = {
-    val encoder = EncodeLDFS()
+    val encoder = EncodeLDFS()(baseEncoder)
     scribe.info(s"persisting ${graph.iri} to $path")
 
     Task

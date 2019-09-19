@@ -1,10 +1,11 @@
-package lspace.codec.jsonld
+package lspace.codec.json.jsonld
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.NS.types
-import lspace.codec.exception.ToJsonException
 import lspace.codec._
+import lspace.codec.exception.ToJsonException
+import lspace.codec.json.JsonEncoder
 import lspace.datatype._
 import lspace.structure._
 import lspace.types.geo.Geometry
@@ -13,48 +14,19 @@ import scala.collection.immutable.{ListMap, ListSet}
 
 object Encoder {
 //  type Aux[Out] = Encoder { type Json = Out }
-  def apply[Json0](implicit baseEncoder0: NativeTypeEncoder.Aux[Json0]): Encoder = new Encoder {
-    type Json = Json0
-    implicit val baseEncoder: NativeTypeEncoder.Aux[Json] = baseEncoder0
+  def apply[Json](implicit baseEncoder0: JsonEncoder[Json]): Encoder[Json] = new Encoder()(baseEncoder0) {
+//    type Json = baseEncoder0.Json
+//    implicit val baseEncoder: JsonEncoder[Json] = baseEncoder0
   }
 }
-trait Encoder {
-  type Json
-  implicit def baseEncoder: NativeTypeEncoder.Aux[Json]
+abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extends lspace.codec.Encoder {
+//  implicit def baseEncoder: JsonEncoder[J]
+  import baseEncoder._
+//  type Json = baseEncoder.Json
 
-//  implicit def encoder: lspace.codec.jsonld.Encoder = this
+//  implicit def encoder: lspace.codec.json.jsonld.Encoder = this
   type JOIP = JsonObjectInProgress[Json]
   type JIP  = JsonInProgress[Json]
-
-  implicit def nullToJson          = baseEncoder.jNull
-  implicit val textToJson          = (text: String) => baseEncoder.encode(text)
-  implicit val boolToJson          = (boolean: Boolean) => baseEncoder.encode(boolean)
-  implicit val intToJson           = (int: Int) => baseEncoder.encode(int)
-  implicit val doubleToJson        = (double: Double) => baseEncoder.encode(double)
-  implicit val longToJson          = (long: Long) => baseEncoder.encode(long)
-  implicit val geoToJson           = (geo: Geometry) => baseEncoder.encode(geo)
-  implicit val dateToJson          = (date: Instant) => date.toString.asJson
-  implicit val localdatetimeToJson = (date: LocalDateTime) => date.toString.asJson
-  implicit val localdateToJson     = (date: LocalDate) => date.toString.asJson
-  implicit val localtimeToJson     = (date: LocalTime) => date.toString.asJson
-
-  implicit val mapToJson        = (map: Map[String, Json]) => baseEncoder.encode(map)
-  implicit val listmapToJson    = (map: ListMap[String, Json]) => baseEncoder.encode(map)
-  implicit val listToJson       = (list: List[Json]) => baseEncoder.encode(list)
-  implicit val tuple2ToJson     = (tuples: (Json, Json)) => baseEncoder.encode(tuples)
-  implicit val tuple3ToJson     = (tuples: (Json, Json, Json)) => baseEncoder.encode(tuples)
-  implicit val tuple4ToJson     = (tuples: (Json, Json, Json, Json)) => baseEncoder.encode(tuples)
-  implicit val tuple2ListToJson = (tuples: List[(Json, Json)]) => baseEncoder.encodeTupleList(tuples)
-
-  def jsonToNoSpacesString(json: Json): String = baseEncoder.jsonToNoSpacesString(json)
-
-  implicit class WithT[T](v: T)(implicit f: T => Json) {
-    val asJson = f(v)
-  }
-
-  implicit class WithEJson(json: Json) {
-    def noSpaces: String = jsonToNoSpacesString(json)
-  }
 
   def apply[T <: Node](node: Node)(implicit activeContext: ActiveContext): String = fromNode(node).withContext.noSpaces
 
@@ -77,7 +49,7 @@ trait Encoder {
         nodeResource.labels.foldLeft(List[Json]() -> activeContext) {
           case ((iris, activeContext), tpe) =>
             val (iri, newBuilder) = activeContext.compactIri(tpe)
-            (iris :+ textToJson(iri)) -> newBuilder
+            (iris :+ iri.asJson) -> newBuilder
         } match {
           case (typeIris, activeContext) =>
             val iri = nodeResource.iri
@@ -85,11 +57,11 @@ trait Encoder {
             //                else nodeResource.graph.iri + "/" + nodeResource.id
             lazy val (edges, newAc) = addEdges(nodeResource)(activeContext)
             JsonObjectInProgress[Json](
-              List[(String, Json)]() ++ List(iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)) ++ List({
+              List[(String, Json)]() ++ List(iri).filter(_.nonEmpty).map(types.`@id` -> (_).asJson) ++ List({
                 val iris = nodeResource.iris
-                if (iris.toList.lengthCompare(1) == 0) List(types.`@ids` -> textToJson(iris.head))
+                if (iris.toList.lengthCompare(1) == 0) List(types.`@ids` -> iris.head.asJson)
                 else if (iris.nonEmpty)
-                  List(types.`@ids` -> (nodeResource.iris.toList.map(textToJson).asJson))
+                  List(types.`@ids` -> (nodeResource.iris.toList.map(_.asJson).asJson))
                 else List()
               }: _*) ++ {
                 if (node.labels.toSet != expectedTypes) {
@@ -144,7 +116,7 @@ trait Encoder {
       } else activeContext
 
     edges match {
-      case null | List() => JsonInProgress[Json](nullToJson)
+      case null | List() => JsonInProgress[Json](jNull)
       case List(property) /*if key.container.isEmpty*/ =>
         edgeToAsJson(property)(newActiveContext)
       case edges =>
@@ -176,13 +148,13 @@ trait Encoder {
     val (keyIri, newActiveContext) = activeContext.compactIri(edge.key)
     val (edges, newAc)             = addEdges(edge)(newActiveContext)
     JsonObjectInProgress[Json](
-      List[(String, Json)]() ++ List(edge.iri).filter(_.nonEmpty).map(types.`@id` -> textToJson(_)) ++ List({
+      List[(String, Json)]() ++ List(edge.iri).filter(_.nonEmpty).map(types.`@id` -> (_).asJson) ++ List({
         val iris = edge.iris
-        if (iris.toList.lengthCompare(1) == 0) List(types.`@ids` -> textToJson(iris.head))
+        if (iris.toList.lengthCompare(1) == 0) List(types.`@ids` -> iris.head.asJson)
         else if (iris.nonEmpty)
-          List(types.`@ids` -> (edge.iris.toList.map(textToJson).asJson))
+          List(types.`@ids` -> (edge.iris.toList.map(_.asJson).asJson))
         else List()
-      }: _*) ++ List(types.`@type` -> textToJson(keyIri)))(newAc)
+      }: _*) ++ List(types.`@type` -> keyIri.asJson))(newAc)
   }
 
   def fromData(value: Any, expectedType: DataType[_])(implicit activeContext: ActiveContext): JIP = {

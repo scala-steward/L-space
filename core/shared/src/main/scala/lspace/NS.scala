@@ -117,6 +117,7 @@ object NS {
     val schemaDateTime        = NS.vocab.schema + "DateTime"
     val schemaBoolean         = NS.vocab.schema + "Boolean"
     val schemaURL             = NS.vocab.schema + "URL"
+    val schemaDuration        = NS.vocab.schema + "Duration"
     val owlEquivalentProperty = NS.vocab.owl + "equivalentProperty"
     val xsdAnyURI             = NS.vocab.xsd + "anyURI"
     val xsdLanguage           = NS.vocab.xsd + "language"

@@ -9,7 +9,6 @@ import monix.eval.{Coeval, Task}
 
 import scala.collection.concurrent
 import scala.collection.JavaConverters._
-import scala.concurrent.duration.FiniteDuration
 
 object Ontology {
   lazy val ontology: Ontology =
@@ -48,8 +47,6 @@ object Ontology {
     }
     private[lspace] val byIri: concurrent.Map[String, Ontology] =
       new ConcurrentHashMap[String, Ontology]().asScala
-//    private[lspace] val building: concurrent.Map[String, Coeval[Ontology]] =
-//      new ConcurrentHashMap[String, Coeval[Ontology]]().asScala
 
     def all: List[Ontology] = byIri.values.toList.distinct
     def get(iri: String, iris: Set[String] = Set()): Option[Ontology] = {
@@ -130,16 +127,7 @@ object Ontology {
       ontology
     }
 
-//    def cache(ontology: Ontology): Unit = {
-//      byIri += ontology.iri -> ontology
-//      ontology.iris.foreach { iri =>
-//        ontologies.byIri += iri -> ontology
-//      }
-//    }
     def cached(long: Long): Option[Ontology] = default.byId.get(long)
-//    def cached(iri: String): Option[Ontology] = default.byIri.get(iri).orElse(byIri.get(iri))
-
-//    def remove(iri: String): Unit = byIri.remove(iri)
   }
 
   private[structure] def apply(iri: String,
@@ -171,17 +159,7 @@ object Ontology {
   * @param iri
   * @param iris
   */
-class Ontology(val iri: String,
-               val iris: Set[String] = Set()
-//               protected val _properties: () => List[Property] = () => List(),
-//               protected var labelMap: Map[String, String] = Map(),
-//               protected var commentMap: Map[String, String] = Map(),
-//               protected val _extendedClasses: () => List[Ontology] = () => List(),
-//               val base: Option[String] = None
-) extends ClassType[Node] { self =>
-
-//  type Out = Node
-//  type CT  = Ontology
+class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType[Node] { self =>
 
   protected var extendedClassesList
     : Coeval[List[Ontology]] = Coeval.now(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))

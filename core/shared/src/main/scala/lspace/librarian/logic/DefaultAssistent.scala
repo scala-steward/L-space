@@ -3,7 +3,7 @@ import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 
 import lspace.librarian.logic.predicate._
 import lspace.librarian.util.AssertionNotSupported
-import lspace.types.vector._
+import lspace.types.geo._
 
 import scala.collection.immutable.ListSet
 
@@ -63,12 +63,12 @@ class DefaultAssistent extends Assistent {
         case _          => false
     }
   }
-  override def eqv[T](p: Eqv[T]): Helper[Eqv[T]] = new Helper[Eqv[T]](p) {
+  def eqv[T](p: Eqv[T]): Helper[Eqv[T]] = new Helper[Eqv[T]](p) {
     val comparable             = (value: Any) => true
     val assert: Any => Boolean = (value: Any) => value == p.pvalue
   }
 
-  override def neqv[T](p: Neqv[T]): Helper[Neqv[T]] = new Helper[Neqv[T]](p) {
+  def neqv[T](p: Neqv[T]): Helper[Neqv[T]] = new Helper[Neqv[T]](p) {
     val comparable             = (value: Any) => true
     val assert: Any => Boolean = (value: Any) => value != p.pvalue
   }

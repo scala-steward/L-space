@@ -20,10 +20,10 @@ object TimeLimit
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/TimeLimit/duration",
           "duration",
-          "The maximum time the underlaying traversal may take",
-          `@range` = () => DataType.default.`@duration` :: Nil
+          "The maximum time the underlaying traversal may take"
+//          `@range` = () => DataType.default.`@duration` :: Nil
         )
-    val durationTime: TypedProperty[squants.time.Time] = duration.property as DataType.default.`@duration`
+    val durationTime: TypedProperty[Long] = duration.property as DataType.default.`@long`
   }
   override lazy val properties: List[Property] = keys.duration :: EnvironmentStep.properties
   trait Properties extends EnvironmentStep.Properties {
@@ -39,7 +39,11 @@ object TimeLimit
   }.memoizeOnSuccess
 }
 
-case class TimeLimit(time: Option[squants.time.Time] = None) extends EnvironmentStep {
+/**
+  *
+  * @param time in millis
+  */
+case class TimeLimit(time: Option[Long] = None) extends EnvironmentStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =

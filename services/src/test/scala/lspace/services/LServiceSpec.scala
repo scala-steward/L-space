@@ -8,7 +8,7 @@ import org.scalatest.{AsyncWordSpec, Matchers}
 object LServiceSpec {}
 trait LServiceSpec extends AsyncWordSpec with Matchers {
 
-  implicit class WithApiService(labeledNodeApi: LabeledNodeApi)(implicit service: LService) {
+  implicit class WithApiService[Json](labeledNodeApi: LabeledNodeApi[Json])(implicit service: LService) {
     import util._
     def labeledApiTests = {
       val label = labeledNodeApi.label //ontology.label("en").getOrElse(labeledNodeApi.ontology.iri).toLowerCase()

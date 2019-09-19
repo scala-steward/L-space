@@ -10,7 +10,7 @@ import scribe.format.Formatter
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
-abstract class DecoderSpec[Json](decoder: JsonLDDecoder[Json]) extends AsyncWordSpec with Matchers {
+abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends AsyncWordSpec with Matchers {
 
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global

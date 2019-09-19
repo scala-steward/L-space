@@ -2,14 +2,13 @@ package lspace.lgraph.provider.elasticsearch
 
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.http.{ElasticClient, ElasticNodeEndpoint, ElasticProperties, HttpClient}
-import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.Decoder
 import lspace.lgraph.LGraph
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 
 object ESIndexProvider {
-  def apply[Json](iri: String, host: String, port: Int)(
-      implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-      baseDecoder: NativeTypeDecoder.Aux[Json]): ESIndexProvider[Json] =
+  def apply[Json](iri: String, host: String, port: Int)(implicit baseEncoder: NativeTypeEncoder.Aux[Json],
+                                                        baseDecoder: Decoder.Aux[Json]): ESIndexProvider[Json] =
     new ESIndexProvider(iri, host, port)
 
 //  val keySpaceBuilders: concurrent.Map[StoragePoint, KeySpaceBuilder] =
@@ -18,7 +17,7 @@ object ESIndexProvider {
 
 //TODO: support multi-node cluster
 class ESIndexProvider[Json](val iri: String, host: String, port: Int)(implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-                                                                      baseDecoder: NativeTypeDecoder.Aux[Json])
+                                                                      baseDecoder: Decoder.Aux[Json])
     extends IndexProvider {
 
   def ep(prefix: String) =

@@ -27,19 +27,19 @@ object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Inde
     val traversalNode = keys.traversalNode
   }
 
-  implicit def toNode[I <: Index](index: I): Task[Node] = {
-    for {
-      node <- DetachedGraph.nodes.create(ontology)
-      u <- Task
-        .gather(index.traversal.steps.map(_.toNode))
-        .flatMap(l => Task.gather(l.map(node.addOut(keys.traversalNode, _))))
-    } yield node
-  }
+//  implicit def toNode[I <: Index](index: I): Task[Node] = {
+//    for {
+//      node <- DetachedGraph.nodes.create(ontology)
+//      u <- Task
+//        .gather(index.traversal.steps.map(_.toNode))
+//        .flatMap(l => Task.gather(l.map(node.addOut(keys.traversalNode, _))))
+//    } yield node
+//  }
 }
 
 trait Index {
 
-  lazy val toNode: Task[Node] = this.memoizeOnSuccess
+//  lazy val toNode: Task[Node] = this.memoizeOnSuccess
 
   /**
     * A traversal-pattern only Segments containing FilterStep's and RearrangeSteps separated by an Out-step

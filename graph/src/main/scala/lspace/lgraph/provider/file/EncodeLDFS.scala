@@ -1,13 +1,14 @@
 package lspace.lgraph.provider.file
 
 import lspace.NS.types
-import lspace.codec.jsonld.Encoder
+import lspace.codec.json.JsonEncoder
+import lspace.codec.json.jsonld.Encoder
 import lspace.structure._
-import lspace.codec.{ActiveContext, JsonInProgress, NativeTypeEncoder}
+import lspace.codec.{ActiveContext, JsonInProgress}
 
-case class EncodeLDFS[Json0](idMaps: IdMaps = IdMaps())(implicit val baseEncoder: NativeTypeEncoder.Aux[Json0])
+case class EncodeLDFS[Json](idMaps: IdMaps = IdMaps())(implicit override val baseEncoder: JsonEncoder[Json])
     extends Encoder {
-  type Json = Json0
+  import baseEncoder._
 
   override def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(
       implicit activeContext: ActiveContext): JIP = {

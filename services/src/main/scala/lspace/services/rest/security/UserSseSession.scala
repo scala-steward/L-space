@@ -29,4 +29,6 @@ object UserSseSession {
   }
 }
 
-class UserSseSession(override val session: UserSession) extends OpenSseSession(session)
+class UserSseSession(override val session: UserSession) extends ClientSseSession(session) with UserSession {
+  override def user: User = session.user
+}

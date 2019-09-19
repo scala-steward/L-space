@@ -19,8 +19,6 @@ trait MemStore[G <: MemGraph] extends Store[G] {
 
   protected[mem] lazy val data: concurrent.Map[Long, T2] =
     new ConcurrentHashMap[Long, T2](16, 0.9f, 32).asScala
-//  protected[mem] lazy val data: concurrent.TrieMap[Long, T2] =
-//    new concurrent.TrieMap[Long, T2]()
 
   def store(resource: T): Task[Unit] = Task { cache(resource) }
   def cache(resource: T): Unit = {

@@ -153,7 +153,7 @@ object DataType
         `@datetime`,
         `@localdatetime`,
         `@time`,
-        `@duration`,
+//        `@duration`,
         `@boolean`,
         `@geo`,
         `@geopoint`,
@@ -309,7 +309,7 @@ object DataType
     val `@localdatetime`               = LocalDateTimeType.datatype
     val `@time`                        = LocalTimeType.datatype
     val `@temporal`: CalendarType[Any] = CalendarType.datatype
-    val `@duration`: DurationType      = DurationType.datatype
+    val `@duration`: DurationType[Any] = DurationType.datatype
     val `@quantity`: QuantityType[Any] = QuantityType.datatype
     //  val epochType: EpochType = EpochType
     val `@boolean` = BoolType.datatype

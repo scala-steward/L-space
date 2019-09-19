@@ -4,7 +4,7 @@ import java.time.LocalDate
 
 import lspace.datatype._
 import lspace.structure._
-import lspace.types.vector.Point
+import lspace.types.geo.Point
 import monix.eval.Task
 
 object SampleGraph {

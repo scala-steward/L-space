@@ -9,7 +9,9 @@ import io.finch._
 import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
-import lspace.codec.{jsonld, ActiveContext, ActiveProperty, ContextedT, NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.{JsonDecoder, JsonEncoder}
+import lspace.codec.json.jsonld
+import lspace.codec.{ActiveContext, ActiveProperty, ContextedT}
 import lspace.decode.{DecodeGraphQL, DecodeJson, DecodeJsonLD}
 import lspace.encode.{EncodeJson, EncodeJsonLD}
 import lspace.graphql.{Query, QueryResult}
@@ -20,26 +22,23 @@ import monix.eval.Task
 import shapeless.{:+:, ::, CNil, HList, HNil}
 
 object LabeledNodeApi {
-  def apply(graph: Graph, ontology: Ontology, defaultContext: ActiveContext = ActiveContext())(
+  def apply[Json](graph: Graph, ontology: Ontology, defaultContext: ActiveContext = ActiveContext())(
       implicit
-      baseDecoder: NativeTypeDecoder,
-      baseEncoder: NativeTypeEncoder): LabeledNodeApi =
+      baseDecoder: JsonDecoder[Json],
+      baseEncoder: JsonEncoder[Json]): LabeledNodeApi[Json] =
     new LabeledNodeApi(ontology)(graph, baseDecoder, baseEncoder, defaultContext)
 }
 
-class LabeledNodeApi(val ontology: Ontology,
-                     allowedProperties: List[Property] = List(),
-                     forbiddenProperties: List[Property] = List())(implicit val graph: Graph,
-                                                                   val baseDecoder: NativeTypeDecoder,
-                                                                   val baseEncoder: NativeTypeEncoder,
-                                                                   val activeContext: ActiveContext)
+class LabeledNodeApi[JSON](val ontology: Ontology,
+                           allowedProperties: List[Property] = List(),
+                           forbiddenProperties: List[Property] = List())(implicit val graph: Graph,
+                                                                         val baseDecoder: JsonDecoder[JSON],
+                                                                         val baseEncoder: JsonEncoder[JSON],
+                                                                         val activeContext: ActiveContext)
     extends Api {
 //  implicit val encoder = Encoder //todo Encode context per client-session
 //  implicit val decoder
-//    : lspace.codec.jsonld.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.jsonld.Decoder[Any]] //todo Decode context per client-session
-
-  type Json = baseDecoder.Json
-  implicit val bd: NativeTypeDecoder.Aux[Json] = baseDecoder.asInstanceOf[NativeTypeDecoder.Aux[Json]]
+//    : lspace.codec.json.jsonld.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.json.jsonld.Decoder[Any]] //todo Decode context per client-session
 
   import lspace.services.codecs.Decode._
   implicit val decoderJsonLD  = jsonld.Decoder(DetachedGraph)
@@ -346,13 +345,11 @@ class LabeledNodeApi(val ontology: Ontology,
       create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
   def labeledApi = label :: api
 
+  implicit val encoderJsonLD: jsonld.JsonLDEncoder[JSON] = jsonld.JsonLDEncoder[JSON]
+
   def compiled: Endpoint.Compiled[IO] = {
-    type Json = baseEncoder.Json
-    implicit val be: NativeTypeEncoder.Aux[Json] = baseEncoder.asInstanceOf[NativeTypeEncoder.Aux[Json]]
 
     import lspace.services.codecs.Encode._
-    implicit val encoderJsonLD = jsonld.Encoder.apply(be)
-
     import EncodeJson._
     import EncodeJsonLD._
 

@@ -1,19 +1,18 @@
 package lspace.lgraph.provider.file
 
-import lspace.codec.{NativeTypeDecoder, NativeTypeEncoder}
+import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.lgraph.{GraphManager, LGraph}
 
 object FileStoreProvider {
-  def apply[T](iri: String, path: String)(implicit encoder: NativeTypeEncoder.Aux[T],
-                                          decoder: NativeTypeDecoder.Aux[T]): FileStoreProvider[T] =
+  def apply[T](iri: String, path: String)(implicit encoder: JsonEncoder[T],
+                                          decoder: JsonDecoder[T]): FileStoreProvider[T] =
     new FileStoreProvider[T](
       iri,
       path
     )
 }
-class FileStoreProvider[T](val iri: String, path: String)(implicit encoder: NativeTypeEncoder.Aux[T],
-                                                          decoder: NativeTypeDecoder.Aux[T])
+class FileStoreProvider[T](val iri: String, path: String)(implicit encoder: JsonEncoder[T], decoder: JsonDecoder[T])
     extends StoreProvider {
   import FileStoreProvider._
 

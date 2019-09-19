@@ -328,7 +328,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
   }
 
   "a geometry assistent" can {
-    import lspace.types.vector._
+    import lspace.types.geo._
     pTests(
       assistent.eqv(Eqv(Point(4, 9))),
       Point(4, 9) :: Nil,
