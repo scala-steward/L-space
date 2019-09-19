@@ -82,7 +82,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
       (for {
         node <- traversal.toNode
         json = encoder.apply(node)
-        _    = println(json)
+//        _    = println(json)
         input = Input
           .post("/@graph")
           .withBody[Application.JsonLD](node)
