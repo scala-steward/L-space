@@ -3,10 +3,10 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
 //  val scala     = "2.12.8"
-  val finch     = "0.30.0"
-  val monix     = "3.0.0-RC3"
-  val sttp      = "1.6.4"
-  val elastic4s = "7.1.0"
+  val finch     = "0.31.0"
+  val monix     = "3.0.0"
+  val sttp      = "1.6.7"
+  val elastic4s = "7.3.1"
   val phantom   = "2.42.0"
 }
 
@@ -14,19 +14,20 @@ object Dependencies {
 
   val coreDeps = Def.setting(
     Seq(
-      "io.monix"      %%% "monix-reactive" % Version.monix,
-      "com.chuusai"   %%% "shapeless"      % "2.3.3",
-      "org.typelevel" %%% "squants"        % "1.4.0",
+      "eu.l-space"  %%% "types"          % "0.0.3+6-7aa462e9-SNAPSHOT",
+      "io.monix"    %%% "monix-reactive" % Version.monix,
+      "com.chuusai" %%% "shapeless"      % "2.3.3",
+//      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
-      "com.outr"      %%% "scribe"    % "2.7.9",
-      "org.scalatest" %%% "scalatest" % "3.0.8" % "test",
-      "io.monix"      %%% "minitest"  % "2.6.0" % "test"
+      "com.outr"          %%% "scribe"          % "2.7.9",
+      "org.scalatest"     %%% "scalatest"       % "3.1.0-RC2" % "test",
+      "io.monix"          %%% "minitest"        % "2.7.0" % "test",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3"
     ))
 
   val coreJsDeps = Def.setting(
     Seq(
-      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3",
-      "org.scala-js"      %%% "scalajs-dom"     % "0.9.7"
+      "org.scala-js" %%% "scalajs-dom" % "0.9.7"
     ))
 
   val coreJvmDeps = Seq()
@@ -43,7 +44,7 @@ object Dependencies {
 
   val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.3"))
 
-  val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.11.1"))
+  val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.12.1"))
 
   val clientDeps = Def.setting(Seq())
 
@@ -53,8 +54,8 @@ object Dependencies {
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.github.pureconfig" %% "pureconfig"         % "0.11.1",
-    "com.github.pureconfig" %% "pureconfig-generic" % "0.11.1"
+    "com.github.pureconfig" %% "pureconfig"         % "0.12.0",
+    "com.github.pureconfig" %% "pureconfig-generic" % "0.12.0"
   )
 
   val storeCassandraDeps = Seq(
@@ -79,11 +80,11 @@ object Dependencies {
     "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
     "com.github.finagle" %% "finchx-fs2"           % Version.finch,
     "com.github.finagle" %% "finchx-refined"       % Version.finch,
-    "co.fs2"             %% "fs2-reactive-streams" % "1.0.5",
+    "co.fs2"             %% "fs2-reactive-streams" % "2.0.0",
 //    "com.twitter"        %% "twitter-server"       % "19.4.0" % "test",
     "com.vmunier" %% "scalajs-scripts" % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
-    "com.lihaoyi" %% "scalatags" % "0.7.0"
+    "com.lihaoyi" %% "scalatags" % "0.7.0" //TODO: replace with Laminar
 //    "org.scalatest" %% "scalatest" % "3.0.8" % "test"
   )
 }
