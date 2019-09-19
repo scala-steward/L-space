@@ -16,7 +16,7 @@ object Dependencies {
     Seq(
       "io.monix"      %%% "monix-reactive" % Version.monix,
       "com.chuusai"   %%% "shapeless"      % "2.3.3",
-      "org.typelevel" %%% "squants"        % "1.4.0",
+      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"      %%% "scribe"    % "2.7.9",
       "org.scalatest" %%% "scalatest" % "3.0.8" % "test",
