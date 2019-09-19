@@ -14,7 +14,7 @@ object Dependencies {
 
   val coreDeps = Def.setting(
     Seq(
-      "eu.l-space"  %%% "types"          % "0.0.4",
+      "eu.l-space"  %%% "types"          % "0.0.4.1",
       "io.monix"    %%% "monix-reactive" % Version.monix,
       "com.chuusai" %%% "shapeless"      % "2.3.3",
 //      "org.typelevel" %%% "squants"        % "1.5.0",
