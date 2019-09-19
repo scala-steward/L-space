@@ -47,7 +47,7 @@ lazy val projectSettings = Seq(
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.11.12", "2.12.10"),
+  crossScalaVersions := Seq("2.12.10"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
