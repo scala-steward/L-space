@@ -7,10 +7,10 @@ case class MultiPolygon(vector: Vector[Polygon]) extends Geometry {
   def within(that: Geometry): Boolean    = vector.forall(p => p.within(that))
 
   lazy val bbox: BBox = BBox(
-    vector.flatMap(_.vector.map(_.x)).min,
-    vector.flatMap(_.vector.map(_.y)).min,
-    vector.flatMap(_.vector.map(_.x)).max,
-    vector.flatMap(_.vector.map(_.y)).max
+    vector.flatMap(_.vector.flatMap(_.map(_.x))).min,
+    vector.flatMap(_.vector.flatMap(_.map(_.y))).min,
+    vector.flatMap(_.vector.flatMap(_.map(_.x))).max,
+    vector.flatMap(_.vector.flatMap(_.map(_.y))).max
   )
 }
 

@@ -1,6 +1,6 @@
 package lspace.codec
 
-import lspace.types.vector.Geometry
+import lspace.types.geo.Geometry
 
 import scala.collection.immutable.ListMap
 

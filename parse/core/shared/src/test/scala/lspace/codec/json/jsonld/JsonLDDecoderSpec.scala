@@ -1,21 +1,17 @@
-package lspace.codec.jsonld
+package lspace.codec.json.jsonld
 
-import lspace._
 import lspace.Label.D._
-import lspace.Label.P._
+import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty, NamedActiveContext}
-import lspace.provider.mem.MemGraph
-import lspace.structure.SampledGraph
-import org.scalatest.{AsyncWordSpec, FutureOutcome, Matchers}
+import org.scalatest.{AsyncWordSpec, Matchers}
 import scribe.Level
 import scribe.format.Formatter
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
-abstract class DecoderSpec(decoder: Decoder) extends AsyncWordSpec with Matchers {
+abstract class DecoderSpec[Json](decoder: JsonLDDecoder[Json]) extends AsyncWordSpec with Matchers {
 
-  import decoder._
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 

@@ -1,10 +1,8 @@
 import Dependencies._
-import sbtcrossproject.CrossProject
 // shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
-ThisBuild / organization := "eu.l-space"
-ThisBuild / scalaVersion := "2.12.8"
+ThisBuild / scalaVersion := "2.12.10"
 
 lazy val settings = commonSettings
 
@@ -17,7 +15,8 @@ lazy val compilerOptions = Seq(
   "-language:postfixOps",
   "-language:reflectiveCalls",
 //  "-language:experimental.macros",
-  "-Ypartial-unification",
+//  "-Ypartial-unification",
+  "-Ypatmat-exhaust-depth", "off",
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
 //  "-Ytyper-debug",
@@ -32,6 +31,7 @@ lazy val compilerOptions = Seq(
 )
 
 lazy val projectSettings = Seq(
+  organization := "eu.l-space",
   homepage := Some(url("https://github.com/L-space/L-space")),
   licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
   developers := List(
@@ -46,20 +46,15 @@ lazy val projectSettings = Seq(
 
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
-  scalaVersion := "2.12.8",
-  crossScalaVersions := Seq("2.12.8"),
+  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq("2.11.12", "2.12.10"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
 
-val dirtyEnd = """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
-def stripTime(version: String) = dirtyEnd.findFirstIn(version) match {
-  case Some(end) => version.stripSuffix(end) + "-SNAPSHOT"
-  case None => version
-}
-
-ThisBuild / version ~= stripTime
-ThisBuild / dynver ~= stripTime
+dynverSonatypeSnapshots in ThisBuild := true
+ThisBuild / version ~= (version => """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
+  .findFirstIn(version).fold(version)(version.stripSuffix(_) + "-SNAPSHOT"))
 
 ThisBuild / testFrameworks += new TestFramework("minitest.runner.Framework")
 
@@ -75,6 +70,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-core",
+//    crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
     libraryDependencies ++= coreDeps.value,
     Test / parallelExecution := false
   )
@@ -82,6 +78,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= coreJvmDeps
   )
   .jsSettings(
+    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     libraryDependencies ++= coreJsDeps.value
   )
@@ -93,6 +90,7 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse",
+//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= parseDeps.value,
     Test / parallelExecution := false
   )
@@ -100,39 +98,44 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= parseJvmDeps
   )
   .jsSettings(
+    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     libraryDependencies ++= parseJsDeps.value
   )
 
 lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure) in file("parse/argonaut"))
+  .crossType(CrossType.Full) in file("parse/argonaut"))
   .dependsOn(parse % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-parse-argonaut",
+//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= parseArgonautDeps.value,
     Test / parallelExecution := false
   )
   .jvmSettings(
   )
   .jsSettings(
+    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv()
   )
 
 lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure) in file("parse/circe"))
+  .crossType(CrossType.Full) in file("parse/circe"))
   .dependsOn(parse % "compile->compile;test->test")
   .settings(settings)
   .settings(
     name := "lspace-parse-circe",
+//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= parseCirceDeps.value,
     Test / parallelExecution := false
   )
   .jvmSettings(
   )
   .jsSettings(
+    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv()
   )
 
@@ -144,6 +147,7 @@ lazy val client =
     .settings(settings)
     .settings(
       name := "lspace-client",
+//      crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.0"),
       libraryDependencies ++= clientDeps.value,
       Test / parallelExecution := false
     )
@@ -151,6 +155,7 @@ lazy val client =
       libraryDependencies ++= clientJvmDeps
     )
     .jsSettings(
+      scalaJSLinkerConfig ~= { _.withOptimizer(false) },
       jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
       libraryDependencies ++= clientJsDeps.value
     )
@@ -160,6 +165,7 @@ lazy val graph = (project in file("graph"))
   .settings(settings)
   .settings(
     name := "lspace-graph",
+//    crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.0"),
     libraryDependencies ++= graphDeps
   )
 
@@ -195,6 +201,7 @@ lazy val services = (project in file("services"))
   .settings(settings)
   .settings(
     name := "lspace-services",
+//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= servicesDeps
   )
 

@@ -23,7 +23,7 @@ jobs:
 #          - $HOME/.sbt
 #          - $HOME/.coursier
 #          - node_modules
-      scala: 2.12.8
+      scala: 2.12.10
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
@@ -50,7 +50,7 @@ jobs:
 #          - $HOME/.coursier
     - stage: publish pages
       name: "Publish to GitHub"
-      scala: 2.12.8
+      scala: 2.12.10
       before_install:
         - export PATH=${PATH}:./vendor/bundle
       install:

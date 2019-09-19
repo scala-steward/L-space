@@ -7,8 +7,7 @@ import lspace.codec.exception.ToJsonException
 import lspace.codec._
 import lspace.datatype._
 import lspace.structure._
-import lspace.types.vector.Geometry
-import squants.time.Time
+import lspace.types.geo.Geometry
 
 import scala.collection.immutable.{ListMap, ListSet}
 
@@ -338,10 +337,10 @@ trait Encoder {
 
   def fromQuantity(value: Any, expectedType: QuantityType[_])(implicit activeContext: ActiveContext): JIP = {
     expectedType match {
-      case label: DurationType =>
+      case label: DurationType[Any] =>
         value match {
-          case v: Time =>
-            JsonInProgress(Map("value" -> (v.value.asJson), "unit" -> (v.unit.symbol.asJson)).asJson)
+//          case v: Time =>
+//            JsonInProgress(Map("value" -> (v.value.asJson), "unit" -> (v.unit.symbol.asJson)).asJson)
           case _ => throw ToJsonException(s"duration expected ${value.getClass} found")
         }
     }

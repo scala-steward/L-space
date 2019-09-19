@@ -11,7 +11,7 @@ import lspace.datatype._
 import lspace.parse.util.HttpClient
 import lspace.structure._
 import lspace.types.string.{Blank, Iri}
-import lspace.types.vector.{Point, Polygon}
+import lspace.types.geo.{Point, Polygon}
 import monix.eval.Task
 import monix.reactive.Observable
 
@@ -863,7 +863,7 @@ trait Decoder {
                     }))
             } yield {
               Ontology.ontologies.getAndUpdate(node)
-            }) //.forkAndForget
+            }) //.startAndForget
           } yield ontology
         })
         .getOrElse(Task.raiseError(FromJsonException(s"ontology without iri $expandedJson")))
@@ -892,7 +892,7 @@ trait Decoder {
                       owip.remove(iri)
                     }
                     .delayExecution(1 seconds)
-                    .forkAndForget
+                    .startAndForget
                 }
                 .memoizeOnSuccess
             )
@@ -980,7 +980,7 @@ trait Decoder {
               )
               includedIn <- Task.gatherUnordered(domainIncludeIris
                 .map(graph.nodes.upsert(_)))
-              _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))) //.forkAndForget
+              _ <- Task.gatherUnordered(includedIn.map(_.addOut(Label.P.`@properties`, node))) //.startAndForget
               properties <- Task
                 .gatherUnordered(propertiesIris.map(graph.nodes.upsert(_, Property.ontology)))
               _ <- Task.gatherUnordered(properties.map(node.addOut(Label.P.`@properties`, _)))
@@ -1002,7 +1002,7 @@ trait Decoder {
                 .map(ClassType.classtypes.getAndUpdate)
                 .onErrorHandle(f => ())
                 .toListL
-            } yield ()) //.forkAndForget
+            } yield ()) //.startAndForget
           } yield property
         })
         .getOrElse(Task.raiseError(FromJsonException(s"property without iri $expandedJson")))
@@ -1033,7 +1033,7 @@ trait Decoder {
                         pwip.remove(iri)
                       }
                       .delayExecution(1 seconds)
-                      .forkAndForget
+                      .startAndForget
                   }
                   .memoizeOnSuccess
               )
@@ -1123,7 +1123,7 @@ trait Decoder {
                     }))
             } yield {
               DataType.datatypes.getAndUpdate(node)
-            }) //.forkAndForget
+            }) //.startAndForget
           } yield datatype
         })
         .getOrElse(Task.raiseError(FromJsonException(s"ontology without iri $expandedJson")))
@@ -1177,7 +1177,7 @@ trait Decoder {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareDataType(expandedJson).flatMap { node =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).forkAndForget.map { f =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).startAndForget.map { f =>
             node
           }
         }
@@ -1191,7 +1191,7 @@ trait Decoder {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareOntology(expandedJson).flatMap { ontology =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).forkAndForget.map { f =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).startAndForget.map { f =>
             ontology
           }
         }
@@ -1205,7 +1205,7 @@ trait Decoder {
       ctwip.getOrElseUpdate(
         iris.head,
         prepareProperty(expandedJson).flatMap { node =>
-          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).forkAndForget.map { f =>
+          Task.delay(ctwip.remove(iris.head)).delayExecution(5 seconds).startAndForget.map { f =>
             node
           }
         }
@@ -1621,7 +1621,7 @@ trait Decoder {
         case None =>
           import scala.concurrent.duration._
           scribe.trace(s"adding remove task, $iri is build")
-          Task.delay(fetchingInProgress.remove(iri)).delayExecution(1 seconds).forkAndForget
+          Task.delay(fetchingInProgress.remove(iri)).delayExecution(1 seconds).startAndForget
         case Some(e) =>
           e.printStackTrace()
           scribe.error(s"failure? : ${e.getMessage}")
