@@ -408,5 +408,5 @@ Environment steps adjust the context of the traversal
 #### TimeLimit
 TimeLimit-step limits the amount of time the rest of the traversal may take
 ```tut:book
-g.N.timeLimit(squants.time.Time(20.millis)).withGraph(graph).toList
+g.N.timeLimit(20).withGraph(graph).toList
 ```
