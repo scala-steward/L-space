@@ -10,8 +10,8 @@ object ServicesConfig {
   import pureconfig.generic.auto._
 
   implicit val memGraphReader: ConfigReader[GraphConfig] = ConfigReader
-    .forProduct2("name", "path")(FileGraphConfig(_, _))
-    .orElse(ConfigReader.forProduct1("name")(MemGraphConfig(_)))
+    .forProduct2[FileGraphConfig, String, String]("name", "path")(FileGraphConfig)
+    .orElse(ConfigReader.forProduct1[MemGraphConfig, String]("name")(MemGraphConfig))
 
   /**
     *
