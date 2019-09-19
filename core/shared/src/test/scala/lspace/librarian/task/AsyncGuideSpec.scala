@@ -976,7 +976,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //        id == 0l shouldBe false
 //      }
 //
-      "g.N.repeat(_.out()).timeLimit(Time.apply(20.millis)).count" in {
+      "g.N.repeat(_.out()).timeLimit(Time.apply(200.millis)).count" in {
         import scala.concurrent.duration._
         g.N
           .repeat(_.out(), collect = true)
