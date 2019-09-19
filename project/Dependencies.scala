@@ -53,8 +53,8 @@ object Dependencies {
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.github.pureconfig" %% "pureconfig"         % "0.11.1",
-    "com.github.pureconfig" %% "pureconfig-generic" % "0.11.1"
+    "com.github.pureconfig" %% "pureconfig"         % "0.12.0",
+    "com.github.pureconfig" %% "pureconfig-generic" % "0.12.0"
   )
 
   val storeCassandraDeps = Seq(
