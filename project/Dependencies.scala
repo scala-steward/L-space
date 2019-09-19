@@ -14,7 +14,7 @@ object Dependencies {
 
   val coreDeps = Def.setting(
     Seq(
-      "eu.l-space"  %%% "types"          % "0.0.3+6-7aa462e9-SNAPSHOT",
+      "eu.l-space"  %%% "types"          % "0.0.4",
       "io.monix"    %%% "monix-reactive" % Version.monix,
       "com.chuusai" %%% "shapeless"      % "2.3.3",
 //      "org.typelevel" %%% "squants"        % "1.5.0",
@@ -85,6 +85,8 @@ object Dependencies {
     "com.vmunier" %% "scalajs-scripts" % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi" %% "scalatags" % "0.7.0" //TODO: replace with Laminar
+//    "com.raquo" %% "domtypes"   % "0.9.5",
+//    "com.raquo" %% "dombuilder" % "0.9.2"
 //    "org.scalatest" %% "scalatest" % "3.0.8" % "test"
   )
 }
