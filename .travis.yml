@@ -6,16 +6,16 @@ scala_213: &scala_213 2.13.1
 java_8: &java_8 oraclejdk8
 java_11: &java_11 openjdk11
 tests: &tests
-  - env: TEST="test"
-  - install:
+  env: TEST="test"
+  install:
     - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-    script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-    cache:
-      directories:
-        - $HOME/.ivy2/cache
-        - $HOME/.sbt
-        - $HOME/.coursier
-        - node_modules
+  script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+  cache:
+    directories:
+      - $HOME/.ivy2/cache
+      - $HOME/.sbt
+      - $HOME/.coursier
+      - node_modules
 stages:
   - name: test
   - name: test coverage
