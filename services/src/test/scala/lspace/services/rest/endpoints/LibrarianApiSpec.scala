@@ -103,11 +103,11 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
         }
       } yield succeed).runToFuture
     }
-    "be usable with RemoteGraph" in {
-      val graph = RemoteGraph.apply("abc", "http://localhost", 8082, "@graph")
-      (for {
-        count <- graph.*>(lspace.g.N.has(SampleGraph.properties.balance, P.gt(500)).count).headF
-      } yield count shouldBe 2l).runToFuture
-    }
+//    "be usable with RemoteGraph" ignore {
+//      val graph = RemoteGraph.apply("abc", "http://localhost", 8082, "@graph")
+//      (for {
+//        count <- graph.*>(lspace.g.N.has(SampleGraph.properties.balance, P.gt(500)).count).headF
+//      } yield count shouldBe 2l).runToFuture
+//    }
   }
 }
