@@ -9,7 +9,7 @@ tests: &tests
   env: TEST="test"
   install:
     - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-  script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+  script: sbt ++$TRAVIS_SCALA_VERSION test
   cache:
     directories:
       - $HOME/.ivy2/cache
@@ -51,7 +51,7 @@ jobs:
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage test
         - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
       after_success:
         - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
