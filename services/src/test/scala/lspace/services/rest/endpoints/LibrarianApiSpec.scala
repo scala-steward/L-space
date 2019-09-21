@@ -43,7 +43,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
 
   lazy val service: Service[Request, Response] = Endpoint.toService(graphService.compiled)
 
-  Http.server.serve(":8082", service)
+//  Http.server.serve(":8082", service)
 //  Main.ready(com.twitter.util.Duration(5, TimeUnit.SECONDS))
 //  Await.ready(Main, com.twitter.util.Duration(5, TimeUnit.SECONDS))
 
