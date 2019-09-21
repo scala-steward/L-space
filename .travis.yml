@@ -1,8 +1,21 @@
-dist: bionic
+dist: xenial
 language: scala
-jdk:
-  - oraclejdk8
-  - openjdk11
+scala_211: &scala_211 2.11.12
+scala_212: &scala_212 2.12.10
+scala_213: &scala_213 2.13.1
+java_8: &java_8 oraclejdk8
+java_11: &java_11 openjdk11
+tests: &tests
+  - env: TEST="test"
+  - install:
+    - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+    script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+    cache:
+      directories:
+        - $HOME/.ivy2/cache
+        - $HOME/.sbt
+        - $HOME/.coursier
+        - node_modules
 stages:
   - name: test
   - name: test coverage
@@ -13,30 +26,28 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
-    - stage: test
-      scala: 2.11.12
-      install:
-        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-      cache:
-        directories:
-          - $HOME/.ivy2/cache
-          - $HOME/.sbt
-          - $HOME/.coursier
-          - node_modules
-    - scala: 2.12.10
-      install:
-        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-      cache:
-        directories:
-          - $HOME/.ivy2/cache
-          - $HOME/.sbt
-          - $HOME/.coursier
-          - node_modules
+    - <<: *tests
+      scala: *scala_211
+      jdk: *java_8
+    - <<: *tests
+      scala: *scala_212
+      jdk: *java_8
+    - <<: *tests
+      scala: *scala_213
+      jdk: *java_8
+    - <<: *tests
+      scala: *scala_211
+      jdk: *java_11
+    - <<: *tests
+      scala: *scala_212
+      jdk: *java_11
+    - <<: *tests
+      scala: *scala_213
+      jdk: *java_11
     - stage: test coverage
       name: "Publish to Codecov"
-      scala: 2.12.10
+      scala: *scala_212
+      jdk: *java_11
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script:
@@ -51,7 +62,8 @@ jobs:
           - $HOME/.coursier
     - stage: publish pages
       name: "Publish to GitHub"
-      scala: 2.12.10
+      scala: *scala_212
+      jdk: *java_11
       before_install:
         - export PATH=${PATH}:./vendor/bundle
       install:
@@ -79,7 +91,7 @@ jobs:
         target-branch: gh-pages
     - stage: release
       name: "Cross-publish to Sonatype"
-      jdk: openjdk11
+      jdk: *java_11
       before_install: git fetch --tags
       script: sbt ci-release
       cache:
