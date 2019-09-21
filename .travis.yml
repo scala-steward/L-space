@@ -1,7 +1,8 @@
-dist: xenial
+dist: bionic
 language: scala
 jdk:
-  - openjdk8
+  - oraclejdk8
+  - openjdk11
 stages:
   - name: test
   - name: test coverage
@@ -13,17 +14,7 @@ stages:
 jobs:
   include:
     - stage: test
-#      scala: 2.11.12
-#      install:
-#        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-#      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-#      cache:
-#        directories:
-#          - $HOME/.ivy2/cache
-#          - $HOME/.sbt
-#          - $HOME/.coursier
-#          - node_modules
-      scala: 2.12.10
+      scala: 2.11.12
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
@@ -33,21 +24,31 @@ jobs:
           - $HOME/.sbt
           - $HOME/.coursier
           - node_modules
-#    - stage: test coverage
-#      name: "Publish to Codecov"
-#      scala: 2.12.8
-#      install:
-#        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-#      script:
-#        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
-#        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
-#      after_success:
-#        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
-#      cache:
-#        directories:
-#          - $HOME/.ivy2/cache
-#          - $HOME/.sbt
-#          - $HOME/.coursier
+    - scala: 2.12.10
+      install:
+        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+      script: sbt ++$TRAVIS_SCALA_VERSION core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+      cache:
+        directories:
+          - $HOME/.ivy2/cache
+          - $HOME/.sbt
+          - $HOME/.coursier
+          - node_modules
+    - stage: test coverage
+      name: "Publish to Codecov"
+      scala: 2.12.10
+      install:
+        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+      script:
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage core/test parse/test parseArgonaut/test parseCirce/test client/test graph/test services/test
+        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+      cache:
+        directories:
+          - $HOME/.ivy2/cache
+          - $HOME/.sbt
+          - $HOME/.coursier
     - stage: publish pages
       name: "Publish to GitHub"
       scala: 2.12.10
@@ -78,6 +79,7 @@ jobs:
         target-branch: gh-pages
     - stage: release
       name: "Cross-publish to Sonatype"
+      jdk: openjdk11
       before_install: git fetch --tags
       script: sbt ci-release
       cache:
