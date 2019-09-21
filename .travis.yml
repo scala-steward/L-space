@@ -12,9 +12,9 @@ tests: &tests
   script: sbt ++$TRAVIS_SCALA_VERSION test
   cache:
     directories:
+      - $HOME/.cache/coursier
       - $HOME/.ivy2/cache
       - $HOME/.sbt
-      - $HOME/.coursier
       - node_modules
 stages:
   - name: test
@@ -57,9 +57,9 @@ jobs:
         - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
       cache:
         directories:
+          - $HOME/.cache/coursier
           - $HOME/.ivy2/cache
           - $HOME/.sbt
-          - $HOME/.coursier
     - stage: publish pages
       name: "Publish to GitHub"
       scala: *scala_212
@@ -74,9 +74,9 @@ jobs:
       cache:
         - bundler
         - directories:
+          - $HOME/.cache/coursier
           - $HOME/.ivy2/cache
           - $HOME/.sbt
-          - $HOME/.coursier
           - node_modules
           - /home/travis/.rvm/
       deploy:
@@ -96,9 +96,9 @@ jobs:
       script: sbt ci-release
       cache:
         directories:
+          - $HOME/.cache/coursier
           - $HOME/.ivy2/cache
-          - $HOME/.sbt/boot
-          - $HOME/.coursier
+          - $HOME/.sbt
 before_cache:
   - find $HOME/.sbt -name "*.lock" -delete
   - find $HOME/.ivy2/cache -name "ivydata-*.properties" -delete
