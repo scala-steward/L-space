@@ -17,7 +17,7 @@ lazy val compilerOptions = Seq(
 //  "-language:experimental.macros",
 //  "-Ypartial-unification",
   "-Ypatmat-exhaust-depth", "off",
-//  "-Yliteral-types",
+  "-Yliteral-types",
 //  "-Xlog-implicits",
 //  "-Ytyper-debug",
 //  "-Ybreak-cycles",
