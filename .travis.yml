@@ -9,7 +9,7 @@ tests: &tests
   env: TEST="test"
   install:
     - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-  script: sbt ++$TRAVIS_SCALA_VERSION test
+  script: sbt -J-Xmx4096m ++$TRAVIS_SCALA_VERSION test
   cache:
     directories:
       - $HOME/.cache/coursier
@@ -70,7 +70,7 @@ jobs:
         - gem update --system
         - gem install sass
         - gem install jekyll -v 3.8.5
-      script: sbt ++$TRAVIS_SCALA_VERSION site/makeMicrosite
+      script: sbt -J-Xmx4096m ++$TRAVIS_SCALA_VERSION site/makeMicrosite
       cache:
         - bundler
         - directories:
