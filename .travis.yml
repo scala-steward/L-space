@@ -7,6 +7,7 @@ java_8: &java_8 openjdk8
 java_11: &java_11 openjdk11
 tests: &tests
   env: TEST="test"
+  node_js: 11
   install:
     - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
   script: sbt -J-Xmx4096m ++$TRAVIS_SCALA_VERSION test
@@ -48,6 +49,7 @@ jobs:
       name: "Publish to Codecov"
       scala: *scala_212
       jdk: *java_11
+      node_js: 11
       install:
         - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
       script:
