@@ -13,7 +13,7 @@ tests: &tests
 #    - nvm install stable
 #    - nvm use stable
     - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-  before_script: export NODE_OPTIONS--max_old_space_size=6144
+  before_script: export NODE_OPTIONS=--max_old_space_size=6144
   script: sbt -J-Xmx4096m ++$TRAVIS_SCALA_VERSION test
   cache:
     directories:
