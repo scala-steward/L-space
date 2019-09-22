@@ -46,7 +46,7 @@ object LGraph {
                 storeManager.init,
                 index.storeManager.init
               ))
-        } yield ()) memoizeOnSuccess
+        } yield ()) memoize
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 

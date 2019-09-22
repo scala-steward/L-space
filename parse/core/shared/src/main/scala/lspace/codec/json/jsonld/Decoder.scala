@@ -1635,7 +1635,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
       }.memoizeOnSuccess.doOnFinish {
         case None =>
           import scala.concurrent.duration._
-          scribe.trace(s"adding remove task, $iri is build")
+//          scribe.trace(s"adding remove task, $iri is build")
           Task.delay(fetchingInProgress.remove(iri)).delayExecution(1 seconds).startAndForget
         case Some(e) =>
           e.printStackTrace()

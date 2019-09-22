@@ -22,6 +22,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
 
   lazy val initTask = (for {
     _ <- Task {
+      println("init filestoremanagerspec")
       val directory = new java.io.File("_data")
       def deleteAll(file: java.io.File): Unit = {
         try {
@@ -45,14 +46,14 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
     _ <- graphToPersist.load
     _ <- graphToPersist.graph.persist
     _ <- graphToPersist.graph.close()
-    _ = {
-      lspace.structure.Ontology.ontologies.byIri.clear()
-      lspace.structure.Property.properties.byIri.clear()
-      lspace.datatype.DataType.datatypes.byIri.clear()
-      lspace.datatype.DataType.datatypes.building.clear()
-    }
+//    _ = {
+//      lspace.structure.Ontology.ontologies.byIri.clear()
+//      lspace.structure.Property.properties.byIri.clear()
+//      lspace.datatype.DataType.datatypes.byIri.clear()
+//      lspace.datatype.DataType.datatypes.building.clear()
+//    }
     _ <- samplePersistedGraph.graph.init
-  } yield ()).memoizeOnSuccess
+  } yield ()).memoize
 
   lazy val graph: Graph         = createGraph("FileStoreManagerSpec")
   lazy val sampleGraph          = SampledGraph(createGraph("FileStoreManagerSpec-sample"))

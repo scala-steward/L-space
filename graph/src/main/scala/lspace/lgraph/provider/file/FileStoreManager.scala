@@ -217,21 +217,24 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
   }
 
   lazy val init: Task[Unit] = {
-    Task.delay(scribe.info(s"reading from files ${graph.iri}")).flatMap { f =>
-      readLiterals
-        .flatMap { u =>
-          readNodes
-            .flatMap(readLiteralEdges)
-            .flatMap(readStructures)
-            .flatMap(readStructuredEdges)
-        }
-        .onErrorHandle { f =>
-          f.printStackTrace(); throw f
-        }
-        .foreachL { f =>
-          Unit
-        }
-    }
+    Task
+      .delay(scribe.info(s"reading from files ${graph.iri}"))
+      .flatMap { f =>
+        readLiterals
+          .flatMap { u =>
+            readNodes
+              .flatMap(readLiteralEdges)
+              .flatMap(readStructures)
+              .flatMap(readStructuredEdges)
+          }
+          .onErrorHandle { f =>
+            f.printStackTrace(); throw f
+          }
+          .foreachL { f =>
+            Unit
+          }
+      }
+      .memoize
   }
 
   private def readLiterals: Task[Unit] = {

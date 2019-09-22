@@ -21,7 +21,7 @@ trait HttpClient {
     wip.getOrElseUpdate(
       iri + accept,
       Task.defer {
-        scribe.trace(s"HTTP-GET: $iri")
+//        scribe.trace(s"HTTP-GET: $iri")
         sttp
           .get(uri"$iri")
           .headers(Map("Accept" -> accept))
