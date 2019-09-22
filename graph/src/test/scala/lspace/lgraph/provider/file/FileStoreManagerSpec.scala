@@ -20,7 +20,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
     LGraph(storage, new MemIndexProvider, noinit = true)
   }
 
-  val initTask = (for {
+  lazy val initTask = (for {
     _ <- Task {
       val directory = new java.io.File("_data")
       def deleteAll(file: java.io.File): Unit = {
