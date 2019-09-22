@@ -80,7 +80,7 @@ object Dependencies {
     "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
     "com.github.finagle" %% "finchx-fs2"           % Version.finch,
     "com.github.finagle" %% "finchx-refined"       % Version.finch,
-    "co.fs2"             %% "fs2-reactive-streams" % "2.0.0",
+    "co.fs2"             %% "fs2-reactive-streams" % "2.0.1",
 //    "com.twitter"        %% "twitter-server"       % "19.4.0" % "test",
     "com.vmunier" %% "scalajs-scripts" % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",

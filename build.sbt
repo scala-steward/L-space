@@ -77,7 +77,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= coreJvmDeps
   )
   .jsSettings(
-    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     libraryDependencies ++= coreJsDeps.value
   )
@@ -96,7 +96,7 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= parseJvmDeps
   )
   .jsSettings(
-    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
     libraryDependencies ++= parseJsDeps.value
   )
@@ -114,7 +114,7 @@ lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .jvmSettings(
   )
   .jsSettings(
-    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv()
   )
 
@@ -131,7 +131,7 @@ lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .jvmSettings(
   )
   .jsSettings(
-    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv()
   )
 
@@ -150,7 +150,7 @@ lazy val client =
       libraryDependencies ++= clientJvmDeps
     )
     .jsSettings(
-      scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//      scalaJSLinkerConfig ~= { _.withOptimizer(false) },
       jsEnv in Test := new org.scalajs.jsenv.nodejs.NodeJSEnv(),
       libraryDependencies ++= clientJsDeps.value
     )
