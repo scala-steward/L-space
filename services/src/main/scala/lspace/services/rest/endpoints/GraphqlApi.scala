@@ -12,6 +12,7 @@ import lspace.services.rest.endpoints.util.MatchHeader
 import lspace.structure.{Graph, Node, Ontology}
 import monix.eval.Task
 import monix.execution.Scheduler
+import shapeless.{:+:, CNil}
 
 object GraphqlApi {
   def apply[JSON](graph: Graph)(implicit activeContext: ActiveContext = ActiveContext(),
@@ -38,10 +39,26 @@ class GraphqlApi(graph: Graph)(implicit val activeContext: ActiveContext,
     }
 
   /**
-    * GET /
+    *
     * BODY graphql
     */
-  def list(ontology: Ontology): Endpoint[IO, ContextedT[QueryResult]] = {
+  def list(ontology: Ontology): Endpoint[IO, ContextedT[QueryResult] :+: ContextedT[QueryResult] :+: CNil] = {
+    get(param("query").map(decoder.toGraphQL(_)))
+      .mapOutputAsync {
+        case query: Query =>
+          Task
+            .now(query)
+            .flatMap { query =>
+              (g.N.hasLabel(ontology).untyped ++ query.toTraversal.untyped)
+                .withGraph(graph)
+                .toListF
+                .map(result => QueryResult(query, result))
+                .map(ContextedT(_))
+                .map(Ok)
+            }
+            .to[IO]
+      }
+  } :+: {
     MatchHeader.beGraphQL :: post(body[Task[Query], lspace.services.codecs.Application.GraphQL])
       .mapOutputAsync {
         case queryTask: Task[Query] =>

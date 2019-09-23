@@ -2,67 +2,49 @@ package lspace.services.rest.endpoints
 
 import cats.Applicative
 import cats.effect.IO
-import com.twitter.finagle.{Service, SimpleFilter}
-import com.twitter.finagle.http.{Request, Response}
-import com.twitter.util.Future
 import io.finch._
 import lspace._
-import lspace.Label.D._
 import lspace.Label.P._
-import lspace.codec.json.{JsonDecoder, JsonEncoder}
-import lspace.codec.json.jsonld
 import lspace.codec.json.jsonld.JsonLDDecoder
 import lspace.codec.{ActiveContext, ActiveProperty, ContextedT}
 import lspace.decode.{DecodeGraphQL, DecodeJson, DecodeJsonLD}
-import lspace.encode.{EncodeJson, EncodeJsonLD}
-import lspace.graphql.{Query, QueryResult}
 import lspace.librarian.task.AsyncGuide
-import lspace.provider.detached.DetachedGraph
-import lspace.services.LApplication
-import lspace.services.rest.endpoints.util.MatchHeader
 import monix.eval.Task
 import monix.execution.Scheduler
 import shapeless.{:+:, ::, CNil, HList, HNil}
 
 object LabeledNodeApi {
-  def apply[JSON](graph: Graph, ontology: Ontology)(implicit activeContext: ActiveContext = ActiveContext(),
-                                                    decoder: JsonLDDecoder[JSON],
-                                                    guide: AsyncGuide,
-                                                    scheduler: Scheduler): LabeledNodeApi[JSON] =
-    new LabeledNodeApi(graph, ontology)
+  def apply[JSON](graph: Graph, ontology: Ontology, newNodeBaseIri: String = "")(
+      implicit activeContext: ActiveContext = ActiveContext(),
+      decoder: JsonLDDecoder[JSON],
+      guide: AsyncGuide,
+      scheduler: Scheduler): LabeledNodeApi[JSON] =
+    new LabeledNodeApi(graph,
+                       if (newNodeBaseIri.nonEmpty) newNodeBaseIri
+                       else graph.iri + "/" + ontology.iri.reverse.takeWhile(_ != '/').reverse.toLowerCase() + "/",
+                       ontology)(activeContext, decoder, guide, scheduler)
+
 }
 
 class LabeledNodeApi[JSON](graph: Graph,
+                           val newNodeBaseIri: String,
                            val ontology: Ontology,
-                           allowedProperties: List[Property] = List(),
-                           forbiddenProperties: List[Property] = List())(implicit val activeContext: ActiveContext,
-                                                                         decoder: JsonLDDecoder[JSON],
-                                                                         guide: AsyncGuide,
-                                                                         scheduler: Scheduler)
+                           val allowedProperties: List[Property] = List(),
+                           val forbiddenProperties: List[Property] = List())(implicit val activeContext: ActiveContext,
+                                                                             decoder: JsonLDDecoder[JSON],
+                                                                             guide: AsyncGuide,
+                                                                             scheduler: Scheduler)
     extends Api {
-//  implicit val encoder = Encoder //todo Encode context per client-session
-//  implicit val decoder
-//    : lspace.codec.json.jsonld.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.json.jsonld.Decoder[Any]] //todo Decode context per client-session
+  //  implicit val encoder = Encoder //todo Encode context per client-session
+  //  implicit val decoder
+  //    : lspace.codec.json.jsonld.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.json.jsonld.Decoder[Any]] //todo Decode context per client-session
 
   import lspace.services.codecs.Decode._
-//  implicit val decoderJsonLD  = jsonld.Decoder(DetachedGraph)
-//  implicit val decoderGraphQL = codec.graphql.Decoder()
-
-  import DecodeJson._
-  import DecodeJsonLD._
-  import DecodeGraphQL._
-//  import lspace.Implicits.Scheduler.global
-  val label = ontology.iri.reverse.takeWhile(_ != '/').reverse.toLowerCase() //label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
 
   implicit val jsonldToNode = DecodeJsonLD
     .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
   implicit val jsonToNode = DecodeJson
     .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
-//  implicit val graphqlToNode = DecodeGraphQL
-//    .graphqlToQuery(allowedProperties, forbiddenProperties)
-
-//  import lspace._
-//  import Implicits.AsyncGuide._
 
   def context /*: Endpoint[IO, ActiveContext]*/ =
     get("@context") {
@@ -73,7 +55,7 @@ class LabeledNodeApi[JSON](graph: Graph,
 
   val idToNodeTask: Long => Task[Option[Node]] = (id: Long) =>
     g.N
-      .hasIri(graph.iri + "/" + label + "/" + id)
+      .hasIri(newNodeBaseIri + id)
       .hasLabel(ontology)
       .withGraph(graph)
       .headOptionF
@@ -91,15 +73,16 @@ class LabeledNodeApi[JSON](graph: Graph,
     idToNodeTask(id).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).to[IO]
   }
 
-//  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
-//    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).to[IO]
-//  }
+  //  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
+  //    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).to[IO]
+  //  }
 
   def list: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
     case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
     case List(id) =>
+      println(s"GET ${newNodeBaseIri}${id}")
       g.N
-        .hasIri(graph.iri + "/" + label + "/" + id)
+        .hasIri(newNodeBaseIri + id)
         .hasLabel(ontology)
         .withGraph(graph)
         .toListF
@@ -116,7 +99,7 @@ class LabeledNodeApi[JSON](graph: Graph,
             .map {
               case ontology: Ontology =>
                 g.N
-                  .hasIri(graph.iri + "/" + label + "/" + id)
+                  .hasIri(newNodeBaseIri + id)
                   .hasLabel(this.ontology)
                   .out(activeProperty.property)
                   .hasLabel(ontology)
@@ -127,7 +110,7 @@ class LabeledNodeApi[JSON](graph: Graph,
                   .to[IO]
               case property: Property =>
                 g.N
-                  .hasIri(graph.iri + "/" + label + "/" + id)
+                  .hasIri(newNodeBaseIri + id)
                   .hasLabel(ontology)
                   .out(activeProperty.property)
                   .hasLabel(property)
@@ -138,7 +121,7 @@ class LabeledNodeApi[JSON](graph: Graph,
                   .to[IO]
               case datatype: DataType[_] =>
                 g.N
-                  .hasIri(graph.iri + "/" + label + "/" + id)
+                  .hasIri(newNodeBaseIri + id)
                   .hasLabel(ontology)
                   .out(activeProperty.property)
                   .hasLabel(datatype)
@@ -150,7 +133,7 @@ class LabeledNodeApi[JSON](graph: Graph,
             }
             .getOrElse {
               g.N
-                .hasIri(graph.iri + "/" + label + "/" + id)
+                .hasIri(newNodeBaseIri + id)
                 .hasLabel(ontology)
                 .out(activeProperty.property)
                 .withGraph(graph)
@@ -173,7 +156,7 @@ class LabeledNodeApi[JSON](graph: Graph,
           .orElse(Property.properties.get(expKey2).map(p => ActiveProperty(property = p)()))
       } yield {
         g.N
-          .hasIri(graph.iri + "/" + label + "/" + id)
+          .hasIri(newNodeBaseIri + id)
           .hasLabel(ontology)
           .out(activeProperty1.property)
           .out(activeProperty2.property)
@@ -194,7 +177,7 @@ class LabeledNodeApi[JSON](graph: Graph,
             val t = graph.transaction
             for {
               newNode <- t.nodes.create(node.labels: _*)
-              _       <- newNode --- `@id` --> (graph.iri + "/" + label + "/" + newNode.id)
+              _       <- newNode --- `@id` --> (newNodeBaseIri + newNode.id)
               _       <- newNode.addLabel(ontology)
               _       <- Task.sequence(node.outE().map(e => newNode --- e.key --> e.to))
               _       <- t.commit()
@@ -219,7 +202,7 @@ class LabeledNodeApi[JSON](graph: Graph,
             val t = graph.transaction
             for {
               existingNode <- t.nodes //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-                .hasIri(graph.iri + "/" + label + "/" + id)
+                .hasIri(newNodeBaseIri + id)
                 .headL
               _ <- Task.sequence(node.outE(`@id`).map(_.remove()))
               _ <- Task.sequence(existingNode.outE().filterNot(e => e.key == `@id` || e.key == `@ids`).map(_.remove()))
@@ -247,7 +230,7 @@ class LabeledNodeApi[JSON](graph: Graph,
             val t = graph.transaction
             for {
               existingNode <- t.nodes //TODO: validate if node is without @id or @id is equal to ```graph.iri + "/" + label + "/" + id```
-                .hasIri(graph.iri + "/" + label + "/" + id)
+                .hasIri(newNodeBaseIri + id)
                 .headL
               _ <- Task.sequence(node.outE(`@id`).map(_.remove()))
               _ <- Task.sequence(
@@ -270,7 +253,7 @@ class LabeledNodeApi[JSON](graph: Graph,
     val t = graph.transaction
     (for {
       node <- t.nodes
-        .hasIri(graph.iri + "/" + label + "/" + id)
+        .hasIri(newNodeBaseIri + id)
         .headL //TODO: handle 'unexpected' multiple results
       _ <- node.remove() //TODO: decide if values or blank nodes need to be explicitly removed
     } yield NoContent[Node])
@@ -281,5 +264,5 @@ class LabeledNodeApi[JSON](graph: Graph,
   def api =
     context :+: byId :+: /*byIri :+: */ list :+:
       create :+: replaceById :+: updateById :+: removeById
-//  def labeledApi = label :: api
+  //  def labeledApi = label :: api
 }

@@ -1,28 +1,16 @@
 package lspace.services.rest.endpoints
 
-import java.time.Instant
-import java.util.concurrent.TimeUnit
-
-import cats.effect.Effect
-import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Request, Response, Status}
-import com.twitter.finagle.param.Stats
-import com.twitter.util.{Await, Awaitable}
 import io.finch._
 import lspace._
 import lspace.codec.argonaut._
 import lspace.codec.ActiveContext
-import lspace.librarian.traversal.Collection
 import lspace.provider.detached.DetachedGraph
 import lspace.services.codecs.Application
 import lspace.provider.mem.MemGraph
-import lspace.provider.remote.RemoteGraph
-import lspace.services.util
-import lspace.structure.ClassType
 import lspace.util.SampleGraph
 import monix.eval.Task
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
-import shapeless.{:+:, CNil}
 
 import scala.concurrent.duration._
 
@@ -39,13 +27,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
   implicit val activeContext: ActiveContext = ActiveContext()
   lazy val graphService                     = LibrarianApi(graph)
 
-//  import lspace.services.codecs
-//  import lspace.services.codecs.Encode._
-//  import lspace.encode.EncodeJson._
-//  import lspace.encode.EncodeJsonLD._
-
-//  lazy val service: Service[Request, Response] = graphService.stream.toService
-
 //  override def beforeAll(): Unit = {
 //    SampleGraph.loadSocial(graph)
 //  }
@@ -54,7 +35,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
     _ <- SampleGraph.loadSocial(graph)
   } yield ()).memoizeOnSuccess
 
-  import lspace.services.util._
   override def afterAll(): Unit = {
     (for {
       _ <- graph.close()
@@ -68,10 +48,8 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
     })
   }
 
-  import util._
   "a librarian-api" should {
     "execute a traversal only on a POST request" in {
-      import lspace.services.codecs
       import lspace.services.codecs.Encode._
       import lspace.encode.EncodeJsonLD._
 
@@ -79,7 +57,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
       (for {
         node <- traversal.toNode
         json = encoderJsonLD.apply(node)
-//        _    = println(json)
         input = Input
           .post("/@graph")
           .withBody[Application.JsonLD](node)
@@ -96,11 +73,5 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
         }
       } yield succeed).runToFuture
     }
-//    "be usable with RemoteGraph" ignore {
-//      val graph = RemoteGraph.apply("abc", "http://localhost", 8082, "@graph")
-//      (for {
-//        count <- graph.*>(lspace.g.N.has(SampleGraph.properties.balance, P.gt(500)).count).headF
-//      } yield count shouldBe 2l).runToFuture
-//    }
   }
 }

@@ -44,6 +44,18 @@ class GraphqlApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       .list(Ontology("Person")))
     .toService
 
+  "support GET with application/graphql" in {
+    (for {
+      graphql <- Task.now(" { name,geboortedatum, waardering, knows { name } } ")
+      input = Input
+        .get("/?query=" + graphql.replaceAll(" ", ""))
+        .withHeaders("Accept" -> "application/json")
+      _ <- Task.deferFuture(service(input.request)).map { r =>
+        //          println(r.contentString)
+        r.status shouldBe Status.Ok
+      }
+    } yield succeed).runToFuture
+  }
   "support POST with application/graphql" in {
     (for {
       graphql <- Task.now(" { name geboortedatum waardering knows { name } } ")
