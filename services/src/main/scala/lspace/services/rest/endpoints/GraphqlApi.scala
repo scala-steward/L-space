@@ -8,7 +8,7 @@ import lspace.decode.DecodeGraphQL
 import lspace.{codec, g}
 import lspace.graphql.{Query, QueryResult}
 import lspace.librarian.task.AsyncGuide
-import lspace.services.rest.endpoints.util.MatchHeader
+import lspace.services.rest.endpoints.util.{MatchHeader, MatchParam}
 import lspace.structure.{Graph, Node, Ontology}
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -43,7 +43,7 @@ class GraphqlApi(graph: Graph)(implicit val activeContext: ActiveContext,
     * BODY graphql
     */
   def list(ontology: Ontology): Endpoint[IO, ContextedT[QueryResult] :+: ContextedT[QueryResult] :+: CNil] = {
-    get(param("query").map(decoder.toGraphQL(_)))
+    MatchParam[IO]("query") :: get(param("query").map(decoder.toGraphQL(_)))
       .mapOutputAsync {
         case query: Query =>
           Task
