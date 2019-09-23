@@ -100,7 +100,7 @@ object EncodeJsonLD {
     def encode(implicit activeContext: ActiveContext) = (value: Long) => value.toString
   }
 
-  implicit def queryResultToJson[T <: QueryResult, Json](implicit encoder: JsonLDEncoder[Json]): EncodeJsonLD[T] =
+  implicit def queryResultToJsonLD[T <: QueryResult, Json](implicit encoder: JsonLDEncoder[Json]): EncodeJsonLD[T] =
     new EncodeJsonLD[T] {
       import encoder.baseEncoder._
       def encode(implicit activeContext: ActiveContext) =
