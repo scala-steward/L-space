@@ -1,6 +1,7 @@
 import lspace.ExecutionHelper
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
 import lspace.librarian.task
+import lspace.librarian.task.{AsyncGuide, SyncGuide}
 import lspace.structure.{ClassType, Edge, Node, Resource, Value}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
@@ -55,10 +56,10 @@ package object lspace {
       implicit val assistent: Assistent = librarian.logic.DefaultAssistent()
     }
     object AsyncGuide {
-      implicit val guide: task.Guide[Observable] = task.AsyncGuide()(DefaultAssistent.assistent)
+      implicit val guide: AsyncGuide = task.AsyncGuide()(DefaultAssistent.assistent)
     }
     object SyncGuide {
-      implicit val guide: task.Guide[Stream] = task.SyncGuide()(DefaultAssistent.assistent)
+      implicit val guide: SyncGuide = task.SyncGuide()(DefaultAssistent.assistent)
     }
 
     object Scheduler {
