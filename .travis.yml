@@ -14,7 +14,6 @@ tests: &tests
     - nvm use stable
     - node -v
     - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-#  before_script: export NODE_OPTIONS=--max_old_space_size=6144
   script: sbt -J-Xmx4096m ++$TRAVIS_SCALA_VERSION test
   cache:
     directories:
@@ -24,8 +23,8 @@ tests: &tests
       - node_modules
 stages:
   - name: test
-  - name: test coverage
-    if: (branch = master AND type = push) OR (tag IS present)
+#  - name: test coverage
+#    if: (branch = master AND type = push)
   - name: publish pages
     if: (branch = master AND type = push) OR (tag IS present)
   - name: release
@@ -50,28 +49,27 @@ jobs:
 #    - <<: *tests
 #      scala: *scala_213
 #      jdk: *java_11
-    - stage: test coverage
-      name: "Publish to Codecov"
-      scala: *scala_212
-      jdk: *java_11
-      node_js: 11
-      install:
-        - . $HOME/.nvm/nvm.sh
-        - nvm install stable
-        - nvm use stable
-        - node -v
-        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
-#      before_script: export NODE_OPTIONS=--max_old_space_size=6144
-      script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage test
-        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
-      after_success:
-        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
-      cache:
-        directories:
-          - $HOME/.cache/coursier
-          - $HOME/.ivy2/cache
-          - $HOME/.sbt
+#    - stage: test coverage
+#      name: "Publish to Codecov"
+#      scala: *scala_212
+#      jdk: *java_11
+#      node_js: 11
+#      install:
+#        - . $HOME/.nvm/nvm.sh
+#        - nvm install stable
+#        - nvm use stable
+#        - node -v
+#        - npm install jsdom node-fetch abortcontroller-polyfill fetch-headers
+#      script:
+#        - sbt ++$TRAVIS_SCALA_VERSION clean coverage test
+#        - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate
+#      after_success:
+#        - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+#      cache:
+#        directories:
+#          - $HOME/.cache/coursier
+#          - $HOME/.ivy2/cache
+#          - $HOME/.sbt
     - stage: publish pages
       name: "Publish to GitHub"
       scala: *scala_212
