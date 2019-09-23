@@ -138,9 +138,9 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     case _ =>
       for {
         newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create() //FIX: ignores node.iris for empty node.iri
-        u       <- Task.gather(node.labels.map(node.addLabel))
+        u       <- Task.gather(node.labels.map(newNode.addLabel))
         v       <- addMeta(node, newNode)
-      } yield node
+      } yield newNode
   }
 
   final def delete(node: Node): Task[Unit] = node match {

@@ -305,15 +305,16 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           sampleGraph.values.count().map(_ shouldBe 38).timeout(4000.millis).runToFuture
         }
       }
-      //        "support inserting structures from other graphs (object + edges)" ignore {
-      //          val traversal    = graph.ns.g.N().out(Label.P.`@id`).out(Label.P.`@language`)
-      //          val node         = traversal.toNode
-      //          val upsertedNode = graph.nodes.post(node)
-      //          //      graph.ldParser.toJSON.nodeToJsonWithContext(node)._1.toString shouldBe graph.ldParser.toJSON.nodeToJsonWithContext(upsertedNode.asInstanceOf[Node])._1.toString
-      //          //      node.property(graph.idUrlString, "abc")
-      //          graph.nodes.upsert(node.iri)
-      //        }
-      "be able to merge" ignore {
+      "support inserting structures from other graphs (object + edges)" in {
+        val newGraph = MemGraph("graphspec2postnode")
+        (for {
+          yoshio  <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headL
+          newNode <- newGraph.nodes ++ yoshio
+          _ = yoshio.graph.iri should not be newNode.graph.iri
+          _ = yoshio.keys shouldBe newNode.keys
+        } yield succeed).runToFuture
+      }
+      "be able to merge" in {
         val newGraph = MemGraph("graphspec2merge")
 
         (for {

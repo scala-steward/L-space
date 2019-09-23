@@ -225,12 +225,13 @@ trait Graph extends IriResource with GraphUtils { self =>
 
   private[lspace] def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T): Task[Unit] =
     Observable
-      .fromIterable(source.outE().filterNot(p => Graph.baseKeys.contains(p.key)).map { edge =>
+      .fromIterable(source.outE().filterNot(p => Graph.baseKeys.contains(p.key)))
+      .mapEval { edge =>
         for {
           t <- edges.create[Any, Any](target, edge.key, edge.to)
           u <- addMeta(edge, t)
         } yield u
-      })
+      }
       .completedL
 
   def add: Graph => Task[Graph] = ++
