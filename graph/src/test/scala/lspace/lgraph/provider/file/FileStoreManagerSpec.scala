@@ -22,7 +22,6 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
 
   lazy val initTask = (for {
     _ <- Task {
-      println("init filestoremanagerspec")
       val directory = new java.io.File("_data")
       def deleteAll(file: java.io.File): Unit = {
         try {

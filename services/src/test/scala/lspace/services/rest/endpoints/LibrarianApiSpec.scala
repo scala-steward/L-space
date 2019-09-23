@@ -10,8 +10,10 @@ import com.twitter.finagle.param.Stats
 import com.twitter.util.{Await, Awaitable}
 import io.finch._
 import lspace._
+import lspace.codec.argonaut._
 import lspace.codec.ActiveContext
 import lspace.librarian.traversal.Collection
+import lspace.provider.detached.DetachedGraph
 import lspace.services.codecs.Application
 import lspace.provider.mem.MemGraph
 import lspace.provider.remote.RemoteGraph
@@ -27,25 +29,22 @@ import scala.concurrent.duration._
 class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
-  import lspace.Implicits.AsyncGuide.guide
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  implicit val graph    = MemGraph("LibrarianApiSpec")
-  implicit val nencoder = lspace.codec.argonaut.Encoder
-  implicit val encoder  = lspace.codec.json.jsonld.JsonLDEncoder(nencoder)
-  implicit val ndecoder = lspace.codec.argonaut.Decoder
-  lazy val graphService = LibrarianApi(graph)
+  implicit val graph          = MemGraph("LibrarianApiSpec")
+  implicit val encoderJsonLD  = lspace.codec.json.jsonld.JsonLDEncoder(nativeEncoder)
+  implicit val decoderJsonLD  = lspace.codec.json.jsonld.JsonLDDecoder(DetachedGraph)(nativeDecoder)
+  implicit val decoderGraphQL = codec.graphql.Decoder()
+  import lspace.Implicits.AsyncGuide.guide
+  implicit val activeContext: ActiveContext = ActiveContext()
+  lazy val graphService                     = LibrarianApi(graph)
 
-  import lspace.services.codecs
-  import lspace.services.codecs.Encode._
-  import lspace.encode.EncodeJson._
-  import lspace.encode.EncodeJsonLD._
+//  import lspace.services.codecs
+//  import lspace.services.codecs.Encode._
+//  import lspace.encode.EncodeJson._
+//  import lspace.encode.EncodeJsonLD._
 
-  lazy val service: Service[Request, Response] = Endpoint.toService(graphService.compiled)
-
-//  Http.server.serve(":8082", service)
-//  Main.ready(com.twitter.util.Duration(5, TimeUnit.SECONDS))
-//  Await.ready(Main, com.twitter.util.Duration(5, TimeUnit.SECONDS))
+//  lazy val service: Service[Request, Response] = graphService.stream.toService
 
 //  override def beforeAll(): Unit = {
 //    SampleGraph.loadSocial(graph)
@@ -69,8 +68,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
     })
   }
 
-  implicit val activeContext: ActiveContext = ActiveContext()
-
   import util._
   "a librarian-api" should {
     "execute a traversal only on a POST request" in {
@@ -81,7 +78,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
       val traversal = lspace.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
       (for {
         node <- traversal.toNode
-        json = encoder.apply(node)
+        json = encoderJsonLD.apply(node)
 //        _    = println(json)
         input = Input
           .post("/@graph")
@@ -89,11 +86,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
           .withHeaders("Accept" -> "application/ld+json")
         _ <- {
           Task
-            .from(
-              graphService
-                .query(input)
-                .output
-                .get)
+            .from(graphService.stream(input).output.get)
             .flatMap { output =>
               //          if (output.isLeft) println(output.left.get.getMessage)
               output.status shouldBe Status.Ok

@@ -1,11 +1,9 @@
 package lspace.services.rest.endpoints
 
 import com.twitter.finagle.http.{Request, Response, Status}
-import com.twitter.util.Await
 import io.finch.{Application, Bootstrap, Endpoint, Input, Text}
 import lspace.codec.argonaut._
 import lspace.codec.{ActiveContext, ActiveProperty}
-import lspace.encode.EncodeJsonLD
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.services.LApplication
@@ -19,8 +17,6 @@ import shapeless.{:+:, CNil}
 import lspace.services.util._
 
 import scala.collection.immutable.ListMap
-import scala.concurrent.Future
-import scala.concurrent.duration._
 
 class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
@@ -28,9 +24,13 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
   override def executionContext = lspace.Implicits.Scheduler.global
 
   lazy val sampleGraph: Graph = MemGraph("ApiServiceSpec")
-//  implicit val nencoder       = lspace.codec.argonaut.NativeTypeEncoder
-  implicit val encoder = lspace.codec.json.jsonld.JsonLDEncoder.apply
-//  implicit val ndecoder       = lspace.codec.argonaut.NativeTypeDecoder
+  implicit val encoder        = lspace.codec.json.jsonld.JsonLDEncoder(nativeEncoder)
+  implicit val decoder        = lspace.codec.json.jsonld.JsonLDDecoder(DetachedGraph)(nativeDecoder)
+  import lspace.Implicits.AsyncGuide.guide
+
+  import lspace.encode.EncodeJson._
+  import lspace.encode.EncodeJsonLD._
+  import lspace.services.codecs.Encode._
 
   val initTask = (for {
     sample <- SampleGraph.loadSocial(sampleGraph)
@@ -57,7 +57,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     casecodec2(Person.apply, Person.unapply)("name", "id")
   implicit val enc = PersonCodecJson.Encoder
 
-  val defaultContext = ActiveContext(
+  implicit lazy val activeContext = ActiveContext(
     `@prefix` = ListMap(
       "naam"      -> "name",
       "naam_naam" -> "name"
@@ -69,7 +69,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       "geboortedatum" -> ActiveProperty(person.keys.birthDate, `@type` = D.`@date` :: Nil)()
     )
   )
-  lazy val personApiService: LabeledNodeApi[_] = LabeledNodeApi(sampleGraph, person, defaultContext)
+  lazy val personApiService: LabeledNodeApi[_] = LabeledNodeApi(sampleGraph, person)
 
   val toCC = { node: Node =>
     Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as D.`@string`).headOption)
@@ -83,12 +83,10 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
     } yield node
   }
 
-  import lspace.encode.EncodeJson._
-  import lspace.encode.EncodeJsonLD._
-  import lspace.services.codecs.Encode._
-  implicit val activeContext: ActiveContext = ActiveContext()
-
-  lazy val service: com.twitter.finagle.Service[Request, Response] = Endpoint.toService(personApiService.compiled)
+  lazy val service: com.twitter.finagle.Service[Request, Response] = Bootstrap
+    .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
+    .serve[LApplication.JsonLD :+: Application.Json :+: CNil](personApiService.api)
+    .toService
 
   "An LabeledNodeApi" should {
     "serve an active context" in {
@@ -469,19 +467,6 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .withHeaders("Accept" -> "application/json")
         _ <- Task.deferFuture(service(input.request)).map { r =>
           r.status shouldBe Status.Created
-        }
-      } yield succeed).runToFuture
-    }
-    "support POST with application/graphql" in {
-      (for {
-        graphql <- Task.now(" { name geboortedatum waardering knows { name } } ")
-        input = Input
-          .post("/")
-          .withBody[Text.Plain](graphql)
-          .withHeaders("Accept" -> "application/json", "Content-Type" -> "application/graphql")
-        _ <- Task.deferFuture(service(input.request)).map { r =>
-//          println(r.contentString)
-          r.status shouldBe Status.Ok
         }
       } yield succeed).runToFuture
     }

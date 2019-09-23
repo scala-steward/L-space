@@ -2,25 +2,34 @@ package lspace.services.rest.endpoints
 
 import io.finch.Input
 import lspace._
+import lspace.codec.{ActiveContext, ActiveProperty}
+import lspace.codec.argonaut.{nativeDecoder, nativeEncoder}
 import lspace.librarian.traversal.Step
+import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.Graph
 import monix.eval.Task
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class NameSpaceLServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
+class NameSpaceServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
+  implicit lazy val activeContext = ActiveContext(
+    `@prefix` = ListMap(),
+    definitions = Map()
+  )
+
   lazy val graph: Graph = MemGraph("https://ns.l-space.eu")
-  implicit val nencoder = lspace.codec.argonaut.Encoder
-  implicit val encoder  = lspace.codec.json.jsonld.JsonLDEncoder(nencoder)
-  implicit val ndecoder = lspace.codec.argonaut.Decoder
-  lazy val nsService    = NameSpaceService(graph)
+  implicit val encoder  = lspace.codec.json.jsonld.JsonLDEncoder(nativeEncoder)
+  implicit val decoder  = lspace.codec.json.jsonld.JsonLDDecoder(DetachedGraph)(nativeDecoder)
+  import lspace.Implicits.AsyncGuide.guide
+  lazy val nsService = NameSpaceService(graph)
 
   val initTask = (for {
     _ <- Task.sequence(P.predicates.map(_.ontology).map(graph.ns.ontologies.store))

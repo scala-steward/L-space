@@ -16,6 +16,7 @@ object OpenSseSession {
       node        <- DetachedGraph.nodes.create(OpenSession.ontology)
       _           <- node.addOut(Label.P.typed.iriUrlString, iri)
       _           <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      _           <- node.addOut(OpenSession.keys.`lspace:OpenSession/startTime@Instant`, Instant.now())
       openSession <- OpenSession.toOpenSession(node)
     } yield new OpenSseSession(openSession) with WithSse
   }

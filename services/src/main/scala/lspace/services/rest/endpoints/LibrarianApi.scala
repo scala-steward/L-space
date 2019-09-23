@@ -3,45 +3,32 @@ package lspace.services.rest.endpoints
 import java.time.Instant
 
 import cats.effect.IO
-import io.finch.{Application, Bootstrap, Endpoint, Ok}
+import io.finch.{Endpoint, Ok}
 import lspace._
-import lspace.codec.json.{JsonDecoder, JsonEncoder}
-import lspace.codec.json.jsonld
-import lspace.codec.json.jsonld.JsonLDEncoder
+import lspace.codec.json.jsonld.JsonLDDecoder
 import lspace.codec.{ActiveContext, ContextedT}
+import lspace.librarian.task.AsyncGuide
 import lspace.librarian.traversal.Collection
-import lspace.provider.detached.DetachedGraph
-import lspace.services.LApplication
 import monix.eval.Task
-import shapeless.{:+:, CNil, HList}
-import scribe._
+import monix.execution.Scheduler
+import shapeless.HList
 
 object LibrarianApi {
-  def apply[Json](graph0: Graph, activeContext0: ActiveContext = ActiveContext())(
-      implicit baseDecoder0: JsonDecoder[Json],
-      baseEncoder0: JsonEncoder[Json]): LibrarianApi[Json] =
-    new LibrarianApi[Json] {
-      val graph: Graph                                     = graph0
-      implicit val activeContext                           = activeContext0
-      implicit override def baseDecoder: JsonDecoder[Json] = baseDecoder0
-      implicit override def baseEncoder: JsonEncoder[Json] = baseEncoder0
-    }
+  def apply[JSON](graph: Graph)(implicit activeContext: ActiveContext = ActiveContext(),
+                                decoder: JsonLDDecoder[JSON],
+                                guide: AsyncGuide,
+                                scheduler: Scheduler): LibrarianApi[JSON] = new LibrarianApi(graph)
 }
-
-trait LibrarianApi[JSON] extends ExecutionApi {
-  def graph: Graph
-
-  implicit def baseDecoder: JsonDecoder[JSON]
-  implicit def baseEncoder: JsonEncoder[JSON]
-  implicit def activeContext: ActiveContext
+class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext,
+                                       decoder: JsonLDDecoder[JSON],
+                                       guide: AsyncGuide,
+                                       scheduler: Scheduler)
+    extends Api {
 
   import lspace.services.codecs.Decode._
   import lspace.decode.DecodeJsonLD.jsonldToTraversal
-  implicit lazy val decoder = lspace.codec.json.jsonld.Decoder(DetachedGraph)
-  import Implicits.AsyncGuide.guide
-  import Implicits.Scheduler.global
 
-  def query: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = {
+  def stream: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = {
     import io.finch.internal.HttpContent
     import cats.effect._, _root_.fs2._
     import io.finch.fs2._
@@ -62,7 +49,6 @@ trait LibrarianApi[JSON] extends ExecutionApi {
               .bufferTumbling(100)
               .map { values =>
                 val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
-                collection.logger.debug("result count: " + values.size.toString)
                 ContextedT(collection)
               }
               .toReactivePublisher
@@ -72,54 +58,91 @@ trait LibrarianApi[JSON] extends ExecutionApi {
           .to[IO]
     }
   }
-//  def query2: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
-//    post(
-//      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], HList]],
-//                       lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
-//      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], HList]] =>
-//        traversalTask.flatMap { traversal =>
-//          val start = Instant.now()
-//          traversal.untyped
-//            .withGraph(graph)
-//            .toListF
-//            .map { values =>
-//              val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
-//              collection.logger.debug("result count: " + values.size.toString)
-//              Ok(ContextedT(collection))
-//            }
-//        }.toIO
-//    }
-//  }
-  def mutate: Endpoint[IO, Unit] = ???
-  def ask: Endpoint[IO, Boolean] = {
+
+  /**
+    * GET /
+    * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
+    */
+  def list[JSON]: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
     post(
       "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
-                       lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
+                       lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
         traversalTask
           .flatMap { traversal =>
             val start = Instant.now()
             traversal.untyped
               .withGraph(graph)
-              .headOptionF
-              .map(_.isDefined)
+              .toListF
+              .map { values =>
+                val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
+                ContextedT(collection)
+              }
               .map(Ok)
           }
           .to[IO]
     }
   }
-  def subscribe: Endpoint[IO, List[Node]] = ???
 
-  import lspace.services.codecs.Encode._
-  import lspace.encode.EncodeJsonLD._
+  object filtered {
 
-  implicit lazy val encoder: JsonLDEncoder[JSON] = jsonld.Encoder(baseEncoder)
+    def stream[JSON](ontology: Ontology)(
+        implicit activeContext: ActiveContext,
+        decoder: JsonLDDecoder[JSON],
+        guide: AsyncGuide,
+        scheduler: Scheduler): Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[List[Node]]]] = {
+      import io.finch.internal.HttpContent
+      import cats.effect._, _root_.fs2._
+      import io.finch.fs2._
+      import _root_.fs2.interop.reactivestreams._
+      import scala.concurrent.ExecutionContext
+      implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+      post(
+        "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
+                         lspace.services.codecs.Application.JsonLD]).mapOutputAsync {
+        traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
+          traversalTask
+            .map { traversal =>
+              //            println(s"executing ${traversal.prettyPrint}")
+              traversal.untyped
+                .withGraph(graph)
+                .apply()
+                .collect { case node: Node if node.hasLabel(ontology).isDefined => node }
+                .bufferTumbling(100)
+                .map(_.toList)
+                .map(ContextedT(_))
+                .toReactivePublisher
+                .toStream[IO]()
+            }
+            .map(Ok(_))
+            .to[IO]
+      }
+    }
 
-  def raw = query
-
-  def compiled: Endpoint.Compiled[IO] =
-    Bootstrap
-      .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-      .serve[LApplication.JsonLD](query)
-      .compile
+    /**
+      * GET /
+      * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
+      */
+    def list[JSON](ontology: Ontology)(implicit activeContext: ActiveContext,
+                                       decoder: JsonLDDecoder[JSON],
+                                       guide: AsyncGuide,
+                                       scheduler: Scheduler): Endpoint[IO, ContextedT[List[Node]]] = {
+      post(
+        "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
+                         lspace.services.codecs.Application.JsonLD]) {
+        traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
+          traversalTask
+            .flatMap { traversal =>
+              traversal.untyped
+                .withGraph(graph)
+                .toListF
+                .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
+                .map(_.toList)
+                .map(ContextedT(_))
+                .map(Ok)
+            }
+            .to[IO]
+      }
+    }
+  }
 }

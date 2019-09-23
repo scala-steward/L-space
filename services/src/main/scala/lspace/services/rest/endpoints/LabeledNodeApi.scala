@@ -11,54 +11,58 @@ import lspace.Label.D._
 import lspace.Label.P._
 import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.codec.json.jsonld
+import lspace.codec.json.jsonld.JsonLDDecoder
 import lspace.codec.{ActiveContext, ActiveProperty, ContextedT}
 import lspace.decode.{DecodeGraphQL, DecodeJson, DecodeJsonLD}
 import lspace.encode.{EncodeJson, EncodeJsonLD}
 import lspace.graphql.{Query, QueryResult}
+import lspace.librarian.task.AsyncGuide
 import lspace.provider.detached.DetachedGraph
 import lspace.services.LApplication
 import lspace.services.rest.endpoints.util.MatchHeader
 import monix.eval.Task
+import monix.execution.Scheduler
 import shapeless.{:+:, ::, CNil, HList, HNil}
 
 object LabeledNodeApi {
-  def apply[Json](graph: Graph, ontology: Ontology, defaultContext: ActiveContext = ActiveContext())(
-      implicit
-      baseDecoder: JsonDecoder[Json],
-      baseEncoder: JsonEncoder[Json]): LabeledNodeApi[Json] =
-    new LabeledNodeApi(ontology)(graph, baseDecoder, baseEncoder, defaultContext)
+  def apply[JSON](graph: Graph, ontology: Ontology)(implicit activeContext: ActiveContext = ActiveContext(),
+                                                    decoder: JsonLDDecoder[JSON],
+                                                    guide: AsyncGuide,
+                                                    scheduler: Scheduler): LabeledNodeApi[JSON] =
+    new LabeledNodeApi(graph, ontology)
 }
 
-class LabeledNodeApi[JSON](val ontology: Ontology,
+class LabeledNodeApi[JSON](graph: Graph,
+                           val ontology: Ontology,
                            allowedProperties: List[Property] = List(),
-                           forbiddenProperties: List[Property] = List())(implicit val graph: Graph,
-                                                                         val baseDecoder: JsonDecoder[JSON],
-                                                                         val baseEncoder: JsonEncoder[JSON],
-                                                                         val activeContext: ActiveContext)
+                           forbiddenProperties: List[Property] = List())(implicit val activeContext: ActiveContext,
+                                                                         decoder: JsonLDDecoder[JSON],
+                                                                         guide: AsyncGuide,
+                                                                         scheduler: Scheduler)
     extends Api {
 //  implicit val encoder = Encoder //todo Encode context per client-session
 //  implicit val decoder
 //    : lspace.codec.json.jsonld.Decoder[Any] = Decoder(graph).asInstanceOf[lspace.codec.json.jsonld.Decoder[Any]] //todo Decode context per client-session
 
   import lspace.services.codecs.Decode._
-  implicit val decoderJsonLD  = jsonld.Decoder(DetachedGraph)
-  implicit val decoderGraphQL = codec.graphql.Decoder()
+//  implicit val decoderJsonLD  = jsonld.Decoder(DetachedGraph)
+//  implicit val decoderGraphQL = codec.graphql.Decoder()
 
   import DecodeJson._
   import DecodeJsonLD._
   import DecodeGraphQL._
-  import lspace.Implicits.Scheduler.global
+//  import lspace.Implicits.Scheduler.global
   val label = ontology.iri.reverse.takeWhile(_ != '/').reverse.toLowerCase() //label("en").getOrElse(throw new Exception("no label found")).toLowerCase()
 
   implicit val jsonldToNode = DecodeJsonLD
     .jsonldToLabeledNode(ontology, allowedProperties, forbiddenProperties)
   implicit val jsonToNode = DecodeJson
     .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
-  implicit val graphqlToNode = DecodeGraphQL
-    .graphqlToQuery(allowedProperties, forbiddenProperties)
+//  implicit val graphqlToNode = DecodeGraphQL
+//    .graphqlToQuery(allowedProperties, forbiddenProperties)
 
-  import lspace._
-  import Implicits.AsyncGuide._
+//  import lspace._
+//  import Implicits.AsyncGuide._
 
   def context /*: Endpoint[IO, ActiveContext]*/ =
     get("@context") {
@@ -90,20 +94,6 @@ class LabeledNodeApi[JSON](val ontology: Ontology,
 //  def byIri: Endpoint[IO, ContextedT[Node]] = get(path[String]).mapOutputAsync { (iri: String) =>
 //    iriToNodeTask(iri).map(_.map(ContextedT(_)).map(Ok).getOrElse(NotFound(new Exception("Resource not found")))).to[IO]
 //  }
-
-  /**
-    * GET /
-    */
-//  def list: Endpoint[IO, ContextedT[List[Node]]] = get(zero).mapOutputAsync { hn =>
-//    g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
-//  }
-
-//  def list2: Endpoint[IO, ContextedT[List[Node]]] =
-//    get(params[String]("out") :: params[String]("in") :: paramOption[Int]("from") :: paramOption[Int]("to"))
-//      .mapOutputAsync {
-//        case out :: in :: fromOption :: toOption :: HNil =>
-//          g.N.hasLabel(ontology).union(_.out(),_.in()).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
-//      }
 
   def list: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
     case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
@@ -288,75 +278,8 @@ class LabeledNodeApi[JSON](val ontology: Ontology,
       .to[IO]
   }
 
-  /**
-    * GET /
-    * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
-    */
-  def getByLibrarian: Endpoint[IO, ContextedT[List[Node]]] = {
-    get(
-      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
-                       lspace.services.codecs.Application.JsonLD]) {
-      traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
-        traversalTask
-          .flatMap { traversal =>
-            traversal.untyped
-              .withGraph(graph)
-              .toListF
-              .map(_.collect { case node: Node if node.hasLabel(ontology).isDefined => node })
-              .map(_.toList)
-              .map(ContextedT(_))
-              .map(Ok)
-          }
-          .to[IO]
-    }
-  }
-
-  /**
-    * GET /
-    * BODY graphql
-    */
-  def getByGraphQL = {
-    MatchHeader.beGraphQL :: post(body[Task[Query], lspace.services.codecs.Application.GraphQL])
-      .mapOutputAsync {
-        case queryTask: Task[Query] =>
-          queryTask
-            .flatMap { query =>
-              (g.N.hasLabel(ontology).untyped ++ query.toTraversal.untyped)
-                .withGraph(graph)
-                .toListF
-                .map(result => QueryResult(query, result))
-                .map(ContextedT(_))
-                .map(Ok)
-            }
-            .to[IO]
-      }
-  }
-
-//  val getBySPARQL: Endpoint[IO, PagedResult]
-
-//  val postNode: Endpoint[IO, Node] = post(zero :: jsonldToNode).mapOutputAsync { node: Node =>
-//    Task {
-//      graph.nodes.post(node)
-//    }.map(Created(_)).to[IO]
-//  }
-
   def api =
     context :+: byId :+: /*byIri :+: */ list :+:
-      create :+: replaceById :+: updateById :+: removeById :+: getByLibrarian
-  def labeledApi = label :: api
-
-  implicit val encoderJsonLD: jsonld.JsonLDEncoder[JSON] = jsonld.JsonLDEncoder[JSON]
-
-  def compiled: Endpoint.Compiled[IO] = {
-
-    import lspace.services.codecs.Encode._
-    import EncodeJson._
-    import EncodeJsonLD._
-
-    Bootstrap
-      .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-      .serve[LApplication.JsonLD :+: Application.Json :+: CNil](api)
-      .serve[Application.Json :+: CNil](getByGraphQL)
-      .compile
-  }
+      create :+: replaceById :+: updateById :+: removeById
+//  def labeledApi = label :: api
 }

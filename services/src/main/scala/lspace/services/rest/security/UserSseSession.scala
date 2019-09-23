@@ -20,6 +20,7 @@ object UserSseSession {
       node        <- DetachedGraph.nodes.create(UserSession.ontology)
       _           <- node.addOut(Label.P.typed.iriUrlString, iri)
       _           <- node.addOut(OpenSession.keys.`lspace:OpenSession/expiration@Instant`, expiration)
+      _           <- node.addOut(OpenSession.keys.`lspace:OpenSession/startTime@Instant`, Instant.now())
       clientNode  <- client.toNode
       _           <- node.addOut(ClientSession.keys.`lspace:ClientSession/client@Client`, clientNode)
       userNode    <- user.toNode
