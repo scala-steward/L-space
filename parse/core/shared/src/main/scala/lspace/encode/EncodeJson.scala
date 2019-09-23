@@ -5,7 +5,6 @@ import lspace.codec.{ActiveContext, ContextedT}
 import lspace.librarian.traversal.Collection
 import lspace._
 import Label.P._
-import lspace.codec.json.JsonEncoder
 import lspace.codec.json.jsonld.JsonLDEncoder
 import lspace.graphql.{Projection, QueryResult}
 
@@ -15,7 +14,7 @@ trait EncodeJson[A] extends Encode[A] {
 
 object EncodeJson {
 
-  implicit def contextedTToJsonLD[T](implicit en: EncodeJson[T]) = new EncodeJson[ContextedT[T]] {
+  implicit def contextedTToJson[T](implicit en: EncodeJson[T]) = new EncodeJson[ContextedT[T]] {
     def encode(implicit activeContext: ActiveContext) =
       (ct: ContextedT[T]) => en.encode(activeContext ++ ct.activeContext)(ct.t)
   }

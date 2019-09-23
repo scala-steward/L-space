@@ -12,7 +12,7 @@ object Decoder extends Decoder {
 
 }
 //Work-In-Progress
-trait Decoder {
+trait Decoder extends lspace.codec.Decoder {
   val ignorable      = Set(' ', ',', '\t', '\n')
   val objectStart    = '{'
   val objectEnd      = '}'
