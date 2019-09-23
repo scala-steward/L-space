@@ -109,7 +109,7 @@ object EncodeJson {
     def encode(implicit activeContext: ActiveContext) = (value: Long) => value.toString
   }
 
-  private def namedProjection[Json](projection: Projection, result: List[Any])(
+  protected[encode] def namedProjection[Json](projection: Projection, result: List[Any])(
       implicit encoder: JsonLDEncoder[Json],
       activeContext: ActiveContext): Option[Json] = {
     import encoder._
@@ -136,8 +136,8 @@ object EncodeJson {
     }
   }
 
-  private def _queryresultToJsonMap[Json](queryResult: QueryResult)(implicit encoder: JsonLDEncoder[Json],
-                                                                    activeContext: ActiveContext): Json = {
+  protected[encode] def _queryresultToJsonMap[Json](queryResult: QueryResult)(implicit encoder: JsonLDEncoder[Json],
+                                                                              activeContext: ActiveContext): Json = {
     import encoder.baseEncoder._
 
     queryResult.result match {

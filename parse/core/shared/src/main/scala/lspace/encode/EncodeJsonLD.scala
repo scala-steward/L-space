@@ -4,6 +4,8 @@ import lspace.NS.types
 import lspace.codec.json.JsonEncoder
 import lspace.codec.json.jsonld.{Encoder, JsonLDEncoder}
 import lspace.codec.{ActiveContext, ActiveProperty, ContextedT}
+import lspace.encode.EncodeJson._queryresultToJsonMap
+import lspace.graphql.QueryResult
 import lspace.librarian.traversal.Collection
 import lspace.structure.{ClassType, Node}
 
@@ -97,4 +99,11 @@ object EncodeJsonLD {
   implicit val encodeLongJsonLD = new EncodeJsonLD[Long] {
     def encode(implicit activeContext: ActiveContext) = (value: Long) => value.toString
   }
+
+  implicit def queryResultToJson[T <: QueryResult, Json](implicit encoder: JsonLDEncoder[Json]): EncodeJsonLD[T] =
+    new EncodeJsonLD[T] {
+      import encoder.baseEncoder._
+      def encode(implicit activeContext: ActiveContext) =
+        (node: T) => _queryresultToJsonMap(node).asInstanceOf[Json].noSpaces
+    }
 }
