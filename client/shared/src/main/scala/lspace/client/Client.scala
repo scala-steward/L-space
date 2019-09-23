@@ -51,7 +51,10 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
     val `lspace:Client/session@ClientSession` = keys.`lspace:Client/session@ClientSession`
   }
 
-  def apply(iri: String, role: Set[Role], manager: Set[User], session: Set[ClientSession]): Client = {
+  def apply(iri: String,
+            role: Set[Role] = Set(),
+            manager: Set[User] = Set(),
+            session: Set[ClientSession] = Set()): Client = {
     val iri0     = iri
     val role0    = role
     val manager0 = manager

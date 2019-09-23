@@ -68,7 +68,7 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
     lazy val `lspace/User/status@String`: TypedProperty[String] = keys.`lspace/User/status@String`
   }
 
-  def apply(iri: String, role: Set[Role], manager: Set[User]): User = {
+  def apply(iri: String, role: Set[Role] = Set(), manager: Set[User] = Set()): User = {
     val iri0     = iri
     val role0    = role
     val manager0 = manager
