@@ -783,6 +783,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
       .orElse(json.double)
       .orElse(json.long)
       .orElse(json.string)
+      .orElse(json.boolean)
 
   /**
     * gets list or iris
