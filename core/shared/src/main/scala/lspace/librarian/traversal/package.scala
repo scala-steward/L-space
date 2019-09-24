@@ -74,6 +74,11 @@ package object traversal {
 
   private def toTuple2[Prefix, Suffix](l: Prefix :: Suffix :: HNil): (Prefix, Suffix) = (l.head, l.tail.head)
 
+  /**
+    * Splits an HList L at an element of (super)type U
+    * @tparam L The HList to split
+    * @tparam U the (super)type which the splitter uses to decide where to split
+    */
   @implicitNotFound(
     "Implicit not found: lspace.librarian.traversal.CoSplitLeft[${L}, ${U}]. You requested to split at an element of type <: ${U}, but there is none in the HList ${L}.")
   trait CoSplitLeft[L <: HList, U] extends DepFn1[L] with Serializable {
@@ -115,6 +120,10 @@ package object traversal {
               case prefix :: suffix :: HNil => (accS.head :: prefix) :: suffix :: HNil
             }
         }
+      implicit def hlistSplitLeft1a[AccP <: HList, AccSH, U]: CoSplitLeft0[AccP, HList, U, HList, HNil] =
+        new CoSplitLeft0[AccP, HList, U, HList, HNil] {
+          def apply(accP: AccP, accS: HList): HList :: HNil :: HNil = (accS) :: HNil :: HNil
+        }
     }
 
     object CoSplitLeft0 extends LowPrioritySplitLeft0 {
@@ -132,7 +141,7 @@ package object traversal {
     * @author Thijs Broersen
     */
   @implicitNotFound(
-    "Implicit not found: lspace.librarian.traversal.Span[${L}, ${U}]. You requested to split at an element of Poly ${U}, but there is none in the HList ${L}.")
+    "Implicit not found: lspace.librarian.traversal.Span[${L}, ${U}]. You requested to span all first consecutive elements of Poly ${U}, but there is none in the HList ${L}.")
   trait Span[L <: HList, U <: Poly] extends DepFn1[L] with Serializable {
     type Prefix <: HList
     type Suffix <: HList
@@ -190,6 +199,12 @@ package object traversal {
       implicit def hlistSpan0[P <: HList, U <: Poly, ST <: HList](
           implicit
           ev: ST =:= HNil): Span0[P, ST, U, P, ST] =
+        new Span0[P, ST, U, P, ST] {
+          def apply(accP: P, accS: ST): P :: ST :: HNil = accP :: accS :: HNil
+        }
+      implicit def hlistSpan1[P <: HList, U <: Poly, ST <: HList](
+          implicit
+          ev: ST =:= HList): Span0[P, ST, U, P, ST] =
         new Span0[P, ST, U, P, ST] {
           def apply(accP: P, accS: ST): P :: ST :: HNil = accP :: accS :: HNil
         }

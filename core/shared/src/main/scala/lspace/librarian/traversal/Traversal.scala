@@ -246,6 +246,11 @@ object Traversal
     def isColor: Traversal[ST[Start], ColorType[Any], HasLabel :: Steps] =
       add(HasLabel(DataType.default.`@color` :: Nil), st, DataType.default.`@color`)
 
+    /**
+      * A Coin step filters traversals based on a probability-distribution
+      * @param p probability by which the traverser remains in the stream
+      * @return
+      */
     def coin(p: Double): Traversal[ST[Start], ET[End], Coin :: Steps] = add(Coin(p))
 //    def coin(traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], DoubleType[Double], _ <: HList])
 //    : Traversal[ST[Start], ET[End], Coin :: Steps] =
@@ -254,6 +259,13 @@ object Traversal
     def constant[T, T0, TT0 <: ClassType[_]](p: T)(
         implicit ct: ClassTypeable.Aux[T, T0, TT0]): Traversal[ST[Start], TT0, Constant[T] :: Steps] =
       add(Constant(p)(ct.ct.asInstanceOf[ClassType[T]]), st, ct.ct)
+
+    /**
+      * Equal to Coin(0)
+      * @return
+      */
+    def empty: Traversal[ST[Start], ET[End], Coin :: Steps] =
+      coin(0)
   }
 
   trait MoveMapStepsHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList]
@@ -596,14 +608,15 @@ object Traversal
               End1,
               ET1 <: ClassType[End1],
               Steps1 <: HList,
-              Steps2 <: HList,
-              Labels1 <: HList,
-              Labels2 <: HList](traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps1],
-                                traversals: (Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps2])*)(
+              Steps2 <: HList
+//              Labels1 <: HList,
+//              Labels2 <: HList
+    ](traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps1],
+      traversals: (Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps2])*)(
         implicit
-        f1: Collect.Aux[Steps1, LabelSteps.type, Labels1],
-        f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
-        ev2: Labels1 =:= Labels2,
+//        f1: Collect.Aux[Steps1, LabelSteps.type, Labels1],
+//        f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
+//        ev2: Labels1 =:= Labels2,
         et0: ClassTypeable.Aux[ET0, End1, ET1]): Traversal[ST[Start], ET1, Union[ET[End], ET0] :: Steps] = {
       val unionTraversal = traversal(Traversal[ET[End], ET[End]](et, et))
       add(
@@ -645,20 +658,14 @@ object Traversal
       )
     }
 
-    def choose[ET0 <: ClassType[_],
-               End1,
-               ET1 <: ClassType[End1],
-               Steps1 <: HList,
-               Steps2 <: HList,
-               Labels1 <: HList,
-               Labels2 <: HList](
+    def choose[ET0 <: ClassType[_], End1, ET1 <: ClassType[End1], Steps1 <: HList, Steps2 <: HList](
         by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList],
         right: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps1],
         left: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps2])(
         implicit
-        f1: Collect.Aux[Steps1, LabelSteps.type, Labels1],
-        f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
-        ev2: Labels1 =:= Labels2,
+//        f1: Collect.Aux[Steps1, LabelSteps.type, Labels1],
+//        f2: Collect.Aux[Steps2, LabelSteps.type, Labels2],
+//        ev2: Labels1 =:= Labels2,
         et0: ClassTypeable.Aux[ET0, End1, ET1]): Traversal[ST[Start], ET1, Choose[ET[End], ET0] :: Steps] = {
       val byTraversal    = by(Traversal[ET[End], ET[End]](et, et))
       val rightTraversal = right(Traversal[ET[End], ET[End]](et, et))
