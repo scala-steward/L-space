@@ -122,7 +122,7 @@ object ClassTypeable {
     }
 
   implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](
-      implicit clsTpbl: ClassTypeable.Aux[Set[T], Set[TOut], SetType[Set[TOut]]])
+      implicit clsTpbl: ClassTypeable.Aux[T, Set[TOut], SetType[Set[TOut]]])
     : ClassTypeable.Aux[Set[T], Set[TOut], SetType[Set[TOut]]] =
     new ClassTypeable[Set[T]] {
       type C  = Set[TOut]
