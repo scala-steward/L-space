@@ -49,5 +49,5 @@ class AppApi(app: JsApp) extends Api {
           }: Future[Buf])))).withHeader(getContentType(path))
   }
 
-  val api = (MatchHeader[IO]("Accept", "application/text") :: get(pathEmpty) { Ok(htmlResponse(app.rendered)) }) :+: static
+  val api = (MatchHeader[IO]("Accept", "text/html") :: get(pathEmpty) { Ok(htmlResponse(app.rendered)) }) :+: static
 }
