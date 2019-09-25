@@ -7,7 +7,7 @@ import cats.effect._
 import cats.effect.IO._
 import com.twitter.finagle.Http
 import lspace.services.app.JsApp
-import lspace.services.rest.endpoints.util.MatchHeader
+import lspace.services.rest.endpoints.util.{MatchHeader, MatchHeaderContains}
 
 import scala.concurrent.Future
 
@@ -49,5 +49,5 @@ class AppApi(app: JsApp) extends Api {
           }: Future[Buf])))).withHeader(getContentType(path))
   }
 
-  val api = (MatchHeader[IO]("Accept", "text/html") :: get(pathEmpty) { Ok(htmlResponse(app.rendered)) }) :+: static
+  val api = (MatchHeaderContains[IO]("Accept", "text/html") :: get(pathEmpty) { Ok(htmlResponse(app.rendered)) }) :+: static
 }
