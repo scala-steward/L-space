@@ -557,6 +557,12 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
         import scala.concurrent.duration._
         val repeatObs = traversalToF(step.traversal)
+        lazy val noloop = if (step.noloop) (librarian: Librarian[Any]) => {
+          librarian.get match {
+            case r: Resource[_] => !librarian.path.resources.dropRight(1).contains(librarian.get)
+            case _              => true
+          }
+        } else (librarian: Librarian[Any]) => true
         (if (step.collect) {
            step.max match {
              case Some(max) =>
@@ -565,13 +571,12 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 //                 .filter(_.segmentList.head.stepsList.nonEmpty)
                  .map(traversalToF) match {
                  case Some(untilObs) =>
-                   scribe.trace("collect max until")
                    obs: Observable[Librarian[Any]] =>
                      obs.flatMap { librarian =>
                        Observable
                          .tailRecM(librarian -> max) {
                            case (librarian, max) =>
-                             val r = repeatObs(librarian)
+                             val r = repeatObs(librarian).filter(noloop(_))
                              r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                                untilObs(librarian).nonEmpty.flatMap {
                                  case true => Observable(Right(librarian))
@@ -583,12 +588,11 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                          }
                      }
                  case None =>
-                   scribe.trace("collect max")
                    obs: Observable[Librarian[Any]] =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> max) {
                          case (librarian, max) =>
-                           val r = repeatObs(librarian)
+                           val r = repeatObs(librarian).filter(noloop(_))
                            r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                              if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
                              else Observable(Right(librarian))
@@ -602,12 +606,11 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 //                 .filter(_.segmentList.head.stepsList.nonEmpty)
                  .map(traversalToF) match {
                  case Some(untilObs) =>
-                   scribe.trace("collect until")
                    obs: Observable[Librarian[Any]] =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                          case (librarian, max) =>
-                           val r = repeatObs(librarian)
+                           val r = repeatObs(librarian).filter(noloop(_))
                            r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                              untilObs(librarian).nonEmpty.flatMap {
                                case true => Observable(Right(librarian))
@@ -619,13 +622,12 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                        }
                      }
                  case None =>
-                   scribe.trace("collect")
                    obs: Observable[Librarian[Any]] =>
                      obs.flatMap { librarian =>
                        Observable
                          .tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                            case (librarian, max) =>
-                             val r = repeatObs(librarian)
+                             val r = repeatObs(librarian).filter(noloop(_))
                              r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                                if (max > 0) Observable(Right(librarian)) ++ Observable(Left(librarian -> (max - 1)))
                                else Observable(Right(librarian))
@@ -647,7 +649,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> max) {
                          case (librarian, max) =>
-                           val r = repeatObs(librarian)
+                           val r = repeatObs(librarian).filter(noloop(_))
                            r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                              untilObs(librarian).nonEmpty.flatMap {
                                case true => Observable(Right(librarian))
@@ -663,7 +665,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> max) {
                          case (librarian, max) =>
-                           val r = repeatObs(librarian)
+                           val r = repeatObs(librarian).filter(noloop(_))
                            r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                              if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
                            }
@@ -681,7 +683,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                          case (librarian, max) =>
-                           val r = repeatObs(librarian)
+                           val r = repeatObs(librarian).filter(noloop(_))
                            r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                              untilObs(librarian).nonEmpty.flatMap {
                                case true => Observable(Right(librarian))
@@ -697,7 +699,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                          case (librarian, max) =>
-                           val r = repeatObs(librarian)
+                           val r = repeatObs(librarian).filter(noloop(_))
                            r.collect { case librarian: Librarian[Any] => librarian }.flatMap { librarian =>
                              if (max > 0) Observable(Left(librarian -> (max - 1))) else Observable(Right(librarian))
                            }

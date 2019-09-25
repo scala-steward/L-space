@@ -5,12 +5,17 @@ import java.time.LocalDate
 import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
+import lspace.datatype.{ListType, NodeURLType}
+import lspace.librarian.traversal.Step
+import lspace.librarian.traversal.step.{Path, Union}
+import lspace.librarian.traversal.util.OutTweaker
 import lspace.structure.{GraphFixtures, SampledGraph}
 import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
 import lspace.types.geo.Point
 import lspace.util.SampleGraph
 import monix.eval.Task
 import monix.reactive.Observable
+import shapeless.{HList, HNil}
 
 import scala.concurrent.duration._
 import scala.language._
@@ -928,6 +933,19 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet shouldBe Set("Yoshio", "Gray", "Garrison", "Stan"))
+          .timeout(4000.millis)
+          .runToFuture
+      }
+      """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://example.org/knows")), max = 2, noloop = true).dedup().path(_.out("name").hasLabel[String])""" in {
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .repeat(_.out(Property("https://example.org/knows")), max = 2, noloop = true)
+          .dedup()
+          .path(_.out("name").hasLabel[String])
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.toSet shouldBe Set(List(List("Levi"), List("Gray"), List("Kevin"), List("Garrison")),
+                                    List(List("Levi"), List("Gray"), List("Kevin"), List("Stan"))))
           .timeout(4000.millis)
           .runToFuture
       }
