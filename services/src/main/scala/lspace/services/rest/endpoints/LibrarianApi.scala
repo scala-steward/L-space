@@ -65,8 +65,8 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
     */
   def list[JSON]: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
     post(
-      "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
-                       lspace.services.codecs.Application.JsonLD]) {
+      path("@graph") :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
+                             lspace.services.codecs.Application.JsonLD]) {
       traversalTask: Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =>
         traversalTask
           .flatMap { traversal =>

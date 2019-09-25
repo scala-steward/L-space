@@ -11,14 +11,19 @@ import lspace.structure.ClassType
 import shapeless.=:!=
 
 object Encode {
-  type GraphQL[A] = io.finch.Encode.Aux[A, Application.GraphQL]
-  type JsonLD[A]  = io.finch.Encode.Aux[A, Application.JsonLD]
-  type Json[A]    = io.finch.Encode.Aux[A, io.finch.Application.Json]
-  type Text[A]    = io.finch.Encode.Aux[A, Text.Plain]
+  type GraphQL[A]  = io.finch.Encode.Aux[A, Application.GraphQL]
+  type JsonLD[A]   = io.finch.Encode.Aux[A, Application.JsonLD]
+  type Json[A]     = io.finch.Encode.Aux[A, io.finch.Application.Json]
+  type Text[A]     = io.finch.Encode.Aux[A, Text.Plain]
+  type TextHTML[A] = io.finch.Encode.Aux[A, Text.Html]
 
   implicit def encodeText[A](implicit e: EncodeText[A], activeContext: ActiveContext): Text[A] = {
     io.finch.Encode
       .instance[A, Text.Plain]((a, cs) => Buf.ByteArray.Owned(e.encode(activeContext)(a).getBytes(cs.name)))
+  }
+  implicit def encodeText2[A](implicit e: EncodeText[A], activeContext: ActiveContext): TextHTML[A] = {
+    io.finch.Encode
+      .instance[A, Text.Html]((a, cs) => Buf.ByteArray.Owned(e.encode(activeContext)(a).getBytes(cs.name)))
   }
 
   implicit def encodeJson[A](implicit e: EncodeJson[A], activeContext: ActiveContext): Json[A] = {

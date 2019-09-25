@@ -46,10 +46,10 @@ class LabeledNodeApi[JSON](graph: Graph,
   implicit val jsonToNode = DecodeJson
     .jsonToLabeledNode(ontology, allowedProperties, forbiddenProperties)
 
-  def context /*: Endpoint[IO, ActiveContext]*/ =
-    get("@context") {
+  def context =
+    get(path("@context")) {
       Ok(activeContext)
-    } :+: get("context") {
+    } :+: get(path("context")) {
       Ok(activeContext)
     }
 
@@ -262,7 +262,7 @@ class LabeledNodeApi[JSON](graph: Graph,
   }
 
   def api =
-    context :+: byId :+: /*byIri :+: */ list :+:
+    /*context :+: */ byId :+: /*byIri :+: */ list :+: list :+:
       create :+: replaceById :+: updateById :+: removeById
   //  def labeledApi = label :: api
 }

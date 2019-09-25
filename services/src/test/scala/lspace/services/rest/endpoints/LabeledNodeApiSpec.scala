@@ -28,6 +28,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
   implicit val decoder        = lspace.codec.json.jsonld.JsonLDDecoder(DetachedGraph)(nativeDecoder)
   import lspace.Implicits.AsyncGuide.guide
 
+  import lspace.encode.EncodeText._
   import lspace.encode.EncodeJson._
   import lspace.encode.EncodeJsonLD._
   import lspace.services.codecs.Encode._
@@ -84,8 +85,9 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
   }
 
   lazy val service: com.twitter.finagle.Service[Request, Response] = Bootstrap
-    .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
+    .configure(enableMethodNotAllowed = false, enableUnsupportedMediaType = true)
     .serve[LApplication.JsonLD :+: Application.Json :+: CNil](personApiService.api)
+    .serve[Text.Html :+: LApplication.JsonLD :+: Application.Json :+: CNil](personApiService.context)
     .toService
 
   "An LabeledNodeApi" should {
@@ -427,6 +429,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       service(input.request).map { r =>
         r.contentType shouldBe Some("application/ld+json")
         r.status shouldBe Status.Ok
+        r.contentString shouldBe """{"@context":{"naam":{"@id":"name","@type":"@string"},"naam_naam":"name","knows":{"@id":"https://example.org/knows","@type":"https://example.org/Person"},"waardering":{"@id":"rate","@type":"@int"},"geboortedatum":{"@id":"https://example.org/birthDate","@type":"@date"}}}"""
       }
     }
     "support GET with application/json" in {
@@ -435,6 +438,17 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         .withHeaders("Accept" -> "application/json")
       service(input.request).map { r =>
         r.contentType shouldBe Some("application/json")
+        r.status shouldBe Status.Ok
+        r.contentString should not be """{"@context":{"naam":{"@id":"name","@type":"@string"},"naam_naam":"name","knows":{"@id":"https://example.org/knows","@type":"https://example.org/Person"},"waardering":{"@id":"rate","@type":"@int"},"geboortedatum":{"@id":"https://example.org/birthDate","@type":"@date"}}}"""
+      }
+    }
+    "not support GET with text/html" in {
+      val input = Input
+        .get("/context")
+        .withHeaders("Accept" -> "text/html")
+      service(input.request).map { r =>
+        r.contentString shouldBe """{"@context":{"naam":{"@id":"name","@type":"@string"},"naam_naam":"name","knows":{"@id":"https://example.org/knows","@type":"https://example.org/Person"},"waardering":{"@id":"rate","@type":"@int"},"geboortedatum":{"@id":"https://example.org/birthDate","@type":"@date"}}}"""
+        r.contentType shouldBe Some("text/html")
         r.status shouldBe Status.Ok
       }
     }
