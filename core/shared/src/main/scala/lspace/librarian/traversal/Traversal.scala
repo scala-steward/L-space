@@ -609,7 +609,6 @@ object Traversal
               ET1 <: ClassType[End1],
               Steps1 <: HList,
               Steps2 <: HList
-//              Labels1 <: HList,
 //              Labels2 <: HList
     ](traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps1],
       traversals: (Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps2])*)(
@@ -1298,7 +1297,10 @@ object Traversal
                 val typedStep = Local(step.traversal.retype(traversal.et, traversal.et))
                 new Traversal(typedStep :: traversal.steps)(traversal.st, typedStep.traversal.et)
               case step: Repeat[_] =>
-                val typedStep = Local(step.traversal.retype(traversal.et, traversal.et))
+                val typedStep = Repeat(step.traversal.retype(traversal.et, traversal.et),
+                                       step.until.map(_.retype(step.traversal.et, step.traversal.et)),
+                                       step.max,
+                                       step.noloop)
                 new Traversal(typedStep :: traversal.steps)(traversal.st, typedStep.traversal.et)
               case step: Union[_, _] =>
                 val typedStep = Union(step.traversals.map(t => t.retype(traversal.et, traversal.et)))
@@ -1329,7 +1331,7 @@ object Traversal
                                                             .map { case t: Traversal[_, _, _] => t.enclosedEndType }
                                                             .map(Some(_))))
           case step: Path[_, _] =>
-            val typedStep = step
+            val typedStep = Path(step.by.retype(traversal.et, traversal.et))
             new Traversal(typedStep :: traversal.steps)(traversal.st, ListType[Any](typedStep.by.et))
         }
         stepsToTraversal(steps, typedTraversal)
