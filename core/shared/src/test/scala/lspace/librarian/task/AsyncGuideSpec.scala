@@ -940,8 +940,9 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
           .repeat(_.out(Property("https://example.org/knows")), max = 2, noloop = true)
-          .dedup()
+//          .dedup()
           .path(_.out("name").hasLabel[String])
+//          .path(_.out("name").hasLabel[String])
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet shouldBe Set(List(List("Levi"), List("Gray"), List("Kevin"), List("Garrison")),

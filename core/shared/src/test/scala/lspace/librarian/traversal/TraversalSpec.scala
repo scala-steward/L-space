@@ -4,7 +4,7 @@ import java.time._
 
 import lspace._
 import Label.D._
-import lspace.datatype.{IntType, NodeURLType}
+import lspace.datatype.{IntType, ListType, NodeURLType}
 import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
@@ -243,6 +243,9 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     """g.N.project(_.out()).by(_.inMap())""" in Future {
       g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(), mapType(Property.urlType, listType()))
     }
+    """g.N.project(_.out()).by(_.outMap())""" in Future {
+      g.N.project(_.out()).by(_.outMap()).et shouldBe tupleType(listType(), mapType(Property.urlType, listType()))
+    }
     """g.N.project(_.out()).by(_.inMap()).by(_.outMap())""" in Future {
       g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
         tupleType(listType(), mapType(Property.urlType, listType()), mapType(Property.urlType, listType()))
@@ -297,6 +300,9 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.order(_.out().hasLabel[Instant]).et shouldBe NodeURLType.datatype
       g.N.order(_.out().hasLabel[LocalDate]).et shouldBe NodeURLType.datatype
       g.N.order(_.out().hasLabel[LocalDateTime]).et shouldBe NodeURLType.datatype
+    }
+    """g.N.out().path""" in Future {
+      g.N.out().path.et shouldBe ListType()
     }
   }
   "Traversals" can {

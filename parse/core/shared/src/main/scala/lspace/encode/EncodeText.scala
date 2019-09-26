@@ -1,5 +1,7 @@
 package lspace.encode
 
+import lspace.NS.types
+import lspace.codec.json.jsonld.JsonLDEncoder
 import lspace.codec.{ActiveContext, ContextedT}
 
 trait EncodeText[A] extends Encode[A] {
@@ -10,6 +12,19 @@ object EncodeText {
   implicit def contextedTToJsonLD[T](implicit en: EncodeText[T]) = new EncodeText[ContextedT[T]] {
     def encode(implicit activeContext: ActiveContext) =
       (ct: ContextedT[T]) => en.encode(activeContext ++ ct.activeContext)(ct.t)
+  }
+
+  implicit def activeContextToJson[Json](implicit encoder: JsonLDEncoder[Json]): EncodeText[ActiveContext] = {
+    import encoder.baseEncoder._
+
+    new EncodeText[ActiveContext] {
+      def encode(implicit activeContext: ActiveContext): ActiveContext => String =
+        (activeContext: ActiveContext) =>
+          Map(
+            types.`@context` -> encoder
+              .fromActiveContext(activeContext)
+              .getOrElse(Map[String, Json]().asJson)).asJson.noSpaces
+    }
   }
 
   implicit val encodeStringText = new EncodeText[String] {
