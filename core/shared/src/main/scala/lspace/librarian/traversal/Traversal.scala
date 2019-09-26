@@ -1300,6 +1300,7 @@ object Traversal
                 val typedStep = Repeat(step.traversal.retype(traversal.et, traversal.et),
                                        step.until.map(_.retype(step.traversal.et, step.traversal.et)),
                                        step.max,
+                                       step.collect,
                                        step.noloop)
                 new Traversal(typedStep :: traversal.steps)(traversal.st, typedStep.traversal.et)
               case step: Union[_, _] =>
