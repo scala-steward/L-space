@@ -2,7 +2,6 @@ import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
-//  val scala     = "2.12.8"
   val finch     = "0.31.0"
   val monix     = "3.0.0"
   val sttp      = "1.6.7"
@@ -54,8 +53,8 @@ object Dependencies {
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.github.pureconfig" %% "pureconfig"         % "0.12.0",
-    "com.github.pureconfig" %% "pureconfig-generic" % "0.12.0"
+    "com.github.pureconfig" %% "pureconfig"         % "0.12.1",
+    "com.github.pureconfig" %% "pureconfig-generic" % "0.12.1"
   )
 
   val storeCassandraDeps = Seq(
@@ -65,7 +64,7 @@ object Dependencies {
   )
 
   val storeKafkaDeps = Seq(
-    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC4"
+    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC5"
   )
 
   val indexElasticsearchDeps = Seq(
