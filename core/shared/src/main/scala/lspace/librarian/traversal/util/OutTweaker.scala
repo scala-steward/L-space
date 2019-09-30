@@ -33,8 +33,8 @@ object OutTweaker {
   }
 
   trait LowPriorityOutTweaker0 {
-    implicit def norelevantsteps[End, ET[+Z] <: ClassType[Z], Steps <: HList, Out0]
-      : OutTweaker0[ET[End], Steps, List[End], ListType[List[End]]] =
+    implicit def norelevantsteps[End, ET[+Z] <: ClassType[Z], Steps <: HList, Out0](
+        implicit ev: Steps =:!= HNil): OutTweaker0[ET[End], Steps, List[End], ListType[List[End]]] =
       new OutTweaker0[ET[End], Steps, List[End], ListType[List[End]]] {
         def tweak(et: ET[End]): ListType[List[End]] =
           ListType(et)
@@ -117,12 +117,11 @@ object OutTweaker {
         def tweak(et: ET[End]): OptionType[Option[End]] = OptionType(et)
       }
 
-    implicit def nosteps[End, ET[+Z] <: ClassType[Z], Out0]
-      : OutTweaker0[ET[End], HNil, List[End], ListType[List[End]]] =
-      new OutTweaker0[ET[End], HNil, List[End], ListType[List[End]]] {
+    implicit def nosteps[End, ET[+Z] <: ClassType[Z], Out0]: OutTweaker0[ET[End], HNil, End, ET[End]] =
+      new OutTweaker0[ET[End], HNil, End, ET[End]] {
 
-        def tweak(et: ET[End]): ListType[List[End]] =
-          ListType(et)
+        def tweak(et: ET[End]): ET[End] =
+          et
       }
 
     //  implicit def nosteps2[K, V, Out0]: OutTweaker0[MapType[K, V], HNil, List[Map[K, V]], ListType[Map[K, V]]] =
@@ -260,11 +259,11 @@ object OutTweaker {
       implicit def environment[T <: EnvironmentStep] = at[T](identity)
     }
 
-    implicit def mapEnd[K, V, Steps <: HList, Filters <: HList, Tail <: HList](
+    implicit def mapEnd[K, V, Steps <: HList, Filters <: HList, Filters2 <: HList, Tail <: HList](
         implicit
         splitter: CoSplitLeft.Aux[Steps, GroupingBarrierStep, Filters, Tail],
-        collect: shapeless.ops.hlist.Collect.Aux[Filters, MapEndInvariant.type, Filters])
-      : OutTweaker0[TupleType[(K, V)], Steps, Map[K, V], MapType[Map[K, V]]] =
+        collect: shapeless.ops.hlist.Collect.Aux[Filters, MapEndInvariant.type, Filters2],
+        ev: Filters =:= Filters2): OutTweaker0[TupleType[(K, V)], Steps, Map[K, V], MapType[Map[K, V]]] =
       new OutTweaker0[TupleType[(K, V)], Steps, Map[K, V], MapType[Map[K, V]]] {
 
         def tweak(et: TupleType[(K, V)]): MapType[Map[K, V]] =
@@ -281,13 +280,12 @@ object OutTweaker {
 
     object ProjectionLike extends Poly1 {
       implicit def projection[T <: ProjectionStep] = at[T](identity)
-      implicit def projection2[T <: MapStep]       = at[T](identity)
     }
 
     implicit def projectionStepNoTail[End, ET[+Z] <: ClassType[Z], Steps <: HList, P <: HList, S <: HList](
         implicit
         filterSplitter: Span.Aux[Steps, ProjectionLike.type, P, S],
-        atLeastOne: P =:!= HNil,
+//        atLeastOne: P =:!= HNil,
         noTail: S =:= HNil
     ): OutTweaker0[ET[End], Steps, End, ClassType[End]] =
       new OutTweaker0[ET[End], Steps, End, ClassType[End]] {

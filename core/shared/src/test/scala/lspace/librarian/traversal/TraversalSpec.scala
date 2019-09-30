@@ -4,7 +4,7 @@ import java.time._
 
 import lspace._
 import Label.D._
-import lspace.datatype.{IntType, ListType, NodeURLType}
+import lspace.datatype.{EdgeURLType, IntType, ListType, MapType, NodeURLType, TupleType}
 import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
@@ -179,76 +179,98 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //  }
   "A traversal has an expected result type" can {
     """g.out()""" in Future {
-      g.out().et shouldBe ClassType.stubAny
+      (g.out().et: ClassType[Any]) shouldBe ClassType.stubAny
     }
     """g.N""" in Future {
-      g.N.et shouldBe Node.nodeUrl
+      (g.N.et: NodeURLType[Node]) shouldBe Node.nodeUrl
     }
     """g.E""" in Future {
-      g.E.et shouldBe Edge.edgeUrl
+      (g.E.et: EdgeURLType[Edge[Any, Any]]) shouldBe Edge.edgeUrl
     }
     """g.N.group(_.out()).mapValues(_.head)""" in Future {
-      g.N
+      (g.N
         .group(_.out())
         .mapValues(_.head)
-        .et shouldBe tupleType(listType(), optionType(Node.nodeUrl))
+        .et: TupleType[(List[Any], Option[Node])]) shouldBe tupleType(listType(), optionType(Node.nodeUrl))
+    }
+    """g.N.group(_.outMap())""" in Future {
+      (g.N
+        .group(_.outMap())
+        .et: TupleType[(Map[Property, List[Any]], List[Node])]) shouldBe tupleType(mapType(Property.urlType,
+                                                                                           listType()),
+                                                                                   listType(Node.nodeUrl))
     }
     """g.N.group(_.out())""" in Future {
-      g.N
+      (g.N
         .group(_.out())
-        .et shouldBe tupleType(listType(), listType(Node.nodeUrl))
+        .et: TupleType[(List[Any], List[Node])]) shouldBe tupleType(listType(), listType(Node.nodeUrl))
     }
     """g.E.group(_.out()).mapValues(_.head)""" in Future {
-      g.E
+      (g.E
         .group(_.out())
         .mapValues(_.head)
-        .et shouldBe tupleType(listType(), optionType(Edge.edgeUrl))
+        .et: TupleType[(List[Any], Option[Edge[Any, Any]])]) shouldBe tupleType(listType(), optionType(Edge.edgeUrl))
     }
     """g.E.group(_.out())""" in Future {
-      g.E
+      (g.E
         .group(_.out())
-        .et shouldBe tupleType(listType(), listType(Edge.edgeUrl))
+        .et: TupleType[(List[Any], List[Edge[Any, Any]])]) shouldBe tupleType(listType(), listType(Edge.edgeUrl))
     }
     """g.V.group(_.out()).mapValues(_.hasLabel[Int].head)""" in Future {
-      g.V
+      (g.V
         .group(_.out())
         .mapValues(_.hasLabel[Int].head)
-        .et shouldBe tupleType(listType(), optionType(`@int`))
+        .et: TupleType[(List[Any], Option[Int])]) shouldBe tupleType(listType(), optionType(`@int`))
     }
     """g.V.group(_.out()).mapValues(_.hasLabel[Int])""" in Future {
-      g.V
+      (g.V
         .group(_.out())
         .mapValues(_.hasLabel[Int])
-        .et shouldBe tupleType(listType(), listType(`@int`))
+        .et: TupleType[(List[Any], List[Int])]) shouldBe tupleType(listType(), listType(`@int`))
     }
     """g.N.group(_.label()) .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))""" in Future {
-      g.N
+      (g.N
         .group(_.label())
         .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
-        .et shouldBe tupleType(listType(Ontology.urlType), listType(tupleType(listType(), listType(`@double`))))
+        .et: TupleType[(List[Ontology], List[(List[Any], List[Double])])]) shouldBe tupleType(
+        listType(Ontology.urlType),
+        listType(tupleType(listType(), listType(`@double`))))
     }
     """g.N.project(_.out()).by(_.in())""" in Future {
-      g.N.project(_.out()).by(_.in()).et shouldBe tupleType(listType(), listType())
+      (g.N.project(_.out()).by(_.in()).et: TupleType[(List[Any], List[Any])]) shouldBe tupleType(listType(), listType())
     }
     """g.N.project(_.out().hasLabel[Int].head)""" in Future {
-      g.N.project(_.out().hasLabel[Int].head).et shouldBe tupleType(optionType(`@int`))
+      (g.N.project(_.out().hasLabel[Int].head).et: TupleType[Option[Int]]) shouldBe tupleType(optionType(`@int`))
     }
     """g.N.project(_.out().hasLabel[Int].head).by(_.in())""" in Future {
-      g.N.project(_.out().hasLabel[Int].head).by(_.in()).et shouldBe tupleType(optionType(`@int`), listType())
+      (g.N.project(_.out().hasLabel[Int].head).by(_.in()).et: TupleType[(Option[Int], List[Any])]) shouldBe tupleType(
+        optionType(`@int`),
+        listType())
     }
     """g.N.project(_.group()).by(_.in())""" in Future {
-      g.N.project(_.group(_.out()).mapValues(_.out())).by(_.in()).et shouldBe tupleType(mapType(listType(), listType()),
-                                                                                        listType())
+      (g.N
+        .project(_.group(_.out()).mapValues(_.out()))
+        .by(_.in())
+        .et: TupleType[(Map[List[Any], List[Any]], List[Any])]) shouldBe tupleType(mapType(listType(), listType()),
+                                                                                   listType())
     }
     """g.N.project(_.out()).by(_.inMap())""" in Future {
-      g.N.project(_.out()).by(_.inMap()).et shouldBe tupleType(listType(), mapType(Property.urlType, listType()))
+      (g.N.project(_.out()).by(_.inMap()).et: TupleType[(List[Any], Map[Property, List[Any]])]) shouldBe tupleType(
+        listType(),
+        mapType(Property.urlType, listType()))
     }
     """g.N.project(_.out()).by(_.outMap())""" in Future {
-      g.N.project(_.out()).by(_.outMap()).et shouldBe tupleType(listType(), mapType(Property.urlType, listType()))
+      (g.N.project(_.out()).by(_.outMap()).et: TupleType[(List[Any], Map[Property, List[Any]])]) shouldBe tupleType(
+        listType(),
+        mapType(Property.urlType, listType()))
     }
-    """g.N.project(_.out()).by(_.inMap()).by(_.outMap())""" in Future {
-      g.N.project(_.out()).by(_.inMap()).by(_.outMap()).et shouldBe
-        tupleType(listType(), mapType(Property.urlType, listType()), mapType(Property.urlType, listType()))
+    """g.N.project(_.out()).by(_.inMap()).by(_.out().hasLabel[Int].max())""" in Future {
+      (g.N
+        .project(_.out())
+        .by(_.inMap())
+        .by(_.out().hasLabel[Int].max())
+        .et: TupleType[(List[Any], Map[Property, List[Any]], Option[Int])]) shouldBe
+        tupleType(listType(), mapType(Property.urlType, listType()), optionType(`@int`))
     }
     """g.hasLabel[...].max()""" in Future {
       g.hasLabel[Int].max().et shouldBe `@int`

@@ -112,7 +112,7 @@ package object traversal {
     }
 
     trait LowPrioritySplitLeft0 {
-      implicit def hlistSplitLeft1[AccP <: HList, AccSH, AccST <: HList, U, P <: HList, S <: HList](
+      implicit def hlistSplitLeft0[AccP <: HList, AccSH, AccST <: HList, U, P <: HList, S <: HList](
           implicit slt: CoSplitLeft0[AccP, AccST, U, P, S]): CoSplitLeft0[AccP, AccSH :: AccST, U, AccSH :: P, S] =
         new CoSplitLeft0[AccP, AccSH :: AccST, U, AccSH :: P, S] {
           def apply(accP: AccP, accS: AccSH :: AccST): (AccSH :: P) :: S :: HNil =
@@ -120,7 +120,7 @@ package object traversal {
               case prefix :: suffix :: HNil => (accS.head :: prefix) :: suffix :: HNil
             }
         }
-      implicit def hlistSplitLeft1a[AccP <: HList, AccSH, U]: CoSplitLeft0[AccP, HList, U, HList, HNil] =
+      implicit def hlistSplitLeft1[AccP <: HList, AccSH, U]: CoSplitLeft0[AccP, HList, U, HList, HNil] =
         new CoSplitLeft0[AccP, HList, U, HList, HNil] {
           def apply(accP: AccP, accS: HList): HList :: HNil :: HNil = (accS) :: HNil :: HNil
         }
@@ -177,7 +177,7 @@ package object traversal {
     }
 
     trait LowPrioritySpan0 {
-      implicit def hlistSpan1[AccP <: HList, AccSH, AccST <: HList, U <: Poly, P <: HList, S <: HList, ClrResult](
+      implicit def hlistSpan0[AccP <: HList, AccSH, AccST <: HList, U <: Poly, P <: HList, S <: HList, ClrResult](
           implicit slt: Span0[AccP, AccST, U, P, S]): Span0[AccP, AccSH :: AccST, U, AccSH :: P, S] =
         new Span0[AccP, AccSH :: AccST, U, AccSH :: P, S] {
           def apply(accP: AccP, accS: AccSH :: AccST): (AccSH :: P) :: S :: HNil =
@@ -188,7 +188,7 @@ package object traversal {
     }
 
     object Span0 extends LowPrioritySpan0 {
-      implicit def hlistSpan2[P <: HList, U <: Poly, SH, ST <: HList, Result <: HList](
+      implicit def hlistSpan1[P <: HList, U <: Poly, SH, ST <: HList, Result <: HList](
           implicit
           collect: shapeless.ops.hlist.Collect.Aux[SH :: HNil, U, Result],
           ev: Result =:= HNil): Span0[P, SH :: ST, U, P, SH :: ST] =
@@ -196,13 +196,13 @@ package object traversal {
           def apply(accP: P, accS: SH :: ST): P :: (SH :: ST) :: HNil = accP :: accS :: HNil
         }
 
-      implicit def hlistSpan0[P <: HList, U <: Poly, ST <: HList](
+      implicit def hlistSpan2[P <: HList, U <: Poly, ST <: HList](
           implicit
           ev: ST =:= HNil): Span0[P, ST, U, P, ST] =
         new Span0[P, ST, U, P, ST] {
           def apply(accP: P, accS: ST): P :: ST :: HNil = accP :: accS :: HNil
         }
-      implicit def hlistSpan1[P <: HList, U <: Poly, ST <: HList](
+      implicit def hlistSpan3[P <: HList, U <: Poly, ST <: HList](
           implicit
           ev: ST =:= HList): Span0[P, ST, U, P, ST] =
         new Span0[P, ST, U, P, ST] {

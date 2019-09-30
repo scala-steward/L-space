@@ -547,11 +547,11 @@ object Traversal
       add(As[End, S](name())(et))
 
     //TODO: add a 'byValue' traversal, so a traversal on the grouped result is contained within the step
-    def group[CK <: ClassType[_], KSteps <: HList, KOut, CKOut <: ClassType[_]](
+    def group[CK <: ClassType[Any], KSteps <: HList, KOut, CKOut <: ClassType[Any]](
         by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CK, KSteps])(
         implicit
         outK: OutTweaker.Aux[CK, KSteps, KOut, CKOut]
-    ) /*: Traversal[ST[Start],
+    ): Traversal[ST[Start], TupleType[(KOut, List[End])], Group[CK, KSteps, ET[End], HNil] :: Steps] /*: Traversal[ST[Start],
                  TupleType[(KOut, List[End])],
                  Group[CK, KeySegments, ET[End], HNil] :: Steps]*/ = {
 
@@ -565,10 +565,10 @@ object Traversal
       )
     }
 
-    def project() =
+    def project(): Traversal[ST[Start], TupleType[End], Project[Traversal[ET[End], ET[End], HNil] :: HNil] :: Steps] =
       add(Project(Traversal(et, et) :: HNil), st, TupleType[End](List(Some(et))))
 
-    def project[CP <: ClassType[_], PSteps <: HList, POut, CPOut <: ClassType[_]](
+    def project[CP <: ClassType[Any], PSteps <: HList, POut, CPOut <: ClassType[Any]](
         by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CP, PSteps])(
         implicit
         out: OutTweaker.Aux[CP, PSteps, POut, CPOut]
