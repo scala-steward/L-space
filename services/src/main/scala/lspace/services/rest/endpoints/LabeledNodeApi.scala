@@ -262,7 +262,7 @@ class LabeledNodeApi[JSON](graph: Graph,
   }
 
   def api =
-    /*context :+: */ byId :+: /*byIri :+: */ list :+: list :+:
+    /*context :+: */ byId :+: /*byIri :+: */ list :+:
       create :+: replaceById :+: updateById :+: removeById
   //  def labeledApi = label :: api
 }
