@@ -466,7 +466,7 @@ object Traversal
     def mapValues[CV <: ClassType[_], VSteps <: HList, Steps1 <: HList, VOut, CVOut <: ClassType[_]](
         value: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CV, VSteps])(
         implicit
-        prepend: Prepend.Aux[VSteps, Out :: HNil, Steps1],
+        prepend: Prepend.Aux[VSteps, Out :: HNil, Steps1], //Hack to trick OutTweaker with multi-librarian input (grouped librarians)
         outV: OutTweaker.Aux[CV, Steps1, VOut, CVOut])
       : Traversal[ST[Start], TupleType[(KOut, VOut)], Group[CK, KeySteps, CV, VSteps] :: Steps] = {
       val step =
@@ -1418,7 +1418,7 @@ object Traversal
                     ))
                 )
             }
-          case (step: Order) +: steps =>
+          case step: Order =>
             val typedStep = Order(step.by.retype(traversal.et, traversal.et), step.increasing)
             new Traversal(typedStep :: traversal.steps)(traversal.st, traversal.et)
         }

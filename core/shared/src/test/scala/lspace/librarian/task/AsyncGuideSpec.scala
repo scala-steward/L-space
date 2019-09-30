@@ -633,14 +633,16 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
-      "N.group(_.label()).mapValues(_.outMap())" in {
+      "N.hasIri(sampleGraph.iri + \"/person/12345\").group(_.label()).mapValues(_.outMap())" in {
         g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
           .group(_.label())
           .mapValues(_.outMap())
           .withGraph(sampleGraph)
           .toListF
-          .map { doubleGroupedNodes =>
-            doubleGroupedNodes.nonEmpty shouldBe true
+          .map {
+            case List((ontologies, List(maps: Map[Property, List[Any]], _*)), _*) =>
+              ontologies.nonEmpty shouldBe true
           }
           .timeout(4000.millis)
           .runToFuture

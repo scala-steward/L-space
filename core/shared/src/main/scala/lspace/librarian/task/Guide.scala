@@ -148,7 +148,7 @@ abstract class Guide[F[_]: Functor] {
             head(observable)
         case (List(), (step: ProjectionStep) :: steps) =>
           observable: F[Librarian[Any]] =>
-            head(observable)
+            toList(observable)
         case _ =>
           observable: F[Librarian[Any]] =>
             toList(observable)
