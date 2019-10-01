@@ -119,9 +119,7 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |}""".stripMargin)
         .map(_.features.head.properties match {
           case props: Map[String, Any] if props.get("prop0").contains("value0") => succeed
-          case props =>
-            println(props)
-            fail()
+          case props                                                            => fail()
         })
         .runToFuture
     }
@@ -172,10 +170,8 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |  ]
                   |}""".stripMargin)
         .map(_.features match {
-          case features: List[Feature[_]] if features.size == 3 =>
-            println(features)
-            succeed
-          case _ => fail()
+          case features: List[Feature[_]] if features.size == 3 => succeed
+          case _                                                => fail()
         })
         .runToFuture
     }
