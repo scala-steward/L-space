@@ -1,6 +1,7 @@
 package lspace.codec.json
 
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 trait JsonDecoderSpec extends AsyncWordSpec with Matchers {
   type Json

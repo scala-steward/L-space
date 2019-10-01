@@ -4,7 +4,7 @@ import lspace.codec.exception.FromJsonException
 import lspace.codec.json
 import lspace.codec.json.JsonDecoder
 import lspace.types.geo._
-import monix.eval.Task
+import monix.eval.{Coeval, Task}
 
 object Decoder {
 //  type Aux[Json0] = Decoder { type Json = Json0 }
@@ -12,9 +12,8 @@ object Decoder {
 }
 class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder {
   import decoder._
-//  type Json = decoder.Json
 
-  def autodiscoverValue(json: Json): Task[Any] = {
+  def autodiscoverValue(json: Json): Coeval[Any] = {
     json.int
       .orElse(json.double)
       .orElse(json.long)
@@ -24,9 +23,13 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .orElse(json.time)
       .orElse(json.boolean)
       .orElse(json.string)
-      .orElse(decodeGeometryOption(json))
-      .map(Task.now)
-      .getOrElse(Task.raiseError(new Exception("autodiscover not possible")))
+      .map(Coeval.now)
+      .orElse(json.list.map(_.map(autodiscoverValue)).map(Coeval.traverse(_)(f => f)))
+      .orElse(json.obj
+        .map(_.map { case (key, value) => autodiscoverValue(value).map(key -> _) })
+        .map(Coeval.traverse(_)(f => f).map(_.toMap)))
+//      .orElse(decodeGeometryOption(json))
+      .getOrElse(Coeval.raiseError(new Exception("autodiscover not possible")))
   }
 
   def decodeFeature(map: Map[String, Json]): Task[Feature[Geometry]] = {
@@ -40,10 +43,16 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
         .map(
           decoder
             .jsonToMap(_)
-            .map(Task.now)
-            .getOrElse(Task.raiseError(new Exception("invalid properties"))))
-        .getOrElse(Task.now(Map[String, Json]()))
-        .map(_.mapValues(autodiscoverValue))
+            .map(Coeval.now)
+            .getOrElse(Coeval.raiseError(new Exception("invalid properties"))))
+        .getOrElse(Coeval.now(Map[String, Json]()))
+        .flatMap(properties =>
+          Coeval
+            .traverse(properties.toList)({
+              case (key, value) => autodiscoverValue(value).map(key -> _)
+            })
+            .map(_.toMap))
+        .to[Task]
     } yield Feature(geometry, properties)
   }
   def decodeFeatureOption(map: Map[String, Json]): Option[Task[Feature[Geometry]]] = {
@@ -89,7 +98,10 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
   def decodeGeometryOption(json: Json): Option[Geometry] =
     decoder
       .jsonToMap(json)
-      .map(decodeGeometryOption(_).getOrElse(throw new Exception("geometry without type")))
+      .map(
+        decodeGeometryOption(_).getOrElse(
+          throw new Exception("geometry without type")
+        ))
   def decodeGeometry(map: Map[String, Json]): Geometry =
     decodeGeometryOption(map).getOrElse(throw new Exception("geometry without type"))
   def decodeGeometryOption(map: Map[String, Json]): Option[Geometry] = {

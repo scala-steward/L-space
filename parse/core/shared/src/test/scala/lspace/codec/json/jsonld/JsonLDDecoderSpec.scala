@@ -3,7 +3,8 @@ package lspace.codec.json.jsonld
 import lspace.Label.D._
 import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty, NamedActiveContext}
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 import scribe.Level
 import scribe.format.Formatter
 

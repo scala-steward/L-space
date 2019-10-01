@@ -27,6 +27,7 @@ trait Encoder[Json] extends lspace.codec.Encoder {
   implicit def mapToJson: Map[String, Json] => Json
   implicit def listMapToJson: ListMap[String, Json] => Json
   implicit def listToJson: List[Json] => Json
+  implicit def listToJson2[T](list: List[T])(implicit f: T => Json): Json = list.map(f)
   implicit def t2ToJson: ((Json, Json)) => Json
   implicit def t3ToJson: ((Json, Json, Json)) => Json
   implicit def t4ToJson: ((Json, Json, Json, Json)) => Json
