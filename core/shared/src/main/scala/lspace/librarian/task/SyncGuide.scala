@@ -681,15 +681,18 @@ abstract class SyncGuide extends LocalGuide[Stream] {
     val f = step match {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
-        val mapBy           = tweakEnd(step.by)
+        val byMapper        = endMapper(step.by)
         val valueObservable = traversalsToF(step.value)
-        val mapValue        = tweakEnd(step.value)
-        val valueSteps      = step.value.stepsList //.flatMap(_.stepsList)
+        val valueMapper = endMapper(
+          (lspace.g
+            .out()
+            .untyped ++ step.value.untyped).toTyped)
+        val valueSteps = step.value.stepsList //.flatMap(_.stepsList)
 
         obs: Stream[Librarian[Any]] =>
           obs
             .map { librarian =>
-              mapBy(byObservable(librarian))
+              byMapper(byObservable(librarian))
                 .asInstanceOf[Coeval[Librarian[Any]]]
                 .map(_.get)
                 .map(librarian -> _)
@@ -701,7 +704,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
             .toStream
             .map { group =>
               group._1 -> (if (step.value.stepsList.isEmpty) toList(valueObservable(group._2.map(_._1)))
-                           else mapValue(valueObservable(group._2.map(_._1))))
+                           else valueMapper(valueObservable(group._2.map(_._1))))
                 .asInstanceOf[Coeval[Librarian[Any]]]
                 .map(_.get)
                 .value()
@@ -983,7 +986,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
         traversalToF(traversal) -> {
           (if (traversal.stepsList.isEmpty) { observable: Stream[Librarian[Any]] =>
              head(observable)
-           } else tweakEnd(traversal))
+           } else endMapper(traversal))
 //          traversal.stepsList.lastOption
         }
     }

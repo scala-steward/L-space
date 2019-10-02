@@ -8,7 +8,7 @@ import lspace.datatype.{DataType, GraphType, TextType}
 import lspace.librarian.logic.{Assistent, DefaultAssistent}
 import lspace.librarian.task.{AsyncGuide, Guide}
 import lspace.provider.transaction.Transaction
-import lspace.librarian.traversal.util.{OutTweaker, ResultMapper}
+import lspace.librarian.traversal.util.{EndMapper, ResultMapper}
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
@@ -307,7 +307,7 @@ trait Graph extends IriResource with GraphUtils { self =>
   import lspace.librarian.traversal._
   def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, Out, OutCT <: ClassType[_], F[_]](
       traversal: Traversal[ST, ET[End], Steps])(implicit
-                                                tweaker: OutTweaker.Aux[ET[End], Steps, Out, OutCT],
+                                                tweaker: EndMapper.Aux[ET[End], Steps, Out, OutCT],
                                                 guide: Guide[F],
                                                 mapper: ResultMapper[F, ET[End], OutCT]): mapper.FT =
     mapper.apply(traversal, this).asInstanceOf[mapper.FT]

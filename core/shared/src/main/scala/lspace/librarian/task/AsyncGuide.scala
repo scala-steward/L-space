@@ -744,22 +744,24 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
     val f = step match {
       case step: Group[_, _, _, _] =>
         val byObservable    = traversalToF(step.by)
-        val mapBy           = tweakEnd(step.by)
+        val byMapper        = endMapper(step.by)
         val valueObservable = traversalsToF(step.value)
-        val mapValue        = tweakEnd(step.value)
-        val valueSteps      = step.value.stepsList //.flatMap(_.stepsList)
+        val valueMapper = endMapper(
+          (lspace.g
+            .out()
+            .untyped ++ step.value.untyped).toTyped) //hack/manipulate to multi librarian start: lspace.g.out() ++
+        val valueSteps = step.value.stepsList //.flatMap(_.stepsList)
 
         obs: Observable[Librarian[Any]] =>
           obs
             .mapEval { librarian =>
-              mapBy(byObservable(librarian)).asInstanceOf[Task[Librarian[Any]]].map(_.get).map(librarian -> _)
+              byMapper(byObservable(librarian)).asInstanceOf[Task[Librarian[Any]]].map(_.get).map(librarian -> _)
             }
             .groupBy(
               l => l._2
             )
             .mapEval { group =>
-              (if (step.value.stepsList.isEmpty) toList(valueObservable(group.map(_._1)))
-               else mapValue(valueObservable(group.map(_._1))))
+              valueMapper(valueObservable(group.map(_._1)))
                 .asInstanceOf[Task[Librarian[Any]]]
                 .map(l => group.key -> l.get)
             }
@@ -1134,7 +1136,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
         traversalToF(traversal) -> (if (traversal.stepsList.isEmpty) { observable: Observable[Librarian[Any]] =>
                                       head(observable)
-                                    } else tweakEnd(traversal))
+                                    } else endMapper(traversal))
     }
     val f =
       (obs: Observable[Librarian[Any]]) =>

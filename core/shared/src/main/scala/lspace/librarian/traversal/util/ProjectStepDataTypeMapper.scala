@@ -7,6 +7,6 @@ import shapeless.{HList, Poly1}
 object ProjectStepDataTypeMapper extends Poly1 {
   implicit def traversal[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList, Out, COut <: ClassType[Any]](
       implicit
-      out: OutTweaker.Aux[ET, Steps, Out, COut]
-  ): Case.Aux[Traversal[ST, ET, Steps], COut] = at[Traversal[ST, ET, Steps]](t => out.tweak(t.et))
+      out: EndMapper.Aux[ET, Steps, Out, COut]
+  ): Case.Aux[Traversal[ST, ET, Steps], COut] = at[Traversal[ST, ET, Steps]](t => out.map(t.et))
 }

@@ -8,13 +8,15 @@ import lspace.Label.P._
 import lspace.datatype.{ListType, NodeURLType}
 import lspace.librarian.traversal.Step
 import lspace.librarian.traversal.step.{Path, Union}
-import lspace.librarian.traversal.util.OutTweaker
+import lspace.librarian.traversal.util.EndMapper
 import lspace.structure.{GraphFixtures, SampledGraph}
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import lspace.types.geo.Point
 import lspace.util.SampleGraph
 import monix.eval.Task
 import monix.reactive.Observable
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 import shapeless.{HList, HNil}
 
 import scala.concurrent.duration._
@@ -454,7 +456,10 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           )
           .withGraph(sampleGraph)
           .headF
-          .map(_ shouldBe (List("Levi"), List(LocalDate.parse("2008-12-20")), List(2)))
+          .map {
+            case r: (List[Any], List[Any], List[Int]) =>
+              r shouldBe (List("Levi"), List(LocalDate.parse("2008-12-20")), List(2))
+          }
           .timeout(4000.millis)
           .runToFuture
       }
@@ -545,7 +550,10 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
           .withGraph(sampleGraph)
           .toListF
-          .map(_.toSet shouldBe Set((Some("Gray"), List(2230.3)), (Some("Yoshio"), List())))
+          .map(_.toSet)
+          .map { r: Set[(Option[Any], List[Double])] =>
+            r shouldBe Set((Some("Gray"), List(2230.3)), (Some("Yoshio"), List()))
+          }
           .timeout(4000.millis)
           .runToFuture
       }
@@ -630,7 +638,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .map { groupedNodes =>
             groupedNodes.values.toSet shouldBe Set(4l, 6l)
           }
-          .timeout(4000.millis)
+//          .timeout(4000.millis)
           .runToFuture
       }
       "N.hasIri(sampleGraph.iri + \"/person/12345\").group(_.label()).mapValues(_.outMap())" in {

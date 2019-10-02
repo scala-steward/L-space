@@ -6,6 +6,7 @@ import cats.Functor
 import cats.implicits._
 import lspace.librarian.logic.Assistent
 import lspace.librarian.traversal.step._
+import lspace.librarian.traversal.util.EndMapper
 import lspace.librarian.traversal.{
   BarrierStep,
   BranchStep,
@@ -106,52 +107,71 @@ abstract class Guide[F[_]: Functor] {
     }
   }
 
-  //transform a nested traversal result to it's expected type
-  def tweakEnd(traversal: Traversal[ClassType[Any], ClassType[Any], HList]): F[Librarian[Any]] => K[Librarian[Any]] = {
-    //FilterBarrierStep
-    //ReducingBarrierStep
-    import scala.collection.immutable.::
-    if (traversal.stepsList.isEmpty) { observable: F[Librarian[Any]] =>
+  def reducedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+    if (EndMapper.EndMapper0.ReducedEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+      headOption(observable)
+    })
+    else None
+
+  def singularEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+    if (EndMapper.EndMapper0.SingularEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
       head(observable)
-    } else
-      traversal.stepsList.reverse.span {
-        case _: Head | _: Last | _: Min | _: Max | _: Dedup                               => false
-        case _: FilterStep | _: EnvironmentStep | _: Project[_] | _: Id | _: To | _: From => true
-        case _                                                                            => false
-      } match {
-        case (toIgnore, (_: Head | _: Last | _: Min | _: Max | _: Mean | _: Sum) :: steps) =>
-          steps.span {
-            case _: Head | _: Last | _: Min | _: Max | _: Mean | _: Sum | _: FilterStep | _: EnvironmentStep => true
-            case _                                                                                           => false
-          } match {
-            case (toIgnore, List(step: Group[_, _, _, _], _*)) =>
-              observable: F[Librarian[Any]] =>
-                headOption(observable)
-//          case (toIgnore, any) if toIgnore.exists(s => s.isInstanceOf[Mean] || s.isInstanceOf[Sum]) =>
-//            observable: F[Librarian[Any]] =>
-//              headOption(observable)
-            case _ =>
-              observable: F[Librarian[Any]] =>
-                headOption(observable)
-          }
-        case (toIgnore, List(step: Dedup, _*)) =>
-          observable: F[Librarian[Any]] =>
-            toSet(observable)
-        case (List(), List(step: Group[_, _, _, _], _*)) =>
-          observable: F[Librarian[Any]] =>
-            toMap(observable.asInstanceOf[F[Librarian[(Any, Any)]]])
-        case (toIgnore, (step: Count) :: steps) if toIgnore.nonEmpty && toIgnore.exists(_.isInstanceOf[FilterStep]) =>
-          observable: F[Librarian[Any]] =>
-            headOption(observable)
-        case (List(), (step: Count) :: steps) =>
-          observable: F[Librarian[Any]] =>
-            head(observable)
-        case (List(), (step: ProjectionStep) :: steps) =>
-          observable: F[Librarian[Any]] =>
-            toList(observable)
-        case _ =>
-          observable: F[Librarian[Any]] =>
-            toList(observable)
+    })
+//    else if (EndMapper.EndMapper0.SingularFilteredEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+//      headOption(observable)
+//    })
+    else None
+
+  def filteredEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+    if (EndMapper.EndMapper0.FilteredEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+      headOption(observable)
+    })
+    else None
+
+//  def branchedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+//    if (EndMapper.EndMapper0.BranchedEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+//      toList(observable)
+//    })
+//    else None
+//
+//  def resourcedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+//    if (EndMapper.EndMapper0.ResourcedEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+//      toList(observable)
+//    })
+//    else None
+
+  def distinctedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+    if (EndMapper.EndMapper0.DistinctedEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+      toSet(observable)
+    })
+    else None
+
+  def groupedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+    if (EndMapper.EndMapper0.GroupedEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+      toMap(observable.asInstanceOf[F[Librarian[(Any, Any)]]])
+    })
+    else None
+
+  def oneOnOneEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
+    if (EndMapper.EndMapper0.OneOnOneEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
+      head(observable)
+    })
+    else None
+
+  //transform a nested traversal result to it's expected type
+  def endMapper(traversal: Traversal[ClassType[Any], ClassType[Any], HList]): F[Librarian[Any]] => K[Librarian[Any]] = {
+//    branchedEnd(traversal.stepsList)
+//      .orElse(resourcedEnd(traversal.stepsList))
+//      .orElse(
+    val steps = traversal.stepsList.reverse
+    reducedEnd(steps)
+      .orElse(singularEnd(steps))
+      .orElse(filteredEnd(steps))
+      .orElse(distinctedEnd(steps))
+      .orElse(groupedEnd(steps))
+      .orElse(oneOnOneEnd(steps))
+      .getOrElse { observable: F[Librarian[Any]] =>
+        toList(observable)
       }
   }
 
