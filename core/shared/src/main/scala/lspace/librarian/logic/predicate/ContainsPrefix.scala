@@ -20,7 +20,7 @@ object ContainsPrefix
   implicit def toNode[T](p: ContainsPrefix[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+      _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
   }
 }

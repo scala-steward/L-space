@@ -1,7 +1,5 @@
 package lspace.librarian.logic.predicate
 
-import lspace.librarian.logic.predicate.P._
-import lspace.librarian.logic.predicate._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
@@ -25,7 +23,7 @@ object Contains
   implicit def toNode[T](contains: Contains[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(contains.pvalue), contains.pvalue)
+      _    <- node.addOut(keys.value, ClassType.detect(contains.pvalue), contains.pvalue)
     } yield node
   }
 }

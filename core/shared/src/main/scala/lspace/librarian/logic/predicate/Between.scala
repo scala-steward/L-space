@@ -21,8 +21,8 @@ object Between
   implicit def toNode[T](p: Between[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.lower, ClassType.valueToOntologyResource(p.lower), p.lower)
-      _    <- node.addOut(keys.upper, ClassType.valueToOntologyResource(p.upper), p.upper)
+      _    <- node.addOut(keys.lower, ClassType.detect(p.lower), p.lower)
+      _    <- node.addOut(keys.upper, ClassType.detect(p.upper), p.upper)
     } yield node
   }
 }

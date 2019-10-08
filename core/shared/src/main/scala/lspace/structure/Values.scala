@@ -10,6 +10,7 @@ import monix.reactive.Observable
 import scala.collection.concurrent
 import scala.collection.immutable.ListSet
 import scala.collection.JavaConverters._
+import shapeless.<:!<
 
 abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   import graph._
@@ -100,7 +101,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     case v: Node        => nodes.upsert(v)
     case v: Edge[_, _]  => edges.upsert(v)
     case v: Value[_]    => values.upsert(v)
-    case _              => Task.now(t)
+    case _              => Task.now(t) //TODO: check if t is a supported datatype?
   }
 
   final def create[T, TOut, CTOut <: ClassType[_]](value: T)(
@@ -112,14 +113,14 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
           .flatMap(_.map(_.asInstanceOf[_Value[T]]).map(Task.now).getOrElse {
             for {
               id    <- idProvider.next
-              value <- createValue(id, dereferencedValue, ClassType.valueToOntologyResource(dereferencedValue))
+              value <- createValue(id, dereferencedValue, DataType.detect(dereferencedValue))
             } yield value
           })
       } yield b
     })
   }
-  final def create[T](value: T, dt: DataType[T]): Task[Value[T]] = { //add implicit DataType[T]
-    val detectedDT = ClassType.valueToOntologyResource(value)
+  final protected[lspace] def create[T](value: T, dt: DataType[T]): Task[Value[T]] = { //add implicit DataType[T]
+    val detectedDT = DataType.detect(value)
     val finalDT    = if (detectedDT.`@extends`(dt)) detectedDT else dt
     for {
       dereferencedValue <- dereferenceValue(value).map(_.asInstanceOf[T])
@@ -133,17 +134,17 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     } yield { b }
   }
 
-  private val upsertingTasks: concurrent.Map[Any, Task[Value[_]]] =
-    new ConcurrentHashMap[Any, Task[Value[_]]]().asScala
+  private val upsertingTasks: concurrent.Map[Any, Task[Value[Any]]] =
+    new ConcurrentHashMap[Any, Task[Value[Any]]]().asScala
 
-  def upsert[V, TOut, CTOut <: ClassType[_]](value: V)(
+  def upsert[V, TOut, CTOut <: ClassType[Any]](value: V)(
       implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Task[Value[V]] = {
     upsertingTasks
       .getOrElseUpdate(
         value,
         byValue(value).toListL
           .flatMap {
-            case Nil         => create(value)
+            case Nil         => create(value, DataType.detect(value))
             case List(value) => Task.now(value)
             case values =>
               mergeValues(values.toSet)
@@ -154,9 +155,10 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
       .asInstanceOf[Task[Value[V]]]
   }
 
-  final def upsert[V](value: V, dt: DataType[V]): Task[Value[V]] = {
+  final protected[lspace] def upsert[V](value: V, dt: DataType[V]): Task[Value[V]] = {
     //      val values = byValue(List(value -> dt))
     //      values.headOptionL.flatMap(_.map(Task.now).getOrElse(create(value, dt)))
+//    val dt = DataType.detect(value)
     upsertingTasks
       .getOrElseUpdate(
         value,
@@ -206,7 +208,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     } else Task.now(value)
   }
 
-  final def delete(value: Value[_]): Task[Unit] = value match {
+  final def delete(value: Value[Any]): Task[Unit] = value match {
     case value: _Value[_] => deleteValue(value.asInstanceOf[_Value[_]])
     case _                => Task.unit //LOG???
   }
@@ -223,7 +225,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     * deletes a value
     * @param value
     */
-  final def -(value: Value[_]): Task[Unit] = delete(value)
+  final def -(value: Value[Any]): Task[Unit] = delete(value)
 
   /**
     * adds a value and meta-properties (value.outE())

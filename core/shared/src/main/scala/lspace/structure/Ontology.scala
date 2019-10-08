@@ -18,8 +18,10 @@ object Ontology {
                         NS.types.schemaClass,
                         "https://schema.org/Class",
                         "http://schema.org/Class"))
-  lazy val unknownOntology: Ontology =
-    Ontology("@unknownOntology", iris = Set("@unknownOntology"), extendedClasses = () => List(ontology))
+//  lazy val unknownOntology: Ontology =
+//    Ontology("@unknownOntology", iris = Set("@unknownOntology"), extendedClasses = () => List(ontology))
+
+  lazy val empty: Ontology = Ontology("", iris = Set(""))
 
   implicit lazy val urlType: IriType[Ontology] = new IriType[Ontology] {
     val iri: String = NS.types.`@class`

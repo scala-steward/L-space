@@ -35,12 +35,14 @@ trait LNode extends LResource[Node] with Node {
 
   def labels: List[Ontology] = types.toList
   def addLabel(ontology: Ontology): Task[Unit] = Task.defer {
-    for {
-      _ <- super._addLabel(ontology)
-      _ = _cacheLabel(ontology)
-      _ <- graph.storeNode(this.asInstanceOf[graph._Node])
-    } yield ()
+    if (ontology != Ontology.empty)
+      for {
+        _ <- super._addLabel(ontology)
+        _ = _cacheLabel(ontology)
+        _ <- graph.storeNode(this.asInstanceOf[graph._Node])
+      } yield ()
     //TODO: index
+    else Task.unit
   }
 
   def removeLabel(classType: Ontology): Unit = {

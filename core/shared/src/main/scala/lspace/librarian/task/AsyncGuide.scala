@@ -2,7 +2,17 @@ package lspace.librarian.task
 
 import java.time._
 
-import lspace.datatype.{CollectionType, ListSetType, ListType, MapType, OptionType, SetType, TupleType, VectorType}
+import lspace.datatype.{
+  CollectionType,
+  DataType,
+  ListSetType,
+  ListType,
+  MapType,
+  OptionType,
+  SetType,
+  TupleType,
+  VectorType
+}
 import lspace.librarian.logic.Assistent
 import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal.step._
@@ -130,8 +140,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           obs.flatMap { librarian =>
             Observable
               .fromIterable(step.values)
-              .flatMap(v =>
-                graph.valueStore.byValue(v, ClassType.valueToOntologyResource(v)).asInstanceOf[Observable[Value[_]]])
+              .flatMap(v => graph.valueStore.byValue(v, DataType.detect(v)).asInstanceOf[Observable[Value[_]]])
               .asInstanceOf[Observable[Value[_]]]
               .map(value => librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value)))
           }

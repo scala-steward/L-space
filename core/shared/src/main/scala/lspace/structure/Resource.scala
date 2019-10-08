@@ -63,13 +63,13 @@ trait Resource[+T] extends IriResource {
   /**
     * @return list of labels assigned to the resource
     */
-  def `@type`: List[ClassType[_]] = labels
+  def `@type`: List[ClassType[Any]] = labels
 
   /**
     * alias for `@type`
     * @return
     */
-  def labels: List[ClassType[_]]
+  def labels: List[ClassType[Any]]
 
   protected def sameResource(resource: Resource[_]): Boolean = resource.id == id
 
@@ -235,29 +235,30 @@ trait Resource[+T] extends IriResource {
   def -|-(key: Property): PartialOutEdge[T] = ??? //TODO: drop existing, add new
 
   import shapeless.<:!<
-  def addOut[V, V0, VT0 <: ClassType[_]](key: String, value: V)(implicit ev1: V <:!< ClassType[_],
-                                                                dt: ClassTypeable.Aux[V, V0, VT0]): Task[Edge[T, V0]] =
+  def addOut[V, V0, VT0 <: ClassType[Any]](key: String, value: V)(
+      implicit ev1: V <:!< ClassType[Any],
+      dt: ClassTypeable.Aux[V, V0, VT0]): Task[Edge[T, V0]] =
     addOut[V, V0, VT0](
       graph.ns.properties
         .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
     )
-  def addOut[V <: ClassType[_]](key: String, value: V): Task[Edge[T, Node]] =
+  def addOut[V <: ClassType[Any]](key: String, value: V): Task[Edge[T, Node]] =
     addOut(
       graph.ns.properties
         .cached(key)
         .getOrElse(Property(key) /*throw new Exception("try to download unknown property")*/ ),
       value
     )
-  def addOut[V, V0, VT0 <: ClassType[_]](key: Property, value: V)(
-      implicit ev1: V <:!< ClassType[_],
+  def addOut[V, V0, VT0 <: ClassType[Any]](key: Property, value: V)(
+      implicit ev1: V <:!< ClassType[Any],
       ct: ClassTypeable.Aux[V, V0, VT0]): Task[Edge[T, V0]] = {
     for {
       toResource <- value match {
         case resource: Resource[_] => graph.resources.upsert(resource)
         case _ =>
-          graph.values.upsert(value)(ct)
+          graph.values.upsert(value, DataType.detect(value))
       }
       edge <- graph.edges.create(this, key, toResource.asInstanceOf[Resource[V0]])
     } yield edge
@@ -265,7 +266,7 @@ trait Resource[+T] extends IriResource {
 
   //TODO: cleanup types
   def addOut[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
-      implicit ev1: V <:!< ClassType[_]): Task[Edge[T, V]] = {
+      implicit ev1: V <:!< ClassType[Any]): Task[Edge[T, V]] = {
     for {
       toResource <- value match {
         case resource: Resource[_] => Task.now(resource.asInstanceOf[Resource[V]])
@@ -274,14 +275,14 @@ trait Resource[+T] extends IriResource {
             case dt: DataType[V] if dt.iri.nonEmpty =>
               graph.values.upsert(value, dt)
             case ct: ClassType[V] =>
-              graph.values.upsert(value, ClassType.valueToOntologyResource(value))
+              graph.values.upsert(value, DataType.detect(value))
           }
       }
       edge <- graph.edges.create(this, key, toResource)
     } yield edge
   }
 
-  def addOut[V <: ClassType[_]](key: Property, value: V): Task[Edge[T, Node]] = {
+  def addOut[V <: ClassType[Any]](key: Property, value: V): Task[Edge[T, Node]] = {
 //    val toResource = graph.ns.classtypes.store(value)
 //    val toResource = graph.ns.classtypes.store(value)
     for {
@@ -290,6 +291,7 @@ trait Resource[+T] extends IriResource {
     } yield edge
   }
 
+  //TODO: value can be a subtype of V, Task fails of subtype is not supported
   def addOut[V](key: TypedProperty[V], value: V): Task[Edge[T, V]] = {
     for {
       toResource <- value match {
@@ -343,7 +345,7 @@ trait Resource[+T] extends IriResource {
             case dt: DataType[V] if dt.iri.nonEmpty =>
               graph.values.upsert(value, dt)
             case ct: ClassType[V] =>
-              graph.values.upsert(value, ClassType.valueToOntologyResource(value))
+              graph.values.upsert(value, DataType.detect(value))
           }
       }
       edge <- graph.edges.create(toResource, key, this)

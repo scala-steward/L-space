@@ -1,18 +1,19 @@
 package lspace.structure
 
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
-
 import lspace.datatype._
 import lspace.types.geo._
 import monix.eval.{Coeval, Task}
+import shapeless.Coproduct
 
-import scala.collection.immutable.ListSet
+import scala.collection.immutable.{Iterable, ListSet}
 import scala.collection.mutable
 
 object ClassType {
   trait DataTypeMatcher {
     def detect[V](value: V): Option[DataType[V]]
   }
+//  trait UnionClassType[T <: Coproduct] extends ClassType[T] {}
+//  trait UnionClassType[A, B] extends ClassType[A | B] {}
 
   object matchers {
     private lazy val datatypeMatchers = mutable.HashSet[DataTypeMatcher]()
@@ -24,47 +25,29 @@ object ClassType {
       datatypeMatchers.toStream.map(_.detect(value)).collectFirst { case Some(datatype) => datatype }
   }
 
-  def valueToOntologyResource[T](value: T): DataType[T] = {
-    (value match {
-      case r: Node          => DataType.default.`@nodeURL`
-      case r: Edge[_, _]    => DataType.default.`@edgeURL`
-      case r: Value[_]      => DataType.default.`@valueURL`
-      case r: Ontology      => DataType.default.`@class`
-      case r: Property      => DataType.default.`@property`
-      case r: DataType[_]   => DataType.default.`@datatype`
-      case r: IriResource   => DataType.default.`@url`
-      case v: String        => DataType.default.`@string`
-      case v: Int           => DataType.default.`@int`
-      case v: Double        => DataType.default.`@double`
-      case v: Long          => DataType.default.`@long`
-      case v: Instant       => DataType.default.`@datetime`
-      case v: LocalDateTime => DataType.default.`@localdatetime`
-      case v: LocalDate     => DataType.default.`@date`
-      case v: LocalTime     => DataType.default.`@time`
-//      case v: Time          => DataType.default.`@duration`
-      case v: Boolean => DataType.default.`@boolean`
-      case v: Geometry =>
-        v match {
-          case v: Point         => DataType.default.`@geopoint`
-          case v: MultiPoint    => DataType.default.`@geomultipoint`
-          case v: Line          => DataType.default.`@geoline`
-          case v: MultiLine     => DataType.default.`@geomultiline`
-          case v: Polygon       => DataType.default.`@geopolygon`
-          case v: MultiPolygon  => DataType.default.`@geomultipolygon`
-          case v: MultiGeometry => DataType.default.`@geomultigeo`
-          case _                => DataType.default.`@geo`
+  def detect[T](value: T): ClassType[Any] = {
+    implicit class WithV(value: Any) {
+      def ct: ClassType[Any] = detect(value)
+    }
+    value match {
+      case r: IriResource =>
+        r match {
+          case r: Resource[_] =>
+            r match {
+              case r: Node       => r.labels.reduceOption[ClassType[Any]](_ + _).getOrElse(Ontology.empty)
+              case r: Edge[_, _] => r.key
+              case r: Value[_]   => r.label
+            }
+          case r: ClassType[_] =>
+            r match {
+              case r: Ontology    => Ontology.ontology
+              case r: Property    => Property.ontology
+              case r: DataType[_] => DataType.ontology
+            }
+          case _ => ClassType.empty
         }
-      case v: Map[_, _]    => DataType.default.mapType() //TODO: recursively map nested values to map -> toList.distinct ?
-      case v: ListSet[_]   => DataType.default.listsetType()
-      case v: List[_]      => DataType.default.listType()
-      case v: Set[_]       => DataType.default.setType()
-      case v: Vector[_]    => DataType.default.vectorType()
-      case v: (_, _)       => TupleType(List(None, None))
-      case v: (_, _, _)    => TupleType(List(None, None, None))
-      case v: (_, _, _, _) => TupleType(List(None, None, None, None))
-      case v =>
-        matchers.findDataType(v).getOrElse(throw new Exception(s"not a known range ${value.getClass}"))
-    }).asInstanceOf[DataType[T]]
+      case r => DataType.detect(r)
+    }
   }
 
   object classtypes {
@@ -111,6 +94,7 @@ object ClassType {
   }
   //helper, empty iri is used to recognize and filter out this classtype
   lazy val stubAny: ClassType[Any] = makeT[Any]
+  lazy val empty: ClassType[Any]   = stubAny
 
   //helper, empty iri is used to recognize and filter out this classtype
   lazy val stubNothing: ClassType[Nothing] = makeT[Nothing]
@@ -132,82 +116,88 @@ trait ClassType[+T] extends IriResource {
   def iris: Set[String] //TODO var iriList: Coeval[Set[String]]
   def `@ids` = iris
 
-  //TODO: improve
+  //TODO: improve, explore union-types
   def +[T1](ct: ClassType[T1]): ClassType[Any] = (this, ct) match {
     case (ct1: DataType[_], ct2: DataType[_]) =>
-      (ct1, ct2) match {
-        case (ct1: LiteralType[_], ct2: LiteralType[_]) =>
-          (ct1, ct2) match {
-            case (ct1: NumericType[_], ct2: NumericType[_]) =>
-              (ct1, ct2) match {
-                case (ct1: IntType[_], ct2: IntType[_])       => ct1
-                case (ct1: DoubleType[_], ct2: DoubleType[_]) => ct1
-                case (ct1: LongType[_], ct2: LongType[_])     => ct1
-                case _                                        => NumericType.datatype
-              }
-            case (ct1: CalendarType[_], ct2: CalendarType[_]) =>
-              (ct1, ct2) match {
-                case (ct1: DateTimeType[_], ct2: DateTimeType[_])           => ct1
-                case (ct1: LocalDateTimeType[_], ct2: LocalDateTimeType[_]) => ct1
-                case (ct1: LocalTimeType[_], ct2: LocalTimeType[_])         => ct1
-                case (ct1: LocalDateType[_], ct2: LocalDateType[_])         => ct1
-                case _                                                      => NumericType.datatype
-              }
-            case (ct1: TextType[_], ct2: TextType[_]) => ct1
-            case (ct1: BoolType[_], ct2: BoolType[_]) => ct1
-            case _                                    => LiteralType.datatype
-          }
-        case (ct1: StructuredType[_], ct2: StructuredType[_]) => //TODO: improve
-          (ct1, ct2) match {
-            case (ct1: CollectionType[_], ct2: CollectionType[_]) =>
-              (ct1, ct2) match {
-                case (ct1: ListType[_], ct2: ListType[_]) => ListType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case (ct1: ListSetType[_], ct2: ListSetType[_]) =>
-                  ListSetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case (ct1: MapType[_], ct2: MapType[_]) =>
-                  MapType(ct1.keyRange ++ ct2.keyRange reduce (_ + _), ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case (ct1: SetType[_], ct2: SetType[_]) => SetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case (ct1: VectorType[_], ct2: VectorType[_]) =>
-                  VectorType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case (ct1: OptionType[_], ct2: OptionType[_]) =>
-                  OptionType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
-                case _ => CollectionType.datatype
-              }
-            case (ct1: GeometricType[_], ct2: GeometricType[_]) =>
-              (ct1, ct2) match {
-                case (ct1: GeopointType[_], ct2: GeopointType[_])     => ct1
-                case (ct1: GeoPolygonType[_], ct2: GeoPolygonType[_]) => ct1
-                //TODO: other geo-types
-                case _ => GeometricType.datatype
-              }
-            case (ct1: QuantityType[_], ct2: QuantityType[_]) =>
-              (ct1, ct2) match {
-                case (ct1: DurationType[_], ct2: DurationType[_]) => ct1
-                case _                                            => QuantityType.datatype
-              }
-            case (ct1: TupleType[_], ct2: TupleType[_]) =>
-              if (ct1.rangeTypes.size == ct2.rangeTypes.size) {
-                TupleType(ct1.rangeTypes.zip(ct2.rangeTypes).map {
-                  case (ct1, ct2) if ct1.isEmpty || ct2.isEmpty => None
-                  case (Some(ct1), Some(ct2))                   => Some(ct1 + ct2)
-                })
-              } else TupleType.datatype
-            case (ct1: ColorType[_], ct2: ColorType[_]) => ct1 //TODO: wrong
-            case _                                      => StructuredType.datatype
-          }
-        case (ct1: IriType[_], ct2: IriType[_]) =>
-          (ct1, ct2) match {
-            case (ct1: NodeURLType[_], ct2: NodeURLType[_])   => ct1
-            case (ct1: EdgeURLType[_], ct2: EdgeURLType[_])   => ct1
-            case (ct1: ValueURLType[_], ct2: ValueURLType[_]) => ct1
-            case _                                            => IriType.datatype
-          }
-        case (ct1: GraphType[_], ct2: GraphType[_]) => ct1
-        case _                                      => DataType.datatype
-      }
-    case (ct1: Ontology, ct2: Ontology) => NodeURLType.datatype
-    case (ct1: Property, ct2: Property) => EdgeURLType.datatype
-    case _                              => ClassType.stubAny
+      if (ct1.`@extends`(ct2)) ct2
+      else if (ct2.`@extends`(ct1)) ct1
+      else
+        (ct1, ct2) match {
+          case (ct1: LiteralType[_], ct2: LiteralType[_]) =>
+            (ct1, ct2) match {
+              case (ct1: NumericType[_], ct2: NumericType[_]) =>
+                (ct1, ct2) match {
+                  case (ct1: IntType[_], ct2: IntType[_])       => ct1
+                  case (ct1: DoubleType[_], ct2: DoubleType[_]) => ct1
+                  case (ct1: LongType[_], ct2: LongType[_])     => ct1
+                  case _                                        => NumericType.datatype
+                }
+              case (ct1: CalendarType[_], ct2: CalendarType[_]) =>
+                (ct1, ct2) match {
+                  case (ct1: DateTimeType[_], ct2: DateTimeType[_])           => ct1
+                  case (ct1: LocalDateTimeType[_], ct2: LocalDateTimeType[_]) => ct1
+                  case (ct1: LocalTimeType[_], ct2: LocalTimeType[_])         => ct1
+                  case (ct1: LocalDateType[_], ct2: LocalDateType[_])         => ct1
+                  case _                                                      => NumericType.datatype
+                }
+              case (ct1: TextType[_], ct2: TextType[_]) => ct1
+              case (ct1: BoolType[_], ct2: BoolType[_]) => ct1
+              case _                                    => LiteralType.datatype
+            }
+          case (ct1: StructuredType[_], ct2: StructuredType[_]) => //TODO: improve
+            (ct1, ct2) match {
+              case (ct1: CollectionType[_], ct2: CollectionType[_]) =>
+                (ct1, ct2) match {
+                  case (ct1: ListType[_], ct2: ListType[_]) => ListType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case (ct1: ListSetType[_], ct2: ListSetType[_]) =>
+                    ListSetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case (ct1: MapType[_], ct2: MapType[_]) =>
+                    MapType(ct1.keyRange ++ ct2.keyRange reduce (_ + _),
+                            ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case (ct1: SetType[_], ct2: SetType[_]) => SetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case (ct1: VectorType[_], ct2: VectorType[_]) =>
+                    VectorType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case (ct1: OptionType[_], ct2: OptionType[_]) =>
+                    OptionType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case _ => CollectionType.datatype
+                }
+              case (ct1: GeometricType[_], ct2: GeometricType[_]) =>
+                (ct1, ct2) match {
+                  case (ct1: GeopointType[_], ct2: GeopointType[_])     => ct1
+                  case (ct1: GeoPolygonType[_], ct2: GeoPolygonType[_]) => ct1
+                  //TODO: other geo-types
+                  case _ => GeometricType.datatype
+                }
+              case (ct1: QuantityType[_], ct2: QuantityType[_]) =>
+                (ct1, ct2) match {
+                  case (ct1: DurationType[_], ct2: DurationType[_]) => ct1
+                  case _                                            => QuantityType.datatype
+                }
+              case (ct1: TupleType[_], ct2: TupleType[_]) =>
+                if (ct1.rangeTypes.size == ct2.rangeTypes.size) {
+                  TupleType(ct1.rangeTypes.zip(ct2.rangeTypes).map {
+                    case (ct1, ct2) if ct1.isEmpty || ct2.isEmpty => None
+                    case (Some(ct1), Some(ct2))                   => Some(ct1 + ct2)
+                  })
+                } else TupleType.datatype
+              case (ct1: ColorType[_], ct2: ColorType[_]) => ct1 //TODO: wrong
+              case _                                      => StructuredType.datatype
+            }
+          case (ct1: IriType[_], ct2: IriType[_]) =>
+            (ct1, ct2) match {
+              case (ct1: NodeURLType[_], ct2: NodeURLType[_])   => ct1
+              case (ct1: EdgeURLType[_], ct2: EdgeURLType[_])   => ct1
+              case (ct1: ValueURLType[_], ct2: ValueURLType[_]) => ct1
+              case _                                            => IriType.datatype
+            }
+          case (ct1: GraphType[_], ct2: GraphType[_]) => ct1
+          case _                                      => DataType.datatype
+        }
+    case (ct1: Ontology, ct2: Ontology) =>
+      if (ct1.`@extends`(ct2)) ct2 else if (ct2.`@extends`(ct1)) ct1 else Ontology.empty
+    case (ct1: Property, ct2: Property) =>
+      if (ct1.`@extends`(ct2)) ct2 else if (ct2.`@extends`(ct1)) ct1 else Property.empty
+    case _ => ClassType.stubAny
   }
 //  protected def _properties: () => List[Property]
 

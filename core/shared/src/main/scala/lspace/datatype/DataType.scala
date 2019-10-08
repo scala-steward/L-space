@@ -1,17 +1,20 @@
 package lspace.datatype
 
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.NS
 import lspace.NS.types
+import lspace.structure.ClassType.matchers
 import lspace.structure.util.ClassTypeable
 import lspace.structure.OntologyDef
 import lspace.structure._
+import lspace.types.geo.{Geometry, Line, MultiGeometry, MultiLine, MultiPoint, MultiPolygon, Point, Polygon}
 import monix.eval.{Coeval, Task}
 
 import scala.collection.concurrent
 import scala.collection.JavaConverters._
-import scala.collection.immutable.ListSet
+import scala.collection.immutable.{Iterable, ListSet}
 import scala.concurrent.duration.FiniteDuration
 
 object DataType
@@ -30,109 +33,77 @@ object DataType
     labelMap = Map("en" -> NS.types.`@datatype`)
   }
 
+//  def wrapped[T]: DataType[DataType[T]] =
   def urlType[T]: IriType[T] = new IriType[T] {
     val iri: String = NS.types.`@datatype`
   }
 
-  /*private def build(node: Node): Coeval[DataType[_]] = {
-    if (node.hasLabel(ontology).nonEmpty) {
-          node
-            .out(Property.default.`@extends`)
-            .headOption
-            .collect {
-              case nodes: List[_] =>
-                nodes.collect {
-                  case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-                    datatypes
-                      .get(node.iri)
-                      .getOrElse {
-                        datatypes.getAndUpdate(node)
-                      } //orElse???
-                  case iri: String =>
-                    datatypes
-                      .get(iri)
-                      .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-                }
-              case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-                List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
-            }
-            .toList
-            .flatten
-        .flatMap { extended =>
-          extended.head match {
-            case dt: CollectionType[_] =>
-              dt match {
-                case dt: ListType[_] =>
-                  Coeval
-                    .sequence(
-                      node
-                        .out(ListType.keys.valueRangeClassType)
-                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
-                    .map { types =>
-                      ListType(types.flatten)
-                    }
-                case dt: ListSetType[_] =>
-                  Coeval
-                    .sequence(
-                      node
-                        .out(ListSetType.keys.valueRangeClassType)
-                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
-                    .map { types =>
-                      ListSetType(types.flatten)
-                    }
-                case dt: SetType[_] =>
-                  Coeval
-                    .sequence(
-                      node
-                        .out(SetType.keys.valueRangeClassType)
-                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
-                    .map { types =>
-                      SetType(types.flatten)
-                    }
-                case dt: VectorType[_] =>
-                  Coeval
-                    .sequence(
-                      node
-                        .out(VectorType.keys.valueRangeClassType)
-                        .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
-                    .map { types =>
-                      VectorType(types.flatten)
-                    }
-                case dt: MapType[_, _] =>
-                  for {
-                    keyRange <- Coeval
-                      .sequence(
-                        node
-                          .out(MapType.keys.keyRangeClassType)
-                          .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
-                    valueRange <- Coeval
-                      .sequence(
-                        node
-                          .out(MapType.keys.valueRangeClassType)
-                          .map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild))))
-                  } yield {
-                    MapType(keyRange.flatten, keyRange.flatten)
-                  }
-                case dt: TupleType[_] =>
-                  node
-                    .out(TupleType.keys._rangeClassType)
-                    .map(list =>
-                      Coeval.sequence(list.map(types => Coeval.sequence(types.map(ClassType.classtypes.getOrBuild)))))
-                    .head
-                    .map(TupleType(_))
-              }
-            case _ => Coeval.raiseError(new Exception(""))
-          }
-        }
-    } else {
-      //      new Exception(s"${node.iri} with id ${node.id} is not an ontology, labels: ${node.labels.map(_.iri)}")
-      //        .printStackTrace()
-      Coeval.raiseError(
-        new Exception(s"${node.iri} with id ${node.id} ${node.outE(Property.default.`@id`).head.to.id} " +
-          s"${node.graph.values.hasId(node.outE(Property.default.`@id`).head.to.id).isDefined} is not an ontology, labels: ${node.labels
-            .map(_.iri)}"))
+  def detect[T](value: T): DataType[T] = {
+    implicit class WithV[V](value: V) {
+      def ct: ClassType[Any] = ClassType.detect(value)
     }
-  }*/
+    (value match {
+      case r: IriResource =>
+        r match {
+          case r: Resource[_] =>
+            r match {
+              case r: Node       => throw new Exception(s"a Node is not an instance of DataType")
+              case r: Edge[_, _] => throw new Exception(s"an Edge is not an instance of DataType")
+              case r: Value[_]   => DataType.default.`@valueURL`
+            }
+          case r: ClassType[_] => throw new Exception(s"a ClassType is not an instance of DataType")
+          case _ => DataType.default.`@url`
+        }
+      case v: String        => DataType.default.`@string`
+      case v: Int           => DataType.default.`@int`
+      case v: Double        => DataType.default.`@double`
+      case v: Long          => DataType.default.`@long`
+      case v: Instant       => DataType.default.`@datetime`
+      case v: LocalDateTime => DataType.default.`@localdatetime`
+      case v: LocalDate     => DataType.default.`@date`
+      case v: LocalTime     => DataType.default.`@time`
+      //      case v: Time          => DataType.default.`@duration`
+      case v: Boolean => DataType.default.`@boolean`
+      case v: Geometry =>
+        v match {
+          case v: Point         => DataType.default.`@geopoint`
+          case v: MultiPoint    => DataType.default.`@geomultipoint`
+          case v: Line          => DataType.default.`@geoline`
+          case v: MultiLine     => DataType.default.`@geomultiline`
+          case v: Polygon       => DataType.default.`@geopolygon`
+          case v: MultiPolygon  => DataType.default.`@geomultipolygon`
+          case v: MultiGeometry => DataType.default.`@geomultigeo`
+          case _                => DataType.default.`@geo`
+        }
+      case v: Iterable[_] =>
+        v match {
+          case v: Map[_, _] => if(v.nonEmpty) DataType.default.mapType(v.keys.toList.map(_.ct).reduce(_ + _), v.values.toList.map(_.ct).reduce(_ + _)) else
+            DataType.default.mapType() //TODO: recursively map nested values to map -> toList.distinct ?
+          case v: ListSet[_] => if(v.nonEmpty) DataType.default.listsetType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.listsetType()
+          case v: List[_]    => if(v.nonEmpty) DataType.default.listType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.listType()
+          case v: Set[_]     => if(v.nonEmpty) DataType.default.setType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.setType()
+          case v: Vector[_]  => if(v.nonEmpty) DataType.default.vectorType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.vectorType()
+        }
+      case v: Product =>
+        v match {
+          case v: (_)                      => TupleType(List(Some(v.ct)))
+          case v: (_, _)                      => TupleType(List(Some(v._1.ct), Some(v._2.ct)))
+          case v: (_, _, _)                   => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct)))
+          case v: (_, _, _, _)                => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct)))
+          case v: (_, _, _, _, _)             => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct)))
+          case v: (_, _, _, _, _, _)          => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct)))
+          case v: (_, _, _, _, _, _, _)       => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct)))
+          case v: (_, _, _, _, _, _, _, _)    => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct)))
+          case v: (_, _, _, _, _, _, _, _, _) => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct), Some(v._9.ct)))
+          case v: (_, _, _, _, _, _, _, _, _, _) =>
+            TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct), Some(v._9.ct), Some(v._10.ct)))
+          case v: (_, _, _, _, _, _, _, _, _, _, _) =>
+            TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct), Some(v._9.ct), Some(v._10.ct), Some(v._11.ct)))
+        }
+      case v =>
+        matchers.findDataType(v).getOrElse(throw new Exception(s"not a known range ${value.getClass}"))
+    }).asInstanceOf[DataType[T]]
+  }
 
   object datatypes {
 

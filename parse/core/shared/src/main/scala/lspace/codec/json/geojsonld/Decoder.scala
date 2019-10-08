@@ -149,7 +149,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
             .getOrElse(Task.raiseError(new Exception("invalid properties"))))
         .getOrElse(Task.now(Map[String, Json]()))
       node <- DetachedGraph.nodes.create()
-      //      geo  <- DetachedGraph.values.upsert(geometry, lspace.ClassType.valueToOntologyResource(geometry))
+      //      geo  <- DetachedGraph.values.upsert(geometry, lspace.ClassType.detect(geometry))
       //      _    <- node --- lspace.ns.vocab.schema.location --> geo
       _ <- withJsonProperties(node, properties.expand)
     } yield node
@@ -189,7 +189,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
                   for {
                     node <- DetachedGraph.nodes.create()
                     v = geoJsonDecoder.decodeGeometryCollection(map)
-                    value <- DetachedGraph.values.upsert(v, lspace.ClassType.valueToOntologyResource(v))
+                    value <- DetachedGraph.values.upsert(v, lspace.DataType.detect(v))
                     _     <- node --- "http://schema.org/location" --> value
                   } yield List(node)
                 case _ =>

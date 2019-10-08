@@ -17,7 +17,7 @@ object Within
   implicit def toNode[T](p: Within[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(EqP.keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+      _    <- node.addOut(EqP.keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
   }
 }

@@ -18,8 +18,10 @@ object Property {
       NS.types.`@property`,
       iris =
         Set(NS.types.`@property`, NS.types.rdfProperty, "https://schema.org/Property", "http://schema.org/Property"))
-  lazy val unknownProperty: Ontology =
-    Ontology("@unknownProperty", iris = Set("@unknownProperty"), extendedClasses = () => List(ontology))
+//  lazy val unknownProperty: Ontology =
+//    Ontology("@unknownProperty", iris = Set("@unknownProperty"), extendedClasses = () => List(ontology))
+
+  lazy val empty: Property = Property("", iris = Set(""))
 
   implicit lazy val urlType: IriType[Property] = new IriType[Property] {
     val iri: String = NS.types.`@property`
@@ -91,6 +93,7 @@ object Property {
 
     /**
       * This method is thread-safe and guarantees to return any existing property (if any) or it creates one.
+      * TODO: add implicit resolver, default to offline resolver (not downloading linked data definition, no benefits of inheritance)
       * @param iri
       * @param iris
       * @return
@@ -413,7 +416,7 @@ object Property {
   * @param iris
   */
 class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updateable
-) extends ClassType[Edge[_, _]] { self =>
+) extends ClassType[Edge[Any, Any]] { self =>
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
 //  def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)

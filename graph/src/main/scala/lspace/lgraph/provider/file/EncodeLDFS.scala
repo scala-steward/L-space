@@ -5,6 +5,7 @@ import lspace.codec.json.JsonEncoder
 import lspace.codec.json.jsonld.Encoder
 import lspace.structure._
 import lspace.codec.{ActiveContext, JsonInProgress}
+import lspace.datatype.DataType
 
 case class EncodeLDFS[Json](idMaps: IdMaps = IdMaps())(implicit override val baseEncoder: JsonEncoder[Json])
     extends Encoder {
@@ -29,7 +30,7 @@ case class EncodeLDFS[Json](idMaps: IdMaps = IdMaps())(implicit override val bas
           case iriResource: IriResource => JsonInProgress(iriResource.iri.asJson)(activeContext)
         }
       case _ =>
-        val label = ClassType.valueToOntologyResource(value)
+        val label = DataType.detect(value)
         if (expectedType.contains(label)) {
           fromData(value, label)
         } else {

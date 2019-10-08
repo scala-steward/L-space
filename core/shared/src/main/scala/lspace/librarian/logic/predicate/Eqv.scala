@@ -18,7 +18,7 @@ object Eqv extends PredicateDef("Eqv", `@extends` = () => List(EqP.ontology)) wi
   implicit def toNode[T](p: Eqv[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+      _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
   }
 }

@@ -14,7 +14,7 @@ object Constant
 
   def toStep(node: Node): Task[Constant[Any]] = {
     val value = node.out(Constant.keys.value).head
-    Task.now(new Constant(value)(ClassType.valueToOntologyResource(value)))
+    Task.now(new Constant(value)(ClassType.detect(value)))
   }
 
   object keys extends TraverseStep.Properties {

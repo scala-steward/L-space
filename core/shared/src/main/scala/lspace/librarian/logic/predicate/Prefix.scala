@@ -19,7 +19,7 @@ object Prefix extends PredicateDef("Prefix", `@extends` = () => List(SeqP.ontolo
   implicit def toNode[T](p: Prefix[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+      _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
   }
 }

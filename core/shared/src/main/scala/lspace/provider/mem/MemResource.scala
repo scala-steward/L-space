@@ -92,7 +92,7 @@ trait MemResource[T] extends Resource[T] {
   }
 
   private def validateDT[V](dt: DataType[V], value: V) =
-    if (dt.iri.nonEmpty) dt else ClassType.valueToOntologyResource(value)
+    if (dt.iri.nonEmpty) dt else ClassType.detect(value)
 
   def removeIn[V >: T](edge: Edge[_, V]): Task[Unit] = Task.defer {
     Lock.synchronized {

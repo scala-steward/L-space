@@ -439,7 +439,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
                                   }
                                 }
                                 .orElse(toPrimitive(json)
-                                  .map(v => addEdgeTypedF(ClassType.valueToOntologyResource(v), v))
+                                  .map(v => addEdgeTypedF(ClassType.detect(v), v))
                                   .map(Task.now))
                                 .getOrElse(Task.raiseError(FromJsonException("cannot parse value")))
                           })*/
@@ -465,7 +465,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
 //                  }
 //                }
 //                .orElse(toPrimitive(json)
-//                  .map(v => graph.values.create(v, ClassType.valueToOntologyResource(v)))
+//                  .map(v => graph.values.create(v, ClassType.detect(v)))
 //                  .map(v => addEdgeF(v))
 //                  .map(Task.now(_)))
 //                .getOrElse(Task.raiseError(FromJsonException("cannot parse @value")))
@@ -690,7 +690,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
       implicit activeContext: ActiveContext): Option[Task[(ClassType[Any], Any)]] = {
     //is primitive
     toPrimitive(json)
-      .map(v => ClassType.valueToOntologyResource(v) -> v)
+      .map(v => ClassType.detect(v) -> v)
       .map(Task.now)
       .map(_.flatMap {
         case (dt: TextType[String] @unchecked, s: String) =>
@@ -765,7 +765,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
           label
             .map(toValue(json, _))
             .orElse(toPrimitive(json)
-              .map(v => graph.values.create(v, ClassType.valueToOntologyResource(v))))
+              .map(v => graph.values.create(v, DataType.detect(v))))
 //                .map(Task.now))
             .getOrElse(Task.raiseError(FromJsonException("cannot parse @value")))
         }

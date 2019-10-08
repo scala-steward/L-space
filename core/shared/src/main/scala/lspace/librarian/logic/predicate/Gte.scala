@@ -18,7 +18,7 @@ object Gte extends PredicateDef("Gte", `@extends` = () => List(OrderP.ontology))
   implicit def toNode[T](p: Gte[T]): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- node.addOut(keys.value, ClassType.valueToOntologyResource(p.pvalue), p.pvalue)
+      _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
   }
 }

@@ -428,7 +428,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
           case iriResource: IriResource => JsonInProgress(iriResource.iri.asJson)(activeContext)
         }
       case _ =>
-        val label = ClassType.valueToOntologyResource(value)
+        val label = DataType.detect(value)
         if (expectedType.contains(label)) {
           fromData(value, label)
         } else {

@@ -9,7 +9,7 @@ import shapeless.{::, HNil}
 object Value {
   val reservedKeys: Set[String] = Set(Property.default.`@type`.iri)
 
-  implicit def default[T <: Value[_]]: ClassTypeable.Aux[T, T, ValueURLType[T]] = new ClassTypeable[T] {
+  implicit def default[T <: Value[Any]]: ClassTypeable.Aux[T, T, ValueURLType[T]] = new ClassTypeable[T] {
     type C  = T
     type CT = ValueURLType[T]
     def ct: CT = ValueURLType.apply[T]
@@ -26,7 +26,7 @@ trait Value[+T] extends Resource[T] {
   def value: T
 
   def label: DataType[T] // = labels.collect { case tpe: DataType[T] => tpe }.head
-  def labels: List[DataType[_]] = List(label)
+  def labels: List[DataType[T]] = List(label)
 
   override def hasLabel[L](label: ClassType[L]*): Option[Value[L]] = {
     super.hasLabel(label: _*).asInstanceOf[Option[Value[L]]]
