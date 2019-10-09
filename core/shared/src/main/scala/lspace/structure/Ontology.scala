@@ -115,17 +115,25 @@ object Ontology {
         .collect {
           case nodes: List[_] =>
             nodes.collect {
+              case node: Node
+                  if node.hasLabel(Ontology.ontology).isDefined && (Property.properties
+                    .get(node.iri)
+                    .isDefined || DataType.datatypes.get(node.iri).isDefined) =>
+                scribe.error(s"${node.iri} is not an ontology, it has a property or datatype representation")
+                None
               case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
-                Ontology.ontologies
-                  .get(node.iri, node.iris)
-                  .getOrElse {
-                    Ontology.ontologies.getAndUpdate(node)
-                  } //orElse???
+                Some(
+                  Ontology.ontologies
+                    .get(node.iri, node.iris)
+                    .getOrElse {
+                      Ontology.ontologies.getAndUpdate(node)
+                    }) //orElse???
               case iri: String =>
-                Ontology.ontologies
-                  .get(iri)
-                  .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-            }
+                Some(
+                  Ontology.ontologies
+                    .get(iri)
+                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property")))
+            }.flatten
           case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
             List(Ontology.ontologies.get(node.iri, node.iris).getOrElse(Ontology.ontologies.getAndUpdate(node)))
         }
