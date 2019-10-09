@@ -34,7 +34,7 @@ object As
           lspace.NS.vocab.Lspace + "librarian/step/As/name",
           "name",
           "A named step-label which can be referred to further in the traversal",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val nameString: TypedProperty[String] = name.property as DataType.default.`@string`
   }

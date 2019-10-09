@@ -9,8 +9,8 @@ object NumericType extends DataTypeDef[NumericType[AnyVal]] {
   lazy val datatype: NumericType[AnyVal] = new NumericType[AnyVal] {
     val iri: String                = NS.types.`@number`
     override val iris: Set[String] = Set(NS.types.`@number`, NS.types.schemaNumber, "http://schema.org/Number")
-    labelMap = Map("en" -> NS.types.schemaNumber)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
+    labelMap ++= Map("en" -> NS.types.schemaNumber)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
   }
 
   object keys extends LiteralType.Properties
@@ -18,9 +18,9 @@ object NumericType extends DataTypeDef[NumericType[AnyVal]] {
   trait Properties extends LiteralType.Properties
 
   def numType[T]: NumericType[T] = new NumericType[T] {
-    val iri: String                                             = NS.types.`@number`
-    override val iris: Set[String]                              = Set(NS.types.schemaNumber)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
+    val iri: String                                            = NS.types.`@number`
+    override val iris: Set[String]                             = Set(NS.types.schemaNumber)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
   }
 
   implicit def clsNumeric[T, CT[+Z] <: NumericType[Z]]: ClassTypeable.Aux[CT[T], T, NumericType[T]] =

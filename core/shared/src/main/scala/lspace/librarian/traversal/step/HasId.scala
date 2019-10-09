@@ -8,7 +8,7 @@ import lspace.datatype.DataType
 import monix.eval.Task
 
 object HasId
-    extends StepDef("HasId", "A hasId-step filters resources by id.", () => HasStep.ontology :: Nil)
+    extends StepDef("HasId", "A hasId-step filters resources by id.", HasStep.ontology :: Nil)
     with StepWrapper[HasId] {
 
   def toStep(node: Node): Task[HasId] = Task.now(HasId(node.out(HasId.keys.idLong).toSet))
@@ -20,7 +20,7 @@ object HasId
           "Id",
           "An id",
           container = types.`@set` :: Nil,
-          `@range` = () => DataType.default.`@long` :: Nil
+          `@range` = DataType.default.`@long` :: Nil
         )
     val idLong: TypedProperty[Long] = id.property as DataType.default.`@long`
   }

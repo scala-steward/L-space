@@ -5,7 +5,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object ContainsFuzzy
-    extends PredicateDef("ContainsFuzzy", `@extends` = () => List(SeqP.ontology))
+    extends PredicateDef("ContainsFuzzy", `@extends` = List(SeqP.ontology))
     with PredicateWrapper[ContainsFuzzy[_]] {
 
   def toP(node: Node): ContainsFuzzy[_] = {

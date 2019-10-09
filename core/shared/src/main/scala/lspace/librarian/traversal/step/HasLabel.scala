@@ -8,18 +8,29 @@ import lspace.datatype.DataType
 import monix.eval.Task
 
 object HasLabel
-    extends StepDef("HasLabel", "A hasLabel-step filters resources by label.", () => HasStep.ontology :: Nil)
+    extends StepDef("HasLabel", "A hasLabel-step filters resources by label.", HasStep.ontology :: Nil)
     with StepWrapper[HasLabel] {
 
   def toStep(node: Node): Task[HasLabel] =
     for {
-      labels <- Task.gather(
-        node
-          .out(keys.label)
-          .collect {
-            case node: Node => node.iri
-          }
-          .map(node.graph.ns.classtypes.get(_).map(_.get)))
+      labels <-
+//        Task {
+//        node
+//          .out(keys.label)
+//          .collect {
+//            case node: Node => node //.iri
+//          }
+//          .map(node.graph.ns.classtypes.get(_))
+//      }
+      Task
+        .gather(
+          node
+            .out(keys.label)
+            .collect {
+              case node: Node => node.iri
+            }
+            .map(node.graph.ns.classtypes.get(_)))
+        .map(_.flatten) //.map(_.getOrElse(ClassType.stubNothing)))) //stubNothing is inserted when the ClassType is expected to be non-existing within the graph
     } yield HasLabel(labels)
 //      node
 //        .out(keys.label)
@@ -42,7 +53,7 @@ object HasLabel
           "Label",
           "A label",
           container = types.`@set` :: Nil,
-          `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
+          `@range` = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         )
     val labelOntologyNode: TypedProperty[Node] = label.property as Ontology.ontology
     val labelPropertyNode: TypedProperty[Node] = label.property as Property.ontology

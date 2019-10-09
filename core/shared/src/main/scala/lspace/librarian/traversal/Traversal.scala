@@ -49,7 +49,7 @@ object Traversal
           lspace.NS.vocab.Lspace + "librarian/Traversal/steps",
           "steps",
           "The steps in a traversal",
-          `@range` = () => VectorType(Step.ontology) :: Nil
+          `@range` = VectorType(Step.ontology) :: Nil
         ) {}
 
     lazy val stepsNode: TypedProperty[Vector[Node]] = steps.property as VectorType(Step.ontology)
@@ -1381,7 +1381,8 @@ object Traversal
           case step: HasStep =>
             step match {
               case step: HasLabel =>
-                new Traversal(step :: traversal.steps)(traversal.st, step.label.reduce(_ + _))
+                new Traversal(step :: traversal.steps)(traversal.st,
+                                                       step.label.reduceOption(_ + _).getOrElse(ClassType.stubNothing))
               case _ => new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
             }
         }

@@ -7,9 +7,7 @@ import lspace.structure.{ClassType, Node, Property, PropertyDef}
 import monix.eval.Task
 
 object Constant
-    extends StepDef("Constant",
-                    "A constant-step sets a strict value for the traverser.",
-                    () => TraverseStep.ontology :: Nil)
+    extends StepDef("Constant", "A constant-step sets a strict value for the traverser.", TraverseStep.ontology :: Nil)
     with StepWrapper[Constant[Any]] {
 
   def toStep(node: Node): Task[Constant[Any]] = {

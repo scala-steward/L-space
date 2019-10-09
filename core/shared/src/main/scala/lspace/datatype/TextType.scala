@@ -11,8 +11,8 @@ object TextType extends DataTypeDef[TextType[String]] {
     val iri: String = NS.types.`@string`
     override val iris: Set[String] =
       Set(NS.types.`@string`, NS.types.schemaText, "http://schema.org/Text", NS.types.xsdString)
-    labelMap = Map("en" -> NS.types.`@string`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@string`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
   }
 
   object keys extends LiteralType.Properties
@@ -32,5 +32,5 @@ trait TextType[+T] extends LiteralType[T]
 //  override val iri: String       = NS.types.`@iri`
 //  override val iris: Set[String] = Set()
 //
-//  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TextType.textType)
+//  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TextType.textType)
 //}

@@ -11,8 +11,8 @@ object LocalDateType extends DataTypeDef[LocalDateType[LocalDate]] {
   lazy val datatype: LocalDateType[LocalDate] = new LocalDateType[LocalDate] {
     val iri: String                = NS.types.`@date`
     override val iris: Set[String] = Set(NS.types.`@date`, NS.types.schemaDate, "http://schema.org/Date")
-    labelMap = Map("en" -> NS.types.`@date`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@date`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CalendarType.datatype)
   }
 
   object keys extends CalendarType.Properties

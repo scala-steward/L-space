@@ -8,7 +8,7 @@ import monix.eval.Task
 case object Dedup
     extends StepDef("Dedup",
                     "A dedup-step deduplicates traversers holding the same resource or result.",
-                    `@extends` = () => GlobalFilterStep.ontology :: Nil)
+                    `@extends` = GlobalFilterStep.ontology :: Nil)
     with StepWrapper[Dedup]
     with Dedup {
 

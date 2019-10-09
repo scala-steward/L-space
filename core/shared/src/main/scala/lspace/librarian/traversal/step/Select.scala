@@ -11,7 +11,7 @@ import shapeless.{HList, Poly1}
 object Select
     extends StepDef("Select",
                     "A select-step selects the preliminary result from marked steps in the traversal path.",
-                    `@extends` = () => ProjectionStep.ontology :: Nil)
+                    `@extends` = ProjectionStep.ontology :: Nil)
     with StepWrapper[Select[Any]] {
 
   case class Selection[SelectedLabels <: HList, TypesTuple](labels: SelectedLabels)
@@ -49,7 +49,7 @@ object Select
           "name",
           "The name of the result to retrieve",
           container = types.`@listset` :: Nil,
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val nameString: TypedProperty[List[String]] = name.property as ListType(DataType.default.`@string`)
   }

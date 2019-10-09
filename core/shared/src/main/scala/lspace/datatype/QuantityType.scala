@@ -10,8 +10,8 @@ object QuantityType extends DataTypeDef[QuantityType[Any]] {
 
   lazy val datatype: QuantityType[Any] = new QuantityType[Any] {
     val iri: String = NS.types.`@quantity`
-    labelMap = Map("en" -> NS.types.`@quantity`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@quantity`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties

@@ -9,7 +9,7 @@ import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Union
-    extends StepDef("Union", "A union-step ..", () => BranchStep.ontology :: Nil)
+    extends StepDef("Union", "A union-step ..", BranchStep.ontology :: Nil)
     with StepWrapper[Union[ClassType[Any], ClassType[Any]]] {
 
   def toStep(node: Node): Task[Union[ClassType[Any], ClassType[Any]]] =
@@ -31,7 +31,7 @@ object Union
           "traversal",
           "A traversal ..",
           container = lspace.NS.types.`@list` :: Nil,
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
   }

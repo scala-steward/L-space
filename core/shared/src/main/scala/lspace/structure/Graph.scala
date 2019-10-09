@@ -65,9 +65,20 @@ object Graph {
       type CT = DataType[T]
       def ct: CT = GraphType[T]
     }
+
+  lspace.librarian.traversal.Step.steps
+    .map(_.ontology)
+  lspace.librarian.logic.predicate.P.predicates
+    .map(_.ontology)
+  lspace.librarian.traversal.Step.steps
+    .map(_.properties)
+  lspace.librarian.logic.predicate.P.predicates
+    .map(_.properties)
 }
 
 trait Graph extends IriResource with GraphUtils { self =>
+  Graph //eagerly inits Graph-singleton on any Graph implementation
+
   trait _Resource[+T]        extends structure.Resource[T]
   abstract class _Node       extends _Resource[structure.Node] with Node
   abstract class _Edge[S, E] extends _Resource[structure.Edge[S, E]] with Edge[S, E]

@@ -18,7 +18,7 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
           lspace.NS.vocab.Lspace + "role",
           "role",
           "A role assigned to this user",
-          `@range` = () => Role.ontology :: Nil
+          `@range` = Role.ontology :: Nil
         ) {}
     lazy val `lspace:User/role@Role`: TypedProperty[Node] = `lspace:User/role` as Role.ontology
 
@@ -27,14 +27,14 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
           lspace.NS.vocab.Lspace + "manager",
           "manager",
           "A user who can establish or revoke the sessions of this user.",
-          `@range` = () => User.ontology :: Nil
+          `@range` = User.ontology :: Nil
         ) {}
     lazy val `lspace:User/manager@User`: TypedProperty[Node] = `lspace:User/manager` as User.ontology
 
     object `lspace:name`
         extends PropertyDef(lspace.NS.vocab.Lspace + "name",
                             "name",
-                            `@extends` = () => Property(lspace.NS.vocab.schema + "name") :: Nil)
+                            `@extends` = Property(lspace.NS.vocab.schema + "name") :: Nil)
     lazy val `lspace:name@String`: TypedProperty[String] = `lspace:name` as DataType.default.`@string`
 
     object `sioc:last_activity_date`

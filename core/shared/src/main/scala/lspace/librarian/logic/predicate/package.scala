@@ -8,8 +8,6 @@ package object predicate {
     def toP(node: Node): T
   }
 
-  abstract class PredicateDef(label: String,
-                              comment: String = "",
-                              `@extends`: () => List[Ontology] = () => List(P.ontology))
+  abstract class PredicateDef(label: String, comment: String = "", `@extends`: => List[Ontology] = List(P.ontology))
       extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/p/${label}", Set(), label, comment, `@extends`)
 }

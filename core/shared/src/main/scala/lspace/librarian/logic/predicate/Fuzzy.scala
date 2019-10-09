@@ -4,7 +4,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Fuzzy extends PredicateDef("Fuzzy", `@extends` = () => List(SeqP.ontology)) with PredicateWrapper[Fuzzy[_]] {
+object Fuzzy extends PredicateDef("Fuzzy", `@extends` = List(SeqP.ontology)) with PredicateWrapper[Fuzzy[_]] {
 
   def toP(node: Node): Fuzzy[_] = {
     val pvalue = node.out(SeqP.keys.value).head

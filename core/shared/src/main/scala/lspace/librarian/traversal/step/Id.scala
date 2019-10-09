@@ -8,7 +8,7 @@ import monix.eval.Task
 case object Id
     extends StepDef("Id",
                     "An id-step returns the id from the resource held by the traverser.",
-                    () => TraverseStep.ontology :: Nil)
+                    TraverseStep.ontology :: Nil)
     with StepWrapper[Id]
     with Id {
 

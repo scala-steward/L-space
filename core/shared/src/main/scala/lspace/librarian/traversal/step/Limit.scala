@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object Limit
-    extends StepDef("Limit", "A limit-step limits the traversal to first n-results.", () => ClipStep.ontology :: Nil)
+    extends StepDef("Limit", "A limit-step limits the traversal to first n-results.", ClipStep.ontology :: Nil)
     with StepWrapper[Limit] {
 
   def toStep(node: Node): Task[Limit] = Task.now(Limit(node.out(Limit.keys.maxInt).head))
@@ -18,7 +18,7 @@ object Limit
           lspace.NS.vocab.Lspace + "librarian/step/Limit/max",
           "max",
           "The maximum number of results",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val maxInt: TypedProperty[Int] = max.property as DataType.default.`@int`
   }

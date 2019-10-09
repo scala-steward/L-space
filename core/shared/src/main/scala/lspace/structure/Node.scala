@@ -18,8 +18,8 @@ object Node {
 
   def nodeUrl: NodeURLType[Node] = new NodeURLType[Node] {
     val iri: String = NS.types.`@nodeURL`
-    labelMap = Map("en" -> NS.types.`@nodeURL`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@nodeURL`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
   }
 
   implicit class WithNode[T](node: Node) {

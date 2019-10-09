@@ -9,8 +9,8 @@ object CalendarType extends DataTypeDef[CalendarType[Any]] {
   val datatype: CalendarType[Any] = new CalendarType[Any] {
     val iri: String                = NS.types.`@temporal`
     override val iris: Set[String] = Set(NS.types.`@temporal`)
-    labelMap = Map("en" -> NS.types.`@temporal`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@temporal`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
   }
 
   object keys extends LiteralType.Properties

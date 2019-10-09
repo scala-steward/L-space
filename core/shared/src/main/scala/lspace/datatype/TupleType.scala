@@ -27,13 +27,13 @@ object TupleType extends DataTypeDef[TupleType[_]] {
 //      s"${types.`@tuple`}N$iriTail"
 //    }
 //
-//    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+//    override lazy val _extendedClasses:  List[_ <: DataType[_]] =  List(TupleType.datatype)
 //  }
 
   lazy val datatype = new TupleType[Any] {
     override lazy val iri: String = NS.types.`@tuple`
-    labelMap = Map("en" -> NS.types.`@tuple`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@tuple`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties { //TODO: change to PropertyDef
@@ -42,8 +42,8 @@ object TupleType extends DataTypeDef[TupleType[_]] {
           "@tuplerange",
           label = "@tuplerange",
           comment = "@tuplerange",
-          `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType(OptionType(NodeURLType.datatype)) :: Nil
+          `@extends` = Property.default.`@range` :: Nil,
+          `@range` = ListType(OptionType(NodeURLType.datatype)) :: Nil
         )
     lazy val _rangeClassType: TypedProperty[List[Option[Node]]] = range as ListType(OptionType(NodeURLType.datatype))
 //    object _1stRange
@@ -51,8 +51,8 @@ object TupleType extends DataTypeDef[TupleType[_]] {
 //          "@1stRange",
 //          label = "@1stRange",
 //          comment = "@1stRange",
-//          `@extends` = () => Property.default.`@range` :: Nil,
-//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//          `@extends` = Property.default.`@range` :: Nil,
+//          `@range` = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
 //        )
 //    lazy val _1stRangeClassType: TypedProperty[List[Node]] = _1stRange + ListType(
 //      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
@@ -61,8 +61,8 @@ object TupleType extends DataTypeDef[TupleType[_]] {
 //          "@2ndRange",
 //          label = "@2ndRange",
 //          comment = "@2ndRange",
-//          `@extends` = () => Property.default.`@range` :: Nil,
-//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//          `@extends` = Property.default.`@range` :: Nil,
+//          `@range` = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
 //        )
 //    lazy val _2ndRangeClassType: TypedProperty[List[Node]] = _2ndRange + ListType(
 //      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
@@ -71,8 +71,8 @@ object TupleType extends DataTypeDef[TupleType[_]] {
 //          "@3rdRange",
 //          label = "@3rdRange",
 //          comment = "@3rdRange",
-//          `@extends` = () => Property.default.`@range` :: Nil,
-//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//          `@extends` = Property.default.`@range` :: Nil,
+//          `@range` = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
 //        )
 //    lazy val _3rdRangeClassType: TypedProperty[List[Node]] = _3rdRange + ListType(
 //      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
@@ -81,8 +81,8 @@ object TupleType extends DataTypeDef[TupleType[_]] {
 //          "@4rdRange",
 //          label = "@4rdRange",
 //          comment = "@4rdRange",
-//          `@extends` = () => Property.default.`@range` :: Nil,
-//          `@range` = () => ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
+//          `@extends` = Property.default.`@range` :: Nil,
+//          `@range` = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
 //        )
 //    lazy val _4rdRangeClassType: TypedProperty[List[Node]] = _4rdRange + ListType(
 //      Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
@@ -108,7 +108,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
     s"${types.`@tuple`}N$iriTail"
   }
 
-  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TupleType.datatype)
 }
 
 //object Tuple2Type extends DataTypeDef[Tuple2Type[Any, Any]] {
@@ -116,7 +116,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 //  lazy val datatype = new Tuple2Type[Any, Any](Nil, Nil) {
 //    override lazy val iri: String                               = NS.types.`@tuple` + "2"
 //    labelMap                     = Map("en" -> s"${NS.types.`@tuple`}2")
-//    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+//    override lazy val _extendedClasses: List[_ <: DataType[_]] = () => List(TupleType.datatype)
 //  }
 //
 //  object keys extends TupleType.Properties
@@ -147,7 +147,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 ////    else
 //    s"${types.`@tuple`}2(${_1stRange.map(_.iri).filter(_.nonEmpty).mkString("+")})(${_2ndRange.map(_.iri).filter(_.nonEmpty).mkString("+")})"
 //
-//  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple2Type.datatype)
+//  override lazy val _extendedClasses:  List[_ <: DataType[_]] = () => List(Tuple2Type.datatype)
 //}
 //
 //object Tuple3Type extends DataTypeDef[Tuple3Type[Any, Any, Any]] {
@@ -155,7 +155,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 //  lazy val datatype = new Tuple3Type[Any, Any, Any](Nil, Nil, Nil) {
 //    override lazy val iri: String                               = s"${NS.types.`@tuple`}3"
 //    labelMap                     = Map("en" -> s"${NS.types.`@tuple`}3")
-//    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+//    override lazy val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
 //  }
 //
 //  object keys extends TupleType.Properties
@@ -203,7 +203,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 //      .filter(_.nonEmpty)
 //      .mkString("+")})(${_3rdRange.map(_.iri).filter(_.nonEmpty).mkString("+")})"
 //
-//  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple3Type.datatype)
+//  override lazy val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple3Type.datatype)
 //}
 //
 //object Tuple4Type extends DataTypeDef[Tuple4Type[Any, Any, Any, Any]] {
@@ -211,7 +211,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 //  lazy val datatype = new Tuple4Type[Any, Any, Any, Any](Nil, Nil, Nil, Nil) {
 //    override lazy val iri: String                               = s"${NS.types.`@tuple`}4"
 //    labelMap                     = Map("en" -> s"${NS.types.`@tuple`}4")
-//    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
+//    override lazy val _extendedClasses: () => List[_ <: DataType[_]] = () => List(TupleType.datatype)
 //  }
 //
 //  object keys extends TupleType.Properties
@@ -265,5 +265,5 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 //    s"${types.`@tuple`}4(${_1stRange.map(_.iri).filter(_.nonEmpty).mkString("+")})(${_2ndRange.map(_.iri).filter(_.nonEmpty).mkString("+")})" +
 //      s"(${_3rdRange.map(_.iri).filter(_.nonEmpty).mkString("+")})(${_4rdRange.map(_.iri).filter(_.nonEmpty).mkString("+")})"
 //
-//  override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(Tuple4Type.datatype)
+//  override lazy val _extendedClasses:  List[_ <: DataType[_]] =  List(Tuple4Type.datatype)
 //}

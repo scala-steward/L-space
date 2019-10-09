@@ -5,7 +5,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object Contains
-    extends PredicateDef("Contains", `@extends` = () => List(CollectionP.ontology))
+    extends PredicateDef("Contains", `@extends` = List(CollectionP.ontology))
     with PredicateWrapper[Contains[_]] {
   trait Helper[T] {
     def contains(avalue: Any, pvalue: T): Boolean

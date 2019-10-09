@@ -4,7 +4,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Suffix extends PredicateDef("Suffix", `@extends` = () => List(SeqP.ontology)) with PredicateWrapper[Suffix[_]] {
+object Suffix extends PredicateDef("Suffix", `@extends` = List(SeqP.ontology)) with PredicateWrapper[Suffix[_]] {
 
   def toP(node: Node): Suffix[_] = {
 

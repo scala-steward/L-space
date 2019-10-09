@@ -6,7 +6,7 @@ import lspace.structure._
 import monix.eval.Task
 
 case object To
-    extends StepDef("To", "An to-step moves to the destination of an edge", () => TraverseStep.ontology :: Nil)
+    extends StepDef("To", "An to-step moves to the destination of an edge", TraverseStep.ontology :: Nil)
     with StepWrapper[To]
     with To {
 

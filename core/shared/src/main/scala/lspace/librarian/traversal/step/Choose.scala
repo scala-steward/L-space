@@ -10,7 +10,7 @@ import shapeless.HList
 object Choose
     extends StepDef("Choose",
                     "A choose-steps continues on the first of n-traversals which has a non-empty result.",
-                    () => BranchStep.ontology :: Nil)
+                    BranchStep.ontology :: Nil)
     with StepWrapper[Choose[_, _]] {
 
   def toStep(node: Node): Task[Choose[ClassType[Any], ClassType[Any]]] = node match {
@@ -51,7 +51,7 @@ object Choose
           "traversal",
           "A traversal ..",
           container = types.`@list` :: Nil,
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
 
@@ -61,7 +61,7 @@ object Choose
           "right",
           "The path to take when 'by' evaluates non-empty.",
           container = types.`@list` :: Nil,
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val rightTraversal: TypedProperty[Node] = right.property as Traversal.ontology
 
@@ -71,7 +71,7 @@ object Choose
           "left",
           "The path to take when 'by' evaluates empty",
           container = types.`@list` :: Nil,
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val leftTraversal: TypedProperty[Node] = left.property as Traversal.ontology
   }

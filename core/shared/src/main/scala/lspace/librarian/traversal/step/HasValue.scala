@@ -9,7 +9,7 @@ import monix.eval.Task
 object HasValue
     extends StepDef("HasValue",
                     "A hasValue-step is successful if the resources satisfies certain predicates.",
-                    () => HasStep.ontology :: Nil)
+                    HasStep.ontology :: Nil)
     with StepWrapper[HasValue] {
 
   def toStep(node: Node): Task[HasValue] = Task.now(HasValue(node.out(Has.keys.predicateUrl).map(P.toP).head))

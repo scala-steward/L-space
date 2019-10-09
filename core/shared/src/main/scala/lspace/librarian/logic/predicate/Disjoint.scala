@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object Disjoint
-    extends PredicateDef("Disjoint", `@extends` = () => CollectionP.ontology :: Nil)
+    extends PredicateDef("Disjoint", `@extends` = CollectionP.ontology :: Nil)
     with PredicateWrapper[Disjoint[_]] {
 
   def toP(node: Node): Disjoint[_] = {

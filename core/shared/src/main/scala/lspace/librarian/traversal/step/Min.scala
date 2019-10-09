@@ -11,7 +11,7 @@ object Min
     extends StepDef(
       "Min",
       "A min-step finds the traverser with the resource with the smallest value within all traversers in-scope.",
-      () => FilterBarrierStep.ontology :: ReducingStep.ontology :: Nil
+      FilterBarrierStep.ontology :: ReducingStep.ontology :: Nil
     )
     with StepWrapper[Min] {
 
@@ -40,7 +40,7 @@ object Min
           lspace.NS.vocab.Lspace + "librarian/step/Min/by",
           "by",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }

@@ -5,7 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Label extends StepDef("Label", "A label-step ..", () => MoveStep.ontology :: Nil) with StepWrapper[Label] {
+object Label extends StepDef("Label", "A label-step ..", MoveStep.ontology :: Nil) with StepWrapper[Label] {
 
   def toStep(node: Node): Task[Label] =
     for {

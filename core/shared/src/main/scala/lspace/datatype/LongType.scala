@@ -9,8 +9,8 @@ object LongType extends DataTypeDef[LongType[Long]] {
   lazy val datatype: LongType[Long] = new LongType[Long] {
     val iri: String                = NS.types.`@long`
     override val iris: Set[String] = Set(NS.types.`@long`, NS.types.xsdLong)
-    labelMap = Map("en" -> NS.types.`@long`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@long`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(NumericType.datatype)
   }
 
   object keys extends NumericType.Properties

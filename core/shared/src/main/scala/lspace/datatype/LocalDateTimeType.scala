@@ -11,8 +11,8 @@ object LocalDateTimeType extends DataTypeDef[LocalDateTimeType[LocalDateTime]] {
   lazy val datatype: LocalDateTimeType[LocalDateTime] = new LocalDateTimeType[LocalDateTime] {
     val iri: String                = NS.types.`@localdatetime`
     override val iris: Set[String] = Set(NS.types.`@localdatetime`)
-    labelMap = Map("en" -> NS.types.`@localdatetime`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@localdatetime`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CalendarType.datatype)
   }
 
   object keys extends CalendarType.Properties

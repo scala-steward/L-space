@@ -42,7 +42,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/traversal",
           "by",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
 
@@ -51,7 +51,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/until",
           "until",
           "If the result of this traversal is non-empty the repeat-loop will break",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val untilTraversal: TypedProperty[Node] = until.property as Traversal.ontology
 
@@ -60,7 +60,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/max",
           "max",
           "The maximum number of repeats",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val maxInt: TypedProperty[Int] = max.property as DataType.default.`@int`
 
@@ -69,7 +69,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/collect",
           "collect",
           "Set to true to return all intermediate results (of each repeat)",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val collectBoolean: TypedProperty[Boolean] = collect.property as DataType.default.`@boolean`
 
@@ -78,7 +78,7 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
           lspace.NS.vocab.Lspace + "librarian/step/Repeat/noloop",
           "noloop",
           "Set to true to prevent running into loops/cycles",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val noloopBoolean: TypedProperty[Boolean] = collect.property as DataType.default.`@boolean`
   }

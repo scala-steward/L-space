@@ -12,7 +12,7 @@ object HasNot
       "HasNot",
       "A hasNot-step grants the traverser passage if the traverser holds a " +
         "resource which does not satisfy certains properties (and values)",
-      () => HasStep.ontology :: Nil
+      HasStep.ontology :: Nil
     )
     with StepWrapper[HasNot] {
 
@@ -37,7 +37,7 @@ object HasNot
           lspace.NS.vocab.Lspace + "librarian/step/HasNot/Key",
           "Key",
           "A key",
-          `@range` = () => Property.ontology :: Nil
+          `@range` = Property.ontology :: Nil
         )
     val keyUrl: TypedProperty[Node] = key.property as Property.ontology
 
@@ -47,7 +47,7 @@ object HasNot
           "Predicate",
           "A Predicate",
           container = types.`@list` :: Nil,
-          `@range` = () => P.ontology :: Nil
+          `@range` = P.ontology :: Nil
         )
     val predicateUrl: TypedProperty[Node] = key.property as P.ontology
   }

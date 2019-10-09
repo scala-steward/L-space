@@ -7,7 +7,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Is] {
+object Is extends StepDef("Is", "An is-step ..", FilterStep.ontology :: Nil) with StepWrapper[Is] {
 
   def toStep(node: Node): Task[Is] = Task.now(Is(node.out(Is.keys.predicateUrl).map(P.toP).head))
 
@@ -17,7 +17,7 @@ object Is extends StepDef("Is", "An is-step ..", () => FilterStep.ontology :: Ni
           lspace.NS.vocab.Lspace + "librarian/step/Is/Predicate",
           "Predicate",
           "A Predicate",
-          `@range` = () => P.ontology :: Nil
+          `@range` = P.ontology :: Nil
         )
     val predicateUrl: TypedProperty[Node] = predicate.property as P.ontology
   }

@@ -82,12 +82,12 @@ object ClassType {
     val iri: String       = ""
     val iris: Set[String] = Set()
 
-    //    val _extendedClasses: () => List[_ <: DataType[_]] = () => List()
+    //    val _extendedClasses: List[_ <: DataType[_]] = List()
     object extendedClasses {
       def apply(): List[ClassType[Any]] = List()
       def apply(iri: String): Boolean   = false
     }
-//    val _properties: () => List[Property]              = () => List()
+//    val _properties: List[Property]              = List()
 //    val base: Option[String] = None
 
     override def toString: String = s"classtype:$iri"
@@ -199,9 +199,9 @@ trait ClassType[+T] extends IriResource {
       if (ct1.`@extends`(ct2)) ct2 else if (ct2.`@extends`(ct1)) ct1 else Property.empty
     case _ => ClassType.stubAny
   }
-//  protected def _properties: () => List[Property]
+//  protected def _properties: List[Property]
 
-//  protected def _extendedClasses: () => List[_ <: ClassType[_]]
+//  protected def _extendedClasses: List[_ <: ClassType[_]]
 
   //  def extendedClasses: List[ClassType[_]] // = out(DataType.default.EXTENDS).collect { case node: Node => node }.map(ClassType.wrap).asInstanceOf[List[ClassType[_]]]
   /**
@@ -227,7 +227,7 @@ trait ClassType[+T] extends IriResource {
 //  def `@property`(iri: String): Option[Property] = properties(iri)
 
   protected var propertiesList
-    : Coeval[Set[Property]] = Coeval.now(Set[Property]()).memoizeOnSuccess //_properties().toSet ++ extendedClasses.flatMap(_.properties)
+    : Coeval[Set[Property]] = Coeval(Set[Property]()).memoizeOnSuccess //_properties().toSet ++ extendedClasses.flatMap(_.properties)
   object properties {
     def apply(): Set[Property] = propertiesList()
     def apply(iri: String): Option[Property] = propertiesList().find(_.iris.contains(iri)).orElse {
@@ -238,19 +238,19 @@ trait ClassType[+T] extends IriResource {
       }
       result
     }
-    def +(property: Property): this.type = this.synchronized {
+    def +(property: => Property): this.type = this.synchronized {
       propertiesList = propertiesList.map(_ + property).memoizeOnSuccess
       this
     }
-    def ++(properties: Iterable[Property]): this.type = this.synchronized {
+    def ++(properties: => Iterable[Property]): this.type = this.synchronized {
       propertiesList = propertiesList.map(_ ++ properties).memoizeOnSuccess
       this
     }
-    def -(property: Property): this.type = this.synchronized {
+    def -(property: => Property): this.type = this.synchronized {
       propertiesList = propertiesList.map(_ - property).memoizeOnSuccess
       this
     }
-    def --(properties: Iterable[Property]): this.type = this.synchronized {
+    def --(properties: => Iterable[Property]): this.type = this.synchronized {
       propertiesList = propertiesList.map(_ -- properties).memoizeOnSuccess
       this
     }
@@ -271,31 +271,31 @@ trait ClassType[+T] extends IriResource {
     def apply(iri: String): Boolean
   }
 
-  protected var labelMap: Map[String, String] = Map()
+  protected lazy val labelMap: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
   object label {
-    def apply(): Map[String, String] = labelMap
+    def apply(): Map[String, String] = labelMap.toMap
     def apply(iri: String)           = labelMap.get(iri)
     def +(language: String = "en", label: String): this.type = this.synchronized {
-      labelMap = labelMap + (language -> label)
+      labelMap += (language -> label)
       this
     }
     def ++(label: Map[String, String]): this.type = this.synchronized {
-      labelMap = labelMap ++ label
+      labelMap ++= label
       this
     }
   }
   def `@label` = label
 
-  protected var commentMap: Map[String, String] = Map()
+  protected lazy val commentMap: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
   object comment {
-    def apply(): Map[String, String] = commentMap
+    def apply(): Map[String, String] = commentMap.toMap
     def apply(iri: String)           = commentMap.get(iri)
     def +(language: String = "en", comment: String): this.type = this.synchronized {
-      commentMap = commentMap + (language -> comment)
+      commentMap += (language -> comment)
       this
     }
     def ++(label: Map[String, String]): this.type = this.synchronized {
-      commentMap = commentMap ++ label
+      commentMap ++= label
       this
     }
   }

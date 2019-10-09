@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object Tail
-    extends StepDef("Tail", "A tail-step limits the traversal to last n-results.", () => ClipStep.ontology :: Nil)
+    extends StepDef("Tail", "A tail-step limits the traversal to last n-results.", ClipStep.ontology :: Nil)
     with StepWrapper[Tail] {
 
   def toStep(node: Node): Task[Tail] = Task.now(Tail(node.out(Tail.keys.maxInt).head))
@@ -18,7 +18,7 @@ object Tail
           lspace.NS.vocab.Lspace + "librarian/step/Tail/max",
           "max",
           "The maximum number of tail-results",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val maxInt: TypedProperty[Int] = max.property as DataType.default.`@int`
   }

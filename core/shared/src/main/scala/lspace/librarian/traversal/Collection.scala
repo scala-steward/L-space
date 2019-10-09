@@ -29,7 +29,7 @@ object Collection
           lspace.NS.vocab.Lspace + "librarian/Collection/start",
           "start",
           "Start time of collecting",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val startDateTime: TypedProperty[Instant] = start.property as DataType.default.`@datetime`
 
@@ -38,7 +38,7 @@ object Collection
           lspace.NS.vocab.Lspace + "librarian/Collection/end",
           "end",
           "End time of collecting",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val endDateTime: TypedProperty[Instant] = start.property as DataType.default.`@datetime`
 
@@ -47,7 +47,7 @@ object Collection
           lspace.NS.vocab.Lspace + "librarian/Collection/item",
           "item",
           "Collected item",
-          `@range` = () => ListType() :: Nil
+          `@range` = ListType() :: Nil
         ) {}
     lazy val itemList: TypedProperty[List[Any]] = item as ListType()
 

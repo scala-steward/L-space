@@ -156,7 +156,7 @@ trait EqP[+T] extends P[T] {
   def pvalue: T
 }
 object EqP
-    extends PredicateDef(label = "EqP", comment = "Equality/comparable predicate", `@extends` = () => P.ontology :: Nil) {
+    extends PredicateDef(label = "EqP", comment = "Equality/comparable predicate", `@extends` = P.ontology :: Nil) {
 
   object keys extends P.Properties {
     object value
@@ -164,7 +164,7 @@ object EqP
           lspace.NS.vocab.Lspace + "librarian/p/value",
           "value",
           "Any value",
-          `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
+          `@range` = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         ) {}
   }
 
@@ -176,7 +176,7 @@ object EqP
 }
 trait OrderP[+T] extends EqP[T]
 object OrderP
-    extends PredicateDef(label = "OrderP", comment = "Order/sortable predicate", `@extends` = () => EqP.ontology :: Nil) {
+    extends PredicateDef(label = "OrderP", comment = "Order/sortable predicate", `@extends` = EqP.ontology :: Nil) {
 
   object keys extends EqP.Properties
   override lazy val properties: List[Property] = EqP.properties
@@ -188,8 +188,7 @@ trait RangeP[+T] extends P[T] {
   def lower: T
   def upper: T
 }
-object RangeP
-    extends PredicateDef(label = "RangeP", comment = "Range predicate", `@extends` = () => P.ontology :: Nil) {
+object RangeP extends PredicateDef(label = "RangeP", comment = "Range predicate", `@extends` = P.ontology :: Nil) {
 
   object keys extends P.Properties {
     object lower
@@ -215,7 +214,7 @@ object RangeP
 }
 //trait ObjectP[T] extends P[T]
 //object ObjectP
-//    extends PredicateDef(label = "ObjectP", comment = "Object predicate", `@extends` = () => EqP.ontology :: Nil) {
+//    extends PredicateDef(label = "ObjectP", comment = "Object predicate", `@extends` = EqP.ontology :: Nil) {
 //
 //  object keys extends EqP.Properties
 //  override lazy val properties: List[Property] = EqP.properties
@@ -227,7 +226,7 @@ trait CollectionP[+T] extends P[T] {
   def pvalue: T
 }
 object CollectionP
-    extends PredicateDef(label = "CollectionP", comment = "Collection predicate", `@extends` = () => P.ontology :: Nil) {
+    extends PredicateDef(label = "CollectionP", comment = "Collection predicate", `@extends` = P.ontology :: Nil) {
 
   object keys extends P.Properties {
     object value
@@ -245,7 +244,7 @@ object CollectionP
 }
 trait SeqP[+T] extends CollectionP[T]
 object SeqP
-    extends PredicateDef(label = "SeqP", comment = "Sequence predicate", `@extends` = () => CollectionP.ontology :: Nil) {
+    extends PredicateDef(label = "SeqP", comment = "Sequence predicate", `@extends` = CollectionP.ontology :: Nil) {
 
   object keys extends CollectionP.Properties
   override lazy val properties: List[Property] = CollectionP.properties

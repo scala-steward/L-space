@@ -4,9 +4,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Between
-    extends PredicateDef("Between", `@extends` = () => List(RangeP.ontology))
-    with PredicateWrapper[Between[_]] {
+object Between extends PredicateDef("Between", `@extends` = List(RangeP.ontology)) with PredicateWrapper[Between[_]] {
 
   def toP(node: Node): Between[_] = {
     val lower = node.out(RangeP.keys.lower).head

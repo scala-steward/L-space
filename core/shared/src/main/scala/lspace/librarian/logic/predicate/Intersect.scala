@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object Intersect
-    extends PredicateDef("Intersect", `@extends` = () => CollectionP.ontology :: Nil)
+    extends PredicateDef("Intersect", `@extends` = CollectionP.ontology :: Nil)
     with PredicateWrapper[Intersect[_]] {
 
   def toP(node: Node): Intersect[_] = {

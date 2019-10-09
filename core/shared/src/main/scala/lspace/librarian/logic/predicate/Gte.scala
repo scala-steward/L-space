@@ -4,7 +4,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Gte extends PredicateDef("Gte", `@extends` = () => List(OrderP.ontology)) with PredicateWrapper[Gte[_]] {
+object Gte extends PredicateDef("Gte", `@extends` = List(OrderP.ontology)) with PredicateWrapper[Gte[_]] {
 
   def toP(node: Node): Gte[_] = {
     val pvalue = node.out(EqP.keys.value).head

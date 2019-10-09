@@ -11,7 +11,7 @@ object Has
       "Has",
       "A has-step grants the traverser passage if the travers holds a " +
         "resource which satisfies having certains properties (and values)",
-      () => HasStep.ontology :: Nil
+      HasStep.ontology :: Nil
     )
     with StepWrapper[Has] {
 
@@ -37,7 +37,7 @@ object Has
           lspace.NS.vocab.Lspace + "librarian/step/Has/Key",
           "Key",
           "A key",
-          `@range` = () => Property.ontology :: Nil
+          `@range` = Property.ontology :: Nil
         )
     val keyUrl: TypedProperty[Node] = key.property as Property.ontology
 
@@ -46,7 +46,7 @@ object Has
           lspace.NS.vocab.Lspace + "librarian/step/Has/Predicate",
           "Predicate",
           "A Predicate",
-          `@range` = () => P.ontology :: Nil
+          `@range` = P.ontology :: Nil
         )
     val predicateUrl: TypedProperty[Node] = predicate.property as P.ontology
   }

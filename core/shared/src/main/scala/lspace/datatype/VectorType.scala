@@ -9,8 +9,8 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
 
   lazy val datatype = new VectorType[Vector[Any]](None) {
     val iri: String = NS.types.`@vector`
-    labelMap = Map("en" -> NS.types.`@vector`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@vector`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -57,7 +57,7 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 
-      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
   }
 }

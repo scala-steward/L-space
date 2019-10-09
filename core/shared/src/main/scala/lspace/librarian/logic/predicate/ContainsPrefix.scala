@@ -5,7 +5,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object ContainsPrefix
-    extends PredicateDef("ContainsPrefix", `@extends` = () => List(SeqP.ontology))
+    extends PredicateDef("ContainsPrefix", `@extends` = List(SeqP.ontology))
     with PredicateWrapper[ContainsPrefix[_]] {
 
   def toP(node: Node): ContainsPrefix[_] = {

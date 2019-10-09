@@ -17,7 +17,7 @@ object ClientSession
       "ClientSession",
       "An client session is to secure a series of requests during a " +
         "limited period of time and bound to a client.",
-      () => OpenSession.ontology :: Nil
+      OpenSession.ontology :: Nil
     ) {
 
   object keys extends OpenSession.Properties {
@@ -26,7 +26,7 @@ object ClientSession
           lspace.NS.vocab.Lspace + "client",
           "client",
           "The client (device) the session is bound to.",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:ClientSession/client@Client`
       : TypedProperty[Node] = `lspace:ClientSession/client` as Client.ontology

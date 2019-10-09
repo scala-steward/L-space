@@ -9,7 +9,7 @@ import monix.eval.Task
 object InE
     extends StepDef("InE",
                     "An inE-step takes one or more property-labels and traverses to the valid incoming paths if any",
-                    () => MoveStep.ontology :: Nil)
+                    MoveStep.ontology :: Nil)
     with StepWrapper[InE] {
 
   def toStep(node: Node): Task[InE] =

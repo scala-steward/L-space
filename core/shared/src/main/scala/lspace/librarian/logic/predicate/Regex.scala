@@ -5,7 +5,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Regex extends PredicateDef("Regex", `@extends` = () => List(SeqP.ontology)) with PredicateWrapper[Regex] {
+object Regex extends PredicateDef("Regex", `@extends` = List(SeqP.ontology)) with PredicateWrapper[Regex] {
 
   def toP(node: Node): Regex = Regex(node.out(SeqP.keys.value as DataType.default.`@string`).head.r)
 

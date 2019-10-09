@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 import shapeless.{HList, HNil}
 
-object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: Nil) with StepWrapper[Not] {
+object Not extends StepDef("Not", "A not-step ..", FilterStep.ontology :: Nil) with StepWrapper[Not] {
 
   def toStep(node: Node): Task[Not] =
     for {
@@ -27,7 +27,7 @@ object Not extends StepDef("Not", "A not-step ..", () => FilterStep.ontology :: 
           lspace.NS.vocab.Lspace + "librarian/step/Not/traversal",
           "traversal",
           "A traversal which must have a empty result",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
   }

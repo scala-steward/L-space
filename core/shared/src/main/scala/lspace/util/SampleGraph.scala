@@ -53,27 +53,23 @@ object SampleGraph {
     val person = Person.ontology
   }
   object properties {
-    object name extends PropertyDef("name", label = "name", `@range` = () => TextType.datatype :: Nil)
+    object name extends PropertyDef("name", label = "name", `@range` = TextType.datatype :: Nil)
     lazy val nameString: TypedProperty[String] = name as TextType.datatype
-    object geo
-        extends PropertyDef("https://example.org/geo", label = "geo", `@range` = () => GeopointType.datatype :: Nil)
+    object geo extends PropertyDef("https://example.org/geo", label = "geo", `@range` = GeopointType.datatype :: Nil)
     lazy val geoPoint: TypedProperty[Point] = geo as GeopointType.datatype
     object birthDate
         extends PropertyDef("https://example.org/birthDate",
                             label = "birthDate",
-                            `@range` = () => LocalDateType.datatype :: Nil)
+                            `@range` = LocalDateType.datatype :: Nil)
     lazy val birthDateLocalDate: TypedProperty[LocalDate] = birthDate as LocalDateType.datatype
     object birthPlace
-        extends PropertyDef("https://example.org/birthPlace",
-                            label = "birthPlace",
-                            `@range` = () => Place.ontology :: Nil)
+        extends PropertyDef("https://example.org/birthPlace", label = "birthPlace", `@range` = Place.ontology :: Nil)
     lazy val birthPlacePlace: TypedProperty[Node] = birthPlace as Place.ontology
-    object balance extends PropertyDef("balance", label = "balance", `@range` = () => DoubleType.datatype :: Nil)
+    object balance extends PropertyDef("balance", label = "balance", `@range` = DoubleType.datatype :: Nil)
     lazy val balanceDouble: TypedProperty[Double] = balance as DoubleType.datatype
-    object rate extends PropertyDef("rate", label = "rate", `@range` = () => IntType.datatype :: Nil)
+    object rate extends PropertyDef("rate", label = "rate", `@range` = IntType.datatype :: Nil)
     lazy val rateInt: TypedProperty[Int] = rate as IntType.datatype
-    object knows
-        extends PropertyDef("https://example.org/knows", label = "knows", `@range` = () => Person.ontology :: Nil)
+    object knows extends PropertyDef("https://example.org/knows", label = "knows", `@range` = Person.ontology :: Nil)
     lazy val knowsPerson: TypedProperty[Node] = knows as Person.ontology
   }
   object namespaces {

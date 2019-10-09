@@ -11,8 +11,8 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
 
   lazy val datatype = new ListSetType[ListSet[Any]](None) {
     val iri: String = NS.types.`@listset`
-    labelMap = Map("en" -> NS.types.`@listset`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@listset`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -60,7 +60,7 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
         List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
-      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
   }
 }

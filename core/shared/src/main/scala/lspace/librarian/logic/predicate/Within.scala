@@ -4,9 +4,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Within
-    extends PredicateDef("Within", `@extends` = () => List(CollectionP.ontology))
-    with PredicateWrapper[Within[_]] {
+object Within extends PredicateDef("Within", `@extends` = List(CollectionP.ontology)) with PredicateWrapper[Within[_]] {
 
   def toP(node: Node): Within[_] = Within(node.out(EqP.keys.value))
 

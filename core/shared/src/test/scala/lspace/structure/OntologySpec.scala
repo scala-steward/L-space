@@ -1,6 +1,7 @@
 package lspace.structure
 
-import lspace.librarian.traversal.step.V
+import lspace.librarian.traversal.step.{Or, V}
+import lspace.provider.detached.DetachedGraph
 import monix.eval.Task
 import org.scalatest.{AsyncWordSpec, Matchers}
 

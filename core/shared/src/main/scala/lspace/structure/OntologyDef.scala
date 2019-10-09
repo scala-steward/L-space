@@ -4,6 +4,13 @@ import monix.eval.Coeval
 
 object OntologyDef {
   implicit def oDefToOntology[T <: OntologyDef](df: T): Ontology = df.ontology
+
+//  object defs {
+//    private var list
+//    : Coeval[List[OntologyDef]] = Coeval.now(List()).memoizeOnSuccess
+//
+//    def get: List[OntologyDef]] =
+//  }
 }
 
 /**
@@ -20,37 +27,23 @@ abstract class OntologyDef(
     iris: Set[String] = Set(),
     label: String, //move to union types (e.g. String | Map[String, String]) once available (dotty?)
     comment: String = "", //move to union types (e.g. String | Map[String, String]) once available (dotty?)
-    `@extends`: () => List[Ontology] = () => List(),
+    `@extends`: => List[Ontology] = List(),
     base: Option[String] = None,
-    labels: Map[String, String] = Map(),
-    comments: Map[String, String] = Map())
+    val labels: Map[String, String] = Map(),
+    val comments: Map[String, String] = Map())
     extends ClassTypeDef[Ontology] {
 
-  def label0    = label
-  def comment0  = comment
   def classtype = ontology
-  def _extends  = `@extends`
 
-  lazy val ontology: Ontology = {
-    val ontology = new Ontology(
-      iri,
-      iris
-//      _properties = () => properties,
-//      labelMap = Map("en" -> label0) ++ labels,
-//      commentMap = Map("en" -> comment0).filter(_._2.nonEmpty) ++ comments,
-//      _extendedClasses = `@extends`,
-    ) {
-      labelMap = Map("en" -> label0) ++ labels
-      commentMap = Map("en" -> comment0).filter(_._2.nonEmpty) ++ comments
-      extendedClassesList = Coeval.delay(_extends()).memoizeOnSuccess
-      propertiesList = Coeval.delay(properties0.toSet).memoizeOnSuccess
-    }
-    Ontology.ontologies.byIri.getOrElseUpdate(ontology.iri, ontology)
-  }
+  val ontology: Ontology = Ontology.ontologies.getOrCreate(iri, iris)
+  ontology.label ++ (Map("en"   -> label).filter(_._2.nonEmpty) ++ labels.filter(_._2.nonEmpty))
+  ontology.comment ++ (Map("en" -> comment).filter(_._2.nonEmpty) ++ comments.filter(_._2.nonEmpty))
+  ontology.extendedClasses.++(`@extends`)
+  ontology.properties ++ properties.toSet
 
 //  def keys: Object               = new {}
-  def properties: List[Property] = List()
-  private def properties0        = properties
+  lazy val properties: List[Property] = List()
+//  private def properties0        = properties
 
   trait Properties {}
 }

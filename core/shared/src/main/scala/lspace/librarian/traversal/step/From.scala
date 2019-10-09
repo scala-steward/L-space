@@ -6,7 +6,7 @@ import lspace.structure._
 import monix.eval.Task
 
 case object From
-    extends StepDef("From", "A from-step moves to the origin of the edge", () => TraverseStep.ontology :: Nil)
+    extends StepDef("From", "A from-step moves to the origin of the edge", TraverseStep.ontology :: Nil)
     with StepWrapper[From]
     with From {
 

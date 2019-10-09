@@ -9,7 +9,7 @@ import monix.eval.Task
 object TimeLimit
     extends StepDef("TimeLimit",
                     "A timeLimit-step restricts the amount of time a traversal may run.",
-                    () => EnvironmentStep.ontology :: Nil)
+                    EnvironmentStep.ontology :: Nil)
     with StepWrapper[TimeLimit] {
 
   def toStep(node: Node): Task[TimeLimit] =

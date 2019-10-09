@@ -6,7 +6,7 @@ import lspace.datatype.DataType
 import lspace.structure._
 import monix.eval.Task
 
-object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: Nil) with StepWrapper[Range] {
+object Range extends StepDef("Range", "A range ..", ClipStep.ontology :: Nil) with StepWrapper[Range] {
 
   def toStep(node: Node): Task[Range] =
     Task.now(Range(node.out(Range.keys.lowInt).take(1).head, node.out(Range.keys.highInt).take(1).head))
@@ -17,7 +17,7 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
           lspace.NS.vocab.Lspace + "librarian/step/Range/low",
           "low",
           "The lower result-index to start from",
-          `@range` = () => DataType.default.`@int` :: Nil
+          `@range` = DataType.default.`@int` :: Nil
         )
     val lowInt: TypedProperty[Int] = low.property as DataType.default.`@int`
 
@@ -26,7 +26,7 @@ object Range extends StepDef("Range", "A range ..", () => ClipStep.ontology :: N
           lspace.NS.vocab.Lspace + "librarian/step/Range/high",
           "high",
           "The higher result-index to start from",
-          `@range` = () => DataType.default.`@int` :: Nil
+          `@range` = DataType.default.`@int` :: Nil
         )
     val highInt: TypedProperty[Int] = high.property as DataType.default.`@int`
   }

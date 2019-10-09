@@ -6,7 +6,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object ContainsRegex
-    extends PredicateDef("ContainsRegex", `@extends` = () => List(SeqP.ontology))
+    extends PredicateDef("ContainsRegex", `@extends` = List(SeqP.ontology))
     with PredicateWrapper[ContainsRegex] {
 
   def toP(node: Node): ContainsRegex = ContainsRegex(node.out(SeqP.keys.value as DataType.default.`@string`).head.r)

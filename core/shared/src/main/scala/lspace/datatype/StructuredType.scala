@@ -9,8 +9,8 @@ object StructuredType extends DataTypeDef[StructuredType[Any]] {
   lazy val datatype: StructuredType[Any] = new StructuredType[Any] {
     val iri: String                = NS.types.`@structured`
     override val iris: Set[String] = Set(NS.types.`@structured`)
-    labelMap = Map("en" -> NS.types.`@structured`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@structured`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
   }
 
   object keys
@@ -19,8 +19,8 @@ object StructuredType extends DataTypeDef[StructuredType[Any]] {
 
   def apply[T]: StructuredType[T] = new StructuredType[T] {
     val iri: String = NS.types.`@structured`
-    labelMap = Map("en" -> NS.types.`@structured`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@structured`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
   }
 
   implicit def clsStructured[T]: ClassTypeable.Aux[StructuredType[T], T, StructuredType[T]] =

@@ -8,9 +8,7 @@ import lspace.structure._
 import monix.eval.Task
 import shapeless.{HList, HNil}
 
-object Order
-    extends StepDef("Order", "An order-step ..", () => GroupingBarrierStep.ontology :: Nil)
-    with StepWrapper[Order] {
+object Order extends StepDef("Order", "An order-step ..", GroupingBarrierStep.ontology :: Nil) with StepWrapper[Order] {
 
   sealed trait Orderable[T]
   object Orderable {
@@ -37,7 +35,7 @@ object Order
           lspace.NS.vocab.Lspace + "librarian/step/Order/by",
           "by",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
 
@@ -46,7 +44,7 @@ object Order
           lspace.NS.vocab.Lspace + "librarian/step/Order/increasing",
           "increasing",
           "Set to true to sort ascending",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val increasingBoolean: TypedProperty[Boolean] = increasing.property as DataType.default.`@boolean`
   }

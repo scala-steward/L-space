@@ -13,7 +13,7 @@ case class Skip(n: Int) extends ClipStep {
 }
 
 object Skip
-    extends StepDef("Skip", "A skip-step skips the first n-results.", () => ClipStep.ontology :: Nil)
+    extends StepDef("Skip", "A skip-step skips the first n-results.", ClipStep.ontology :: Nil)
     with StepWrapper[Skip] {
 
   def toStep(node: Node): Task[Skip] = Task.now(Skip(node.out(Skip.keys.nInt).head))
@@ -24,7 +24,7 @@ object Skip
           lspace.NS.vocab.Lspace + "librarian/step/Skip/n",
           "n",
           "The number of first-results to skip",
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val nInt: TypedProperty[Int] = n.property as DataType.default.`@int`
   }

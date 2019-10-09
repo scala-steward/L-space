@@ -8,7 +8,7 @@ import lspace.NS.types
 import monix.eval.Task
 
 object E
-    extends StepDef("E", "An e-step selects edges to traverse from.", () => ResourceStep.ontology :: Nil)
+    extends StepDef("E", "An e-step selects edges to traverse from.", ResourceStep.ontology :: Nil)
     with StepWrapper[E] {
 
   def toStep(node: Node): Task[E] = node match {
@@ -22,7 +22,7 @@ object E
           lspace.NS.vocab.Lspace + "librarian/step/E/edge",
           "edge",
           "An edge",
-          `@range` = () => ListType(DataType.default.`@edgeURL`) :: Nil
+          `@range` = ListType(DataType.default.`@edgeURL`) :: Nil
         )
     val edgeUrl: TypedProperty[List[Edge[Any, Any]]] = edge.property as ListType(DataType.default.`@edgeURL`)
   }

@@ -11,13 +11,13 @@ object IriType extends DataTypeDef[IriType[IriResource]] {
   lazy val datatype = new IriType[IriResource] {
     val iri: String                = NS.types.`@url`
     override val iris: Set[String] = Set(NS.types.`@url`, NS.types.schemaURL, NS.types.xsdAnyURI)
-    labelMap = Map("en" -> NS.types.`@url`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(DataType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@url`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
   }
 
-  object keys extends DataType.Properties
-  override lazy val properties: List[Property] = DataType.properties
-  trait Properties extends DataType.Properties
+  object keys
+  override lazy val properties: List[Property] = List()
+  trait Properties
 
   def apply[T]: IriType[T] = new IriType[T] { val iri: String = "" }
 

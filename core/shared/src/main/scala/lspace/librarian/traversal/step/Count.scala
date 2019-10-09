@@ -6,9 +6,7 @@ import lspace.structure._
 import monix.eval.Task
 
 case object Count
-    extends StepDef("Count",
-                    "A count-step counts the number of remaining traversers.",
-                    () => BarrierStep.ontology :: Nil)
+    extends StepDef("Count", "A count-step counts the number of remaining traversers.", BarrierStep.ontology :: Nil)
     with StepWrapper[Count]
     with Count {
 

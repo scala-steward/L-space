@@ -17,7 +17,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
           lspace.NS.vocab.Lspace + "Role",
           "Role",
           "A role assigned to this user",
-          `@range` = () => Role.ontology :: Nil
+          `@range` = Role.ontology :: Nil
         ) {}
     lazy val `lspace:Client/role@Role`: TypedProperty[Node] = `lspace:Client/role` as Role.ontology
 
@@ -26,7 +26,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
           lspace.NS.vocab.Lspace + "Manager",
           "Manager",
           "A user who can establish or revoke the sessions of this user.",
-          `@range` = () => User.ontology :: Nil
+          `@range` = User.ontology :: Nil
         ) {}
     lazy val `lspace:Client/manager@User`: TypedProperty[Node] = `lspace:Client/manager` as User.ontology
 
@@ -35,7 +35,7 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
           lspace.NS.vocab.Lspace + "Client/session",
           "session",
           "A session ...",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:Client/session@ClientSession`
       : TypedProperty[Node] = `lspace:Client/session` as ClientSession.ontology

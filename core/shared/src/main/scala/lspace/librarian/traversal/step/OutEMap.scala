@@ -6,9 +6,7 @@ import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import monix.eval.Task
 
-object OutEMap
-    extends StepDef("OutEMap", "An outEMap-step ..", () => MoveStep.ontology :: Nil)
-    with StepWrapper[OutEMap] {
+object OutEMap extends StepDef("OutEMap", "An outEMap-step ..", MoveStep.ontology :: Nil) with StepWrapper[OutEMap] {
 
   def toStep(node: Node): Task[OutEMap] =
     for {

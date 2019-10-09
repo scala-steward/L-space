@@ -10,8 +10,8 @@ object BoolType extends DataTypeDef[BoolType[Any]] {
     val iri: String = NS.types.`@boolean`
     override val iris: Set[String] =
       Set(NS.types.`@boolean`, NS.types.schemaBoolean, "http://schema.org/Boolean", NS.types.xsdBoolean)
-    labelMap = Map("en" -> NS.types.`@boolean`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(LiteralType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@boolean`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
   }
 
   object keys extends LiteralType.Properties

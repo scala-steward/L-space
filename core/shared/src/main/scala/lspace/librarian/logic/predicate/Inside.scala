@@ -6,9 +6,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Inside
-    extends PredicateDef("Inside", `@extends` = () => List(RangeP.ontology))
-    with PredicateWrapper[Inside[_]] {
+object Inside extends PredicateDef("Inside", `@extends` = List(RangeP.ontology)) with PredicateWrapper[Inside[_]] {
 
   def toP(node: Node): Inside[_] = node match {
     case node: Inside[_] => node

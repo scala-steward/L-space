@@ -139,7 +139,7 @@ trait Step extends Product with Serializable {
 }
 
 trait GraphStep extends ResourceStep
-object GraphStep extends StepDef(label = "GraphStep", comment = "GraphStep", () => ResourceStep.ontology :: Nil) {
+object GraphStep extends StepDef(label = "GraphStep", comment = "GraphStep", ResourceStep.ontology :: Nil) {
   object keys extends ResourceStep.Properties
   override lazy val properties: List[Property] = ResourceStep.properties
   trait Properties extends ResourceStep.Properties
@@ -162,20 +162,19 @@ object TraverseStep
   trait Properties extends Step.Properties
 }
 trait ProjectionStep extends Step
-object ProjectionStep
-    extends StepDef(label = "ProjectionStep", comment = "ProjectionStep", () => Step.ontology :: Nil) {
+object ProjectionStep extends StepDef(label = "ProjectionStep", comment = "ProjectionStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 trait ResourceStep extends Step
-object ResourceStep extends StepDef(label = "ResourceStep", comment = "ResourceStep", () => Step.ontology :: Nil) {
+object ResourceStep extends StepDef(label = "ResourceStep", comment = "ResourceStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 trait MoveStep extends BranchStep
-object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", () => BranchStep.ontology :: Nil) {
+object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", BranchStep.ontology :: Nil) {
 
   object keys extends BranchStep.Properties {
     object label
@@ -183,7 +182,7 @@ object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", () => 
           lspace.NS.vocab.Lspace + "librarian/MoveStep/label",
           "label",
           "A label",
-          `@range` = () => Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
+          `@range` = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         ) {}
     lazy val labelUrl: TypedProperty[IriResource] = label.property as DataType.default.`@url`
   }
@@ -202,31 +201,31 @@ trait MapStep extends ProjectionStep with GroupingStep
 object MapStep
     extends StepDef(label = "MapStep",
                     comment = "Property MapStep",
-                    () => ProjectionStep.ontology :: GroupingStep.ontology :: Nil) {
+                    ProjectionStep.ontology :: GroupingStep.ontology :: Nil) {
   object keys extends ProjectionStep.Properties with GroupingStep.Properties
   override lazy val properties: List[Property] = ProjectionStep.properties ++ GroupingStep.properties
   trait Properties extends ProjectionStep.Properties with GroupingStep.Properties
 }
 trait BarrierStep extends Step
-object BarrierStep extends StepDef(label = "BarrierStep", comment = "BarrierStep", () => Step.ontology :: Nil) {
+object BarrierStep extends StepDef(label = "BarrierStep", comment = "BarrierStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 trait GroupingStep extends Step
-object GroupingStep extends StepDef(label = "GroupingStep", comment = "GroupingStep", () => Step.ontology :: Nil) {
+object GroupingStep extends StepDef(label = "GroupingStep", comment = "GroupingStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 trait RearrangeStep extends Step
-object RearrangeStep extends StepDef(label = "RearrangeStep", comment = "RearrangeStep", () => Step.ontology :: Nil) {
+object RearrangeStep extends StepDef(label = "RearrangeStep", comment = "RearrangeStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 //trait ReducingStep extends Step
-//object ReducingStep extends StepDef(label = "ReducingStep", comment = "ReducingStep", () => Step.ontology :: Nil) {
+//object ReducingStep extends StepDef(label = "ReducingStep", comment = "ReducingStep", Step.ontology :: Nil) {
 //  object keys extends Step.Properties
 //  override lazy val properties: List[Property] = Step.properties
 //  trait Properties extends Step.Properties
@@ -235,7 +234,7 @@ trait GroupingBarrierStep extends BarrierStep with GroupingStep //with TraverseS
 object GroupingBarrierStep
     extends StepDef(label = "CollectingBarrierStep",
                     comment = "CollectingBarrierStep",
-                    () => BarrierStep.ontology :: GroupingStep.ontology :: TraverseStep.ontology :: Nil) {
+                    BarrierStep.ontology :: GroupingStep.ontology :: TraverseStep.ontology :: Nil) {
   object keys extends BarrierStep.Properties with GroupingStep.Properties with TraverseStep.Properties
   override lazy val properties
     : List[Property] = BarrierStep.properties ++ GroupingStep.properties ++ TraverseStep.properties
@@ -245,7 +244,7 @@ trait ReducingBarrierStep extends BarrierStep with ReducingStep //with TraverseS
 object ReducingBarrierStep
     extends StepDef(label = "ReducingBarrierStep",
                     comment = "ReducingBarrierStep",
-                    () => BarrierStep.ontology :: ReducingStep.ontology :: Nil) {
+                    BarrierStep.ontology :: ReducingStep.ontology :: Nil) {
   object keys extends BarrierStep.Properties with ReducingStep.Properties
   override lazy val properties: List[Property] = BarrierStep.properties ::: ReducingStep.properties
   trait Properties extends BarrierStep.Properties with ReducingStep.Properties
@@ -254,7 +253,7 @@ trait FilterBarrierStep extends BarrierStep with FilterStep //with ReducingStep
 object FilterBarrierStep
     extends StepDef(label = "FilterBarrierStep",
                     comment = "FilterBarrierStep",
-                    () => BarrierStep.ontology :: FilterStep.ontology :: Nil) {
+                    BarrierStep.ontology :: FilterStep.ontology :: Nil) {
   object keys extends BarrierStep.Properties with FilterStep.Properties
   override lazy val properties: List[Property] = BarrierStep.properties ::: FilterStep.properties
   trait Properties extends BarrierStep.Properties with FilterStep.Properties
@@ -264,48 +263,47 @@ object RearrangeBarrierStep
     extends StepDef(
       label = "RearrangeBarrierStep",
       comment = "A rearrange-barrier-step can change the order of the traversers.",
-      () => RearrangeStep.ontology :: BarrierStep.ontology :: Nil
+      RearrangeStep.ontology :: BarrierStep.ontology :: Nil
     ) {
   object keys extends RearrangeStep.Properties with BarrierStep.Properties
   override lazy val properties: List[Property] = RearrangeStep.properties ++ BarrierStep.properties
   trait Properties extends RearrangeStep.Properties with BarrierStep.Properties
 }
 trait EnvironmentStep extends Step
-object EnvironmentStep
-    extends StepDef(label = "EnvironmentStep", comment = "EnvironmentStep", () => Step.ontology :: Nil) {
+object EnvironmentStep extends StepDef(label = "EnvironmentStep", comment = "EnvironmentStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 
 trait FilterStep extends Step
-object FilterStep extends StepDef(label = "FilterStep", comment = "FilterStep", () => Step.ontology :: Nil) {
+object FilterStep extends StepDef(label = "FilterStep", comment = "FilterStep", Step.ontology :: Nil) {
   object keys extends TraverseStep.Properties
   override lazy val properties: List[Property] = TraverseStep.properties
   trait Properties extends TraverseStep.Properties
 }
 trait GlobalFilterStep extends FilterStep
 object GlobalFilterStep
-    extends StepDef(label = "GlobalFilterStep", comment = "GlobalFilterStep", () => FilterStep.ontology :: Nil) {
+    extends StepDef(label = "GlobalFilterStep", comment = "GlobalFilterStep", FilterStep.ontology :: Nil) {
   object keys extends FilterStep.Properties
   override lazy val properties: List[Property] = FilterStep.properties
   trait Properties extends FilterStep.Properties
 }
 //trait ReduceStep extends Step
 trait ReducingStep extends Step
-object ReducingStep extends StepDef(label = "ReducingStep", comment = "ReducingStep", () => Step.ontology :: Nil) {
+object ReducingStep extends StepDef(label = "ReducingStep", comment = "ReducingStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 trait ClipStep extends FilterStep
-object ClipStep extends StepDef(label = "ClipStep", comment = "ClipStep", () => FilterStep.ontology :: Nil) {
+object ClipStep extends StepDef(label = "ClipStep", comment = "ClipStep", FilterStep.ontology :: Nil) {
   object keys extends FilterStep.Properties
   override lazy val properties: List[Property] = FilterStep.properties
   trait Properties extends FilterStep.Properties
 }
 trait HasStep extends FilterStep
-object HasStep extends StepDef(label = "HasStep", comment = "HasStep", () => FilterStep.ontology :: Nil) {
+object HasStep extends StepDef(label = "HasStep", comment = "HasStep", FilterStep.ontology :: Nil) {
   sealed trait ClassTypeLabel[T]
   sealed trait PropertyLabel[T] extends ClassTypeLabel[T]
   implicit def IsPropertyDef[T <: PropertyDef] = new PropertyLabel[T] {}
@@ -326,15 +324,13 @@ object HasStep extends StepDef(label = "HasStep", comment = "HasStep", () => Fil
 }
 
 trait BranchStep extends Step
-object BranchStep extends StepDef(label = "BranchStep", comment = "BranchStep", () => Step.ontology :: Nil) {
+object BranchStep extends StepDef(label = "BranchStep", comment = "BranchStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
 
-abstract class StepDef(label: String,
-                       comment: String = "",
-                       `@extends`: () => List[Ontology] = () => List(Step.ontology))
+abstract class StepDef(label: String, comment: String = "", `@extends`: => List[Ontology] = List(Step.ontology))
     extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/step/${label}", Set(), label, comment, `@extends`)
 
 trait StepWrapper[T <: Step] {

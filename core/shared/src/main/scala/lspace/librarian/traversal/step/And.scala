@@ -10,7 +10,7 @@ import shapeless.{HList, HNil}
 object And
     extends StepDef("And",
                     "An and-step traverser only survives if all n-traversals have a non-empty result.",
-                    () => FilterStep.ontology :: Nil)
+                    FilterStep.ontology :: Nil)
     with StepWrapper[And] {
 
   def toStep(node: Node): Task[And] = node match {
@@ -34,7 +34,7 @@ object And
           lspace.NS.vocab.Lspace + "librarian/step/And/traversal",
           "traversal",
           "A traversal which must have a non-empty result",
-          `@range` = () => ListType(Traversal.ontology) :: Nil
+          `@range` = ListType(Traversal.ontology) :: Nil
         )
     val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
   }

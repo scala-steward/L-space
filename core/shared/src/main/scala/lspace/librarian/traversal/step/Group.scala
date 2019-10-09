@@ -7,7 +7,7 @@ import monix.eval.Task
 import shapeless.{HList, HNil}
 
 object Group
-    extends StepDef("Group", "A group-step groups traversers.", () => GroupingBarrierStep.ontology :: Nil)
+    extends StepDef("Group", "A group-step groups traversers.", GroupingBarrierStep.ontology :: Nil)
     with StepWrapper[Group[ClassType[Any], _ <: HList, ClassType[Any], _ <: HList]] {
 
   def toStep(node: Node): Task[Group[ClassType[Any], _ <: HList, ClassType[Any], _ <: HList]] =
@@ -30,7 +30,7 @@ object Group
           lspace.NS.vocab.Lspace + "librarian/step/Group/by",
           "by",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
     object value
@@ -38,7 +38,7 @@ object Group
           lspace.NS.vocab.Lspace + "librarian/step/Group/value",
           "value",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val valueTraversal: TypedProperty[Node] = value.property as Traversal.ontology
   }

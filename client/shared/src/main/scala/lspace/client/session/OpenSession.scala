@@ -17,7 +17,7 @@ object OpenSession
       "OpenSession",
       "An open session is to secure a series of requests during a " +
         "limited period of time and is not bound to a client or user.",
-      () => Session.ontology :: Nil
+      Session.ontology :: Nil
     ) {
 
   object keys extends Session.Properties {
@@ -26,7 +26,7 @@ object OpenSession
           lspace.NS.vocab.Lspace + "expiration",
           "expiration",
           "Date and time at which the session expires.",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:OpenSession/expiration@Instant`
       : TypedProperty[Instant] = `lspace:OpenSession/expiration` as DataType.default.`@datetime`
@@ -36,7 +36,7 @@ object OpenSession
           lspace.NS.vocab.Lspace + "startTime",
           "startTime",
           "Date and time at which the session has started.",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:OpenSession/startTime@Instant`
       : TypedProperty[Instant] = `lspace:OpenSession/startTime` as DataType.default.`@datetime`
@@ -46,7 +46,7 @@ object OpenSession
           lspace.NS.vocab.Lspace + "endTime",
           "endTime",
           "Date and time at which the session has ended.",
-          `@range` = () => DataType.default.`@datetime` :: Nil
+          `@range` = DataType.default.`@datetime` :: Nil
         ) {}
     lazy val `lspace:OpenSession/endTime@Instant`
       : TypedProperty[Instant] = `lspace:OpenSession/endTime` as DataType.default.`@datetime`

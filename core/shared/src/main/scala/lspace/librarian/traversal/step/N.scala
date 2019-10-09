@@ -8,7 +8,7 @@ import lspace.structure._
 import monix.eval.Task
 
 object N
-    extends StepDef("N", "An n-step selects nodes to traverse from.", () => ResourceStep.ontology :: Nil)
+    extends StepDef("N", "An n-step selects nodes to traverse from.", ResourceStep.ontology :: Nil)
     with StepWrapper[N] {
 
   def toStep(node: Node): Task[N] = Task.now(N(node.out(keys.nodeUrl).take(1).flatten))
@@ -19,7 +19,7 @@ object N
           lspace.NS.vocab.Lspace + "librarian/step/N/node",
           "node",
           "A node",
-          `@range` = () => ListType(DataType.default.`@nodeURL`) :: Nil
+          `@range` = ListType(DataType.default.`@nodeURL`) :: Nil
         )
     val nodeUrl: TypedProperty[List[Node]] = node.property as ListType(DataType.default.`@nodeURL`)
   }

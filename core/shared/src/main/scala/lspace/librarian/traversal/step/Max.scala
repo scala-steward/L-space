@@ -12,7 +12,7 @@ object Max
     extends StepDef(
       "Max",
       "A max-step finds the traverser with the largest value within all traversers in-scope.",
-      () => FilterBarrierStep.ontology :: ReducingStep.ontology :: Nil
+      FilterBarrierStep.ontology :: ReducingStep.ontology :: Nil
     )
     with StepWrapper[Max] {
 
@@ -41,7 +41,7 @@ object Max
           lspace.NS.vocab.Lspace + "librarian/step/Max/by",
           "by",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }

@@ -9,7 +9,7 @@ import monix.eval.Task
 object Coin
     extends StepDef("Coin",
                     "A coin-step flips a coin for each traverser to decide whether it is to live or die.",
-                    () => FilterStep.ontology :: Nil)
+                    FilterStep.ontology :: Nil)
     with StepWrapper[Coin] {
 
   def toStep(node: Node): Task[Coin] =
@@ -21,7 +21,7 @@ object Coin
           lspace.NS.vocab.Lspace + "librarian/step/Coin/p",
           "p",
           "The p-value thresshold to determine if the traverser keeps on existing",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val pDouble: TypedProperty[Double] = p.property as DataType.default.`@double`
 
@@ -30,7 +30,7 @@ object Coin
           lspace.NS.vocab.Lspace + "librarian/step/Coin/seed",
           "seed",
           "The seed for the random-number generator",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val seedInt: TypedProperty[Int] = seed.property as DataType.default.`@int`
   }

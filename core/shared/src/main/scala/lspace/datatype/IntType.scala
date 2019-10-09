@@ -10,8 +10,8 @@ object IntType extends DataTypeDef[IntType[Int]] {
     val iri: String = NS.types.`@int`
     override val iris: Set[String] =
       Set(NS.types.`@int`, NS.types.schemaInteger, "http://schema.org/Integer", NS.types.xsdInt)
-    labelMap = Map("en" -> NS.types.`@int`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(NumericType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@int`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(NumericType.datatype)
   }
 
   object keys extends NumericType.Properties

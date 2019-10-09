@@ -17,7 +17,7 @@ object Index extends OntologyDef(lspace.NS.vocab.Lspace + s"Index", Set(), "Inde
           "segment",
           "The traversal segment containing only FilterStep's and RearrangeStep's (e.g. Order) " +
             "and all segments start with an Out-step (except for the first segment)",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val traversalNode: TypedProperty[Node] = traversal.property as Traversal.ontology
   }

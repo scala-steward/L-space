@@ -10,8 +10,8 @@ object GeometricType extends DataTypeDef[GeometricType[Geometry]] {
   lazy val datatype: GeometricType[Geometry] = new GeometricType[Geometry] {
     val iri: String                = NS.types.`@geo`
     override val iris: Set[String] = Set(NS.types.`@geo`)
-    labelMap = Map("en" -> NS.types.`@geo`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(StructuredType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@geo`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties

@@ -7,7 +7,7 @@ import lspace.datatype.{GraphType, ListType}
 import monix.eval.Task
 
 object G
-    extends StepDef("G", "A g-step selects graphs to traverse on.", () => GraphStep.ontology :: Nil)
+    extends StepDef("G", "A g-step selects graphs to traverse on.", GraphStep.ontology :: Nil)
     with StepWrapper[G] {
 
   def toStep(node: Node): Task[G] = Task.now(G(node.out(G.keys.graphGraph).take(1).flatten))
@@ -18,7 +18,7 @@ object G
           lspace.NS.vocab.Lspace + "librarian/step/G/graph",
           "graph",
           "A graph to apply the upcoming traversal on",
-          `@range` = () => ListType(GraphType.datatype) :: Nil
+          `@range` = ListType(GraphType.datatype) :: Nil
         )
     val graphGraph: TypedProperty[List[Graph]] = graph.property as ListType(GraphType.datatype)
   }

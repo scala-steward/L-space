@@ -12,7 +12,7 @@ import shapeless.{HList, HNil}
 object Or
     extends StepDef("Or",
                     "An or-step traverser only survives if at least one of the n-traversals has a non-empty result.",
-                    () => FilterStep.ontology :: Nil)
+                    FilterStep.ontology :: Nil)
     with StepWrapper[Or] {
 
   def toStep(node: Node): Task[Or] =
@@ -34,7 +34,7 @@ object Or
           "traversal",
           "A traversal ..",
           container = lspace.NS.types.`@list` :: Nil,
-          `@range` = () => ListType(Traversal.ontology) :: Nil
+          `@range` = ListType(Traversal.ontology) :: Nil
         )
     val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
   }

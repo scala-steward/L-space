@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 
 case object Last
-    extends StepDef("Last", "A last-step limits the traversal to last result.", () => ReducingStep.ontology :: Nil)
+    extends StepDef("Last", "A last-step limits the traversal to last result.", ReducingStep.ontology :: Nil)
     with StepWrapper[Last]
     with Last {
 

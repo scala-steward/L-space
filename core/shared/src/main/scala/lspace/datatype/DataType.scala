@@ -18,19 +18,29 @@ import scala.collection.immutable.{Iterable, ListSet}
 import scala.concurrent.duration.FiniteDuration
 
 object DataType
-    extends OntologyDef(
+//    extends OntologyDef(
+//      NS.types.`@datatype`,
+//      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"),
+//      NS.types.`@datatype`,
+//      `@extends` =  Ontology.ontology :: Nil
+//    )
+{
+
+  lazy val ontology: Ontology = {
+    val ontology = new Ontology(
       NS.types.`@datatype`,
-      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"),
-      NS.types.`@datatype`,
-      `@extends` = () => Ontology.ontology :: Nil
-    ) {
+      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"))
+    ontology.iris.foreach(Ontology.ontologies.byIri.update(_, ontology))
+    ontology.extendedClasses + Ontology.ontology
+    ontology
+  }
 
   object keys
 
   lazy val datatype: DataType[Any] = new DataType[Any] {
     val iri: String                = NS.types.`@datatype`
     override val iris: Set[String] = Set(NS.types.schemaDataType)
-    labelMap = Map("en" -> NS.types.`@datatype`)
+    labelMap ++= Map("en" -> NS.types.`@datatype`)
   }
 
 //  def wrapped[T]: DataType[DataType[T]] =
@@ -183,6 +193,8 @@ object DataType
               datatypes.head
           }
           datatype.iris.foreach(byIri.update(_, datatype))
+          datatype.extendedClasses.all() //force eagerly init of extended classes
+          datatype.properties()          //force eagerly init of associated properties
           datatype
         }
       }
@@ -351,10 +363,10 @@ trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
   def iris: Set[String]                           = Set() + iri
-  def _extendedClasses: () => List[DataType[Any]] = () => List()
-  def _properties: () => List[Property]           = () => List()
+  def _extendedClasses: List[DataType[Any]] = List()
+  def _properties: List[Property]           = List()
 
-  protected var extendedClassesList: Coeval[List[DataType[Any]]] = Coeval.delay(_extendedClasses()).memoizeOnSuccess
+  protected var extendedClassesList: Coeval[List[DataType[Any]]] = Coeval.delay(_extendedClasses).memoizeOnSuccess
 //  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
   object extendedClasses {
     def apply(): List[DataType[Any]] = extendedClassesList()

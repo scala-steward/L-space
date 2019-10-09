@@ -9,8 +9,8 @@ object ListType extends DataTypeDef[ListType[Any]] {
 
   lazy val datatype = new ListType[List[Any]](None) {
     val iri: String = NS.types.`@list`
-    labelMap = Map("en" -> NS.types.`@list`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@list`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -47,7 +47,7 @@ object ListType extends DataTypeDef[ListType[Any]] {
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 
-      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
   }
 }

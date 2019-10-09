@@ -11,8 +11,8 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
 
   lazy val datatype = new MapType[Map[Any, Any]](None, None) {
     val iri: String = NS.types.`@map`
-    labelMap = Map("en" -> NS.types.`@map`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CollectionType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@map`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties {
@@ -21,8 +21,8 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
           "@keyRange",
           "@keyRange",
           "A @keyRange",
-          `@extends` = () => Property.default.`@range` :: Nil,
-          `@range` = () => ListType() :: Nil
+          `@extends` = Property.default.`@range` :: Nil,
+          `@range` = ListType() :: Nil
         )
     lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange as ListType(NodeURLType.datatype)
 //    lazy val keyRangeProperty: TypedProperty[Property]      = keyRange + DataType.default.`@property`
@@ -64,7 +64,7 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
         //        else
         s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).getOrElse("")})(${valueRange.map(_.iri).filter(_.nonEmpty).getOrElse("")})"
 
-      override val _extendedClasses: () => List[_ <: DataType[_]] = () => datatype :: Nil
+      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
   }
 }

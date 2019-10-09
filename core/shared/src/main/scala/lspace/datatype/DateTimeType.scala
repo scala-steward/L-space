@@ -15,8 +15,8 @@ object DateTimeType extends DataTypeDef[DateTimeType[Instant]] {
     val iri: String = NS.types.`@datetime`
     override val iris: Set[String] =
       Set(NS.types.`@datetime`, NS.types.schemaDateTime, "http://schema.org/DateTime", NS.types.xsdDateTimeStamp)
-    labelMap = Map("en" -> NS.types.`@datetime`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(CalendarType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@datetime`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CalendarType.datatype)
   }
 
   object keys extends CalendarType.Properties

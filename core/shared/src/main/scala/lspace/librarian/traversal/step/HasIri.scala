@@ -8,7 +8,7 @@ import lspace.datatype.DataType
 import monix.eval.Task
 
 object HasIri
-    extends StepDef("HasIri", "A hasIri-step filters resources by iri.", () => HasStep.ontology :: Nil)
+    extends StepDef("HasIri", "A hasIri-step filters resources by iri.", HasStep.ontology :: Nil)
     with StepWrapper[HasIri] {
 
   def toStep(node: Node): Task[HasIri] = Task.now(HasIri(node.out(HasIri.keys.iriString).toSet))
@@ -20,7 +20,7 @@ object HasIri
           "Iri",
           "An iri",
           container = types.`@set` :: Nil,
-          `@range` = () => DataType.default.`@string` :: Nil
+          `@range` = DataType.default.`@string` :: Nil
         )
     val iriString: TypedProperty[String] = iri.property as DataType.default.`@string`
   }

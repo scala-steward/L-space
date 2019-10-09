@@ -7,7 +7,7 @@ import lspace.structure._
 import monix.eval.Task
 
 case object Head
-    extends StepDef("Head", "A head-step limits the traversal to first result.", () => ReducingStep.ontology :: Nil)
+    extends StepDef("Head", "A head-step limits the traversal to first result.", ReducingStep.ontology :: Nil)
     with StepWrapper[Head]
     with Head {
 

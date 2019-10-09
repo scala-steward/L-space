@@ -8,7 +8,7 @@ import monix.eval.Task
 import shapeless.HList
 
 object Path
-    extends StepDef("Path", "A path-step ..", () => ProjectionStep.ontology :: Nil)
+    extends StepDef("Path", "A path-step ..", ProjectionStep.ontology :: Nil)
     with StepWrapper[Path[ClassType[Any], HList]] {
 
   def toStep(node: Node): Task[Path[ClassType[Any], HList]] =
@@ -30,7 +30,7 @@ object Path
           lspace.NS.vocab.Lspace + "librarian/step/Path/by",
           "by",
           "A traversal ..",
-          `@range` = () => Traversal.ontology :: Nil
+          `@range` = Traversal.ontology :: Nil
         )
     val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
   }

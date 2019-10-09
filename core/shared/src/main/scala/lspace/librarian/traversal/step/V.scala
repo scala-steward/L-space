@@ -7,7 +7,7 @@ import lspace.datatype.{DataType, ListType}
 import monix.eval.Task
 
 object V
-    extends StepDef("V", "An v-step selects values to traverse from.", () => ResourceStep.ontology :: Nil)
+    extends StepDef("V", "A v-step selects values to traverse from.", ResourceStep.ontology :: Nil)
     with StepWrapper[V] {
 
   def toStep(node: Node): Task[V] = Task.now(V(node.out(keys.valueUrl).take(1).flatten))
@@ -18,7 +18,7 @@ object V
           lspace.NS.vocab.Lspace + "librarian/step/V/value",
           "value",
           "A value",
-          `@range` = () => ListType(DataType.default.`@datatype`) :: Nil
+          `@range` = ListType(DataType.default.`@datatype`) :: Nil
         )
     val valueUrl: TypedProperty[List[Any]] = value.property as ListType(DataType.default.`@datatype`)
   }

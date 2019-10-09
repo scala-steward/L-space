@@ -4,7 +4,7 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
-object Neqv extends PredicateDef("Neqv", `@extends` = () => EqP.ontology :: Nil) with PredicateWrapper[Neqv[_]] {
+object Neqv extends PredicateDef("Neqv", `@extends` = EqP.ontology :: Nil) with PredicateWrapper[Neqv[_]] {
 
   def toP(node: Node): Neqv[_] = {
     val pvalue = node.out(EqP.keys.value).head

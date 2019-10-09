@@ -17,8 +17,8 @@ object Edge {
 
   lazy val edgeUrl = new EdgeURLType[Edge[Any, Any]] {
     val iri: String = NS.types.`@edgeURL`
-    labelMap = Map("en" -> NS.types.`@edgeURL`)
-    override val _extendedClasses: () => List[_ <: DataType[_]] = () => List(IriType.datatype)
+    labelMap ++= Map("en" -> NS.types.`@edgeURL`)
+    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
   }
 
   implicit class WithEdge[S, E](edge: Edge[S, E]) {
