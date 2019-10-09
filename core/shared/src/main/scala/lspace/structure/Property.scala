@@ -439,11 +439,20 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
       }
     }
     def +(range: => ClassType[Any]): this.type = this.synchronized {
-      if (!rangeList().contains(range)) rangeList = rangeList.map(_ :+ range).map(_.distinct).memoizeOnSuccess
+      rangeList = rangeList.map { current =>
+        val _range = range
+        if (!rangeList().contains(_range))
+          (current :+ _range).distinct
+        else {
+          current
+        }
+      }.memoizeOnSuccess
       this
     }
     def ++(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = rangeList.map(_ ++ range).map(_.distinct).memoizeOnSuccess
+      rangeList = rangeList.map { current =>
+        (current ++ range).distinct
+      }.memoizeOnSuccess
       this
     }
     def :=(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {

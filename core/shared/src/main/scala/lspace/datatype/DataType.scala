@@ -374,14 +374,23 @@ trait DataType[+T] extends ClassType[T] { self =>
     def apply(iri: String): Boolean =
       extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
 
-    def +(parent: DataType[Any]): this.type = this.synchronized {
-      if (!parent.`@extends`(self))
-        extendedClassesList = extendedClassesList.map(_ :+ parent).map(_.distinct).memoizeOnSuccess
-      else scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
+    def +(parent: => DataType[Any]): this.type = this.synchronized {
+      extendedClassesList = extendedClassesList.map { current =>
+        val _parent = parent
+        if (!_parent.`@extends`(self))
+          (current :+ _parent).distinct
+        else {
+          scribe.warn(
+            s"$iri cannot extend ${_parent.iri} as ${_parent.iri} already extends $iri direct or indirect ${extendedClassesList.value().map(_.iri)}")
+          current
+        }
+      }.memoizeOnSuccess
       this
     }
-    def ++(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
-      parent.foreach(this.+)
+    def ++(parents: => Iterable[DataType[Any]]): this.type = this.synchronized {
+      extendedClassesList = extendedClassesList.map { current =>
+        (current ++ parents.filterNot(_.`@extends`(self))).distinct
+      }.memoizeOnSuccess
       this
     }
     def -(parent: DataType[Any]): this.type = this.synchronized {
