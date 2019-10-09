@@ -982,7 +982,13 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
               .gather(inverseOf
                 .map(graph.nodes.upsert(_)))
             _ <- node.addOut(Label.P.inverseOf, inverse)
-            property = Property.properties.getAndUpdate(node)
+            property = try {
+              Property.properties.getAndUpdate(node)
+            } catch {
+              case e =>
+                scribe.error(s"error for $iri and $iris: ${e.getMessage}")
+                throw e
+            }
             _ <- (for {
               _ <- withEdges(
                 node,

@@ -150,8 +150,10 @@ object Property {
               case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
                 ClassType.classtypes.get(node.iri).get
               case node: Node =>
-                if (node.iri.nonEmpty) Ontology.ontologies.getOrCreate(node.iri)
-                else throw new Exception(s"s node ${property.iri} with range iri ${node.iri} ${node.iris}")
+                if (node.iri.nonEmpty) {
+//                  scribe.warn(s"range type without label, ${node.iri} is assumed to be an ontology")
+                  Ontology.ontologies.getOrCreate(node.iri)
+                } else throw new Exception(s"s node ${property.iri} with range iri ${node.iri} ${node.iris}")
               case iri: String =>
                 ClassType.classtypes
                   .get(iri)

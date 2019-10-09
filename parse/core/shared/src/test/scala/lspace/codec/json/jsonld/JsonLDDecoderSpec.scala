@@ -57,6 +57,18 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .runToFuture
       }
     }
+    "decode a vocabulary" ignore {
+      decoder
+        .fetchVocabularyGraph("https://schema.org/version/3.5/all-layers.jsonld")(ActiveContext())
+        .map { u =>
+          val codeSampleType = Property.properties.get("http://schema.org/codeSampleType")
+          codeSampleType.isDefined shouldBe true
+          val CssSelectorType = Ontology.ontologies.get("http://schema.org/CssSelectorType")
+          CssSelectorType.isDefined shouldBe true
+          succeed
+        }
+        .runToFuture
+    }
     "decode a traversal" in {
       try {
         val traversal = lspace.g.N.hasLabel(Ontology("mylabel")).count()
