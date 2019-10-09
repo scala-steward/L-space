@@ -43,6 +43,25 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .runToFuture
       }
     }
+    "decode a traversal" in {
+      try {
+        val traversal = lspace.g.N.hasLabel(Ontology("mylabel")).count()
+        decoder
+          .stringToLabeledNode(
+            """{"@context":{"0":"https://ns.l-space.eu/librarian/"},"@type":"0:Traversal","0:Traversal/steps":{"@value":[{"@type":"0:step/N"},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"mylabel", "@type":"@class"}},{"@type":"0:step/Count"}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}""",
+            Traversal.ontology
+          )(ActiveContext())
+          .flatMap { node =>
+            Traversal.toTraversal(node)
+          }
+          .map(_ shouldBe traversal)
+          .runToFuture
+      } catch {
+        case e =>
+          e.printStackTrace()
+          fail()
+      }
+    }
     "decode any node" which {
       "uses a context if provided" in {
         val person = Ontology.ontologies.getOrCreate("https://example.org/Person")
