@@ -111,7 +111,7 @@ object Ontology {
 
       ontology.extendedClasses ++ node
         .out(Property.default.`@extends`)
-        .headOption
+//        .headOption
         .collect {
           case nodes: List[_] =>
             nodes.collect {
