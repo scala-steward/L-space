@@ -31,13 +31,27 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .toOntology("http://schema.org/Person")(ActiveContext())
           .map { ontology =>
             ontology.iri shouldBe "http://schema.org/Person"
-//            ontology
-//              .properties("http://schema.org/additionalName")
-//              .isDefined shouldBe true
-//            ontology
-//              .properties("http://schema.org/additionalName")
-//              .exists(_.range(`@string`.iri).isDefined) shouldBe true
-//            ontology.properties("http://schema.org/colleagues").isDefined shouldBe false //superseded
+            ontology
+              .properties("http://schema.org/additionalName")
+              .isDefined shouldBe true
+            ontology
+              .properties("http://schema.org/additionalName")
+              .exists(_.range(`@string`.iri).isDefined) shouldBe true
+            ontology.properties("http://schema.org/colleagues").isDefined shouldBe false //superseded
+          }
+          .timeout(60.seconds)
+          .runToFuture
+      }
+    }
+    "decode any property" which {
+      "is served by schema.org" in {
+        decoder
+          .toProperty("http://schema.org/artEdition")(ActiveContext())
+          .map { property =>
+            property.iri shouldBe "http://schema.org/artEdition"
+            property.range().contains(`@string`) shouldBe true
+            property.range().contains(`@int`) shouldBe true
+            property.range().contains(`@long`) shouldBe false
           }
           .timeout(60.seconds)
           .runToFuture

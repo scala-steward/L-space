@@ -136,7 +136,7 @@ object Property {
 //            .collect { case node: Node => node.iri })
       property.range ++ node
         .out(Property.default.`@range`)
-        .headOption
+//        .headOption
         .collect {
           case nodes: List[_] =>
 //            println(s"get range ${nodes.asInstanceOf[List[Node]].map(_.iri)} for ${node.iri}")

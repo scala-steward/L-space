@@ -919,7 +919,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
     Task.gather(extractIris(json).map(toOntology))
 
   def prepareProperty(expandedJson: ExpandedMap[Json])(implicit activeContext: ActiveContext): Task[Property] = {
-//    scribe.trace(s"prepare property ${obj}")
+//    scribe.trace(s"prepare property $expandedJson")
 //    val expandedJson = activeContext.expandKeys(obj)
     if (expandedJson
           .get(types.`@type`)
@@ -1458,9 +1458,10 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
                   }
                 }
                 .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
-            } else
+            } else {
               scribe.warn(s"fetching and building $iri failed, empty property created")
-            Task(Property.properties.getOrCreate(iri, Set()))
+              Task(Property.properties.getOrCreate(iri, Set()))
+            }
 //              Task.raiseError(FromJsonException(s"cannot parse property, not @type or @graph ${expandedJson.keys}"))
           }
         }
