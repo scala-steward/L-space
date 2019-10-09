@@ -6,7 +6,7 @@ import lspace._
 import lspace.codec.argonaut._
 import lspace.codec.ActiveContext
 import lspace.provider.detached.DetachedGraph
-import lspace.services.codecs.Application
+import lspace.services.codecs.{Application => LApplication}
 import lspace.provider.mem.MemGraph
 import lspace.util.SampleGraph
 import monix.eval.Task
@@ -26,6 +26,9 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
   import lspace.Implicits.AsyncGuide.guide
   implicit val activeContext: ActiveContext = ActiveContext()
   lazy val graphService                     = LibrarianApi(graph)
+  import lspace.services.codecs.Encode._
+  import lspace.encode.EncodeJsonLD._
+  lazy val service = graphService.list.toServiceAs[LApplication.JsonLD]
 
 //  override def beforeAll(): Unit = {
 //    SampleGraph.loadSocial(graph)
@@ -59,8 +62,9 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
         json = encoderJsonLD.apply(node)
         input = Input
           .post("/@graph")
-          .withBody[Application.JsonLD](node)
+          .withBody[LApplication.JsonLD](node)
           .withHeaders("Accept" -> "application/ld+json")
+//        _ = println(input.request.contentString)
         _ <- {
           Task
             .from(graphService.stream(input).output.get)
@@ -69,6 +73,34 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
               output.status shouldBe Status.Ok
               val collection = output.value.compile.toList
               Task.from(output.value.compile.toList).map(_.head.t.item shouldBe List(2))
+            }
+        }
+      } yield succeed).runToFuture
+    }
+    "as service" in {
+      import lspace.services.codecs.Encode._
+      import lspace.encode.EncodeJsonLD._
+      import lspace.services.util._
+
+      val traversal = lspace.g.N.has(SampleGraph.properties.balance, P.gt(300)).count
+      (for {
+        node <- traversal.toNode
+        json = encoderJsonLD.apply(node)
+        input = Input
+          .post("/@graph")
+          .withBody[LApplication.JsonLD](node)
+          .withHeaders("Accept" -> "application/ld+json")
+//        _ = println(input.request.contentString)
+        _ <- {
+
+          Task
+            .fromFuture(service(input.request))
+            .map { output =>
+              //          if (output.isLeft) println(output.left.get.getMessage)
+              val contentString = output.contentString
+//              println(contentString)
+              output.status shouldBe Status.Ok
+//              contentString shouldBe """"""
             }
         }
       } yield succeed).runToFuture

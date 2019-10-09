@@ -80,7 +80,6 @@ class LabeledNodeApi[JSON](graph: Graph,
   def list: Endpoint[IO, ContextedT[List[Any]]] = get(paths[String]).mapOutputAsync {
     case Nil => g.N.hasLabel(ontology).withGraph(graph).toListF.map(ContextedT(_)).map(Ok).to[IO]
     case List(id) =>
-      println(s"GET ${newNodeBaseIri}${id}")
       g.N
         .hasIri(newNodeBaseIri + id)
         .hasLabel(ontology)

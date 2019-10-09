@@ -63,7 +63,7 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
     * GET /
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
-  def list[JSON]: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
+  def list: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
     post(
       path("@graph") :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                              lspace.services.codecs.Application.JsonLD]) {
@@ -86,11 +86,7 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
 
   object filtered {
 
-    def stream[JSON](ontology: Ontology)(
-        implicit activeContext: ActiveContext,
-        decoder: JsonLDDecoder[JSON],
-        guide: AsyncGuide,
-        scheduler: Scheduler): Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[List[Node]]]] = {
+    def stream(ontology: Ontology): Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[List[Node]]]] = {
       import io.finch.internal.HttpContent
       import cats.effect._, _root_.fs2._
       import io.finch.fs2._
@@ -123,10 +119,7 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
       * GET /
       * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
       */
-    def list[JSON](ontology: Ontology)(implicit activeContext: ActiveContext,
-                                       decoder: JsonLDDecoder[JSON],
-                                       guide: AsyncGuide,
-                                       scheduler: Scheduler): Endpoint[IO, ContextedT[List[Node]]] = {
+    def list(ontology: Ontology): Endpoint[IO, ContextedT[List[Node]]] = {
       post(
         "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                          lspace.services.codecs.Application.JsonLD]) {
