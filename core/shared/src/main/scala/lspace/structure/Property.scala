@@ -443,11 +443,7 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     def +(range: => ClassType[Any]): this.type = this.synchronized {
       rangeList = rangeList.map { current =>
         val _range = range
-        if (!rangeList().contains(_range))
-          (current :+ _range).distinct
-        else {
-          current
-        }
+        (current :+ _range).distinct
       }.memoizeOnSuccess
       this
     }

@@ -27,9 +27,8 @@ object DataType
 {
 
   lazy val ontology: Ontology = {
-    val ontology = new Ontology(
-      NS.types.`@datatype`,
-      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"))
+    val ontology = new Ontology(NS.types.`@datatype`,
+                                Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"))
     ontology.iris.foreach(Ontology.ontologies.byIri.update(_, ontology))
     ontology.extendedClasses + Ontology.ontology
     ontology
@@ -62,7 +61,7 @@ object DataType
               case r: Value[_]   => DataType.default.`@valueURL`
             }
           case r: ClassType[_] => throw new Exception(s"a ClassType is not an instance of DataType")
-          case _ => DataType.default.`@url`
+          case _               => DataType.default.`@url`
         }
       case v: String        => DataType.default.`@string`
       case v: Int           => DataType.default.`@int`
@@ -87,28 +86,89 @@ object DataType
         }
       case v: Iterable[_] =>
         v match {
-          case v: Map[_, _] => if(v.nonEmpty) DataType.default.mapType(v.keys.toList.map(_.ct).reduce(_ + _), v.values.toList.map(_.ct).reduce(_ + _)) else
-            DataType.default.mapType() //TODO: recursively map nested values to map -> toList.distinct ?
-          case v: ListSet[_] => if(v.nonEmpty) DataType.default.listsetType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.listsetType()
-          case v: List[_]    => if(v.nonEmpty) DataType.default.listType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.listType()
-          case v: Set[_]     => if(v.nonEmpty) DataType.default.setType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.setType()
-          case v: Vector[_]  => if(v.nonEmpty) DataType.default.vectorType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.vectorType()
+          case v: Map[_, _] =>
+            if (v.nonEmpty)
+              DataType.default.mapType(v.keys.toList.map(_.ct).reduce(_ + _), v.values.toList.map(_.ct).reduce(_ + _))
+            else
+              DataType.default.mapType() //TODO: recursively map nested values to map -> toList.distinct ?
+          case v: ListSet[_] =>
+            if (v.nonEmpty) DataType.default.listsetType(v.toList.map(_.ct).reduce(_ + _))
+            else DataType.default.listsetType()
+          case v: List[_] =>
+            if (v.nonEmpty) DataType.default.listType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.listType()
+          case v: Set[_] =>
+            if (v.nonEmpty) DataType.default.setType(v.toList.map(_.ct).reduce(_ + _)) else DataType.default.setType()
+          case v: Vector[_] =>
+            if (v.nonEmpty) DataType.default.vectorType(v.toList.map(_.ct).reduce(_ + _))
+            else DataType.default.vectorType()
         }
       case v: Product =>
         v match {
-          case v: (_)                      => TupleType(List(Some(v.ct)))
-          case v: (_, _)                      => TupleType(List(Some(v._1.ct), Some(v._2.ct)))
-          case v: (_, _, _)                   => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct)))
-          case v: (_, _, _, _)                => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct)))
-          case v: (_, _, _, _, _)             => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct)))
-          case v: (_, _, _, _, _, _)          => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct)))
-          case v: (_, _, _, _, _, _, _)       => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct)))
-          case v: (_, _, _, _, _, _, _, _)    => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct)))
-          case v: (_, _, _, _, _, _, _, _, _) => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct), Some(v._9.ct)))
+//          case v: (_)                      => TupleType(List(Some(v.ct)))
+          case v: (_, _)       => TupleType(List(Some(v._1.ct), Some(v._2.ct)))
+          case v: (_, _, _)    => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct)))
+          case v: (_, _, _, _) => TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct)))
+          case v: (_, _, _, _, _) =>
+            TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct)))
+          case v: (_, _, _, _, _, _) =>
+            TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct)))
+          case v: (_, _, _, _, _, _, _) =>
+            TupleType(
+              List(Some(v._1.ct),
+                   Some(v._2.ct),
+                   Some(v._3.ct),
+                   Some(v._4.ct),
+                   Some(v._5.ct),
+                   Some(v._6.ct),
+                   Some(v._7.ct)))
+          case v: (_, _, _, _, _, _, _, _) =>
+            TupleType(
+              List(Some(v._1.ct),
+                   Some(v._2.ct),
+                   Some(v._3.ct),
+                   Some(v._4.ct),
+                   Some(v._5.ct),
+                   Some(v._6.ct),
+                   Some(v._7.ct),
+                   Some(v._8.ct)))
+          case v: (_, _, _, _, _, _, _, _, _) =>
+            TupleType(
+              List(Some(v._1.ct),
+                   Some(v._2.ct),
+                   Some(v._3.ct),
+                   Some(v._4.ct),
+                   Some(v._5.ct),
+                   Some(v._6.ct),
+                   Some(v._7.ct),
+                   Some(v._8.ct),
+                   Some(v._9.ct)))
           case v: (_, _, _, _, _, _, _, _, _, _) =>
-            TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct), Some(v._9.ct), Some(v._10.ct)))
+            TupleType(
+              List(Some(v._1.ct),
+                   Some(v._2.ct),
+                   Some(v._3.ct),
+                   Some(v._4.ct),
+                   Some(v._5.ct),
+                   Some(v._6.ct),
+                   Some(v._7.ct),
+                   Some(v._8.ct),
+                   Some(v._9.ct),
+                   Some(v._10.ct)))
           case v: (_, _, _, _, _, _, _, _, _, _, _) =>
-            TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct), Some(v._7.ct), Some(v._8.ct), Some(v._9.ct), Some(v._10.ct), Some(v._11.ct)))
+            TupleType(
+              List(
+                Some(v._1.ct),
+                Some(v._2.ct),
+                Some(v._3.ct),
+                Some(v._4.ct),
+                Some(v._5.ct),
+                Some(v._6.ct),
+                Some(v._7.ct),
+                Some(v._8.ct),
+                Some(v._9.ct),
+                Some(v._10.ct),
+                Some(v._11.ct)
+              ))
         }
       case v =>
         matchers.findDataType(v).getOrElse(throw new Exception(s"not a known range ${value.getClass}"))
@@ -362,7 +422,7 @@ object DataType
 trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
-  def iris: Set[String]                           = Set() + iri
+  def iris: Set[String]                     = Set() + iri
   def _extendedClasses: List[DataType[Any]] = List()
   def _properties: List[Property]           = List()
 

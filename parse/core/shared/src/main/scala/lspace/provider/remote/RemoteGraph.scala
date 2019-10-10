@@ -20,12 +20,12 @@ import lspace.parse.util.HttpClient
 import monix.reactive.Observable
 
 object RemoteGraph {
-  def apply[F[_], Json](iri: String, host: String, port: Int, path: String)(
+  def apply[F[_], Json](iri: String, host: String, port: Int, path: List[String] = List())(
       implicit baseEncoder: JsonEncoder[Json],
       baseDecoder: JsonDecoder[Json]): RemoteGraph[Json] =
     new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder) {}
 }
-abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String] = List())(
+abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String])(
     implicit baseEncoder: JsonEncoder[Json],
     baseDecoder: JsonDecoder[Json])
     extends Graph {

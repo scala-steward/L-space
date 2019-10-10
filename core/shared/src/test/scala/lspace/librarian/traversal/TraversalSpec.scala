@@ -4,7 +4,7 @@ import java.time._
 
 import lspace._
 import Label.D._
-import lspace.datatype.{EdgeURLType, IntType, ListType, MapType, NodeURLType, TupleType}
+import lspace.datatype.{EdgeURLType, IntType, ListType, MapType, NodeURLType, OptionType, TupleType}
 import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
@@ -240,7 +240,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       (g.N.project(_.out()).by(_.in()).et: TupleType[(List[Any], List[Any])]) shouldBe tupleType(listType(), listType())
     }
     """g.N.project(_.out().hasLabel[Int].head)""" in Future {
-      (g.N.project(_.out().hasLabel[Int].head).et: TupleType[Option[Int]]) shouldBe tupleType(optionType(`@int`))
+      (g.N.project(_.out().hasLabel[Int].head).et: OptionType[Option[Int]]) shouldBe optionType(`@int`)
     }
     """g.N.project(_.out().hasLabel[Int].head).by(_.in())""" in Future {
       (g.N.project(_.out().hasLabel[Int].head).by(_.in()).et: TupleType[(Option[Int], List[Any])]) shouldBe tupleType(

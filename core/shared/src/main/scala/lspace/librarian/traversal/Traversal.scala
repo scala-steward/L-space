@@ -558,16 +558,16 @@ object Traversal
       )
     }
 
-    def project(): Traversal[ST[Start], TupleType[End], Project[Traversal[ET[End], ET[End], HNil] :: HNil] :: Steps] =
-      add(Project(Traversal(et, et) :: HNil), st, TupleType[End](List(Some(et))))
+    def project(): Traversal[ST[Start], ET[End], Project[Traversal[ET[End], ET[End], HNil] :: HNil] :: Steps] =
+      add(Project(Traversal(et, et) :: HNil), st, et) //TupleType[End](List(Some(et))))
 
     def project[CP <: ClassType[Any], PSteps <: HList, POut, CPOut <: ClassType[Any]](
         by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CP, PSteps])(
         implicit
         out: EndMapper.Aux[CP, PSteps, POut, CPOut]
-    ): Traversal[ST[Start], TupleType[POut], Project[Traversal[ET[End], CP, PSteps] :: HNil] :: Steps] = {
+    ): Traversal[ST[Start], CPOut, Project[Traversal[ET[End], CP, PSteps] :: HNil] :: Steps] = {
       val tby1 = by1(Traversal(et, et))
-      add(Project(tby1 :: HNil), st, TupleType[POut](List(Some(out.map(tby1.et)))))
+      add(Project(tby1 :: HNil), st, out.map(tby1.et))
     }
 
     def where(traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], _ <: ClassType[_], _ <: HList])

@@ -23,7 +23,7 @@ object Has
           .head
           .to
           .iri
-        node.graph.ns.properties
+        node.graph.ns.properties //all known Properties are globally available, why look in 'a' graph? E.g. this graph is likely the DetachedGraph
           .get(name)
           .map(_.getOrElse(Property(name)))
       }
