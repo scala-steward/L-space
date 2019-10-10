@@ -18,13 +18,16 @@ object HasNot
 
   def toStep(node: Node): Task[HasNot] =
     for {
-      key <- node.graph.ns.properties
-        .get(
-          node
-            .outE(keys.key)
-            .head
-            .iri)
-        .map(_.get)
+      key <- {
+        val name = node
+          .outE(keys.key)
+          .head
+          .to
+          .iri
+        node.graph.ns.properties
+          .get(name)
+          .map(_.getOrElse(Property(name)))
+      }
       p = node
         .out(keys.predicateUrl)
         .map(P.toP)
