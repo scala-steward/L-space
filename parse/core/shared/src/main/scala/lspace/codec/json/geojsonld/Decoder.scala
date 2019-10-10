@@ -139,7 +139,10 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
     for {
       geometry <- map
         .get("geometry")
-        .map(Task.now(_).map(_.obj.map(decodeGeometry).getOrElse(throw new Exception("geometry not an object"))))
+        .map(
+          Task
+            .now(_)
+            .flatMap(_.obj.map(decodeGeometry).getOrElse(Task.raiseError(new Exception("geometry not an object")))))
         .getOrElse(Task.raiseError(new Exception("no geometry")))
       properties <- map
         .get("properties")
@@ -150,7 +153,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
         .getOrElse(Task.now(Map[String, Json]()))
       node <- DetachedGraph.nodes.create()
       //      geo  <- DetachedGraph.values.upsert(geometry, lspace.ClassType.detect(geometry))
-      //      _    <- node --- lspace.ns.vocab.schema.location --> geo
+      _ <- node --- "http://schema.org/geo" --> geometry
       _ <- withJsonProperties(node, properties.expand)
     } yield node
   }
