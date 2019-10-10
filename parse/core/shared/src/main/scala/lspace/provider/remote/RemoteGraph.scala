@@ -25,7 +25,7 @@ object RemoteGraph {
       baseDecoder: JsonDecoder[Json]): RemoteGraph[Json] =
     new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder) {}
 }
-abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: String)(
+abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String] = List())(
     implicit baseEncoder: JsonEncoder[Json],
     baseDecoder: JsonDecoder[Json])
     extends Graph {
