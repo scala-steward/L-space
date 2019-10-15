@@ -4,7 +4,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 object Version {
   val finch     = "0.31.0"
   val monix     = "3.0.0"
-  val sttp      = "1.7.1"
+  val sttp      = "1.7.2"
   val elastic4s = "7.3.1"
   val phantom   = "2.42.0"
 }
@@ -19,7 +19,7 @@ object Dependencies {
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"          %%% "scribe"          % "2.7.10",
-      "org.scalatest"     %%% "scalatest"       % "3.1.0-RC2" % "test",
+      "org.scalatest"     %%% "scalatest"       % "3.1.0-RC3" % "test",
       "io.monix"          %%% "minitest"        % "2.7.0" % "test",
       "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3"
     ))
