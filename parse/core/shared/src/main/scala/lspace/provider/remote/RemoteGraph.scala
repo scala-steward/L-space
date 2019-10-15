@@ -25,6 +25,7 @@ object RemoteGraph {
       baseDecoder: JsonDecoder[Json]): RemoteGraph[Json] =
     new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder) {}
 }
+//TODO: add session/credential config
 abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String])(
     implicit baseEncoder: JsonEncoder[Json],
     baseDecoder: JsonDecoder[Json])
@@ -69,7 +70,9 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
         json = encoder(node)(ActiveContext()) //TODO: create nice named default context
         request = sttp
           .body(json)
+          .header(HeaderNames.Accept, "application/ld+json", true)
           .header(HeaderNames.ContentType, "application/ld+json", true)
+          //TODO: add cookie/auth headers
           .post(serviceUri)
           .response(asStream[Observable[ByteBuffer]])
         response <- request.send()

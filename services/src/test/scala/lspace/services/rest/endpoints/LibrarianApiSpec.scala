@@ -105,5 +105,67 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
         }
       } yield succeed).runToFuture
     }
+    "as service for a projection-result-like traversal" in {
+      import lspace.services.codecs.Encode._
+      import lspace.encode.EncodeJsonLD._
+      import lspace.services.util._
+
+      val traversal = lspace.g.N
+        .has(SampleGraph.properties.balance, P.gt(300))
+        .project(_.iri)
+        .by(_.out(SampleGraph.properties.balanceDouble))
+      (for {
+        node <- traversal.toNode
+        json = encoderJsonLD.apply(node)
+        input = Input
+          .post("/@graph")
+          .withBody[LApplication.JsonLD](node)
+          .withHeaders("Accept" -> "application/ld+json")
+        //        _ = println(input.request.contentString)
+        _ <- {
+
+          Task
+            .fromFuture(service(input.request))
+            .map { output =>
+              //          if (output.isLeft) println(output.left.get.getMessage)
+              val contentString = output.contentString
+//              println(contentString)
+              output.status shouldBe Status.Ok
+              //              contentString shouldBe """"""
+            }
+        }
+      } yield succeed).runToFuture
+    }
+    "as service for a projection-result-like traversal return json" in {
+      import lspace.services.codecs.Encode._
+      import lspace.encode.EncodeJsonLD._
+      import lspace.services.util._
+
+      val traversal = lspace.g.N
+        .has(SampleGraph.properties.balance, P.gt(300))
+        .project(_.iri)
+        .by(_.out(SampleGraph.properties.balanceDouble))
+      (for {
+        node <- traversal.toNode
+        json = encoderJsonLD.apply(node)
+        input = Input
+          .post("/@graph")
+          .withBody[LApplication.JsonLD](node)
+          .withHeaders("Accept" -> "application/json")
+        //        _ = println(input.request.contentString)
+        _ <- {
+
+          Task
+            .fromFuture(service(input.request))
+            .map { output =>
+              //          if (output.isLeft) println(output.left.get.getMessage)
+              val contentString = output.contentString
+//              println(contentString)
+              output.status shouldBe Status.Ok
+              //              contentString shouldBe """"""
+            }
+        }
+      } yield succeed).runToFuture
+    }
   }
 }

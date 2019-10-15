@@ -88,6 +88,30 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           fail()
       }
     }
+    "decode another traversal" in {
+      try {
+        val traversal = lspace.g.N
+          .hasLabel(Ontology("https://ns.hoorn.nl/Project"))
+          .range(0, 10)
+          .project(_.iri)
+          .by(_.out(Property("http://schema.org/geo") as `@geo`))
+          .by(_.out(Property("http://schema.org/description") as `@string`))
+        decoder
+          .stringToLabeledNode(
+            """{"@context":{"0":"https://ns.l-space.eu/librarian/"},"@type":"0:Traversal","0:Traversal/steps":{"@value":[{"@type":"0:step/N"},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"https://ns.hoorn.nl/Project"}},{"@type":"0:step/Range","0:step/Range/low":{"@value":0,"@type":"@int"},"0:step/Range/high":{"@value":10,"@type":"@int"}},{"@type":"0:step/Project","0:step/Project/by":{"@value":[{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"http://schema.org/description"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"http://schema.org/geo"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@geo"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"@id"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}],"@type":"@list(https://ns.l-space.eu/librarian/Traversal)"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}""",
+            Traversal.ontology
+          )(ActiveContext())
+          .flatMap { node =>
+            Traversal.toTraversal(node)
+          }
+          .map(_ shouldBe traversal)
+          .runToFuture
+      } catch {
+        case e =>
+          e.printStackTrace()
+          fail()
+      }
+    }
     "decode any node" which {
       "uses a context if provided" in {
         val person = Ontology.ontologies.getOrCreate("https://example.org/Person")

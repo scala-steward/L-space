@@ -48,7 +48,8 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
               .apply()
               .bufferTumbling(100)
               .map { values =>
-                val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
+                val collection: Collection[Any, ClassType[Any]] =
+                  Collection(start, Instant.now(), values.toList) //, Some(traversal.et))
                 ContextedT(collection)
               }
               .toReactivePublisher
@@ -75,7 +76,8 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
               .withGraph(graph)
               .toListF
               .map { values =>
-                val collection: Collection[Any, ClassType[Any]] = Collection(start, Instant.now(), values.toList)
+                val collection: Collection[Any, ClassType[Any]] =
+                  Collection(start, Instant.now(), values.toList) //, Some(traversal.et))
                 ContextedT(collection)
               }
               .map(Ok)
