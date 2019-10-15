@@ -12,7 +12,7 @@ import lspace.codec.json.geojson.GeoJsonDecoder
 import lspace.datatype._
 import lspace.parse.util.HttpClient
 import lspace.structure._
-import lspace.types.geo.{Line, MultiGeometry, MultiLine, MultiPoint, MultiPolygon, Point, Polygon}
+import lspace.types.geo.{Geometry, Line, MultiGeometry, MultiLine, MultiPoint, MultiPolygon, Point, Polygon}
 import lspace.types.string.{Blank, Iri}
 import monix.eval.Task
 import monix.reactive.Observable
@@ -79,7 +79,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
 //  implicit def jsonToGeopolygon(json: Json): Option[Polygon] =
 //    lspace.decode.fromGeoJson(json).toOption.collect { case polygon: Polygon => polygon }
 
-  implicit class WithDJson(json: Json) {
+//  implicit class WithDJson(json: Json) {
 //    def isNull: Boolean                      = baseDecoder.jsonIsNull(json)
 //    def int: Option[Int]                     = jsonToInt(json)
 //    def double: Option[Double]               = jsonToDouble(json)
@@ -93,14 +93,15 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
 //    def obj: Option[Map[String, Json]]       = jsonToMap(json)
 //    def boolean: Option[Boolean]             = jsonToBoolean(json)
 //    def geo: Option[Geometry] = ???
-    def geoPoint: Option[Point]                 = geoJsonDecoder.jsonToPoint(json)
-    def geoMultiPoint: Option[MultiPoint]       = geoJsonDecoder.jsonToMultiPoint(json)
-    def geoLine: Option[Line]                   = geoJsonDecoder.jsonToLine(json)
-    def geoMultiLine: Option[MultiLine]         = geoJsonDecoder.jsonToMultiLine(json)
-    def geoPolygon: Option[Polygon]             = geoJsonDecoder.jsonToPolygon(json)
-    def geoMultiPolygon: Option[MultiPolygon]   = geoJsonDecoder.jsonToMultiPolygon(json)
-    def geoMultiGeometry: Option[MultiGeometry] = geoJsonDecoder.jsonToMultiGeometry(json)
-  }
+//    def geo: Option[Geometry]                   = geoJsonDecoder.decodeGeometryOption(json)
+//    def geoPoint: Option[Point]                 = geoJsonDecoder.jsonToPoint(json)
+//    def geoMultiPoint: Option[MultiPoint]       = geoJsonDecoder.jsonToMultiPoint(json)
+//    def geoLine: Option[Line]                   = geoJsonDecoder.jsonToLine(json)
+//    def geoMultiLine: Option[MultiLine]         = geoJsonDecoder.jsonToMultiLine(json)
+//    def geoPolygon: Option[Polygon]             = geoJsonDecoder.jsonToPolygon(json)
+//    def geoMultiPolygon: Option[MultiPolygon]   = geoJsonDecoder.jsonToMultiPolygon(json)
+//    def geoMultiGeometry: Option[MultiGeometry] = geoJsonDecoder.jsonToMultiGeometry(json)
+//  }
 
   implicit class WithObj(obj: Map[String, Json]) {
     def expand(implicit activeContext: ActiveContext): ExpandedMap[Json] =
@@ -603,13 +604,13 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
 
   def toGeometric[T](json: Json, label: GeometricType[T])(implicit activeContext: ActiveContext): Task[T] = {
     (label match { //TODO: create specific parsers
-      case label: GeopointType[_]         => json.geoPoint
-      case label: GeoMultipointType[_]    => json.geoMultiPoint
-      case label: GeoLineType[_]          => json.geoLine
-      case label: GeoMultiLineType[_]     => json.geoMultiLine
-      case label: GeoPolygonType[_]       => json.geoPolygon
-      case label: GeoMultiPolygonType[_]  => json.geoMultiPolygon
-      case label: GeoMultiGeometryType[_] => json.geoMultiGeometry
+      case label: GeopointType[_]         => json.list.map(geoJsonDecoder.decodePoint)
+      case label: GeoMultipointType[_]    => json.list.map(geoJsonDecoder.decodeMultiPoint)
+      case label: GeoLineType[_]          => json.list.map(geoJsonDecoder.decodeLine)
+      case label: GeoMultiLineType[_]     => json.list.map(geoJsonDecoder.decodeMultiLine)
+      case label: GeoPolygonType[_]       => json.list.map(geoJsonDecoder.decodePolygon)
+      case label: GeoMultiPolygonType[_]  => json.list.map(geoJsonDecoder.decodeMultiPolygon)
+      case label: GeoMultiGeometryType[_] => json.list.map(geoJsonDecoder.decodeMultiGeometry)
       case _                              => None
     }).map(_.asInstanceOf[T])
       .map(Task.now)

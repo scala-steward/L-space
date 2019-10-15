@@ -240,10 +240,15 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
         MultiGeometry(
           decoder
             .jsonToList(json)
-            .map(_.map(decoder.jsonToMap(_).getOrElse(throw new Exception("invalid MultiGeometry Geometry")))
-              .map(decodeGeometry))
-            .getOrElse(throw new Exception("invalid MultiGeometry, array expected for geometries"))
-            .toVector)
+            .map(decodeMultiGeometry)
+            .getOrElse(throw new Exception("invalid MultiGeometry, array expected for geometries")))
       case None => throw FromJsonException("not a valid geojson MultiGeometry, geometries missing")
     }
+
+  def decodeMultiGeometry(geometries: List[Json]): MultiGeometry =
+    MultiGeometry(
+      geometries
+        .map(decoder.jsonToMap(_).getOrElse(throw new Exception("invalid MultiGeometry Geometry")))
+        .map(decodeGeometry)
+        .toVector)
 }

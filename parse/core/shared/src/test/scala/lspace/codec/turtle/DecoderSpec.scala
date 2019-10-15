@@ -1,8 +1,8 @@
 package lspace.codec.turtle
 
 import lspace.structure.Graph
-import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class DecoderSpec extends AsyncWordSpec with Matchers {
 

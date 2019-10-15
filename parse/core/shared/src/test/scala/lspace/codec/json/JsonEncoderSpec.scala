@@ -1,9 +1,10 @@
 package lspace.codec.json
 
 import lspace.types.geo.Point
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-trait JsonEncoderSpec extends WordSpec with Matchers {
+trait JsonEncoderSpec extends AnyWordSpec with Matchers {
   type Json
   def encoder: lspace.codec.json.JsonEncoder[Json]
 

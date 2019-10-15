@@ -17,7 +17,6 @@ class Encoder extends json.Encoder[Json] {
   implicit override def doubleToJson: Double => Json =
     double => Json.fromDouble(double).get //Not all doubles can be represented as Json? Number-length limitation?
   implicit override def longToJson: Long => Json                     = long => Json.fromLong(long)
-  implicit override def geoToJson: Geometry => Json                  = geo => lspace.encode.GeometryCodecJson[Json](geo)(this)
   implicit override def mapToJson: Map[String, Json] => Json         = map => Json.obj(map.toList: _*)
   implicit override def listToJson: List[Json] => Json               = list => Json.arr(list: _*)
   implicit override def listMapToJson: ListMap[String, Json] => Json = list => Json.obj(list.toList: _*)

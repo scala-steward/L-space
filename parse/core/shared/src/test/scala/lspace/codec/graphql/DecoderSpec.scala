@@ -2,10 +2,9 @@ package lspace.codec.graphql
 
 import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty}
-import lspace.librarian.traversal.step.Out
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
-import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 
 class DecoderSpec extends AsyncWordSpec with Matchers {

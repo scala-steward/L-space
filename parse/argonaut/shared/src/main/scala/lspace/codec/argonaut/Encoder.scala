@@ -16,7 +16,6 @@ class Encoder extends json.JsonEncoder[Json] {
   implicit override def intToJson: Int => Json                       = int => Json.jNumber(int)
   implicit override def doubleToJson: Double => Json                 = double => Json.jNumber(double)
   implicit override def longToJson: Long => Json                     = long => Json.jNumber(long)
-  implicit override def geoToJson: Geometry => Json                  = geo => lspace.encode.GeometryCodecJson[Json](geo)(this)
   implicit override def mapToJson: Map[String, Json] => Json         = map => Json.jObjectFields(map.toList: _*)
   implicit override def listToJson: List[Json] => Json               = list => Json.jArrayElements(list: _*)
   implicit override def listMapToJson: ListMap[String, Json] => Json = list => Json.jObjectFields(list.toList: _*)

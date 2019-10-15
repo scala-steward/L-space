@@ -5,7 +5,9 @@ import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty, NamedActiveContext}
 import lspace.provider.mem.MemGraph
 import lspace.structure.SampledGraph
-import org.scalatest.{AsyncWordSpec, FutureOutcome, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.FutureOutcome
 import scribe.Level
 import scribe.format.Formatter
 

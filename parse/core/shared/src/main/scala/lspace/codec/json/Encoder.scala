@@ -11,6 +11,7 @@ object Encoder {
 }
 trait Encoder[Json] extends lspace.codec.Encoder {
 //  type Json
+  lazy val geojsonEncoder = lspace.codec.json.geojson.GeoJsonEncoder(this)
 
   implicit def jNull: Json
   implicit def stringToJson: (String) => Json
@@ -18,7 +19,7 @@ trait Encoder[Json] extends lspace.codec.Encoder {
   implicit def intToJson: Int => Json
   implicit def doubleToJson: Double => Json
   implicit def longToJson: Long => Json
-  implicit def geoToJson: Geometry => Json
+  implicit val geoToJson: Geometry => Json                = geo => geojsonEncoder.encodeGeometryObject(geo)
   implicit val dateToJson: Instant => Json                = (date: Instant) => date.toString.asJson
   implicit val localdatetimeToJson: LocalDateTime => Json = (date: LocalDateTime) => date.toString.asJson
   implicit val localdateToJson: LocalDate => Json         = (date: LocalDate) => date.toString.asJson

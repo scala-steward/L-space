@@ -302,8 +302,9 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
   }
   def fromGeometric(value: Any, expectedType: GeometricType[_])(implicit activeContext: ActiveContext): JIP = {
     value match {
-      case v: Geometry => JsonInProgress(v)
-      case _           => throw ToJsonException(s"int expected ${value.getClass} found")
+      case v: Geometry =>
+        JsonInProgress(baseEncoder.geojsonEncoder.encodeGeometry(v)) //no implicit conversion which encoder to an object (including redundant typing of the main object
+      case _ => throw ToJsonException(s"int expected ${value.getClass} found")
     }
   }
 

@@ -3,11 +3,12 @@ package lspace.encode
 import lspace.Property
 import lspace.codec.json.jsonld.JsonLDEncoder
 import lspace.codec.{ActiveContext, ActiveProperty, NamedActiveContext}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.immutable.ListMap
 
-abstract class EncodeJsonLDSpec[Json](encoder: JsonLDEncoder[Json]) extends WordSpec with Matchers {
+abstract class EncodeJsonLDSpec[Json](encoder: JsonLDEncoder[Json]) extends AnyWordSpec with Matchers {
 
   implicit val enc = encoder
   import encoder._
