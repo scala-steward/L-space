@@ -198,6 +198,12 @@ object DataType
         `@boolean`,
         `@geo`,
         `@geopoint`,
+        `@geoline`,
+        `@geomultipoint`,
+        `@geomultiline`,
+        `@geopolygon`,
+        `@geomultipolygon`,
+        `@geomultigeo`,
         `@graph`,
         `@url`,
         `@nodeURL`,
@@ -370,30 +376,45 @@ object DataType
 
     val `@structured` = StructuredType.datatype
 
+    def `@option`[V](ct: ClassType[V]): OptionType[Option[V]] = optionType(ct)
     def optionType[V](ct: ClassType[V]): OptionType[Option[V]] =
       OptionType(ct.asInstanceOf[ClassType[V]])
+    def `@option`[T](implicit tpe: ClassTypeable[T]): OptionType[T] = optionType(tpe)
     def optionType[T](implicit tpe: ClassTypeable[T]): OptionType[T] =
       OptionType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[OptionType[T]]
-    def optionType(): OptionType[Option[Any]] = OptionType()
+    def `@option`: OptionType[Option[Any]]                    = OptionType()
+    def optionType(): OptionType[Option[Any]]                 = OptionType()
+    def `@vector`[V](ct: ClassType[V]): VectorType[Vector[V]] = vectorType(ct)
     def vectorType[V](ct: ClassType[V]): VectorType[Vector[V]] =
       VectorType(ct.asInstanceOf[ClassType[V]])
+    def `@vector`[T](implicit tpe: ClassTypeable[T]): VectorType[Vector[T]] = vectorType(tpe)
     def vectorType[T](implicit tpe: ClassTypeable[T]): VectorType[Vector[T]] =
       VectorType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[VectorType[Vector[T]]]
-    def vectorType(): VectorType[Vector[Any]] = VectorType()
+    def `@vector`: VectorType[Vector[Any]]              = VectorType()
+    def vectorType(): VectorType[Vector[Any]]           = VectorType()
+    def `@list`[V](ct: ClassType[V]): ListType[List[V]] = listType(ct)
     def listType[V](ct: ClassType[V]): ListType[List[V]] =
       ListType(ct.asInstanceOf[ClassType[V]])
+    def `@list`[T](implicit tpe: ClassTypeable[T]): ListType[List[T]] = listType(tpe)
     def listType[T](implicit tpe: ClassTypeable[T]): ListType[List[T]] =
       ListType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[ListType[List[T]]]
-    def listType(): ListType[List[Any]] = ListType()
+    def `@list`: ListType[List[Any]]                             = ListType()
+    def listType(): ListType[List[Any]]                          = ListType()
+    def `@listset`[V](ct: ClassType[V]): ListSetType[ListSet[V]] = listsetType(ct)
     def listsetType[V](ct: ClassType[V]): ListSetType[ListSet[V]] =
       ListSetType(ct.asInstanceOf[ClassType[V]])
+    def `@listset`[T](implicit tpe: ClassTypeable[T]): ListSetType[ListSet[T]] = listsetType(tpe)
     def listsetType[T](implicit tpe: ClassTypeable[T]): ListSetType[ListSet[T]] =
       ListSetType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[ListSetType[ListSet[T]]]
-    def listsetType() = ListSetType()
+    def `@listset`                                   = ListSetType()
+    def listsetType()                                = ListSetType()
+    def `@set`[V](ct: ClassType[V]): SetType[Set[V]] = setType(ct)
     def setType[V](ct: ClassType[V]): SetType[Set[V]] =
       SetType(ct.asInstanceOf[ClassType[V]])
+    def `@set`[T](implicit tpe: ClassTypeable[T]): SetType[Set[T]] = setType(tpe)
     def setType[T](implicit tpe: ClassTypeable[T]): SetType[Set[T]] =
       SetType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[SetType[Set[T]]]
+    def `@set`: SetType[Set[Any]]    = SetType()
     def setType(): SetType[Set[Any]] = SetType()
     def mapType[K, V](kct: ClassType[K], vct: ClassType[V]): MapType[Map[K, V]] =
       MapType(kct.asInstanceOf[ClassType[K]], vct.asInstanceOf[ClassType[V]])
