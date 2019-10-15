@@ -163,8 +163,13 @@ trait ClassType[+T] extends IriResource {
                 }
               case (ct1: GeometricType[_], ct2: GeometricType[_]) =>
                 (ct1, ct2) match {
-                  case (ct1: GeopointType[_], ct2: GeopointType[_])     => ct1
-                  case (ct1: GeoPolygonType[_], ct2: GeoPolygonType[_]) => ct1
+                  case (ct1: GeopointType[_], ct2: GeopointType[_])                 => ct1
+                  case (ct1: GeoMultipointType[_], ct2: GeoMultipointType[_])       => ct1
+                  case (ct1: GeoLineType[_], ct2: GeoLineType[_])                   => ct1
+                  case (ct1: GeoMultiLineType[_], ct2: GeoMultiLineType[_])         => ct1
+                  case (ct1: GeoPolygonType[_], ct2: GeoPolygonType[_])             => ct1
+                  case (ct1: GeoMultiPolygonType[_], ct2: GeoMultiPolygonType[_])   => ct1
+                  case (ct1: GeoMultiGeometryType[_], ct2: GeoMultiGeometryType[_]) => ct1
                   //TODO: other geo-types
                   case _ => GeometricType.datatype
                 }
