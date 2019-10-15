@@ -76,11 +76,10 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
             @tailrec
             def getT(tail: String, types: List[Option[ClassType[Any]]]): (List[Option[ClassType[Any]]], String) = {
               val (valueTypes, newTail) = getTypes(tail.drop(1))
-              if (!newTail.startsWith("("))
-                getT(newTail,
-                     types :+ (if (valueTypes.nonEmpty) Some(ListType(valueTypes.get)) else Some(ListType.datatype)))
+              if (newTail.startsWith("("))
+                getT(newTail, types :+ (if (valueTypes.nonEmpty) Some(valueTypes.get) else None))
               else
-                (types :+ (if (valueTypes.nonEmpty) Some(ListType(valueTypes.get)) else Some(ListType.datatype))) -> newTail
+                (types :+ (if (valueTypes.nonEmpty) Some(valueTypes.get) else None)) -> newTail
             }
             val (rangeTypes, newTail) = getT(tail, List())
             Some(TupleType(rangeTypes)) -> newTail

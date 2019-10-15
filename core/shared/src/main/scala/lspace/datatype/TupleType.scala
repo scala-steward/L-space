@@ -105,7 +105,7 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
 //            .getOrElse("")
       }
       .mkString(")(") + ")"
-    s"${types.`@tuple`}N$iriTail"
+    s"${types.`@tuple`}$iriTail"
   }
 
   override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TupleType.datatype)
