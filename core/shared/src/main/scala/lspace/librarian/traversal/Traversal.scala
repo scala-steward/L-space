@@ -1314,11 +1314,17 @@ object Traversal
                     t.retype(traversal.et, traversal.et)
                 }
                 .foldLeft[HList](HNil) { case (r, t) => t :: r })
-            new Traversal(typedStep :: traversal.steps)(traversal.st,
-                                                        TupleType(
-                                                          typedStep.by.runtimeList.reverse
-                                                            .map { case t: Traversal[_, _, _] => t.enclosedEndType }
-                                                            .map(Some(_))))
+            val typedProjections = typedStep.by.runtimeList
+            val et = typedProjections.lengthCompare(1) match {
+              case -1 => traversal.et
+              case 0  => typedProjections.headOption.map { case t: Traversal[_, _, _] => t.enclosedEndType }.get
+              case 1 =>
+                TupleType(
+                  typedProjections.reverse
+                    .map { case t: Traversal[_, _, _] => t.enclosedEndType }
+                    .map(Some(_)))
+            }
+            new Traversal(typedStep :: traversal.steps)(traversal.st, et)
           case step: Path[_, _] =>
             val typedStep = Path(step.by.retype(traversal.et, traversal.et))
             new Traversal(typedStep :: traversal.steps)(traversal.st, ListType[Any](typedStep.by.et))
