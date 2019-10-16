@@ -382,7 +382,7 @@ object DataType
     def `@option`[T](implicit tpe: ClassTypeable[T]): OptionType[T] = optionType(tpe)
     def optionType[T](implicit tpe: ClassTypeable[T]): OptionType[T] =
       OptionType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[OptionType[T]]
-    def `@option`: OptionType[Option[Any]]                    = OptionType()
+    def `@option`(): OptionType[Option[Any]]                  = OptionType()
     def optionType(): OptionType[Option[Any]]                 = OptionType()
     def `@vector`[V](ct: ClassType[V]): VectorType[Vector[V]] = vectorType(ct)
     def vectorType[V](ct: ClassType[V]): VectorType[Vector[V]] =
@@ -390,7 +390,7 @@ object DataType
     def `@vector`[T](implicit tpe: ClassTypeable[T]): VectorType[Vector[T]] = vectorType(tpe)
     def vectorType[T](implicit tpe: ClassTypeable[T]): VectorType[Vector[T]] =
       VectorType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[VectorType[Vector[T]]]
-    def `@vector`: VectorType[Vector[Any]]              = VectorType()
+    def `@vector`(): VectorType[Vector[Any]]            = VectorType()
     def vectorType(): VectorType[Vector[Any]]           = VectorType()
     def `@list`[V](ct: ClassType[V]): ListType[List[V]] = listType(ct)
     def listType[V](ct: ClassType[V]): ListType[List[V]] =
@@ -398,7 +398,7 @@ object DataType
     def `@list`[T](implicit tpe: ClassTypeable[T]): ListType[List[T]] = listType(tpe)
     def listType[T](implicit tpe: ClassTypeable[T]): ListType[List[T]] =
       ListType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[ListType[List[T]]]
-    def `@list`: ListType[List[Any]]                             = ListType()
+    def `@list`(): ListType[List[Any]]                           = ListType()
     def listType(): ListType[List[Any]]                          = ListType()
     def `@listset`[V](ct: ClassType[V]): ListSetType[ListSet[V]] = listsetType(ct)
     def listsetType[V](ct: ClassType[V]): ListSetType[ListSet[V]] =
@@ -414,14 +414,19 @@ object DataType
     def `@set`[T](implicit tpe: ClassTypeable[T]): SetType[Set[T]] = setType(tpe)
     def setType[T](implicit tpe: ClassTypeable[T]): SetType[Set[T]] =
       SetType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[SetType[Set[T]]]
-    def `@set`: SetType[Set[Any]]    = SetType()
-    def setType(): SetType[Set[Any]] = SetType()
+    def `@set`(): SetType[Set[Any]]                                            = SetType()
+    def setType(): SetType[Set[Any]]                                           = SetType()
+    def `@map`[K, V](kct: ClassType[K], vct: ClassType[V]): MapType[Map[K, V]] = mapType(kct, vct)
     def mapType[K, V](kct: ClassType[K], vct: ClassType[V]): MapType[Map[K, V]] =
       MapType(kct.asInstanceOf[ClassType[K]], vct.asInstanceOf[ClassType[V]])
+    def `@map`[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[Map[K, V]] = mapType(ktpe, vtpe)
     def mapType[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[Map[K, V]] =
       MapType(ktpe.ct.asInstanceOf[ClassType[K]], vtpe.ct.asInstanceOf[ClassType[V]]) //.asInstanceOf[MapType[K, V]]
-    def mapType(): MapType[Map[Any, Any]]             = MapType()
-    def tupleType[T](ct: ClassType[_]*): TupleType[T] = TupleType[T](ct.toList.map(Some(_)))
+    def `@map`(): MapType[Map[Any, Any]]                           = MapType()
+    def mapType(): MapType[Map[Any, Any]]                          = MapType()
+    def `@tuple`[T](ct: ClassType[_]*): TupleType[T]               = TupleType[T](ct.toList.map(Some(_)))
+    def `@tuple`[T](cts: List[Option[ClassType[_]]]): TupleType[T] = TupleType[T](cts)
+    def tupleType[T](ct: ClassType[_]*): TupleType[T]              = TupleType[T](ct.toList.map(Some(_)))
 //    def tupleType[A, AT[+Z] <: ClassType[Z], ATOut <: ClassType[_], B, BT[+Z] <: ClassType[Z], BTOut <: ClassType[_]](
 //                                                                                                                        act: AT[A],
 //                                                                                                                        bct: BT[B]) = TupleType(List(act), List(bct))
