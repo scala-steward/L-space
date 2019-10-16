@@ -904,7 +904,8 @@ class DefaultAssistent extends Assistent {
   }
 
   def fuzzy[T](p: Fuzzy[T]): Helper[Fuzzy[T]] = p.pvalue match {
-    case v: String => throw AssertionNotSupported("fuzzy string match not supported")
+    case v: String =>
+      throw AssertionNotSupported("fuzzy string match not supported") //TODO, how to support? e.g. lowercase all strings on each search or keep a lazy lowercased cache value
   }
 
   def and(p: And): Helper[And] = new Helper[And](p) {
