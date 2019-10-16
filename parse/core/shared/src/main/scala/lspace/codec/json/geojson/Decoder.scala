@@ -140,10 +140,10 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
   }
   def decodePoint(coordinates: List[Json]): Point = {
     coordinates match {
-      case List(lat, lng) =>
-        (decoder.jsonToDouble(lat) -> decoder.jsonToDouble(lng)) match {
-          case (Some(lat), Some(lng)) => Point(lat, lng)
-          case _                      => throw FromJsonException(s"not a valid geojson Point ${coordinates}")
+      case List(x, y) =>
+        (decoder.jsonToDouble(x) -> decoder.jsonToDouble(y)) match {
+          case (Some(x), Some(y)) => Point(x, y)
+          case _                  => throw FromJsonException(s"not a valid geojson Point ${coordinates}")
         }
       case _ => throw FromJsonException(s"not a valid geojson Point ${coordinates}")
     }

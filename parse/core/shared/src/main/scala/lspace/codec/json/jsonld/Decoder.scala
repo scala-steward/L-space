@@ -628,24 +628,29 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
     }
 
   def toTuple[T](json: List[Json], label: TupleType[T])(implicit activeContext: ActiveContext): Task[T] =
-    label match {
-      case dt: TupleType[_] =>
-        if (json.size != dt.rangeTypes.size)
-          Task.raiseError(UnexpectedJsonException("tuple range is not equal to tuple size"))
-        else
-          Task
-            .gather(json.zip(dt.rangeTypes).map { case (json, types) => toObject(json, types) })
-            .map(_.map(_._2))
-            .map {
-              case List(a, b)             => (a, b)
-              case List(a, b, c)          => (a, b, c)
-              case List(a, b, c, d)       => (a, b, c, d)
-              case List(a, b, c, d, e)    => (a, b, c, d, e)
-              case List(a, b, c, d, e, f) => (a, b, c, d, e, f)
-            }
-            .map(_.asInstanceOf[T])
-      case _ => Task.raiseError(UnexpectedJsonException(s"unknown TupleType ${label.iri}"))
-    }
+//    label match {
+//      case dt: TupleType[_] =>
+    if (json.size != label.rangeTypes.size)
+      Task.raiseError(UnexpectedJsonException("tuple range is not equal to tuple size"))
+    else
+      Task
+        .gather(json.zip(label.rangeTypes).map { case (json, types) => toObject(json, types) })
+        .map(_.map(_._2))
+        .map {
+          case List(a, b)                            => (a, b)
+          case List(a, b, c)                         => (a, b, c)
+          case List(a, b, c, d)                      => (a, b, c, d)
+          case List(a, b, c, d, e)                   => (a, b, c, d, e)
+          case List(a, b, c, d, e, f)                => (a, b, c, d, e, f)
+          case List(a, b, c, d, e, f, g)             => (a, b, c, d, e, f, g)
+          case List(a, b, c, d, e, f, g, h)          => (a, b, c, d, e, f, g, h)
+          case List(a, b, c, d, e, f, g, h, i)       => (a, b, c, d, e, f, g, h, i)
+          case List(a, b, c, d, e, f, g, h, i, j)    => (a, b, c, d, e, f, g, h, i, j)
+          case List(a, b, c, d, e, f, g, h, i, j, k) => (a, b, c, d, e, f, g, h, i, j, k)
+        }
+        .map(_.asInstanceOf[T])
+//      case _ => Task.raiseError(UnexpectedJsonException(s"unknown TupleType ${label.iri}"))
+//    }
 
   def toObject(json: Json, label: Option[ClassType[_]])(
       implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] = {
@@ -659,7 +664,8 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
                 labelOption
                   .map {
                     case tpe: DataType[_] if label.nonEmpty && !label.contains(tpe) =>
-                      Task.raiseError(UnexpectedJsonException("a collection can only have value with the @valueRange"))
+                      Task.raiseError(UnexpectedJsonException(
+                        s"a collection can only have value with the @valueRange, ${tpe.iri} is not equal to ${label.get.iri}"))
                     case label: DataType[_] =>
                       toData(json, label).map(label -> _)
                     case _ =>
