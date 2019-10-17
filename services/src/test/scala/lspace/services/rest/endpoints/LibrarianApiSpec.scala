@@ -145,6 +145,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
         .has(SampleGraph.properties.balance, P.gt(300))
         .project(_.iri)
         .by(_.out(SampleGraph.properties.balanceDouble))
+        .by(_.out("unknown"))
       (for {
         node <- traversal.toNode
         json = encoderJsonLD.apply(node)
