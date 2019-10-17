@@ -48,4 +48,8 @@ object Encode {
       implicit
       A: JsonLD[A]): EncodeStream.Aux[F, _root_.fs2.Stream, A, codecs.Application.JsonLD] =
     streamEncoders.encodeJsonLDFs2Stream[A, F]
+
+  implicit def encodeTextException: io.finch.Encode.Aux[Exception, Text.Plain] = {
+    io.finch.Encode.encodeExceptionAsTextPlain
+  }
 }
