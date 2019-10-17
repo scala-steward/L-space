@@ -430,8 +430,8 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
         }
       case _ =>
         val label = DataType.detect(value)
-        if (expectedType.contains(label)) {
-          fromData(value, label)
+        if (expectedType.contains(label) || expectedType.exists(_.`@extends`(label))) {
+          fromData(value, expectedType.get.asInstanceOf[DataType[Any]])
         } else {
           val jip = fromData(value, label)
           JsonInProgress(Map(types.`@value` -> jip.json, types.`@type` -> (label.iri.compact.asJson)).asJson)(

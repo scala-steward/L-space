@@ -40,7 +40,7 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
     })
   }
 
-  "The Encoder" should {
+  "The JsonLDEncoder" can {
     "encode a Node" which {
       "uses a default context if provided" in {
         val person = Ontology.ontologies.getOrCreate("https://example.org/Person")
@@ -115,6 +115,19 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
             .getOrElse(fail)
         }
       }
+    }
+    "encode a @list(@int)" in Future {
+      encoder.fromCollection(List(1, 2, 3), `@list`(`@int`))(ActiveContext()).json.noSpaces shouldBe "[1,2,3]"
+    }
+    "encode a @tuple(@list(int))(@list(@string))" in Future {
+      encoder
+        .fromTuple((List(1, 2, 3), List("a")), `@tuple`(`@list`(`@int`), `@list`(`@string`)))(ActiveContext())
+        .json
+        .noSpaces shouldBe "[[1,2,3],[\"a\"]]"
+      encoder
+        .fromTuple((List(1, 2, 3), List[String]()), `@tuple`(`@list`(`@int`), `@list`(`@string`)))(ActiveContext())
+        .json
+        .noSpaces shouldBe "[[1,2,3],[]]"
     }
   }
 }
