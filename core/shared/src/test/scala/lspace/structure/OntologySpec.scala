@@ -1,9 +1,9 @@
 package lspace.structure
 
 import lspace.librarian.traversal.step.{Or, V}
-import lspace.provider.detached.DetachedGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class OntologySpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global

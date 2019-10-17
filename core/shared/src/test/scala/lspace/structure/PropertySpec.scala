@@ -1,7 +1,8 @@
 package lspace.structure
 
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class PropertySpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global

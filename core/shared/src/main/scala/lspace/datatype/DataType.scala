@@ -406,7 +406,7 @@ object DataType
     def `@listset`[T](implicit tpe: ClassTypeable[T]): ListSetType[ListSet[T]] = listsetType(tpe)
     def listsetType[T](implicit tpe: ClassTypeable[T]): ListSetType[ListSet[T]] =
       ListSetType(tpe.ct.asInstanceOf[ClassType[T]]).asInstanceOf[ListSetType[ListSet[T]]]
-    def `@listset`                                   = ListSetType()
+    def `@listset`()                                 = ListSetType()
     def listsetType()                                = ListSetType()
     def `@set`[V](ct: ClassType[V]): SetType[Set[V]] = setType(ct)
     def setType[V](ct: ClassType[V]): SetType[Set[V]] =

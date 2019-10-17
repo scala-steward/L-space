@@ -1,6 +1,7 @@
 package lspace.structure
 
 import lspace.datatype._
+import lspace.Label.D._
 import lspace.types.geo._
 import monix.eval.{Coeval, Task}
 import shapeless.Coproduct
@@ -148,17 +149,20 @@ trait ClassType[+T] extends IriResource {
             (ct1, ct2) match {
               case (ct1: CollectionType[_], ct2: CollectionType[_]) =>
                 (ct1, ct2) match {
-                  case (ct1: ListType[_], ct2: ListType[_]) => ListType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                  case (ct1: ListType[_], ct2: ListType[_]) =>
+                    ct1.valueRange ++ ct2.valueRange reduceOption (_ + _) map (`@list`(_)) getOrElse (`@list`())
                   case (ct1: ListSetType[_], ct2: ListSetType[_]) =>
-                    ListSetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                    ct1.valueRange ++ ct2.valueRange reduceOption (_ + _) map (`@listset`(_)) getOrElse (`@listset`())
                   case (ct1: MapType[_], ct2: MapType[_]) =>
-                    MapType(ct1.keyRange ++ ct2.keyRange reduce (_ + _),
-                            ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                    MapType(
+                      ct1.keyRange ++ ct2.keyRange reduceOption (_ + _) getOrElse (ClassType.stubAny),
+                      ct1.valueRange ++ ct2.valueRange reduceOption (_ + _) getOrElse (ClassType.stubAny)
+                    )
                   case (ct1: SetType[_], ct2: SetType[_]) => SetType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
                   case (ct1: VectorType[_], ct2: VectorType[_]) =>
-                    VectorType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                    ct1.valueRange ++ ct2.valueRange reduceOption (_ + _) map (`@vector`(_)) getOrElse (`@vector`())
                   case (ct1: OptionType[_], ct2: OptionType[_]) =>
-                    OptionType(ct1.valueRange ++ ct2.valueRange reduce (_ + _))
+                    ct1.valueRange ++ ct2.valueRange reduceOption (_ + _) map (`@option`(_)) getOrElse (`@option`())
                   case _ => CollectionType.datatype
                 }
               case (ct1: GeometricType[_], ct2: GeometricType[_]) =>
