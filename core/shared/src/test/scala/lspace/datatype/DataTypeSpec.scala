@@ -9,7 +9,7 @@ class DataTypeSpec extends AnyWordSpec with Matchers {
 
   "merging datatypes" should {
     "result in Any for @tuple(@int, @double) + @tuple(@int, @double, @long)" in {
-      `@tuple`(`@int`, `@double`) + `@tuple`(`@int`, `@double`, `@long`) shouldBe `@tuple`()
+      (`@tuple`(`@int`, `@double`) + `@tuple`(`@int`, `@double`, `@long`)) shouldBe `@tuple`()
     }
     "result in @number for @int + @double" in {
       `@int` + `@double` shouldBe `@number`

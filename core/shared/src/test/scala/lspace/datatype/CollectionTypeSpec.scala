@@ -75,11 +75,22 @@ class CollectionTypeSpec extends AnyWordSpec with Matchers {
     "be true for @map(@int) extending @map" in {
       `@map`(`@int`, `@double`) <:< `@map`() shouldBe true
     }
-    "be true for @vector(@map(@int)) extending @map(@map)" in {
+    "be true for @vector(@map(@int)) extending @map(@map, @map)" in {
       `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(), `@map`()) shouldBe true
       `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(`@int`, `@double`), `@map`()) shouldBe true
       `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(`@int`, `@double`),
                                                                               `@map`(`@int`, `@double`)) shouldBe false
+    }
+    "be true for @tuple(@int, @double) extending @tuple" in {
+      `@tuple`(`@int`, `@double`) <:< `@tuple`() shouldBe true
+    }
+    "be true for @tuple(@tuple(@int, @double), @tuple(@int, @double)) extending @tuple(@tuple, @tuple)" in {
+      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(`@tuple`(), `@tuple`()) shouldBe true
+      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(`@tuple`(`@int`, `@double`),
+                                                                                      `@tuple`()) shouldBe true
+      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(
+        `@tuple`(`@int`, `@double`),
+        `@tuple`(`@int`, `@double`)) shouldBe false
     }
   }
 }
