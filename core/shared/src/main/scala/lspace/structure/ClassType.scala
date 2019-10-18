@@ -229,7 +229,20 @@ trait ClassType[+T] extends IriResource {
       result
     }
   }
-  def `@extends`(classType: ClassType[_]) = `extends`(classType)
+
+  /**
+    * alternative to `@extends`
+    * @param classType
+    * @return
+    */
+  def `@extends`(classType: ClassType[_]): Boolean = `extends`(classType)
+
+  /**
+    * alternative to `@extends`
+    * @param classType
+    * @return
+    */
+  def <:<(classType: ClassType[_]): Boolean = `extends`(classType)
 
 //  @deprecated(s"migrate to properties(iri: String)")
 //  def property(iri: String): Option[Property]    = properties(iri)

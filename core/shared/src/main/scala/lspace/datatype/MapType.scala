@@ -70,4 +70,25 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
 }
 
 abstract class MapType[+T](val keyRange: Option[ClassType[Any]], val valueRange: Option[ClassType[Any]])
-    extends CollectionType[T]
+    extends CollectionType[T] {
+  override def `extends`(classType: ClassType[_]): Boolean =
+    if (iri == classType.iri) false
+    else if (extendedClasses().contains(classType)) true
+    else {
+      classType match {
+        case tpe: MapType[_] =>
+          ((keyRange, tpe.keyRange) match {
+            case (Some(thisRange), Some(thatRange)) => thisRange.iri == thatRange.iri || thisRange.`@extends`(thatRange)
+            case (None, Some(thatRange))            => false
+            case (Some(thisRange), None)            => true
+            case (None, None)                       => true
+          }) && ((valueRange, tpe.valueRange) match {
+            case (Some(thisRange), Some(thatRange)) => thisRange.iri == thatRange.iri || thisRange.`@extends`(thatRange)
+            case (None, Some(thatRange))            => false
+            case (Some(thisRange), None)            => true
+            case (None, None)                       => true
+          })
+        case _ => super.`extends`(classType)
+      }
+    }
+}

@@ -65,4 +65,19 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
   }
 }
 
-abstract class ListSetType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V]
+abstract class ListSetType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V] {
+  override def `extends`(classType: ClassType[_]): Boolean =
+    if (extendedClasses().contains(classType)) true
+    else {
+      classType match {
+        case tpe: ListSetType[_] =>
+          (valueRange, tpe.valueRange) match {
+            case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
+            case (None, Some(thatRange))            => false
+            case (Some(thisRange), None)            => true
+            case (None, None)                       => true
+          }
+        case _ => super.`extends`(classType)
+      }
+    }
+}

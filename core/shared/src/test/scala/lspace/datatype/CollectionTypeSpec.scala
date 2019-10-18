@@ -47,4 +47,39 @@ class CollectionTypeSpec extends AnyWordSpec with Matchers {
       CollectionType.get("@map(@int)(@string)") shouldBe Some(`@map`(IntType.datatype, TextType.datatype))
     }
   }
+  "inheritance (`@extends`) in nested types" should {
+    "be true for @list(@int) extending @list" in {
+      `@list`(`@int`) <:< `@list`() shouldBe true
+    }
+    "be true for @list(@list(@int)) extending @list(@list)" in {
+      `@list`(`@list`(`@int`)) <:< `@list`(`@list`()) shouldBe true
+    }
+    "be true for @vector(@int) extending @vector" in {
+      `@vector`(`@int`) <:< `@vector`() shouldBe true
+    }
+    "be true for @vector(@vector(@int)) extending @vector(@vector)" in {
+      `@vector`(`@vector`(`@int`)) <:< `@vector`(`@vector`()) shouldBe true
+    }
+    "be true for @listset(@int) extending @listset" in {
+      `@listset`(`@int`) <:< `@listset`() shouldBe true
+    }
+    "be true for @listset(@listset(@int)) extending @listset(@listset)" in {
+      `@listset`(`@listset`(`@int`)) <:< `@listset`(`@listset`()) shouldBe true
+    }
+    "be true for @set(@int) extending @set" in {
+      `@set`(`@int`) <:< `@set`() shouldBe true
+    }
+    "be true for @set(@set(@int)) extending @set(@set)" in {
+      `@set`(`@set`(`@int`)) <:< `@set`(`@set`()) shouldBe true
+    }
+    "be true for @map(@int) extending @map" in {
+      `@map`(`@int`, `@double`) <:< `@map`() shouldBe true
+    }
+    "be true for @vector(@map(@int)) extending @map(@map)" in {
+      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(), `@map`()) shouldBe true
+      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(`@int`, `@double`), `@map`()) shouldBe true
+      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(`@int`, `@double`),
+                                                                              `@map`(`@int`, `@double`)) shouldBe false
+    }
+  }
 }

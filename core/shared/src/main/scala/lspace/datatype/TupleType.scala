@@ -59,4 +59,22 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
   }
 
   override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TupleType.datatype)
+
+  override def `extends`(classType: ClassType[_]): Boolean =
+    if (extendedClasses().contains(classType)) true
+    else {
+      classType match {
+        case tpe: TupleType[_] =>
+          rangeTypes.zip(tpe.rangeTypes).foldLeft(true) {
+            case (result, (thisType, thatType)) =>
+              result && ((thisType, thatType) match {
+                case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
+                case (None, Some(thatRange))            => false
+                case (Some(thisRange), None)            => true
+                case (None, None)                       => true
+              })
+          }
+        case _ => super.`extends`(classType)
+      }
+    }
 }

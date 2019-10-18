@@ -52,4 +52,20 @@ object ListType extends DataTypeDef[ListType[Any]] {
   }
 }
 
-abstract class ListType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T]
+abstract class ListType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T] {
+
+  override def `extends`(classType: ClassType[_]): Boolean =
+    if (extendedClasses().contains(classType)) true
+    else {
+      classType match {
+        case tpe: ListType[_] =>
+          (valueRange, tpe.valueRange) match {
+            case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
+            case (None, Some(thatRange))            => false
+            case (Some(thisRange), None)            => true
+            case (None, None)                       => true
+          }
+        case _ => super.`extends`(classType)
+      }
+    }
+}

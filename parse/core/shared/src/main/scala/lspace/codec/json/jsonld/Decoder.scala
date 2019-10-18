@@ -663,7 +663,8 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
               expandedJson.extractDatatype.map(_.orElse(label)).flatMap { labelOption =>
                 labelOption
                   .map {
-                    case tpe: DataType[_] if label.nonEmpty && !label.contains(tpe) =>
+                    case tpe: DataType[_]
+                        if label.nonEmpty && !label.contains(tpe) || !label.exists(tpe.`@extends`(_)) =>
                       Task.raiseError(UnexpectedJsonException(
                         s"a collection can only have value with the @valueRange, ${tpe.iri} is not equal to ${label.get.iri}"))
                     case label: DataType[_] =>
