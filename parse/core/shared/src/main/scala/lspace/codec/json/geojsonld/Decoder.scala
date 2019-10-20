@@ -90,8 +90,9 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
                               .flatMap(addEdgeTypedF(collectionType, _))
                               .map(List(_))
                           case et => //no container but expected type, try ListType(List(et))
-                            toCollection(array, ListType(et))
-                              .flatMap(nodes => Task.gatherUnordered(nodes.map(node => addEdgeTypedF(et, node))))
+//                            toCollection(array, ListType(et))
+//                              .flatMap(nodes => Task.gatherUnordered(nodes.map(node => addEdgeTypedF(et, node))))
+                            toResource(json, expectedType).flatMap(addEdgeF(_)).map(List(_))
                         }
                         .getOrElse {
                           Task.gatherUnordered(array.map(toResource(_, expectedType)
