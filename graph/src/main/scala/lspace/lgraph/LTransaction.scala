@@ -151,7 +151,7 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
             close()
             Task.unit
         }
-        .map(f => Unit)
+        .map(f => ())
 //      addedValues.asInstanceOf[List[parent._Value[_]]].foreach(parent.valueStore.cache)
 //      addedNodes.foreach(parent.nodeStore.cache)
 //      addedEdges.asInstanceOf[List[parent._Edge[_, _]]].foreach(parent.edgeStore.cache)

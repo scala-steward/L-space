@@ -130,8 +130,8 @@ trait LResource[T] extends Resource[T] {
 //      .map(_.to.value)
 
   def outMap(key: Property*): Map[Property, List[Any]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.links.map(_.to.value).toList)
-    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.to.value).toList)
+    if (key.isEmpty) linksOut.toMap.mapValues(_.links.map(_.to.value).toList).toMap
+    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.to.value).toList).toMap
 //    _outE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.to.value))
   }
 
@@ -143,8 +143,8 @@ trait LResource[T] extends Resource[T] {
   }
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.links.toList)
-    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList)
+    if (key.isEmpty) linksOut.toMap.mapValues(_.links.toList).toMap
+    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList).toMap
 //    _outE(key.toList: _*).groupBy(_.key)
   }
 
@@ -190,8 +190,8 @@ trait LResource[T] extends Resource[T] {
 //      .map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] =
-    if (key.isEmpty) linksIn.toMap.mapValues(_.links.map(_.from.value).toList)
-    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.from.value).toList)
+    if (key.isEmpty) linksIn.toMap.mapValues(_.links.map(_.from.value).toList).toMap
+    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.from.value).toList).toMap
 //    _inE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.from.value))
 
   def inE(key: Property*): List[Edge[Any, T]] = {
@@ -202,8 +202,8 @@ trait LResource[T] extends Resource[T] {
   }
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
-    if (key.isEmpty) linksIn.toMap.mapValues(_.links.toList)
-    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList)
+    if (key.isEmpty) linksIn.toMap.mapValues(_.links.toList).toMap
+    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList).toMap
 //    _inE(key.toList: _*).groupBy(_.key)
   }
 

@@ -231,7 +231,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
             f.printStackTrace(); throw f
           }
           .foreachL { f =>
-            Unit
+            ()
           }
       }
       .memoize
