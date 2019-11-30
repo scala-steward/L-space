@@ -67,7 +67,7 @@ and it's query language Gremlin. I was experiencing too much restrictions with G
 I was in need of polymorphic-property-types, path/pattern-indexing and advanced namespaces w.r.t label-types.
 
 ## Approach
-Because I like the semantic of Gremlin I took it as a reference for Librarian. Librarian has its differences, 
+Because I like the semantics of Gremlin I took it as a reference for Librarian. Librarian has its differences, 
 not all Librarian steps share all of their characteristics their Gremlin counterparts. For example, 
 Librarian does not have a properties-step because in- and out-step traverse all of the resource types (Value, Edge, Node). 
 So w.r.t. Linked Data: take for example the property [schema.org/address](https://schema.org/address), 
