@@ -495,7 +495,7 @@ object Traversal
                                                 Project[Traversal[PST, PET, PHSteps] :: PROJECTIONS] :: Steps])
       extends BaseMod[Start, ST, End, ET, Project[Traversal[PST, PET, PHSteps] :: PROJECTIONS] :: Steps] {
 
-    import util.{ProjectStepDataTypeMapper, ProjectStepTypeMapper}
+    import lspace.librarian.traversal.util.{ProjectStepDataTypeMapper, ProjectStepTypeMapper}
 
     def by[P <: ClassType[Any],
            PSteps <: HList,

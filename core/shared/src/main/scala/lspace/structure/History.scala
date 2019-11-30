@@ -55,17 +55,17 @@ trait History extends Graph {
     for {
       deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
       deleteTimeEdge <- edges.create(node, Property.default.`@deletedon`, deleteTime)
-    } yield Unit
+    } yield ()
 
   override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =
     for {
       deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
       deleteTimeEdge <- edges.create(edge, Property.default.`@deletedon`, deleteTime)
-    } yield Unit
+    } yield ()
 
   override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] =
     for {
       deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
       deleteTimeEdge <- edges.create(value, Property.default.`@deletedon`, deleteTime)
-    } yield Unit
+    } yield ()
 }

@@ -219,10 +219,11 @@ trait ClassType[+T] extends IriResource {
     * @return
     */
   def `extends`(classType: ClassType[_]): Boolean = {
-    if (extendedClasses().contains(classType)) true
+    val _extends = extendedClasses()
+    if (_extends.contains(classType)) true
     else {
       var result: Boolean = false
-      val oIt             = extendedClasses().reverseIterator
+      val oIt             = _extends /*.filterNot(_.`extends`(this))*/ .reverseIterator
       while (oIt.hasNext && !result) {
         result = oIt.next().`extends`(classType)
       }

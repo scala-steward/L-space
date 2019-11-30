@@ -31,9 +31,10 @@ trait TResource[T] extends MemResource[T] {
         .groupBy(_.key)
         .mapValues(_.map(_.to.asInstanceOf[graph.parent._Resource[Any]]).map(graph.wrapTR(_).map(_.value).value())) //wrapTR brings nested resources (aka within collections) in transaction context
     ).reduceLeft((r, m) =>
-      m.foldLeft(r) {
-        case (dict, (k, v)) => dict + (k -> (v ++ dict.getOrElse(k, List())))
-    })
+        m.toMap.foldLeft(r) {
+          case (dict, (k, v)) => dict.+(k -> (v ++ dict.getOrElse(k, List()))).toMap
+      })
+      .toMap
   override def outE(key: Property*): List[Edge[T, Any]] =
     super.outE(key: _*) ++ self
       .outE(key: _*)
@@ -69,9 +70,10 @@ trait TResource[T] extends MemResource[T] {
         .groupBy(_.key)
         .mapValues(_.map(_.from.asInstanceOf[graph.parent._Resource[Any]]).map(graph.wrapTR(_).map(_.value).value()))
     ).reduceLeft((r, m) =>
-      m.foldLeft(r) {
-        case (dict, (k, v)) => dict + (k -> (v ++ dict.getOrElse(k, List())))
-    })
+        m.toMap.foldLeft(r) {
+          case (dict, (k, v)) => dict.+(k -> (v ++ dict.getOrElse(k, List()))).toMap
+      })
+      .toMap
   override def inE(key: Property*): List[Edge[Any, T]] =
     super.inE(key: _*) ++ self
       .inE(key: _*)

@@ -456,9 +456,16 @@ trait DataType[+T] extends ClassType[T] { self =>
 //  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
   object extendedClasses {
     def apply(): List[DataType[Any]] = extendedClassesList()
-    def all(): Set[DataType[Any]]    = extendedClasses().toSet ++ extendedClasses().flatMap(_.extendedClasses.all())
-    def apply(iri: String): Boolean =
-      extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
+    def all(): Set[DataType[Any]] = {
+      val _extends = extendedClasses().toSet
+      _extends ++ (_extends - self).filterNot(_.`extends`(self)).flatMap(_.extendedClasses.all())
+    }
+    def apply(iri: String): Boolean = {
+      val _extends = extendedClasses().toSet
+      _extends.exists(_.iris.contains(iri)) || (_extends - self)
+        .filterNot(_.`extends`(self))
+        .exists(_.extendedClasses(iri))
+    }
 
     def +(parent: => DataType[Any]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>

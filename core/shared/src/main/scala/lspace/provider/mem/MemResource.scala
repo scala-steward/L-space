@@ -60,8 +60,8 @@ trait MemResource[T] extends Resource[T] {
     else linksOut.values.flatten.map(_.to.value).toList
 
   def outMap(key: Property*): Map[Property, List[Any]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.map(_.to.value).toList)
-    else outE(key: _*).groupBy(_.key).mapValues(_.map(_.to.value))
+    if (key.isEmpty) linksOut.toMap.mapValues(_.map(_.to.value).toList).toMap
+    else outE(key: _*).groupBy(_.key).mapValues(_.map(_.to.value)).toMap
   }
 
   def outE(key: Property*): List[Edge[T, Any]] =
@@ -69,7 +69,7 @@ trait MemResource[T] extends Resource[T] {
     else linksOut.values.toList.flatten.asInstanceOf[List[Edge[T, Any]]]
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
-    if (key.isEmpty) linksOut.toMap.mapValues(_.asInstanceOf[HashSet[Edge[T, Any]]].toList)
+    if (key.isEmpty) linksOut.toMap.mapValues(_.asInstanceOf[HashSet[Edge[T, Any]]].toList).toMap
     else outE(key: _*).groupBy(_.key)
   }
 
@@ -78,8 +78,8 @@ trait MemResource[T] extends Resource[T] {
     else linksIn.values.toList.flatten.map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] = {
-    if (key.isEmpty) linksIn.toMap.mapValues(_.map(_.from.value).toList)
-    else inE(key: _*).groupBy(_.key).mapValues(_.map(_.from.value))
+    if (key.isEmpty) linksIn.toMap.mapValues(_.map(_.from.value).toList).toMap
+    else inE(key: _*).groupBy(_.key).mapValues(_.map(_.from.value)).toMap
   }
 
   def inE(key: Property*): List[Edge[Any, T]] =
@@ -87,7 +87,7 @@ trait MemResource[T] extends Resource[T] {
     else linksIn.values.toList.flatten.asInstanceOf[List[Edge[Any, T]]]
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
-    if (key.isEmpty) linksIn.toMap.mapValues(_.asInstanceOf[HashSet[Edge[Any, T]]].toList)
+    if (key.isEmpty) linksIn.toMap.mapValues(_.asInstanceOf[HashSet[Edge[Any, T]]].toList).toMap
     else inE(key.toList: _*).groupBy(_.key)
   }
 

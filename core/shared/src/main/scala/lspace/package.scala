@@ -51,6 +51,10 @@ package object lspace {
   val Properties = structure.Property.default
   val DataTypes  = datatype.DataType.default
 
+  implicit class WithString(s: String) {
+    def as[T](implicit cls: ClassTypeable[T]): TypedProperty[T] = Property(s).as[T](cls.ct.asInstanceOf[ClassType[T]])
+  }
+
   object Implicits {
     object DefaultAssistent {
       implicit val assistent: Assistent = librarian.logic.DefaultAssistent()

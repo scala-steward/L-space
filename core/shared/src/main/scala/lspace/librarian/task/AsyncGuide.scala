@@ -894,13 +894,17 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             val ordering = if (step.increasing) Ordering.Int else Ordering.Int.reverse
             byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Int])(ordering))))
           case lspace.NS.types.`@double` =>
-            val ordering = if (step.increasing) Ordering.Double else Ordering.Double.reverse
+            val ordering =
+              if (step.increasing) lspace.datatype.util.Ordering.Double
+              else lspace.datatype.util.Ordering.Double.reverse
             byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Double])(ordering))))
           case lspace.NS.types.`@long` =>
             val ordering = if (step.increasing) Ordering.Long else Ordering.Long.reverse
             byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Long])(ordering))))
           case lspace.NS.types.`@number` =>
-            val ordering = if (step.increasing) Ordering.Double else Ordering.Double.reverse
+            val ordering =
+              if (step.increasing) lspace.datatype.util.Ordering.Double
+              else lspace.datatype.util.Ordering.Double.reverse
             byObsF andThen (obs =>
               Observable.fromTask(obs.toListL.map(_.sortBy(_._2 match {
                 case v: Int    => v.toDouble

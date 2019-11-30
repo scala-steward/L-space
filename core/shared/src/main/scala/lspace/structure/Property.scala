@@ -478,9 +478,16 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
       * recursively fetches all extended classes (parent of parents)
       * @return
       */
-    def all(): Set[Property] = extendedClasses().toSet ++ extendedClasses().flatMap(_.extendedClasses.all())
-    def apply(iri: String): Boolean =
-      extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
+    def all(): Set[Property] = {
+      val _extends = extendedClasses().toSet
+      _extends ++ (_extends - self).filterNot(_.`extends`(self)).flatMap(_.extendedClasses.all())
+    }
+    def apply(iri: String): Boolean = {
+      val _extends = extendedClasses().toSet
+      _extends.exists(_.iris.contains(iri)) || (_extends - self)
+        .filterNot(_.`extends`(self))
+        .exists(_.extendedClasses(iri))
+    }
 
     def +(parent: => Property): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>

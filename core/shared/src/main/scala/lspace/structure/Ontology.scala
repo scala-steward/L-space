@@ -181,9 +181,16 @@ class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType
     : Coeval[List[Ontology]] = Coeval(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
   object extendedClasses {
     def apply(): List[Ontology] = extendedClassesList.value()
-    def all(): Set[Ontology]    = extendedClasses().toSet ++ extendedClasses().flatMap(_.extendedClasses.all())
-    def apply(iri: String): Boolean =
-      extendedClassesList().exists(_.iris.contains(iri)) || extendedClassesList().exists(_.extendedClasses(iri))
+    def all(): Set[Ontology] = {
+      val _extends = extendedClasses().toSet
+      _extends ++ (_extends - self).filterNot(_.`extends`(self)).flatMap(_.extendedClasses.all())
+    }
+    def apply(iri: String): Boolean = {
+      val _extends = extendedClasses().toSet
+      _extends.exists(_.iris.contains(iri)) || (_extends - self)
+        .filterNot(_.`extends`(self))
+        .exists(_.extendedClasses(iri))
+    }
 
     def +(parent: => Ontology): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
