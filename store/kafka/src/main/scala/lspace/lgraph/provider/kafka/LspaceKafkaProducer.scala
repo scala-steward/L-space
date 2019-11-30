@@ -11,7 +11,7 @@ case class LspaceKafkaProducer(topic: String) {
   import lspace.Implicits.Scheduler.global
 
   private val producer: KafkaProducerSink[String, String] =
-    KafkaProducerSink[String, String](producerCfg(), scheduler)
+    KafkaProducerSink[String, String](producerCfg(), global)
 
   private def producerCfg(hosts: List[String] = List()) =
     KafkaProducerConfig.default.copy(
