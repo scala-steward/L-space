@@ -1,11 +1,12 @@
 package lspace.librarian.logic.predicate
 
 import lspace.structure.Ontology
-import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.immutable.List
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class PSpec extends WordSpec with Matchers {
+class PSpec extends AnyWordSpec with Matchers {
 
   "A P" can {
     "consist of multiple steps" in {

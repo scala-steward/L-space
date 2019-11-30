@@ -1,8 +1,9 @@
 package lspace.structure.index.shape
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ShapeSpec extends WordSpec with Matchers {
+class ShapeSpec extends AnyWordSpec with Matchers {
 
   "A Shape" should {
     "" ignore {}

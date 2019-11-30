@@ -10,9 +10,11 @@ import lspace.services.codecs.{Application => LApplication}
 import lspace.provider.mem.MemGraph
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FutureOutcome}
 
 import scala.concurrent.duration._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 

@@ -7,9 +7,11 @@ import lspace.services.LApplication
 import lspace.services.crypto.Crypto
 import lspace.services.rest.security.SessionBroker
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import shapeless.{:+:, CNil}
 import lspace.services.util._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class AuthApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 

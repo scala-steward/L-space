@@ -1,8 +1,10 @@
 package lspace.services.crypto
 
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class CryptoSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+class CryptoSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   "Crypto" should {
     ".." in {

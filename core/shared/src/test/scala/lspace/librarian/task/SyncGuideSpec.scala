@@ -8,7 +8,9 @@ import lspace.Label.P._
 import lspace.structure.{GraphFixtures, SampledGraph}
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 //trait GuideSpec[F[_]] extends Matchers {
 //  implicit def guide: Guide[F]

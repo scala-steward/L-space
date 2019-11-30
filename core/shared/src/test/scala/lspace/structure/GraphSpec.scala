@@ -9,11 +9,13 @@ import lspace.util.SampleGraph
 import monix.eval.Task
 import monix.execution.Scheduler
 import monix.reactive.Observable
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers, Outcome}
+import org.scalatest.{BeforeAndAfterAll, Outcome}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.collection.JavaConverters._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
   import SampleGraph.ontologies._

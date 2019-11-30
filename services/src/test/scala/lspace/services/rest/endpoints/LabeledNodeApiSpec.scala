@@ -12,11 +12,13 @@ import lspace.Label.D
 import lspace.structure.Property.default.`@id`
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FutureOutcome}
 import shapeless.{:+:, CNil}
 import lspace.services.util._
 
 import scala.collection.immutable.ListMap
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 

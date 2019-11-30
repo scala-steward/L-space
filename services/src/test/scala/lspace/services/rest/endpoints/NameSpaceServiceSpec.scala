@@ -9,11 +9,13 @@ import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.Graph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, FutureOutcome, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FutureOutcome}
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class NameSpaceServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 

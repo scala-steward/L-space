@@ -9,10 +9,11 @@ import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
 import monix.execution.Scheduler
-import org.scalatest.{AsyncWordSpec, Matchers}
 import shapeless._
 
 import scala.concurrent.Future
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class TraversalSpec extends AsyncWordSpec with Matchers {
   val graph = MemGraph("TraversalSpec")

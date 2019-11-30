@@ -1,9 +1,10 @@
 package lspace.librarian.traversal
 
 import lspace.structure.Property
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class UntypedTraversalSpec extends WordSpec with Matchers {
+class UntypedTraversalSpec extends AnyWordSpec with Matchers {
   val graph = lspace.provider.mem.MemGraph("UntypedTraversalSpec")
 
   "The traversal validator" must {

@@ -6,12 +6,14 @@ import lspace.codec.{ActiveContext, ActiveProperty}
 import lspace.Label.D
 import lspace.{codec, Graph, Ontology}
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import lspace.services.util._
 import lspace.util.SampleGraph
 import shapeless.{:+:, CNil}
 
 import scala.collection.immutable.ListMap
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class GraphqlApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 

@@ -7,7 +7,9 @@ import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal.UntypedTraversal
 import lspace.structure.index.shape.Shape
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
   def graph: Graph

@@ -3,7 +3,8 @@ package lspace.services
 import com.twitter.finagle.http.Status
 import io.finch.Input
 import lspace.services.rest.endpoints.LabeledNodeApi
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 object LServiceSpec {}
 trait LServiceSpec extends AsyncWordSpec with Matchers {

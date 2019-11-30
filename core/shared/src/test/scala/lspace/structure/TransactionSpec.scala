@@ -3,7 +3,9 @@ package lspace.structure
 import lspace.structure.Property.default._
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
 

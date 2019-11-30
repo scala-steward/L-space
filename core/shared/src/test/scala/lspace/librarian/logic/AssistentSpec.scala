@@ -1,9 +1,11 @@
 package lspace.librarian.logic
 
-import org.scalatest.{AppendedClues, Matchers, WordSpec}
+import org.scalatest.AppendedClues
 import predicate._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
+trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
   def assistent: Assistent
 
   import shapeless.=:!=
