@@ -1408,7 +1408,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
           toScopedObject(json, label).map(_._2)
         }
       }
-      .map(_.to[ListSet])
+      .map(ListSet(_: _*)) //scala 2.13 to(ListSet)
 
   def toVector(list: List[Json], label: Option[ClassType[_]])(
       implicit activeContext: ActiveContext): Task[Vector[Any]] =
@@ -1905,15 +1905,21 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
       implicit val activeContext = activeProperty.`@context`
       obj
         .get(types.`@container`)
-        .map { json =>
-          json.string
-            .map(activeContext.expandIri(_))
-            .map(_.iri)
-            .flatMap(`@container`.apply)
-            .map(iri => activeProperty.copy(`@container` = iri :: Nil)())
-            .map(Task.now)
-            .getOrElse(Task.raiseError(FromJsonException(s"@container is not a string")))
-        }
+        .map(
+          json =>
+            json.list
+              .getOrElse(List(json))
+              .map { json =>
+                json.string
+                  .map(activeContext.expandIri(_))
+                  .map(_.iri)
+                  .flatMap(`@container`.apply)
+                  .map(Task.now)
+                  .getOrElse(Task.raiseError(FromJsonException(s"unknown @container-type")))
+            })
+        .map(
+          Task.gather(_).map(iris => activeProperty.copy(`@container` = iris)())
+        )
         .getOrElse(Task.now(activeProperty))
     }
     def processReverse(obj: ExpandedMap[Json])(implicit activeContext: ActiveContext): Option[Task[ActiveProperty]] = {

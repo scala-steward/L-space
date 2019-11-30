@@ -1,9 +1,9 @@
 package lspace.decode
 
-import monix.eval.Task
-
-trait DecodeText[A] extends Decode[A] {
-  def decode(json: String): Task[A]
+trait DecodeText[A, F[_]] extends Decode[A, F] {
+  type In = String
 }
 
-object DecodeText {}
+object DecodeText {
+  type Aux[Out, F[_], In0] = DecodeText[Out, F] { type In = In0 }
+}

@@ -143,6 +143,7 @@ trait Decoder {
             .take(5)
             .toLowerCase
             .startsWith("base"))
+
     val activeContext = headers.foldLeft(ActiveContext()) {
       case (activeContext, header) if header.startsWith("@prefix") =>
         header.split(" ").toList match {
@@ -170,6 +171,7 @@ trait Decoder {
         }
     }
 
+    println("activecontext")
     val regex = new Regex("\"(.*?)\"|([^\\s]+)")
 
     def wordsToStatement(words: List[String]): Statement =
@@ -250,10 +252,7 @@ trait Decoder {
     Task.eval {
       Turtle(
         activeContext, {
-          val matches = regex.findAllMatchIn(contents.mkString(" ")).toList
-          val words = matches.map {
-            _.subgroups.flatMap(Option(_)).fold("")(_ ++ _)
-          }
+          val words = regex.findAllIn(contents.mkString(" ")).toList
           words
             .foldLeft(List[List[String]]() -> List[String]()) {
               case ((lines, segments), line) if line.endsWith(".") => ((line :: segments).reverse :: lines) -> Nil

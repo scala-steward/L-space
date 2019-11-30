@@ -8,14 +8,15 @@ import lspace.codec.graphql.Decoder
 import lspace.graphql.{Projection, Query}
 import monix.eval.Task
 
-trait DecodeGraphQL[A] extends Decode[A] {
-  def decode: String => Task[A]
+trait DecodeGraphQL[A, F[_]] extends Decode[A, F] {
+  type In = String
 }
 
 object DecodeGraphQL {
+  type Aux[Out, F[_], In0] = DecodeGraphQL[Out, F] { type In = In0 }
+
   def graphqlToQuery(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder,
-      activeContext: ActiveContext): DecodeGraphQL[Query] = {
+      implicit decoder: Decoder): DecodeGraphQL[Query, Task] = {
 
     lazy val validProperty: Property => Boolean =
       if (allowedProperties.nonEmpty) { property: Property =>
@@ -33,8 +34,8 @@ object DecodeGraphQL {
     lazy val validQuery: Query => Boolean = (query: Query) => query.projections.forall(validProjection)
 
     if (allowedProperties.nonEmpty || forbiddenProperties.nonEmpty) {
-      new DecodeGraphQL[Query] {
-        def decode = { (graphql: String) =>
+      new DecodeGraphQL[Query, Task] {
+        def decode(implicit activeContext: ActiveContext) = { (graphql: String) =>
           decoder
             .toGraphQL(graphql) match {
             case query: Query =>
@@ -45,8 +46,8 @@ object DecodeGraphQL {
         }
       }
     } else
-      new DecodeGraphQL[Query] {
-        def decode = { (graphql: String) =>
+      new DecodeGraphQL[Query, Task] {
+        def decode(implicit activeContext: ActiveContext) = { (graphql: String) =>
           decoder
             .toGraphQL(graphql) match {
             case query: Query => Task.now(query)

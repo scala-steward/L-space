@@ -10,11 +10,12 @@ import lspace.structure._
 import monix.eval.Task
 import shapeless.HList
 
-trait DecodeJsonLD[A] extends Decode[A] {
-  def decode: String => Task[A]
+trait DecodeJsonLD[A, F[_]] extends Decode[A, F] {
+  type In = String
 }
 
 object DecodeJsonLD {
+  type Aux[Out, F[_], In0] = DecodeJsonLD[Out, F] { type In = In0 }
 
   case class InvalidJsonLD(message: String)       extends DecodeException(message)
   case class NotAcceptableJsonLD(message: String) extends NotAcceptable(message)
@@ -26,11 +27,10 @@ object DecodeJsonLD {
     * @param decoder
     * @return
     */
-  def jsonldToLabeledNode(label: Ontology,
-                          allowedProperties: List[Property] = List(),
-                          forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder[_],
-      activeContext: ActiveContext): DecodeJsonLD[Node] = {
+  def jsonldToLabeledNode(
+      label: Ontology,
+      allowedProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: Decoder[_]): DecodeJsonLD[Node, Task] = {
     val filter = {
       if (allowedProperties.nonEmpty) { node: Node =>
         val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
@@ -49,8 +49,8 @@ object DecodeJsonLD {
         Task.now(node)
       }
     }
-    new DecodeJsonLD[Node] {
-      def decode =
+    new DecodeJsonLD[Node, Task] {
+      def decode(implicit activeContext: ActiveContext) =
         (json: String) =>
           decoder
             .stringToLabeledNode(json, label)
@@ -67,17 +67,16 @@ object DecodeJsonLD {
     * @tparam T
     * @return
     */
-  def bodyJsonldTyped[T](label: Ontology,
-                         nodeToT: Node => T,
-                         allowedProperties: List[Property] = List(),
-                         forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder[_],
-      activeContext: ActiveContext): DecodeJsonLD[T] = {
+  def bodyJsonldTyped[T](
+      label: Ontology,
+      nodeToT: Node => T,
+      allowedProperties: List[Property] = List(),
+      forbiddenProperties: List[Property] = List())(implicit decoder: Decoder[_]): DecodeJsonLD[T, Task] = {
     val df = jsonldToLabeledNode(label, allowedProperties, forbiddenProperties)
-    new DecodeJsonLD[T] {
-      def decode =
+    new DecodeJsonLD[T, Task] {
+      def decode(implicit activeContext: ActiveContext) =
         (json: String) =>
-          df.decode(json)
+          df.decode(activeContext)(json)
             .map(nodeToT(_))
     }
   }
@@ -89,8 +88,7 @@ object DecodeJsonLD {
     * @return
     */
   def jsonldToNode(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder[_],
-      activeContext: ActiveContext): DecodeJsonLD[Node] = {
+      implicit decoder: Decoder[_]): DecodeJsonLD[Node, Task] = {
 
     val validProperty = (property: Property) =>
       if (allowedProperties.nonEmpty) {
@@ -102,8 +100,8 @@ object DecodeJsonLD {
     }
 
     if (allowedProperties.nonEmpty || forbiddenProperties.nonEmpty) {
-      new DecodeJsonLD[Node] {
-        def decode = { (json: String) =>
+      new DecodeJsonLD[Node, Task] {
+        def decode(implicit activeContext: ActiveContext) = { (json: String) =>
           decoder
             .stringToNode(json)
             .flatMap { node =>
@@ -117,26 +115,27 @@ object DecodeJsonLD {
         }
       }
     } else
-      new DecodeJsonLD[Node] {
-        def decode = { (json: String) =>
+      new DecodeJsonLD[Node, Task] {
+        def decode(implicit activeContext: ActiveContext) = { (json: String) =>
           decoder
             .stringToNode(json)
         }
       }
   }
 
-  def jsonldToEdge(implicit decoder: Decoder[_], activeContext: ActiveContext) = new DecodeJsonLD[Edge[Any, Any]] {
-    def decode =
-      (json: String) =>
-        decoder
-          .stringToEdge(json)
-  }
+  def jsonldToEdge(implicit decoder: Decoder[_]) =
+    new DecodeJsonLD[Edge[Any, Any], Task] {
+      def decode(implicit activeContext: ActiveContext) =
+        (json: String) =>
+          decoder
+            .stringToEdge(json)
+    }
 
   implicit def jsonldToTraversal(
-      implicit decoder: Decoder[_],
-      activeContext: ActiveContext): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
-    new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] {
-      def decode: String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
+      implicit decoder: Decoder[_]): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] =
+    new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] {
+      def decode(implicit activeContext: ActiveContext)
+        : String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
         (string: String) =>
           decoder
             .stringToLabeledNode(string, Traversal.ontology)

@@ -29,9 +29,9 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
 
   def encodeFeature(feature: Feature[Geometry]): Json = {
     Map("type" -> "Feature".asJson, "geometry" -> encodeGeometryObject(feature.geometry)) ++
-      (if (feature.properties.nonEmpty) Map("properties" -> feature.properties.mapValues(encodeValue).asJson)
+      (if (feature.properties.nonEmpty) Map("properties" -> feature.properties.mapValues(encodeValue).toMap.asJson)
        else Map[String, Json]())
-  }.asJson
+  }.toMap.asJson
 
   def encodeFeatureCollection(featureCollection: FeatureCollection[Geometry]): Json = {
     Map("type" -> "FeatureCollection".asJson, "features" -> featureCollection.features.map(encodeFeature).asJson).asJson

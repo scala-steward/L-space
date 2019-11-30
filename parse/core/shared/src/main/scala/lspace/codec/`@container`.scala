@@ -13,6 +13,7 @@ object `@container` {
   case object `@list`     extends `@container`("@list")
   case object `@set`      extends `@container`("@set")
   case object `@language` extends `@container`("@language")
+  case object `@graph`    extends `@container`("@graph")
   case object `@index`    extends `@container`("@index")
 
   def apply(iri: String): Option[`@container`] =
@@ -22,6 +23,7 @@ object `@container` {
       case types.`@type`     => `@type`
       case types.`@set`      => `@set`
       case types.`@language` => `@language`
+      case types.`@graph`    => `@graph`
       case types.`@index`    => `@index`
       case _                 => null
     })

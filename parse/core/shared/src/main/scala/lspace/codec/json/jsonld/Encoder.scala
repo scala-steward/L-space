@@ -451,10 +451,10 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       Some(types.`@type` -> (types.`@class`.asJson)),
 //      ontology.base.map(uri => types.`@base` -> (uri.compact.asJson)),
       if (ontology.label().nonEmpty)
-        Some(types.`@label` -> ontology.label().mapValues[Json](t => t).asJson)
+        Some(types.`@label` -> ontology.label().mapValues[Json](t => t).toMap.asJson)
       else None,
       if (ontology.comment().nonEmpty)
-        Some(types.`@comment` -> ontology.comment().mapValues[Json](t => t).asJson)
+        Some(types.`@comment` -> ontology.comment().mapValues[Json](t => t).toMap.asJson)
       else None,
       if (ontology.extendedClasses().nonEmpty)
         Some(types.`@extends` -> ontology.extendedClasses().map(o => o.iri.compact.asJson).asJson)
@@ -480,9 +480,9 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
     val jsProperties = Seq(
       Some(types.`@id`   -> (key.iri.compact.asJson)),
       Some(types.`@type` -> (types.`@property`.asJson)),
-      if (key.label().nonEmpty) Some(types.`@label` -> (key.label().mapValues[Json](t => t).asJson))
+      if (key.label().nonEmpty) Some(types.`@label` -> (key.label().mapValues[Json](t => t).toMap.asJson))
       else None,
-      if (key.comment().nonEmpty) Some(types.`@comment` -> (key.comment().mapValues[Json](t => t).asJson))
+      if (key.comment().nonEmpty) Some(types.`@comment` -> (key.comment().mapValues[Json](t => t).toMap.asJson))
       else None,
 //      if (key.container.isDefined)
 //        Some(types.`@container` -> (List(key.container.get.asJson).asJson))
@@ -512,13 +512,13 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       Some(types.`@id`   -> (dataType.iri.asJson)),
       Some(types.`@type` -> (types.`@datatype`.asJson)),
       if (dataType.label().nonEmpty)
-        Some(types.`@label` -> (dataType.label().mapValues[Json](t => t).asJson))
+        Some(types.`@label` -> (dataType.label().mapValues[Json](t => t).toMap.asJson))
       else None,
       if (dataType.comment().nonEmpty)
-        Some(types.`@comment` -> (dataType.comment().mapValues[Json](t => t).asJson))
+        Some(types.`@comment` -> (dataType.comment().mapValues[Json](t => t).toMap.asJson))
       else None,
       if (dataType.extendedClasses().nonEmpty)
-        Some(types.`@extends` -> (dataType.extendedClasses().map[Json, List[Json]](o => o.iri.asJson).asJson))
+        Some(types.`@extends` -> (dataType.extendedClasses().map(o => o.iri.asJson).asJson))
       else None
     ).flatten ++
       (dataType.properties().toList match {

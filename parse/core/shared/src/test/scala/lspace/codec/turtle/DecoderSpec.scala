@@ -32,13 +32,15 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
         .onErrorHandle { f =>
           f.printStackTrace(); throw f
         }
-        .flatMap { turtle =>
-//          println(turtle)
-          import decoder._
-          turtle.process
-        }
-        .map { graph =>
-          succeed
+//        .flatMap { turtle =>
+//          import decoder._
+//          turtle.process
+//        }
+        .map { turtle =>
+          turtle.context.`@prefix`.get("rdf") shouldBe Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+          turtle.context.`@prefix`.get("dc") shouldBe Some("http://purl.org/dc/elements/1.1/")
+          turtle.context.`@prefix`.get("ex") shouldBe Some("http://example.org/stuff/1.0/")
+          turtle.statements.exists(_.subject.iri == "http://www.w3.org/TR/rdf-syntax-grammar") shouldBe true
         }
         .runToFuture
     }
