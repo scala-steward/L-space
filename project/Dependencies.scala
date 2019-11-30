@@ -3,7 +3,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
   val finch     = "0.31.0"
-  val monix     = "3.0.0"
+  val monix     = "3.1.0"
   val sttp      = "1.7.2"
   val elastic4s = "7.3.1"
   val phantom   = "2.42.0"
@@ -19,7 +19,7 @@ object Dependencies {
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"          %%% "scribe"          % "2.7.10",
-      "org.scalatest"     %%% "scalatest"       % "3.1.0-RC3" % "test",
+      "org.scalatest"     %%% "scalatest"       % "3.1.0" % "test",
       "io.monix"          %%% "minitest"        % "2.7.0" % "test",
       "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3"
     ))
@@ -43,7 +43,7 @@ object Dependencies {
 
   val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.3"))
 
-  val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.12.2"))
+  val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.12.3"))
 
   val clientDeps = Def.setting(Seq())
 
@@ -65,27 +65,35 @@ object Dependencies {
 
   val storeKafkaDeps = Seq(
     "io.monix" %% "monix-kafka-1x" % "1.0.0-RC5"
+//    ,
+//    "org.apache.kafka" % "kafka"           % "2.3.1"
   )
 
   val indexElasticsearchDeps = Seq(
-    "com.sksamuel.elastic4s" %% "elastic4s-core"         % Version.elastic4s,
-    "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % Version.elastic4s
+//    "com.sksamuel.elastic4s"   %% "elastic4s-core"                      % Version.elastic4s,
+//    "com.sksamuel.elastic4s"   %% "elastic4s-http-streams"              % Version.elastic4s,
+    "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % "7.4.2"
 //    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
   val servicesDeps = Seq(
-    "com.github.finagle" %% "finchx-core"          % Version.finch,
-    "com.github.finagle" %% "finchx-generic"       % Version.finch,
-    "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
-    "com.github.finagle" %% "finchx-fs2"           % Version.finch,
-    "com.github.finagle" %% "finchx-refined"       % Version.finch,
-    "co.fs2"             %% "fs2-reactive-streams" % "2.0.1",
 //    "com.twitter"        %% "twitter-server"       % "19.4.0" % "test",
-    "com.vmunier" %% "scalajs-scripts" % "1.1.4",
+    "com.softwaremill.sttp.tapir" %% "tapir-core" % "0.12.3",
+//    "com.softwaremill.sttp.tapir" %% "tapir-finatra-server" % "0.12.3",
+    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % "0.12.3",
+    "com.vmunier"                 %% "scalajs-scripts"        % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi" %% "scalatags" % "0.7.0" //TODO: replace with Laminar
 //    "com.raquo" %% "domtypes"   % "0.9.5",
 //    "com.raquo" %% "dombuilder" % "0.9.2"
 //    "org.scalatest" %% "scalatest" % "3.0.8" % "test"
+  )
+  val servicesFinchDeps = Seq(
+    "com.github.finagle" %% "finchx-core"          % Version.finch,
+    "com.github.finagle" %% "finchx-generic"       % Version.finch,
+    "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
+    "com.github.finagle" %% "finchx-fs2"           % Version.finch,
+    "com.github.finagle" %% "finchx-refined"       % Version.finch,
+    "co.fs2"             %% "fs2-reactive-streams" % "2.1.0"
   )
 }

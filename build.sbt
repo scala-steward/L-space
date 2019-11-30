@@ -2,7 +2,7 @@ import Dependencies._
 // shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
-ThisBuild / scalaVersion := "2.12.10"
+ThisBuild / scalaVersion := "2.13.1"
 
 lazy val settings = commonSettings
 
@@ -15,7 +15,7 @@ lazy val compilerOptions = Seq(
   "-language:postfixOps",
   "-language:reflectiveCalls",
 //  "-language:experimental.macros",
-  "-Ypartial-unification",
+//  "-Ypartial-unification",
   "-Ypatmat-exhaust-depth", "off",
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
@@ -46,8 +46,8 @@ lazy val projectSettings = Seq(
 
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
-  scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10"),
+  scalaVersion := "2.13.1",
+  crossScalaVersions := Seq("2.12.10", "2.13.1"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
@@ -62,12 +62,13 @@ lazy val lspace = project
   .in(file("."))
   .settings(settings)
   .settings(skip in publish := true)
-  .aggregate(core.jvm, core.js, parse.jvm, parse.js, parseArgonaut.jvm, parseArgonaut.js, parseCirce.jvm, parseCirce.js, client.jvm, client.js, graph, services)
+  .aggregate(core.jvm, core.js, parse.jvm, parse.js, parseArgonaut.jvm, parseArgonaut.js, parseCirce.jvm, parseCirce.js, client.jvm, client.js, graph)//, services)
 
 lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("core"))
   .settings(settings)
+  .settings(crossVersionSharedSources)
   .settings(
     name := "lspace-core",
 //    crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
@@ -169,6 +170,8 @@ lazy val cassandra = (project in file("store/cassandra"))
   .settings(settings)
   .settings(
     name := "lspace-store-cassandra",
+    scalaVersion := "2.12.10",
+    crossScalaVersions := Seq("2.12.10"),
     libraryDependencies ++= storeCassandraDeps,
     Test / parallelExecution := true
   )
@@ -191,14 +194,24 @@ lazy val elasticsearch = (project in file("index/elasticsearch"))
     Test / parallelExecution := true
   )
 
-lazy val services = (project in file("services"))
+lazy val services = (project in file("services/core"))
   .dependsOn(client.jvm % "compile->compile;test->test", parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test")
   .settings(settings)
   .settings(
     name := "lspace-services",
-//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
+    crossScalaVersions := Seq("2.12.10", "2.13.1"),
     libraryDependencies ++= servicesDeps
   )
+
+//lazy val servicesFinch = (project in file("services/finch"))
+//  .dependsOn(services % "compile->compile;test->test")
+//  .settings(settings)
+//  .settings(
+//    name := "lspace-services-finch",
+//    scalaVersion := "2.12.10",
+//    crossScalaVersions := Seq("2.12.10"),
+//    libraryDependencies ++= servicesFinchDeps
+//  )
 
 val makeSettingsYml = Def.task {
   val file     = (resourceManaged in Compile).value / "site" / "data" / "settings.yml"
@@ -241,3 +254,29 @@ lazy val site = (project in file("site"))
     micrositeFooterText := Some(
       "<b>Knowledge is Power</b> <- <i>BOOKS = KNOWLEDGE = POWER = (FORCE X DISTANCE ÷ TIME)</i>")
   )
+
+def scalaPartV = Def setting (CrossVersion partialVersion scalaVersion.value)
+lazy val crossVersionSharedSources: Seq[Setting[_]] =
+  Seq(Compile, Test).map { sc =>
+    (unmanagedSourceDirectories in sc) ++= {
+      (unmanagedSourceDirectories in sc).value.flatMap { dir =>
+        Seq(
+          scalaPartV.value match {
+            case Some((2, y)) if y == 11 => new File(dir.getPath + "_2.11")
+            case Some((2, y)) if y == 12 => new File(dir.getPath + "_2.12")
+            case Some((2, y)) if y >= 13 => new File(dir.getPath + "_2.13")
+          },
+
+          scalaPartV.value match {
+            case Some((2, n)) if n >= 12 => new File(dir.getPath + "_2.12+")
+            case _                       => new File(dir.getPath + "_2.12-")
+          },
+
+          scalaPartV.value match {
+            case Some((2, n)) if n >= 13 => new File(dir.getPath + "_2.13+")
+            case _                       => new File(dir.getPath + "_2.13-")
+          },
+        )
+      }
+    }
+  }
