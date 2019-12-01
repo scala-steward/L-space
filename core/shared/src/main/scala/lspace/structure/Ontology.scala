@@ -180,10 +180,18 @@ class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType
   protected var extendedClassesList
     : Coeval[List[Ontology]] = Coeval(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
   object extendedClasses {
+    type T = Ontology
     def apply(): List[Ontology] = extendedClassesList.value()
-    def all(): Set[Ontology] = {
-      val _extends = extendedClasses().toSet
-      _extends ++ (_extends - self).filterNot(_.`extends`(self)).flatMap(_.extendedClasses.all())
+
+    /**
+      *
+      * @param exclude a ontology set to prevent circular recursion
+      * recursively fetches all extended classes (parent of parents)
+      * @return
+      */
+    def all(exclude: Set[Ontology] = Set()): Set[Ontology] = {
+      val _extends = extendedClasses().toSet -- exclude
+      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
     }
     def apply(iri: String): Boolean = {
       val _extends = extendedClasses().toSet
@@ -195,11 +203,9 @@ class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType
     def +(parent: => Ontology): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
         val _parent = parent
-        if (!_parent.`@extends`(self))
+        if (!current.contains(parent))
           (current :+ _parent).distinct
         else {
-          scribe.warn(
-            s"$iri cannot extend ${_parent.iri} as ${_parent.iri} already extends $iri direct or indirect ${extendedClassesList.value().map(_.iri)}")
           current
         }
       }.memoizeOnSuccess
@@ -207,7 +213,7 @@ class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType
     }
     def ++(parents: => Iterable[Ontology]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
-        (current ++ parents.filterNot(_.`@extends`(self))).distinct
+        (current ++ parents).distinct
       }.memoizeOnSuccess
       this
     }

@@ -455,10 +455,18 @@ trait DataType[+T] extends ClassType[T] { self =>
   protected var extendedClassesList: Coeval[List[DataType[Any]]] = Coeval.delay(_extendedClasses).memoizeOnSuccess
 //  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
   object extendedClasses {
+    type T = DataType[Any]
     def apply(): List[DataType[Any]] = extendedClassesList()
-    def all(): Set[DataType[Any]] = {
-      val _extends = extendedClasses().toSet
-      _extends ++ (_extends - self).filterNot(_.`extends`(self)).flatMap(_.extendedClasses.all())
+
+    /**
+      *
+      * @param exclude a datatype set to prevent circular recursion
+      * recursively fetches all extended classes (parent of parents)
+      * @return
+      */
+    def all(exclude: Set[DataType[Any]] = Set()): Set[DataType[Any]] = {
+      val _extends = extendedClasses().toSet -- exclude
+      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
     }
     def apply(iri: String): Boolean = {
       val _extends = extendedClasses().toSet
@@ -470,11 +478,9 @@ trait DataType[+T] extends ClassType[T] { self =>
     def +(parent: => DataType[Any]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
         val _parent = parent
-        if (!_parent.`@extends`(self))
+        if (!current.contains(parent))
           (current :+ _parent).distinct
         else {
-          scribe.warn(
-            s"$iri cannot extend ${_parent.iri} as ${_parent.iri} already extends $iri direct or indirect ${extendedClassesList.value().map(_.iri)}")
           current
         }
       }.memoizeOnSuccess
@@ -482,7 +488,7 @@ trait DataType[+T] extends ClassType[T] { self =>
     }
     def ++(parents: => Iterable[DataType[Any]]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
-        (current ++ parents.filterNot(_.`@extends`(self))).distinct
+        (current ++ parents).distinct
       }.memoizeOnSuccess
       this
     }

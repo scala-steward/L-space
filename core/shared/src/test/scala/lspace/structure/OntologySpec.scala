@@ -1,5 +1,6 @@
 package lspace.structure
 
+import lspace._
 import lspace.librarian.traversal.step.{Or, V}
 import monix.eval.Task
 import org.scalatest.matchers.should.Matchers
@@ -26,6 +27,34 @@ class OntologySpec extends AsyncWordSpec with Matchers {
     "extend some other ontology" in {
       val ontology = V.ontology
       ontology.extendedClasses().size shouldBe 1
+    }
+    "extends can be circular" in {
+      val a: Ontology = "a"
+      val b: Ontology = "b"
+      val c: Ontology = "c"
+      val d: Ontology = "d"
+      a.`@extends`(b) shouldBe false
+      a.extendedClasses.+(b)
+      a.`@extends`(b) shouldBe true
+      b.`@extends`(c) shouldBe false
+      b.extendedClasses.+(c)
+      b.`@extends`(c) shouldBe true
+      a.`@extends`(c) shouldBe true
+      a.extendedClasses.+(c)
+      a.`@extends`(c) shouldBe true
+      b.`@extends`(b) shouldBe false
+      b.extendedClasses.+(b)
+      b.`@extends`(b) shouldBe true
+      a.`@extends`(a) shouldBe false
+      c.`@extends`(a) shouldBe false
+      c.extendedClasses.+(a)
+      c.`@extends`(a) shouldBe true
+      a.`@extends`(a) shouldBe true
+      a.`@extends`(d) shouldBe false
+      b.`@extends`(d) shouldBe false
+      a.extendedClasses.+(d)
+      a.`@extends`(d) shouldBe true
+      b.`@extends`(d) shouldBe true
     }
   }
   "An ontology.properties" should {

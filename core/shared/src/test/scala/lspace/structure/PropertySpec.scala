@@ -40,4 +40,34 @@ class PropertySpec extends AsyncWordSpec with Matchers {
       } yield p.properties().size shouldBe 1000).runToFuture
     }
   }
+  "A property" can {
+    "extends can be circular" in {
+      val a: Property = "a"
+      val b: Property = "b"
+      val c: Property = "c"
+      val d: Property = "d"
+      a.`@extends`(b) shouldBe false
+      a.extendedClasses.+(b)
+      a.`@extends`(b) shouldBe true
+      b.`@extends`(c) shouldBe false
+      b.extendedClasses.+(c)
+      b.`@extends`(c) shouldBe true
+      a.`@extends`(c) shouldBe true
+      a.extendedClasses.+(c)
+      a.`@extends`(c) shouldBe true
+      b.`@extends`(b) shouldBe false
+      b.extendedClasses.+(b)
+      b.`@extends`(b) shouldBe true
+      a.`@extends`(a) shouldBe false
+      c.`@extends`(a) shouldBe false
+      c.extendedClasses.+(a)
+      c.`@extends`(a) shouldBe true
+      a.`@extends`(a) shouldBe true
+      a.`@extends`(d) shouldBe false
+      b.`@extends`(d) shouldBe false
+      a.extendedClasses.+(d)
+      a.`@extends`(d) shouldBe true
+      b.`@extends`(d) shouldBe true
+    }
+  }
 }

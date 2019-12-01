@@ -472,15 +472,18 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     : Coeval[List[Property]] = Coeval(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
 
   object extendedClasses {
+    type T = Property
     def apply(): List[Property] = extendedClassesList()
 
     /**
+      *
+      * @param exclude a property set to prevent circular recursion
       * recursively fetches all extended classes (parent of parents)
       * @return
       */
-    def all(): Set[Property] = {
-      val _extends = extendedClasses().toSet
-      _extends ++ (_extends - self).filterNot(_.`extends`(self)).flatMap(_.extendedClasses.all())
+    def all(exclude: Set[Property] = Set()): Set[Property] = {
+      val _extends = extendedClasses().toSet -- exclude
+      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
     }
     def apply(iri: String): Boolean = {
       val _extends = extendedClasses().toSet
@@ -491,10 +494,10 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
 
     def +(parent: => Property): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
-        if (!parent.`@extends`(self))
-          (current :+ parent).distinct
+        val _parent = parent
+        if (!current.contains(parent))
+          (current :+ _parent).distinct
         else {
-          scribe.warn(s"$iri cannot extend ${parent.iri} as ${parent.iri} already extends $iri direct or indirect")
           current
         }
       }.memoizeOnSuccess
@@ -502,7 +505,7 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     }
     def ++(parent: => Iterable[Property]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
-        (current ++ parent.filterNot(_.`@extends`(self))).distinct
+        (current ++ parent).distinct
       }.memoizeOnSuccess
       this
     }

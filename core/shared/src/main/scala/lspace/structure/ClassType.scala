@@ -85,8 +85,10 @@ object ClassType {
 
     //    val _extendedClasses: List[_ <: DataType[_]] = List()
     object extendedClasses {
-      def apply(): List[ClassType[Any]] = List()
-      def apply(iri: String): Boolean   = false
+      type T = ClassType[Any]
+      def apply(): List[ClassType[Any]]                                  = List()
+      def all(exclude: Set[ClassType[Any]] = Set()): Set[ClassType[Any]] = Set()
+      def apply(iri: String): Boolean                                    = false
     }
 //    val _properties: List[Property]              = List()
 //    val base: Option[String] = None
@@ -219,16 +221,17 @@ trait ClassType[+T] extends IriResource {
     * @return
     */
   def `extends`(classType: ClassType[_]): Boolean = {
-    val _extends = extendedClasses()
-    if (_extends.contains(classType)) true
-    else {
-      var result: Boolean = false
-      val oIt             = _extends /*.filterNot(_.`extends`(this))*/ .reverseIterator
-      while (oIt.hasNext && !result) {
-        result = oIt.next().`extends`(classType)
-      }
-      result
-    }
+    val _extends = extendedClasses.all(Set())
+    _extends.toList.contains(classType)
+//    if (_extends.contains(classType)) true
+//    else {
+//      var result: Boolean = false
+//      val oIt             = _extends /*.filterNot(_.`extends`(this))*/ .reverseIterator
+//      while (oIt.hasNext && !result) {
+//        result = oIt.next().`extends`(classType)
+//      }
+//      result
+//    }
   }
 
   /**
@@ -290,7 +293,9 @@ trait ClassType[+T] extends IriResource {
 //    def apply(iri: String): Boolean
 //  }
   def extendedClasses: {
-    def apply(): List[ClassType[Any]]
+    type T <: ClassType[Any]
+    def apply(): List[T]
+    def all(exclude: Set[T]): Set[T]
     def apply(iri: String): Boolean
   }
 
