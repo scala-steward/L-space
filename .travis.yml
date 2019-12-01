@@ -72,14 +72,14 @@ jobs:
 #          - $HOME/.sbt
     - stage: publish pages
       name: "Publish to GitHub"
-      scala: *scala_213
+      scala: *scala_212
       jdk: *java_11
       before_install:
         - export PATH=${PATH}:./vendor/bundle
       install:
         - gem update --system
         - gem install sass
-        - gem install jekyll -v 3.8.5
+        - gem install jekyll -v 4.0.0
       script: sbt -J-Xmx4096m ++$TRAVIS_SCALA_VERSION site/makeMicrosite
       cache:
         - bundler
