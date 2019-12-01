@@ -222,9 +222,10 @@ val makeSettingsYml = Def.task {
 
 lazy val site = (project in file("site"))
   .enablePlugins(MicrositesPlugin)
-  .dependsOn(services % "compile->compile;compile->test")
+  .dependsOn(parse.jvm % "compile->compile;compile->test")
   .settings(name := "lspace-site")
   .settings(skip in publish := true)
+  .settings(scalaVersion := "2.12.10")
   .settings(projectSettings)
   .settings(
     resourceGenerators in Compile += makeSettingsYml.taskValue,
