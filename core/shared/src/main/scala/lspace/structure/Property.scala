@@ -468,6 +468,27 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
   }
   def `@range` = range
 
+  protected var extendedByClassesList: Coeval[List[Property]] = Coeval(List()).memoizeOnSuccess
+
+  object extendedBy {
+    def apply(): List[Property] = extendedByClassesList()
+    def all(exclude: Set[Property] = Set()): Set[Property] = {
+      val _extends = extendedByClassesList().toSet -- exclude
+      _extends ++ (_extends - self).flatMap(_.extendedBy.all(_extends ++ exclude))
+    }
+
+    def +(child: => Property): this.type = this.synchronized {
+      extendedByClassesList = extendedByClassesList.map { current =>
+        val _child = child
+        if (!current.contains(_child))
+          (current :+ _child).distinct
+        else {
+          current
+        }
+      }.memoizeOnSuccess
+      this
+    }
+  }
   protected var extendedClassesList
     : Coeval[List[Property]] = Coeval(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
 
@@ -495,9 +516,10 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     def +(parent: => Property): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
         val _parent = parent
-        if (!current.contains(parent))
+        if (!current.contains(_parent)) {
+          _parent.extendedBy.+(self)
           (current :+ _parent).distinct
-        else {
+        } else {
           current
         }
       }.memoizeOnSuccess
@@ -505,6 +527,7 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     }
     def ++(parent: => Iterable[Property]): this.type = this.synchronized {
       extendedClassesList = extendedClassesList.map { current =>
+        parent.foreach(_.extendedBy.+(self))
         (current ++ parent).distinct
       }.memoizeOnSuccess
       this
