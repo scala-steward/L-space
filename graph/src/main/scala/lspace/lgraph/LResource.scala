@@ -124,27 +124,40 @@ trait LResource[T] extends Resource[T] {
     linksOut.keySet ++ linksIn.keySet toSet //TODO: this returns only from cached edges, query LStore
 
   def out(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList)).map(_.to.value)
+    if (key.nonEmpty)
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList))
+        .map(_.to.value)
     else linksOut.values.flatMap(_.links.toList).map(_.to.value).toList
 //    _outE(key: _*)
 //      .map(_.to.value)
 
   def outMap(key: Property*): Map[Property, List[Any]] = {
     if (key.isEmpty) linksOut.toMap.mapValues(_.links.map(_.to.value).toList).toMap
-    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.to.value).toList).toMap
+    else
+      linksOut.toMap
+        .filterKeys((key.toSet ++ key.toList.flatMap(_.extendedBy.all())).contains(_))
+        .mapValues(_.links.map(_.to.value).toList)
+        .toMap
 //    _outE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.to.value))
   }
 
   def outE(key: Property*): List[Edge[T, Any]] = {
     if (key.nonEmpty)
-      key.toList.flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList)).asInstanceOf[List[Edge[T, Any]]]
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList))
+        .asInstanceOf[List[Edge[T, Any]]]
     else linksOut.values.toList.flatMap(_.links.toList).asInstanceOf[List[Edge[T, Any]]]
 //    _outE(key: _*)
   }
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
     if (key.isEmpty) linksOut.toMap.mapValues(_.links.toList).toMap
-    else linksOut.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList).toMap
+    else
+      linksOut.toMap
+        .filterKeys((key.toSet ++ key.toList.flatMap(_.extendedBy.all())).contains(_))
+        .mapValues(_.links.toList)
+        .toMap
 //    _outE(key.toList: _*).groupBy(_.key)
   }
 
@@ -184,26 +197,39 @@ trait LResource[T] extends Resource[T] {
   }*/
 
   def in(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList)).map(_.from.value)
+    if (key.nonEmpty)
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList))
+        .map(_.from.value)
     else linksIn.values.flatMap(_.links.toList).map(_.from.value).toList
 //    _inE(key: _*)
 //      .map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] =
     if (key.isEmpty) linksIn.toMap.mapValues(_.links.map(_.from.value).toList).toMap
-    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.map(_.from.value).toList).toMap
+    else
+      linksIn.toMap
+        .filterKeys((key.toSet ++ key.toList.flatMap(_.extendedBy.all())).contains(_))
+        .mapValues(_.links.map(_.from.value).toList)
+        .toMap
 //    _inE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.from.value))
 
   def inE(key: Property*): List[Edge[Any, T]] = {
     if (key.nonEmpty)
-      key.toList.flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList)).asInstanceOf[List[Edge[Any, T]]]
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList))
+        .asInstanceOf[List[Edge[Any, T]]]
     else linksIn.values.toList.flatMap(_.links.toList).asInstanceOf[List[Edge[Any, T]]]
 //    _inE(key: _*)
   }
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
     if (key.isEmpty) linksIn.toMap.mapValues(_.links.toList).toMap
-    else linksIn.toMap.filterKeys(key.toSet.contains(_)).mapValues(_.links.toList).toMap
+    else
+      linksIn.toMap
+        .filterKeys((key.toSet ++ key.toList.flatMap(_.extendedBy.all())).contains(_))
+        .mapValues(_.links.toList)
+        .toMap
 //    _inE(key.toList: _*).groupBy(_.key)
   }
 
