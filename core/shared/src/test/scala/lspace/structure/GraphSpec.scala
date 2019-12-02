@@ -289,20 +289,24 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
         "contains certain nodes" in {
           (for {
             garrison <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/56789").headL
-            a = garrison.labels shouldBe List(person)
-            b <- sampleGraph.nodes.count().map(_ shouldBe 10)
-          } yield succeed).timeout(4000.millis).runToFuture
+          } yield {
+            garrison.labels shouldBe List(person)
+          }).timeout(4000.millis).runToFuture
         }
         "contains certain edges" in {
           (for {
-            yoshio <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headL
+            yoshio <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headOptionL
             _      <- sampleGraph.edges().find(e => e.key == name.property).headL.map(_.key shouldBe name.property)
-            _      <- sampleGraph.nodes.count().map(_ shouldBe 10)
-            _      <- sampleGraph.edges.count().map(_ shouldBe 58)
-          } yield succeed).timeout(4000.millis).runToFuture
+          } yield {
+            yoshio.map(_.iri) shouldBe Some(sampleGraph.iri + "/person/123")
+          }).timeout(4000.millis).runToFuture
         }
         "contains certain values" in {
-          sampleGraph.values.count().map(_ shouldBe 38).timeout(4000.millis).runToFuture
+          (for {
+            yoshio <- sampleGraph.values.byValue("Yoshio").map(_.value).headOptionL
+          } yield {
+            yoshio shouldBe Some("Yoshio")
+          }).timeout(4000.millis).runToFuture
         }
       }
       "support inserting structures from other graphs (object + edges)" in {

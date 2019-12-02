@@ -92,6 +92,7 @@ object SampleGraph {
           _place <- graph + ontologies.place
           _id    <- _place --- Property.default.`@id` --> (graph.iri + "/place/123")
           _name  <- _place --- "name" --> "San José de Maipo"
+          _      <- _name --- "timestamp" --> 5L //testing merging graphs with edges on edges
           _geo   <- _place --- properties.geo --> Point(72.0403, 60.90879)
         } yield
           new {
@@ -104,6 +105,7 @@ object SampleGraph {
           _place <- graph + ontologies.place
           _id    <- _place --- Property.default.`@id` --> (graph.iri + "/place/12345")
           _name  <- _place --- "name" --> "Crystal Springs"
+          _      <- _name --- "timestamp" --> 4L
           _geo   <- _place --- properties.geo --> Point(-48.4046, 175.87173)
         } yield
           new {

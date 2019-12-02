@@ -17,6 +17,7 @@ import monix.reactive.Observable
 import shapeless.{::, HList, HNil}
 
 import scala.collection.mutable
+import scala.util.Try
 
 object Graph {
 
@@ -250,7 +251,7 @@ trait Graph extends IriResource with GraphUtils { self =>
     if (graph != this) {
       if (graph == DetachedGraph)
         scribe.warn(
-          s"adding the contents of DetachedGraph to ${this.iri} is futile as DetachedGraph does not store any objects, they float")
+          s"adding the contents of DetachedGraph to ${this.iri} has zero effect as DetachedGraph does not store any objects, they float")
       for {
         oldIdNewNodeMap <- graph
           .nodes()
@@ -273,6 +274,59 @@ trait Graph extends IriResource with GraphUtils { self =>
           import scala.collection.JavaConverters._
           val oldIdNewEdgeMap: scala.collection.concurrent.Map[Long, Edge[_, _]] =
             new ConcurrentHashMap[Long, Edge[_, _]]().asScala
+          val edgesToRetry: scala.collection.concurrent.Map[Long, Edge[_, _]] =
+            new ConcurrentHashMap[Long, Edge[_, _]]().asScala
+          def retryEdges(): Task[Boolean] = {
+            Observable
+              .fromIterable(edgesToRetry.values)
+              .mapEval { edge =>
+                mergeEdge(edge)
+                  .doOnFinish {
+                    case None => Task(edgesToRetry -= edge.id)
+                    case _    => Task.unit
+                  }
+                  .onErrorHandle(f => ())
+              }
+              .completedL
+              .map { f =>
+                edgesToRetry.isEmpty
+              }
+          }
+          def mergeEdge(edge: Edge[_, _]): Task[Unit] = {
+            (for {
+              from <- Try(edge.from match {
+                case (resource: Node) =>
+                  oldIdNewNodeMap(resource.id)
+                case (resource: Edge[_, _]) =>
+                  oldIdNewEdgeMap(resource.id)
+                case (resource: Value[_]) =>
+                  oldIdNewValueMap(resource.id)
+              }).toOption
+              to <- Try(edge.to match {
+                case (resource: Node) =>
+                  oldIdNewNodeMap(resource.id)
+                case (resource: Edge[_, _]) =>
+                  oldIdNewEdgeMap(resource.id)
+                case (resource: Value[_]) =>
+                  oldIdNewValueMap(resource.id)
+              }).toOption
+            } yield {
+              edges.create(
+                from,
+                edge.key,
+                to
+              )
+            }).map(_.map { newEdge =>
+                oldIdNewEdgeMap += (edge.id -> newEdge)
+                ()
+              })
+              .getOrElse {
+                Task.raiseError {
+                  edgesToRetry += (edge.id -> edge)
+                  new Exception("could not merge yet")
+                }
+              }
+          }
           for {
             edges <- graph
               .edges()
@@ -281,31 +335,14 @@ trait Graph extends IriResource with GraphUtils { self =>
                   .isInstanceOf[Node] && e.to.hasLabel(TextType.datatype).isDefined))
               .mapEval { edge =>
                 //            if (edge.iri.nonEmpty) //TODO: find edge width
-                for {
-                  newEdge <- edges.create(
-                    edge.from match {
-                      case (resource: Node) =>
-                        oldIdNewNodeMap(resource.id)
-                      case (resource: Edge[_, _]) =>
-                        oldIdNewEdgeMap(resource.id)
-                      case (resource: Value[_]) =>
-                        oldIdNewValueMap(resource.id)
-                    },
-                    edge.key,
-                    edge.to match {
-                      case (resource: Node) =>
-                        oldIdNewNodeMap(resource.id)
-                      case (resource: Edge[_, _]) =>
-                        oldIdNewEdgeMap(resource.id)
-                      case (resource: Value[_]) =>
-                        oldIdNewValueMap(resource.id)
-                    }
-                  )
-                } yield {
-                  oldIdNewEdgeMap += (edge.id -> newEdge)
-                }
+                mergeEdge(edge).onErrorHandle(f => ())
               }
               .toListL
+            _ <- retryEdges() //TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
+            _ <- retryEdges()
+            _ <- retryEdges()
+            _ <- retryEdges()
+            _ <- retryEdges()
           } yield this
         }
       } yield r
