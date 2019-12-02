@@ -401,6 +401,32 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
+      "N.hasLabel(ontologies.person).local(_.out(properties.name).dedup())" in {
+        //      g.N.hasLabel(ontologies.person).local(_.out(properties.knows).count).toList shouldBe List(1, 3, 2, 2, 2, 2)
+        g.N
+          .hasLabel(ontologies.person)
+          .local(_.out(properties.name).dedup())
+          .withGraph(sampleGraph)
+          .toListF
+          .map {
+            case list: List[String] => list.toSet shouldBe Set("Kevin", "Yoshio", "Stan", "Garrison", "Gray", "Levi")
+          }
+          .timeout(4000.millis)
+          .runToFuture
+      }
+      "N.hasLabel(ontologies.person).local(_.out(properties.name).head)" in {
+        //      g.N.hasLabel(ontologies.person).local(_.out(properties.knows).count).toList shouldBe List(1, 3, 2, 2, 2, 2)
+        g.N
+          .hasLabel(ontologies.person)
+          .local(_.out(properties.name).head)
+          .withGraph(sampleGraph)
+          .toListF
+          .map {
+            case list: List[String] => list.toSet shouldBe Set("Kevin", "Yoshio", "Stan", "Garrison", "Gray", "Levi")
+          }
+          .timeout(4000.millis)
+          .runToFuture
+      }
       "N.coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200))).count" in {
         g.N
           .coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200)))

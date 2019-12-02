@@ -540,18 +540,23 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: Local[_, _] =>
         val traveralObservable = traversalToF(step.traversal)
         obs: Observable[Librarian[Any]] =>
-          obs.mapEval { librarian =>
+          obs.flatMap { librarian =>
             val result = traveralObservable(librarian)
             step.traversal.et match {
               case et: CollectionType[_] =>
-                et match {
+                val task = et match {
                   case et: MapType[_] =>
                     result.toListL
                       .map { l =>
                         l.asInstanceOf[List[Librarian[(Any, Any)]]].map(_.get).toMap
                       }
                       .map(librarian.copy(_))
-                  case et: OptionType[_] => result.headOptionL
+                  case et: OptionType[_] =>
+                    result.headOptionL
+                      .map { l =>
+                        l.asInstanceOf[Option[Librarian[Any]]].map(_.get)
+                      }
+                      .map(librarian.copy(_))
                   case et =>
                     result.toListL
                       .map { l =>
@@ -559,7 +564,8 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                       }
                       .map(librarian.copy(_))
                 }
-              case et => result.headL
+                Observable.fromTask(task)
+              case et => result
             }
           }
 
