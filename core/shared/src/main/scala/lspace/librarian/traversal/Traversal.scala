@@ -670,6 +670,18 @@ object Traversal
     }
 
     //TODO: HList for Coalesce traversals
+    /**
+      * Coalesce returns the result of the first non-empty traversal.
+      * @param traversal
+      * @param traversals
+      * @param et0
+      * @tparam ET0
+      * @tparam End1
+      * @tparam ET1
+      * @tparam Steps1
+      * @tparam Steps2
+      * @return
+      */
     def coalesce[ET0 <: ClassType[Any], End1, ET1 <: ClassType[End1], Steps1 <: HList, Steps2 <: HList](
         traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps1],
         traversals: (Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, Steps2])*)(
@@ -690,6 +702,13 @@ object Traversal
       )
     }
 
+    /**
+      * Local provides all traversers with their own, isolated traversal and merges the resulting traversers.
+      * @param traversal
+      * @tparam ET0
+      * @tparam Labels1
+      * @return
+      */
     def local[ET0 <: ClassType[_], Labels1 <: HList](
         traversal: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], ET0, _ <: HList])
       : Traversal[ST[Start], ET0, Local[ET[End], ET0] :: Steps] = {
