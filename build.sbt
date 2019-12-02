@@ -226,6 +226,7 @@ lazy val site = (project in file("site"))
   .settings(name := "lspace-site")
   .settings(skip in publish := true)
   .settings(scalaVersion := "2.12.10")
+  .settings(crossScalaVersions := Seq("2.12.10"))
   .settings(projectSettings)
   .settings(
     resourceGenerators in Compile += makeSettingsYml.taskValue,
