@@ -26,6 +26,8 @@ object SampleGraph {
     object keys {
       lazy val name                                         = SampleGraph.properties.name
       lazy val nameString: TypedProperty[String]            = SampleGraph.properties.nameString
+      lazy val givenname                                    = SampleGraph.properties.givenname
+      lazy val givennameString: TypedProperty[String]       = SampleGraph.properties.givennameString
       lazy val birthDate                                    = SampleGraph.properties.birthDate
       lazy val birthDateLocalDate: TypedProperty[LocalDate] = SampleGraph.properties.birthDateLocalDate
       lazy val birthPlace                                   = SampleGraph.properties.birthPlace
@@ -55,6 +57,12 @@ object SampleGraph {
   object properties {
     object name extends PropertyDef("name", label = "name", `@range` = TextType.datatype :: Nil)
     lazy val nameString: TypedProperty[String] = name as TextType.datatype
+    object givenname
+        extends PropertyDef("givenname",
+                            label = "givenname",
+                            `@range` = TextType.datatype :: Nil,
+                            `@extends` = name :: Nil)
+    lazy val givennameString: TypedProperty[String] = givenname as TextType.datatype
     object geo extends PropertyDef("https://example.org/geo", label = "geo", `@range` = GeopointType.datatype :: Nil)
     lazy val geoPoint: TypedProperty[Point] = geo as GeopointType.datatype
     object birthDate
@@ -149,7 +157,7 @@ object SampleGraph {
         _Yoshio <- for {
           _person     <- graph + ontologies.person
           _id         <- _person --- Property.default.`@id` --> (graph.iri + "/person/123")
-          _name       <- _person --- properties.name --> "Yoshio" //relation can be a string
+          _name       <- _person --- properties.givenname --> "Yoshio" //relation can be a string
           _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("1996-08-18")
           _birthPlace <- _person --- properties.birthPlace --> _places.CrystalSprings.place
           _balance    <- _person --- properties.balance --> 10.34

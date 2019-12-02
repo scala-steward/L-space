@@ -180,7 +180,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
     lazy val Yoshio   = sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headL.memoizeOnSuccess
     lazy val YoshioName = for {
       y <- Yoshio
-      e <- sampleGraph.edges().find(e => e.key == name.property && e.from.iri == y.iri).headL
+      e <- sampleGraph.edges().find(e => e.key == givenname.property && e.from.iri == y.iri).headL
     } yield e
 
     "a node" should {
@@ -193,7 +193,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       }
       "support .outMap(key)" in {
         Yoshio
-          .map(_.outMap(name) shouldBe Map(SampleGraph.properties.name.property -> List("Yoshio")))
+          .map(_.outMap(name) shouldBe Map(SampleGraph.properties.givenname.property -> List("Yoshio")))
           .runToFuture
       }
     }

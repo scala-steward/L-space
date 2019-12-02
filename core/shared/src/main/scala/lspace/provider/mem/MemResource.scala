@@ -56,7 +56,10 @@ trait MemResource[T] extends Resource[T] {
   override def keys: Set[Property] = linksOut.keySet ++ linksIn.keySet toSet
 
   def out(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatten).map(_.to.value)
+    if (key.nonEmpty)
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksOut.get(key).toList.flatten)
+        .map(_.to.value)
     else linksOut.values.flatten.map(_.to.value).toList
 
   def outMap(key: Property*): Map[Property, List[Any]] = {
@@ -65,7 +68,10 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def outE(key: Property*): List[Edge[T, Any]] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksOut.get(key).toList.flatten).asInstanceOf[List[Edge[T, Any]]]
+    if (key.nonEmpty)
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksOut.get(key).toList.flatten)
+        .asInstanceOf[List[Edge[T, Any]]]
     else linksOut.values.toList.flatten.asInstanceOf[List[Edge[T, Any]]]
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
@@ -74,7 +80,10 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def in(key: Property*): List[Any] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toList.flatten).map(_.from.value)
+    if (key.nonEmpty)
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksIn.get(key).toList.flatten)
+        .map(_.from.value)
     else linksIn.values.toList.flatten.map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] = {
@@ -83,7 +92,10 @@ trait MemResource[T] extends Resource[T] {
   }
 
   def inE(key: Property*): List[Edge[Any, T]] =
-    if (key.nonEmpty) key.toList.flatMap(key => linksIn.get(key).toList.flatten).asInstanceOf[List[Edge[Any, T]]]
+    if (key.nonEmpty)
+      (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
+        .flatMap(key => linksIn.get(key).toList.flatten)
+        .asInstanceOf[List[Edge[Any, T]]]
     else linksIn.values.toList.flatten.asInstanceOf[List[Edge[Any, T]]]
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
