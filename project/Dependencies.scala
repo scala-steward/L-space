@@ -26,7 +26,7 @@ object Dependencies {
 
   val coreJsDeps = Def.setting(
     Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.7"
+      "org.scala-js" %%% "scalajs-dom" % "0.9.8"
     ))
 
   val coreJvmDeps = Seq()
