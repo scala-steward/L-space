@@ -85,7 +85,6 @@ import lspace._
 import Implicits.Scheduler.global
 import Implicits.SyncGuide.guide
 import lspace.provider.mem.MemGraph
-import lspace.structure._
 import Label.D._
 import lspace.util.SampleGraph
 ```

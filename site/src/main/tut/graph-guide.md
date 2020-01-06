@@ -58,13 +58,13 @@ import lspace.Implicits.SyncGuide.guide //graph-engine
 //import lspace.Implicits.RemoteGuide.guide //async remote execution of traversals (w.i.p.)
 ```
 To create a graph (in-memory):
-```
+```scala mdoc
 val graph = Graph("my-graph-url")
 ```
 A graph always has a name, ideally this would be a url so it can be referenced.
 
 Before continuing reading and learning, first load some sample-data:
-```
+```scala mdoc
 lspace.util.SampleGraph.loadSocial(graph).runToFuture
 ```
 
