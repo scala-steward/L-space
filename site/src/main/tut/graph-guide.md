@@ -18,12 +18,11 @@ position: 2
     * [Value](#value)
 * [History](#history)
  
- ```tut:invisible
+ ```scala mdoc:invisible
  import lspace._
  import lspace.Implicits.Scheduler.global
  import lspace.Implicits.SyncGuide.guide
  import lspace.provider.mem.MemGraph
- import lspace.structure._
  import Label.D._
  import lspace.util.SampleGraph
  ```
@@ -41,7 +40,7 @@ Values have a data-value and values can have edges.
 * Graph support history (*never delete, only add an edge (@deletedon) to the edge .. to be tested*)
 
 create a graph
- ```tut:book
+ ```scala mdoc
  val graph: Graph = MemGraph("graph-doc")
  import scala.concurrent.duration._
  scala.concurrent.Await.ready(lspace.util.SampleGraph.loadSocial(graph).runToFuture, 5.seconds)
@@ -51,7 +50,7 @@ create a graph
  
 ## How to use
 First steps:
-```
+```scala mdoc
 import lspace._ //easy access to common object (types)
 import lspace.Implicits.Scheduler.global //default scheduler (execution context)
 import lspace.Implicits.SyncGuide.guide //graph-engine
@@ -80,24 +79,24 @@ The main methods per section:
 ### Resources API
 
 hasIri
-```tut:book
+```scala mdoc
 graph.resources.hasIri("graph-doc/place/123")
 graph.resources.hasIri("graph-doc/place/123", "graph-doc/person/123")
 ```
 
 hasId
-```tut:book
+```scala mdoc
 graph.resources.hasId(1001L).id
 ```
 
 upsert
-```tut:book
+```scala mdoc
 graph.values.create("some-literal")
 graph.values.create("some-literal") //should be equal because values are deduplicated
 graph.values.create("some-literal2") //new value, hence new id
 ```
 count:
-```tut:book
+```scala mdoc
 graph.resources.count()
 ```
 
@@ -108,18 +107,18 @@ A resource ..
 Nodes can be: 
 
 Retrieved by Iri(s)/Uri(s):
-```tut:book
+```scala mdoc
 graph.nodes.hasIri("graph-doc/place/123")
 graph.nodes.hasIri("graph-doc/place/123", "graph-doc/person/123")
 ```
  
 Retrieved by Id(s):
-```tut:book
+```scala mdoc
 graph.nodes.hasId(1002L)
 ```
 
 Counted:
-```tut:book
+```scala mdoc
 graph.nodes.count()
 ```
 
@@ -130,7 +129,7 @@ A node ..
 Edges can be:
 
 Counted:
-```tut:book
+```scala mdoc
 graph.edges.count()
 ```
 
@@ -140,7 +139,7 @@ An edge ..
 ### Values API
 
 Counted:
-```tut:book
+```scala mdoc
 graph.values.count()
 ```
 
