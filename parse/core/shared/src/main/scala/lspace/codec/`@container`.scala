@@ -3,11 +3,11 @@ package lspace.codec
 import lspace.NS.types
 import lspace.structure.IriResource
 
-sealed abstract class `@container`(val iri: String) extends IriResource {
+sealed abstract class Container(val iri: String) extends IriResource {
   override def toString: String = "@id"
 }
 
-object `@container` {
+object Container {
   case object `@id`       extends `@container`("@id")
   case object `@type`     extends `@container`("@type")
   case object `@list`     extends `@container`("@list")
