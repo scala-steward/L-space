@@ -1720,7 +1720,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
   protected lazy val fetchingInProgress: concurrent.Map[String, Task[Json]] =
     new ConcurrentHashMap[String, Task[Json]](16, 0.9f, 32).asScala
 
-  val httpClient: HttpClient = lspace.parse.util.HttpClientImpl
+  val httpClient = lspace.parse.util.HttpClientImpl
   def fetch(iri: String): Task[Json] = { //TODO: create unique task, goal: do not fetch the same resource multiple times in parallel
     fetchingInProgress.getOrElseUpdate(
       iri, {

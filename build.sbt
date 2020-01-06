@@ -166,7 +166,7 @@ lazy val graph = (project in file("graph"))
   )
 
 lazy val cassandra = (project in file("store/cassandra"))
-  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
+  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
   .settings(settings)
   .settings(
     name := "lspace-store-cassandra",
@@ -231,7 +231,9 @@ lazy val site = (project in file("site"))
   .settings(
     resourceGenerators in Compile += makeSettingsYml.taskValue,
     makeMicrosite := (makeMicrosite dependsOn makeSettingsYml).value,
-    scalacOptions in Tut := compilerOptions
+    micrositeCompilingDocsTool := WithMdoc,
+    mdocIn := tutSourceDirectory.value
+//    scalacOptions in Tut := compilerOptions
   )
   .settings(
     micrositeName := "L-space",

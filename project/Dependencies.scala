@@ -2,11 +2,12 @@ import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
-  val finch     = "0.31.0"
-  val monix     = "3.1.0"
-  val sttp      = "1.7.2"
-  val elastic4s = "7.3.1"
-  val phantom   = "2.42.0"
+  val finch      = "0.31.0"
+  val monix      = "3.1.0"
+  val sttpClient = "2.0.0-RC5"
+  val sttpTapir  = "0.12.12"
+  val elastic4s  = "7.3.1"
+  val phantom    = "2.42.0"
 }
 
 object Dependencies {
@@ -33,13 +34,13 @@ object Dependencies {
 
   val parseDeps = Def.setting(
     Seq(
-      "com.softwaremill.sttp" %%% "core"  % Version.sttp,
-      "com.softwaremill.sttp" %%% "monix" % Version.sttp
+      "com.softwaremill.sttp.client" %%% "core"  % Version.sttpClient,
+      "com.softwaremill.sttp.client" %%% "monix" % Version.sttpClient
     ))
 
   val parseJsDeps = Def.setting(Seq())
 
-  val parseJvmDeps = Seq("com.softwaremill.sttp" %% "okhttp-backend-monix" % Version.sttp)
+  val parseJvmDeps = Seq("com.softwaremill.sttp.client" %% "okhttp-backend-monix" % Version.sttpClient)
 
   val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.3"))
 
@@ -53,8 +54,8 @@ object Dependencies {
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.github.pureconfig" %% "pureconfig"         % "0.12.1",
-    "com.github.pureconfig" %% "pureconfig-generic" % "0.12.1"
+    "com.github.pureconfig" %% "pureconfig"         % "0.12.2",
+    "com.github.pureconfig" %% "pureconfig-generic" % "0.12.2"
   )
 
   val storeCassandraDeps = Seq(
@@ -78,9 +79,9 @@ object Dependencies {
 
   val servicesDeps = Seq(
 //    "com.twitter"        %% "twitter-server"       % "19.4.0" % "test",
-    "com.softwaremill.sttp.tapir" %% "tapir-core" % "0.12.3",
-//    "com.softwaremill.sttp.tapir" %% "tapir-finatra-server" % "0.12.3",
-    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % "0.12.3",
+    "com.softwaremill.sttp.tapir" %% "tapir-core" % Version.sttpTapir,
+//    "com.softwaremill.sttp.tapir" %% "tapir-finatra-server" % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.sttpTapir,
     "com.vmunier"                 %% "scalajs-scripts"        % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi" %% "scalatags" % "0.7.0" //TODO: replace with Laminar

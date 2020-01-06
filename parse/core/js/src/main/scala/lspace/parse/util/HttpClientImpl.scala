@@ -1,8 +1,10 @@
 package lspace.parse.util
 
-import com.softwaremill.sttp.impl.monix.FetchMonixBackend
+import monix.eval.Task
+import sttp.client.impl.monix.FetchMonixBackend
+import sttp.client.NothingT
 import scala.scalajs.js
 
-object HttpClientImpl extends HttpClient {
-  implicit val backend = FetchMonixBackend()
+object HttpClientImpl extends HttpClient[NothingT] {
+  val backend = Task { FetchMonixBackend() }
 }

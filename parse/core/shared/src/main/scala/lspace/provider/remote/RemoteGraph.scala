@@ -12,7 +12,8 @@ import lspace.structure.util.IdProvider
 import lspace.structure.{ClassType, Graph, NameSpaceGraph, Property}
 import monix.eval.Task
 import shapeless.HList
-import com.softwaremill.sttp._
+import sttp.client._
+import sttp.model._
 import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.codec.json.jsonld.{JsonLDDecoder, JsonLDEncoder}
 import lspace.codec.ActiveContext
@@ -31,9 +32,8 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
     baseDecoder: JsonDecoder[Json])
     extends Graph {
 
-  implicit val httpClient: HttpClient = lspace.parse.util.HttpClientImpl
-  implicit val backend                = httpClient.backend
-  val cache: Graph                    = Graph.apply(iri)
+  implicit val httpClient = lspace.parse.util.HttpClientImpl
+  val cache: Graph        = Graph.apply(iri)
 
   val encoder: JsonLDEncoder[Json] = JsonLDEncoder(baseEncoder)
   val decoder: JsonLDDecoder[Json] = JsonLDDecoder(cache)(baseDecoder)
@@ -68,14 +68,16 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
       .fromTask(for {
         node <- traversal.toNode
         json = encoder(node)(ActiveContext()) //TODO: create nice named default context
-        request = sttp
+        request = basicRequest
           .body(json)
           .header(HeaderNames.Accept, "application/ld+json", true)
           .header(HeaderNames.ContentType, "application/ld+json", true)
           //TODO: add cookie/auth headers
           .post(serviceUri)
           .response(asStream[Observable[ByteBuffer]])
-        response <- request.send()
+        response <- httpClient.backend.flatMap { implicit backend =>
+          request.send()
+        }
       } yield {
         response.body match {
           case Left(error) => Observable.raiseError(new Exception(error))
