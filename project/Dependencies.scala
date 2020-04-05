@@ -21,7 +21,7 @@ object Dependencies {
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"          %%% "scribe"          % "2.7.10",
       "org.scalatest"     %%% "scalatest"       % "3.1.0" % "test",
-      "io.monix"          %%% "minitest"        % "2.7.0" % "test",
+      "io.monix"          %%% "minitest"        % "2.8.2" % "test",
       "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3"
     ))
 
