@@ -22,7 +22,7 @@ object Dependencies {
       "com.outr"          %%% "scribe"          % "2.7.10",
       "org.scalatest"     %%% "scalatest"       % "3.1.0" % "test",
       "io.monix"          %%% "minitest"        % "2.7.0" % "test",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-RC3"
+      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
     ))
 
   val coreJsDeps = Def.setting(
