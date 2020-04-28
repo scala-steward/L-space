@@ -47,7 +47,7 @@ lazy val projectSettings = Seq(
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions,
   scalaVersion := "2.13.1",
-  crossScalaVersions := Seq("2.12.10", "2.13.1"),
+  crossScalaVersions := Seq("2.12.11", "2.13.1"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
@@ -71,7 +71,6 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .settings(crossVersionSharedSources)
   .settings(
     name := "lspace-core",
-//    crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
     libraryDependencies ++= coreDeps.value
   )
   .jvmSettings(
@@ -90,7 +89,6 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse",
-//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= parseDeps.value
   )
   .jvmSettings(
@@ -109,7 +107,6 @@ lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse-argonaut",
-//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= parseArgonautDeps.value
   )
   .jvmSettings(
@@ -126,7 +123,6 @@ lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse-circe",
-//    crossScalaVersions := Seq("2.11.12", "2.12.10"),
     libraryDependencies ++= parseCirceDeps.value
   )
   .jvmSettings(
@@ -144,7 +140,6 @@ lazy val client =
     .settings(settings)
     .settings(
       name := "lspace-client",
-//      crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.0"),
       libraryDependencies ++= clientDeps.value
     )
     .jvmSettings(
@@ -161,45 +156,43 @@ lazy val graph = (project in file("graph"))
   .settings(settings)
   .settings(
     name := "lspace-graph",
-//    crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.0"),
     libraryDependencies ++= graphDeps
   )
 
-lazy val cassandra = (project in file("store/cassandra"))
-  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
-  .settings(settings)
-  .settings(
-    name := "lspace-store-cassandra",
-    scalaVersion := "2.12.10",
-    crossScalaVersions := Seq("2.12.10"),
-    libraryDependencies ++= storeCassandraDeps,
-    Test / parallelExecution := true
-  )
-
-lazy val kafka = (project in file("store/kafka"))
-  .dependsOn(graph % "compile->compile;test->test")
-  .settings(settings)
-  .settings(
-    name := "lspace-store-kafka",
-    libraryDependencies ++= storeKafkaDeps,
-    Test / parallelExecution := true
-  )
-
-lazy val elasticsearch = (project in file("index/elasticsearch"))
-  .dependsOn(graph % "compile->compile;test->test")
-  .settings(settings)
-  .settings(
-    name := "lspace-index-elasticsearch",
-    libraryDependencies ++= indexElasticsearchDeps,
-    Test / parallelExecution := true
-  )
+//lazy val cassandra = (project in file("store/cassandra"))
+//  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
+//  .settings(settings)
+//  .settings(
+//    name := "lspace-store-cassandra",
+//    scalaVersion := "2.12.11",
+//    crossScalaVersions := Seq("2.12.11"),
+//    libraryDependencies ++= storeCassandraDeps,
+//    Test / parallelExecution := true
+//  )
+//
+//lazy val kafka = (project in file("store/kafka"))
+//  .dependsOn(graph % "compile->compile;test->test")
+//  .settings(settings)
+//  .settings(
+//    name := "lspace-store-kafka",
+//    libraryDependencies ++= storeKafkaDeps,
+//    Test / parallelExecution := true
+//  )
+//
+//lazy val elasticsearch = (project in file("index/elasticsearch"))
+//  .dependsOn(graph % "compile->compile;test->test")
+//  .settings(settings)
+//  .settings(
+//    name := "lspace-index-elasticsearch",
+//    libraryDependencies ++= indexElasticsearchDeps,
+//    Test / parallelExecution := true
+//  )
 
 lazy val services = (project in file("services/core"))
   .dependsOn(client.jvm % "compile->compile;test->test", parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test")
   .settings(settings)
   .settings(
     name := "lspace-services",
-    crossScalaVersions := Seq("2.12.10", "2.13.1"),
     libraryDependencies ++= servicesDeps
   )
 
@@ -225,8 +218,6 @@ lazy val site = (project in file("site"))
   .dependsOn(parse.jvm % "compile->compile;compile->test")
   .settings(name := "lspace-site")
   .settings(skip in publish := true)
-  .settings(scalaVersion := "2.12.10")
-  .settings(crossScalaVersions := Seq("2.12.10"))
   .settings(projectSettings)
   .settings(
     resourceGenerators in Compile += makeSettingsYml.taskValue,
