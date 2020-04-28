@@ -20,7 +20,7 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
                  )),
                60 seconds)
 
-  private var idState = State("all", 1000l, graph.iri)
+  private var idState = State("all", 1000L, graph.iri)
   lazy val idProvider: LGraphIdProvider = new LGraphIdProvider {
     protected def newIdRange: Vector[Long] = {
       val idStates = Await
