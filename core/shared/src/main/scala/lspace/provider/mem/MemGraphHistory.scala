@@ -11,7 +11,7 @@ object MemGraphHistory {
       val iri: String = _iri
 
       lazy val idProvider: IdProvider = new IdProvider {
-        private val id       = Atomic(1000l)
+        private val id       = Atomic(1000L)
         def next: Task[Long] = Task.now(id.incrementAndGet())
       }
 

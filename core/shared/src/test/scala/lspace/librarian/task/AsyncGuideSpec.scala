@@ -1031,7 +1031,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         import scala.concurrent.duration._
         g.N
           .repeat(_.out(), collect = true)
-          .timeLimit(200l)
+          .timeLimit(200L)
           .count
           .withGraph(sampleGraph)
           .headF

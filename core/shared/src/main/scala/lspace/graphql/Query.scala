@@ -8,7 +8,7 @@ import shapeless.{HList, HNil}
 import scala.collection.immutable.ListMap
 
 object Query {}
-case class Query(projections: List[Projection] = List(),
+case class Query(projections: List[Projection] = List(), //HLIST?
                  limit: Option[Int] = None,
                  offset: Option[Int] = None,
                  parameters: ListMap[Property, Any] = ListMap()) //add direction to parameter property (in/out)

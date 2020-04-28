@@ -69,7 +69,7 @@ object Property {
       )
 
       if (properties.size > 99) throw new Exception("extend default-property-id range!")
-      val byId    = (100l to 100l + properties.size - 1 toList).zip(properties).toMap
+      val byId    = (100L to 100L + properties.size - 1 toList).zip(properties).toMap
       val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
       val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
     }
