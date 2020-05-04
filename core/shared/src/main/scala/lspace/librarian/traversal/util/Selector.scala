@@ -2,7 +2,6 @@ package lspace.librarian.traversal.util
 
 import lspace.librarian.traversal.step.As
 import lspace.librarian.traversal.step.Select.Selection
-import lspace.librarian.traversal.util.LabelStepTypes
 import shapeless.{::, HList, HNil, LUBConstraint}
 import shapeless.ops.hlist.{Mapper, Reverse, Tupler}
 

@@ -2,10 +2,12 @@ package lspace.structure
 
 import lspace._
 import lspace.datatype.{DataType, VectorType}
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import lspace.util.SampleGraph
 import monix.eval.Task
 import monix.execution.Scheduler
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
   import SampleGraph.ontologies._
@@ -14,7 +16,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
   override def executionContext = lspace.Implicits.Scheduler.global
 
   def nodeTests(graph: Graph) = {
-    "Nodes" can {
+    "Nodes".can {
       "be queried by id" in {
         (for {
           node <- graph.nodes.create(Property.ontology)
@@ -115,8 +117,8 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
 //        node.labels.size shouldBe 1
       }
     }
-    "Properties" can {
-      "only be single for cardinality single" ignore {
+    "Properties".can {
+      "only be single for cardinality single".ignore {
         val singleProperty = Property("singleproperty")
         singleProperty.range + DataType.default.`@string`
 
@@ -136,7 +138,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       "have a collection as a value" in {
         val vectorProperty = Property("some.vector")
 //        vectorProperty as VectorType(DataType.default.`@int`)
-        val intVector = vectorProperty as VectorType(DataType.default.`@int`)
+        val intVector = vectorProperty.as(VectorType(DataType.default.`@int`))
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut(intVector, Vector(1, 2, 3, 4))
@@ -147,7 +149,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       "be of type double" in {
         val number = Property("number")
         number.range + DataType.default.`@double`
-        val numberDouble = number as DataType.default.`@double`
+        val numberDouble = number.as(DataType.default.`@double`)
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut(numberDouble, 0.0)

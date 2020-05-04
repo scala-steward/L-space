@@ -19,7 +19,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
   protected[lspace] val byIri: concurrent.Map[String, Node] =
     new ConcurrentHashMap[String, Node]().asScala
 
-  def get[T: DefaultsToAny](iri: String): Task[Option[DataType[T]]] = {
+  def get[T: DefaultsToAny](iri: String): Task[Option[DataType[T]]] =
     DataType.datatypes
       .get(iri)
       //        .orElse(CollectionType.get(iri))
@@ -36,7 +36,6 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
               .map(_.asInstanceOf[DataType[T]])
               .map(Some(_))
           }.getOrElse(Task.now(None))))
-  }
 
   def get[T: DefaultsToAny](id: Long): Task[Option[DataType[T]]] =
     cached(id)
@@ -107,7 +106,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                         nodes.create(DataType.ontology)
                       }
                     iri  <- node.addOut(default.typed.iriUrlString, datatype.iri)
-                    iris <- Task.gather(datatype.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
+                    iris <- Task.parSequence(datatype.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
                   } yield {
                     byId += node.id   -> datatype
                     byIri += node.iri -> node
@@ -116,7 +115,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                     }
                     node
                   }
-                  datatypes <- Task.gather {
+                  datatypes <- Task.parSequence {
                     datatype match {
                       case dataType: CollectionType[_] =>
                         dataType match {
@@ -141,8 +140,8 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                               node.addOut(CollectionType.keys.valueRange, List(dt))))
                           case dataType: TupleType[_] =>
                             Seq(Task
-                              .gather(dataType.rangeTypes.map(range =>
-                                Task.gather(range.toList.map(classtypes.store(_)))))
+                              .parSequence(dataType.rangeTypes.map(range =>
+                                Task.parSequence(range.toList.map(classtypes.store(_)))))
                               .map { nodes =>
                                 node.addOut(TupleType.keys._rangeClassType, nodes.map(_.headOption))
                               })
@@ -153,21 +152,21 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                         throw new Exception(s"datatype not found?! ${datatype.iri}")
                     }
                   }
-                  labels <- Task.gather(datatype.label().map {
+                  labels <- Task.parSequence(datatype.label().map {
                     case (language, label) =>
                       for {
                         label <- node.addOut(Property.default.`@label`, label)
                         lang  <- label.addOut(Property.default.`@language`, language)
                       } yield label
                   })
-                  comments <- Task.gather(datatype.comment().map {
+                  comments <- Task.parSequence(datatype.comment().map {
                     case (language, comment) =>
                       for {
                         comment <- node.addOut(Property.default.`@comment`, comment)
                         lang    <- comment.addOut(Property.default.`@language`, language)
                       } yield comment
                   })
-                  extendedClasses <- Task.gather(datatype.extendedClasses().map(ns.datatypes.store))
+                  extendedClasses <- Task.parSequence(datatype.extendedClasses().map(ns.datatypes.store))
                   extended        <- node.addOut(Label.P.`@extends`, datatype.extendedClasses())
                 } yield node
                 //              datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))

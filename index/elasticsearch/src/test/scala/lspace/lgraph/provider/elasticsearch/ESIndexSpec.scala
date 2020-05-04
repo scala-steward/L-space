@@ -29,7 +29,7 @@ class ESIndexSpec extends LGraphIndexSpec {
   lazy val samplePersistedGraph = SampledGraph(createGraph("ESIndexSpec-persisted-sample"))
 
   val initTask = (for {
-    _ <- Task.gatherUnordered(
+    _ <- Task.parSequenceUnordered(
       Seq(
         for {
           _ <- graph.init

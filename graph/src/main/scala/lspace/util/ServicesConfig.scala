@@ -19,19 +19,18 @@ object ServicesConfig {
     * @return
     */
   def config(env: String): ServicesConfig =
-    pureconfig
-      .loadConfig[ServicesConfig]
+    ConfigSource.default
+      .load[ServicesConfig]
       .toOption
       .orElse(Option(System.getenv(env))
         .map { iri =>
-          scribe.info(s"using $env=${iri}")
-          pureconfig.loadConfig[ServicesConfig](Paths.get(iri)) match {
+          scribe.info(s"using $env=$iri")
+          ConfigSource.default(ConfigSource.file(Paths.get(iri))).load[ServicesConfig] match {
             case Right(r) => r
             case Left(e)  => throw new Exception(e.toString)
           }
         })
-      .orElse(pureconfig
-        .loadConfig[ServicesConfig](Paths.get("config/application.conf")) match {
+      .orElse(ConfigSource.default(ConfigSource.file(Paths.get("config/application.conf"))).load[ServicesConfig] match {
         case Right(r) =>
           scribe.info("using local file 'config/application.conf'")
           Some(r)
@@ -42,13 +41,14 @@ object ServicesConfig {
       .getOrElse {
         import com.typesafe.config.ConfigFactory
         scribe.warn("no context file found, starting in-memory graphs")
-        pureconfig
-          .loadConfig[ServicesConfig](ConfigFactory.parseString("""
-                                                                  |{
-                                                                  |  port : 80,
-                                                                  |  graph : { name : "http://localhost" }
-                                                                  |}
+        ConfigSource
+          .fromConfig(ConfigFactory.parseString("""
+                                                            |{
+                                                            |  port : 80,
+                                                            |  graph : { name : "http://localhost" }
+                                                            |}
                                                                 """.stripMargin))
+          .load[ServicesConfig]
           .getOrElse(throw new Exception("could not load any config ..."))
       }
 }

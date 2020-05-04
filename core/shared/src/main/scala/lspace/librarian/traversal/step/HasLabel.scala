@@ -23,7 +23,7 @@ object HasLabel
 //          .map(node.graph.ns.classtypes.get(_))
 //      }
       Task
-        .gather(
+        .parSequence(
           node
             .out(keys.label)
             .collect {
@@ -55,9 +55,9 @@ object HasLabel
           container = types.`@set` :: Nil,
           `@range` = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         )
-    val labelOntologyNode: TypedProperty[Node] = label.property as Ontology.ontology
-    val labelPropertyNode: TypedProperty[Node] = label.property as Property.ontology
-    val labelDataTypeNode: TypedProperty[Node] = label.property as DataType.ontology
+    val labelOntologyNode: TypedProperty[Node] = label.property.as(Ontology.ontology)
+    val labelPropertyNode: TypedProperty[Node] = label.property.as(Property.ontology)
+    val labelDataTypeNode: TypedProperty[Node] = label.property.as(DataType.ontology)
   }
   override lazy val properties: List[Property] = keys.label :: HasStep.properties
   trait Properties extends HasStep.Properties {
@@ -70,7 +70,7 @@ object HasLabel
   implicit def toNode(step: HasLabel): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _ <- Task.gather(step.label.map {
+      _ <- Task.parSequence(step.label.map {
         case ontology: Ontology =>
           node.addOut(keys.label, ontology.asInstanceOf[Ontology])
         case property: Property =>

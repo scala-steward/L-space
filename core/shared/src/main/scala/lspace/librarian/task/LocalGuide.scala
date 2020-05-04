@@ -10,7 +10,7 @@ import shapeless.HList
 abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
   def assistent: Assistent
 
-  def buildNextStep(steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]] = {
+  def buildNextStep(steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]] =
     steps match {
       case Nil =>
         obs: F[Librarian[Any]] =>
@@ -41,7 +41,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
               case step: ReducingBarrierStep =>
                 reducingBarrierStep(step, steps)
               case _ =>
-                reducingStep(step) andThen buildNextStep(steps)
+                reducingStep(step).andThen(buildNextStep(steps))
             }
           case step: BarrierStep =>
             step match {
@@ -55,7 +55,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
           case step: FilterStep =>
             step match {
               case step: ClipStep =>
-                clipStep(step) andThen buildNextStep(steps)
+                clipStep(step).andThen(buildNextStep(steps))
               case _ => filterStep(step, steps)
             }
           case step: ProjectionStep =>
@@ -64,7 +64,6 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
             environmentStep(step, steps)
         }
     }
-  }
 
   def traverseStep(step: TraverseStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]]
   def resourceStep(step: ResourceStep, steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]]
@@ -104,10 +103,10 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
       import scala.concurrent.duration._
       val f = (obs: F[Librarian[Any]]) =>
         step.time match {
-          case Some(time) => takeByTimeSpan(obs, time millis: FiniteDuration)
+          case Some(time) => takeByTimeSpan(obs, time.millis: FiniteDuration)
           case None       => obs
       }
-      f andThen nextStep
+      f.andThen(nextStep)
     //                nextStep andThen f
   }
 }

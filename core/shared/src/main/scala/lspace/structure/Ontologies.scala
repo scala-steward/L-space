@@ -18,7 +18,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
   protected[lspace] val byIri: concurrent.Map[String, Node] =
     new ConcurrentHashMap[String, Node]().asScala
 
-  def get(iri: String): Task[Option[Ontology]] = {
+  def get(iri: String): Task[Option[Ontology]] =
     Ontology.ontologies
       .get(iri)
       .map(Coeval.now)
@@ -51,7 +51,6 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
               }
           }
       }
-  }
 
   def get(id: Long): Task[Option[Ontology]] =
     cached(id)
@@ -130,19 +129,19 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                   nodes.create(Ontology.ontology)
                 }
               u    <- node.addOut(default.typed.iriUrlString, ontology.iri)
-              iris <- Task.gather(ontology.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
+              iris <- Task.parSequence(ontology.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
 
-              //                properties      <- Task.gather(ontology.properties.map(ns.properties.store))
-              extendedClasses <- Task.gather(ontology.extendedClasses().map(ns.ontologies.store))
+              //                properties      <- Task.parSequence(ontology.properties.map(ns.properties.store))
+              extendedClasses <- Task.parSequence(ontology.extendedClasses().map(ns.ontologies.store))
               extendsE        <- node.addOut(Label.P.`@extends`, extendedClasses)
-              labels <- Task.gather(ontology.label().map {
+              labels <- Task.parSequence(ontology.label().map {
                 case (language, label) =>
                   for {
                     label <- node.addOut(Property.default.`@label`, label)
                     lang  <- label.addOut(Property.default.`@language`, language)
                   } yield label
               })
-              comments <- Task.gather(ontology.comment().map {
+              comments <- Task.parSequence(ontology.comment().map {
                 case (language, comment) =>
                   for {
                     comment <- node.addOut(Property.default.`@comment`, comment)

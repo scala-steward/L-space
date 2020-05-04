@@ -90,13 +90,9 @@ trait Graph extends IriResource with GraphUtils { self =>
   type GEdge[S, E] <: _Edge[S, E]
   type GValue[T] <: _Value[T]
 
-//  type _Resource[T] <: _Resource[T]
-//  type GNode <: _Node             // with _Resource[Node]
-//  type _Edge[S, E] <: _Edge[S, E] //with _Resource[Edge[S, E]]
-//  type GValue[T] <: _Value[T]     // with _Resource[T]
-
   override lazy val hashCode: Int = iri.hashCode
 
+  //TODO: make abstract
   implicit lazy val assistent: Assistent     = DefaultAssistent()
   implicit lazy val guide: Guide[Observable] = AsyncGuide()
 
@@ -111,8 +107,22 @@ trait Graph extends IriResource with GraphUtils { self =>
     */
   def transaction: Transaction
 
+  /**
+    * Store of all nodes
+    * @return
+    */
   protected[lspace] def nodeStore: NodeStore[this.type]
+
+  /**
+    * Store of all edges
+    * @return
+    */
   protected[lspace] def edgeStore: EdgeStore[this.type]
+
+  /**
+    * Store of all values
+    * @return
+    */
   protected[lspace] def valueStore: ValueStore[this.type]
 //  protected def `@idStore`: ValueStore[this.type]
 //  protected def `@typeStore`: ValueStore[String, _Value[String]]

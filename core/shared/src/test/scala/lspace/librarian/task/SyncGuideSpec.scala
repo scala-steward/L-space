@@ -8,7 +8,9 @@ import lspace.Label.P._
 import lspace.structure.{GraphFixtures, SampledGraph}
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 //trait GuideSpec[F[_]] extends Matchers {
 //  implicit def guide: Guide[F]
@@ -391,7 +393,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .withGraph(sampleGraph)
         .toMapF
         .map { groupedNodes =>
-          groupedNodes.values.toSet shouldBe Set(4l, 6l)
+          groupedNodes.values.toSet shouldBe Set(4L, 6L)
         }
         .to[Task]
         .runToFuture

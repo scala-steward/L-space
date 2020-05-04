@@ -27,7 +27,7 @@ object Min
   def toStep(node: Node): Task[Min] =
     for {
       by <- Task
-        .gather(
+        .parSequence(
           node
             .out(Min.keys.byTraversal)
             .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
@@ -42,7 +42,7 @@ object Min
           "A traversal ..",
           `@range` = Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property.as(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.by :: FilterBarrierStep.properties ++ ReducingStep.properties
   trait Properties extends FilterBarrierStep.Properties with ReducingStep.Properties {

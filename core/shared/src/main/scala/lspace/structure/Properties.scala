@@ -17,7 +17,7 @@ abstract class Properties(val graph: NameSpaceGraph) {
   protected[lspace] val byIri: concurrent.Map[String, Node] =
     new ConcurrentHashMap[String, Node]().asScala
 
-  def get(iri: String): Task[Option[Property]] = {
+  def get(iri: String): Task[Option[Property]] =
     Property.properties
       .get(iri)
       .map(Task.now)
@@ -41,7 +41,6 @@ abstract class Properties(val graph: NameSpaceGraph) {
               }
               .map(Some(_))
           }.getOrElse(Task.now(None))))
-  }
 
   def get(id: Long): Task[Option[Property]] =
     cached(id)
@@ -78,7 +77,7 @@ abstract class Properties(val graph: NameSpaceGraph) {
   def cached(iri: String): Option[Property] =
     Property.properties.get(iri)
 
-  def store(property: Property): Task[Node] = {
+  def store(property: Property): Task[Node] =
     byIri.get(property.iri).map(Task.now).getOrElse {
       if (Property.properties.default.byIri.get(property.iri).isDefined) {
         for {
@@ -120,7 +119,7 @@ abstract class Properties(val graph: NameSpaceGraph) {
                         nodes.create(Property.ontology)
                       }
                     iri  <- node.addOut(default.typed.iriUrlString, property.iri)
-                    iris <- Task.gather(property.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
+                    iris <- Task.parSequence(property.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
                   } yield {
                     byId += node.id   -> property
                     byIri += node.iri -> node
@@ -129,19 +128,19 @@ abstract class Properties(val graph: NameSpaceGraph) {
                     }
                     node
                   }
-                  range <- Task.gather(property.range().map(classtypes.store))
-                  //                properties      <- Task.gather(property.properties.map(ns.properties.store))
-                  extendedClasses <- Task.gather(property.extendedClasses().map(ns.properties.store))
+                  range <- Task.parSequence(property.range().map(classtypes.store))
+                  //                properties      <- Task.parSequence(property.properties.map(ns.properties.store))
+                  extendedClasses <- Task.parSequence(property.extendedClasses().map(ns.properties.store))
                   _               <- node.addOut(Property.default.`@range`, range)
                   extended        <- node.addOut(Label.P.`@extends`, extendedClasses)
-                  labels <- Task.gather(property.label().map {
+                  labels <- Task.parSequence(property.label().map {
                     case (language, label) =>
                       for {
                         label <- node.addOut(Property.default.`@label`, label)
                         lang  <- label.addOut(Property.default.`@language`, language)
                       } yield label
                   })
-                  comments <- Task.gather(property.comment().map {
+                  comments <- Task.parSequence(property.comment().map {
                     case (language, comment) =>
                       for {
                         comment <- node.addOut(Property.default.`@comment`, comment)
@@ -162,7 +161,6 @@ abstract class Properties(val graph: NameSpaceGraph) {
           }
       }
     }
-  }
 
   /** Gets all properties which extend key */
   //    def extending(key: Property): Task[List[Property]] =

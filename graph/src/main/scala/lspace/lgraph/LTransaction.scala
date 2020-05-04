@@ -16,7 +16,7 @@ object LTransaction {
 }
 
 class LTransaction(override val parent: LGraph) extends Transaction(parent) {
-  val iri: String  = parent.iri + "/" + java.time.Instant.now() + "/" + (Math.random() * 100000 toInt)
+  val iri: String  = parent.iri + "/" + java.time.Instant.now() + "/" + (Math.random() * 100000).toInt
   private val self = this
   private val _iri = iri
 
@@ -44,7 +44,7 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
           others.map(value => parent.newValue(value.id, value.value, value.label))
         }
         //        _ <- Task.defer { parent.values().toListL.map(r => println(r.map(_.prettyPrint))) }
-        newNodes <- Task.gather {
+        newNodes <- Task.parSequence {
           nodes.added.toList.map(_._2).map { node =>
             for {
               newNode <- Task { parent.newNode(node.id) }
@@ -174,10 +174,9 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
     */
   override def rollback(): Task[Unit] = Task.now { open = false } //return claimed id's?
 
-  override protected[lspace] def deleteNode(node: _Node): Task[Unit] = {
+  override protected[lspace] def deleteNode(node: _Node): Task[Unit] =
     //1st prepare statements to remove objects from store/index (or remove first and then cache?)
     super.deleteNode(node)
-  }
   override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] = super.deleteEdge(edge)
   override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] = super.deleteValue(value)
 }

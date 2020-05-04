@@ -107,7 +107,7 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
   def byValue[V](value: V, dt: DataType[V]): Observable[graph._Value[V]] =
     vcache.byValue(value, dt).filter(v => !isDeleted(v.id))
 
-  override def store(value: T): Task[Unit] = {
+  override def store(value: T): Task[Unit] =
     for {
       _ <- super.store(value)
       _ <- graph.storeManager
@@ -117,11 +117,10 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
 
-  override def store(values: List[T]): Task[Unit] = {
+  override def store(values: List[T]): Task[Unit] =
     for {
-      _ <- Task.gatherUnordered(values.map(super.store))
+      _ <- Task.parSequenceUnordered(values.map(super.store))
       _ <- graph.storeManager
         .storeValues(values)
         .executeOn(LStore.ec)
@@ -129,16 +128,14 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
 
   override def cache(value: T): Unit = {
     super.cache(value)
     cacheByValue(value)
   }
 
-  def cacheByValue(value: T): Unit = {
+  def cacheByValue(value: T): Unit =
     vcache(value)
-  }
 
   override def delete(value: T): Task[Unit] = Task.defer {
     _deleted += value.id -> Instant.now()
@@ -158,15 +155,14 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     uncacheByValue(value)
   }
 
-  def uncacheByValue(value: T): Unit = {
+  def uncacheByValue(value: T): Unit =
     vcache.delete(value)
-  }
 
   override def delete(values: List[T]): Task[Unit] = Task.defer {
     val delTime = Instant.now()
     values.foreach(value => _deleted += value.id -> delTime)
     for {
-      _ <- Task.gatherUnordered(values.map(super.delete))
+      _ <- Task.parSequenceUnordered(values.map(super.delete))
       _ <- graph.storeManager
         .deleteValues(values)
         .executeOn(LStore.ec)

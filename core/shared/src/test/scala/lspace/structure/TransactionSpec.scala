@@ -3,14 +3,16 @@ package lspace.structure
 import lspace.structure.Property.default._
 import lspace.util.SampleGraph
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 
 trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
 
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  def transactionTests(graph: Graph) = {
+  def transactionTests(graph: Graph) =
     "a transaction" should {
       "support adding edges to existing nodes" in {
         val t = graph.transaction
@@ -19,7 +21,7 @@ trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll
           _     <- node --- `@id` --> "support-transaction-to-add-edges"
           _     <- node --- SampleGraph.Person.keys.name --> "Alice"
           node2 <- t.nodes.hasId(node.id).map(_.get)
-          _     <- Task.gather(node2.outE(SampleGraph.Person.keys.name).map(_.remove()))
+          _     <- Task.parSequence(node2.outE(SampleGraph.Person.keys.name).map(_.remove()))
           _     <- node2 --- SampleGraph.Person.keys.balance --> 1.2
           _     <- node2 --- SampleGraph.Person.keys.name --> "Ali"
           _     <- t.commit()
@@ -27,7 +29,7 @@ trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll
           node.out() should contain(1.2)
           node.out() should not contain ("Alice")
           node.out() should contain("Ali")
-          node.labels should contain only SampleGraph.Person.ontology
+          (node.labels should contain).only(SampleGraph.Person.ontology)
         }).runToFuture
       }
 
@@ -54,6 +56,5 @@ trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll
         }).runToFuture
       }
     }
-  }
 
 }

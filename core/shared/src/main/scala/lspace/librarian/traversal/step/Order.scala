@@ -22,7 +22,7 @@ object Order extends StepDef("Order", "An order-step ..", GroupingBarrierStep.on
   def toStep(node: Node): Task[Order] =
     for {
       by <- Task
-        .gather(
+        .parSequence(
           node
             .out(Order.keys.byTraversal)
             .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
@@ -37,7 +37,7 @@ object Order extends StepDef("Order", "An order-step ..", GroupingBarrierStep.on
           "A traversal ..",
           `@range` = Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property.as(Traversal.ontology)
 
     object increasing
         extends PropertyDef(
@@ -46,7 +46,7 @@ object Order extends StepDef("Order", "An order-step ..", GroupingBarrierStep.on
           "Set to true to sort ascending",
           `@range` = DataType.default.`@string` :: Nil
         )
-    val increasingBoolean: TypedProperty[Boolean] = increasing.property as DataType.default.`@boolean`
+    val increasingBoolean: TypedProperty[Boolean] = increasing.property.as(DataType.default.`@boolean`)
   }
   override lazy val properties: List[Property] = keys.by :: keys.increasing.property :: GroupingBarrierStep.properties
   trait Properties extends GroupingBarrierStep.Properties {

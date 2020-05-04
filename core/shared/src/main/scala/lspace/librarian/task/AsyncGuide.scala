@@ -148,7 +148,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       //      case step: R =>
 
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def traverseStep(step: TraverseStep, steps: List[Step])(
@@ -289,8 +289,8 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           case step: HasIri =>
             obs: Observable[Librarian[Any]] =>
               obs.filter(_.get match {
-                case r: Resource[_] if step.iris intersect r.iris nonEmpty => true
-                case _                                                     => false
+                case r: Resource[_] if step.iris.intersect(r.iris).nonEmpty => true
+                case _                                                      => false
               })
           case step: HasLabel =>
             obs: Observable[Librarian[Any]] =>
@@ -392,7 +392,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             }
           }
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   //  def hasStep(step: HasStep, steps: List[Step])(
@@ -426,25 +426,25 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         import cats.implicits._
         (step.by.et.iri match {
           case lspace.NS.types.`@int` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Int]))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Int]))
           case lspace.NS.types.`@double` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Double]))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Double]))
           case lspace.NS.types.`@long` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Long]))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Long]))
           case lspace.NS.types.`@number` =>
-            byObsF andThen (_.minBy(_._2 match {
+            byObsF.andThen(_.minBy(_._2 match {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
             }))
           case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
           case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
           case lspace.NS.types.`@date` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
         }).andThen(_.map(_._1))
       case step: Max =>
         val byObservable = traversalToF(step.by)
@@ -465,25 +465,25 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         import cats.implicits._
         (step.by.et.iri match {
           case lspace.NS.types.`@int` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Int]))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Int]))
           case lspace.NS.types.`@double` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Double]))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Double]))
           case lspace.NS.types.`@long` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Long]))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Long]))
           case lspace.NS.types.`@number` =>
-            byObsF andThen (_.maxBy(_._2 match {
+            byObsF.andThen(_.maxBy(_._2 match {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
             }))
           case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
           case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
           case lspace.NS.types.`@date` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
         }).andThen(_.map(_._1))
     }
     f
@@ -738,7 +738,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             }
           }
     }
-    f.asInstanceOf[Observable[Librarian[Any]] => Observable[Librarian[Any]]] andThen nextStep
+    f.asInstanceOf[Observable[Librarian[Any]] => Observable[Librarian[Any]]].andThen(nextStep)
   }
 
   def collectingBarrierStep(step: GroupingBarrierStep, steps: List[Step], isRootGroup: Boolean = false)(
@@ -783,7 +783,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             .map(createLibrarian(_))
 
     }
-    f andThen nextStep
+    f.andThen(nextStep)
 //    else
 //      f andThen nextStep andThen (obs =>
 //        Observable.fromTask(obs.toListL.map(_.asInstanceOf[List[(Any, Any)]].toMap).map()))
@@ -798,7 +798,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         obs: Observable[Librarian[Any]] =>
           obs.count.map(createLibrarian(_))
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
   def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
       implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
@@ -857,7 +857,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
             .flatMap(_.map(createLibrarian(_)).map(Observable(_)).getOrElse(Observable.empty[Librarian[Any]]))
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
 //  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
@@ -895,23 +895,23 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         (step.by.et.iri match {
           case lspace.NS.types.`@string` =>
             val ordering = if (step.increasing) Ordering.String else Ordering.String.reverse
-            byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[String])(ordering))))
+            byObsF.andThen(obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[String])(ordering))))
           case lspace.NS.types.`@int` =>
             val ordering = if (step.increasing) Ordering.Int else Ordering.Int.reverse
-            byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Int])(ordering))))
+            byObsF.andThen(obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Int])(ordering))))
           case lspace.NS.types.`@double` =>
             val ordering =
               if (step.increasing) lspace.datatype.util.Ordering.Double
               else lspace.datatype.util.Ordering.Double.reverse
-            byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Double])(ordering))))
+            byObsF.andThen(obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Double])(ordering))))
           case lspace.NS.types.`@long` =>
             val ordering = if (step.increasing) Ordering.Long else Ordering.Long.reverse
-            byObsF andThen (obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Long])(ordering))))
+            byObsF.andThen(obs => Observable.fromTask(obs.toListL.map(_.sortBy(_._2.asInstanceOf[Long])(ordering))))
           case lspace.NS.types.`@number` =>
             val ordering =
               if (step.increasing) lspace.datatype.util.Ordering.Double
               else lspace.datatype.util.Ordering.Double.reverse
-            byObsF andThen (obs =>
+            byObsF.andThen(obs =>
               Observable.fromTask(obs.toListL.map(_.sortBy(_._2 match {
                 case v: Int    => v.toDouble
                 case v: Double => v
@@ -919,55 +919,55 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               })(ordering))))
           case lspace.NS.types.`@datetime` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: Instant), (l2, v2: Instant)) => v1.isBefore(v2)
                 })))
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: Instant), (l2, v2: Instant)) => v1.isAfter(v2)
                 })))
             }
           case lspace.NS.types.`@localdatetime` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: LocalDateTime), (l2, v2: LocalDateTime)) => v1.isBefore(v2)
                 })))
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: LocalDateTime), (l2, v2: LocalDateTime)) => v1.isAfter(v2)
                 })))
             }
           case lspace.NS.types.`@date` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: LocalDate), (l2, v2: LocalDate)) => v1.isBefore(v2)
                 })))
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: LocalDate), (l2, v2: LocalDate)) => v1.isAfter(v2)
                 })))
             }
           case lspace.NS.types.`@time` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: LocalTime), (l2, v2: LocalTime)) => v1.isBefore(v2)
                 })))
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((l1, v1: LocalTime), (l2, v2: LocalTime)) => v1.isAfter(v2)
                 })))
             }
         }).andThen(_.flatMap(Observable.fromIterable(_)).map(_._1))
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def projectionStep(step: ProjectionStep, steps: List[Step])(
@@ -983,7 +983,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
                     Task
-                      .gather(
+                      .parSequence(
                         r.outEMap(step.label.toList: _*)
                           .map {
                             case (property, edges) =>
@@ -1001,7 +1001,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
                     Task
-                      .gather(
+                      .parSequence(
                         r.outEMap(step.label.toList: _*)
                           .map {
                             case (property, edges) =>
@@ -1019,7 +1019,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
                     Task
-                      .gather(
+                      .parSequence(
                         r.inEMap(step.label.toList: _*)
                           .map {
                             case (property, edges) =>
@@ -1037,7 +1037,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
                     Task
-                      .gather(
+                      .parSequence(
                         r.inEMap(step.label.toList: _*)
                           .map {
                             case (property, edges) =>
@@ -1061,7 +1061,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 librarian =>
                   Observable.fromTask(
                     Task
-                      .gather(librarian.path.resources.map { r =>
+                      .parSequence(librarian.path.resources.map { r =>
                         byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headL
                       })
                       .map { v =>
@@ -1079,7 +1079,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 librarian =>
                   Observable.fromTask(
                     Task
-                      .gather(librarian.path.resources.map { r =>
+                      .parSequence(librarian.path.resources.map { r =>
                         byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headOptionL
                       })
                       .map { v =>
@@ -1101,7 +1101,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 librarian =>
                   Observable.fromTask(
                     Task
-                      .gather(librarian.path.resources.map(r =>
+                      .parSequence(librarian.path.resources.map(r =>
                         byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).lastOptionL))
                       .map { v =>
                         v.map {
@@ -1122,7 +1122,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 librarian =>
                   Observable.fromTask(
                     Task
-                      .gather(librarian.path.resources.map(r => byObs(createLibrarian(r)).toListL))
+                      .parSequence(librarian.path.resources.map(r => byObs(createLibrarian(r)).toListL))
                       .map { v =>
                         v.map {
                           _.map {
@@ -1140,12 +1140,13 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                       }))
         }
     }
-    f andThen { r =>
-      r.map {
-        case l: Librarian[Any] => l
-        case other             => createLibrarian(other)
+    f.andThen { r =>
+        r.map {
+          case l: Librarian[Any] => l
+          case other             => createLibrarian(other)
+        }
       }
-    } andThen nextStep
+      .andThen(nextStep)
   }
   def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step])(
       implicit graph: Graph): Observable[Librarian[Any]] => Observable[Librarian[Any]] = {
@@ -1161,7 +1162,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       (obs: Observable[Librarian[Any]]) =>
         obs.flatMap { librarian =>
           Observable
-            .fromTask(Task.gather(pObs.map {
+            .fromTask(Task.parSequence(pObs.map {
               case (pOb, endMap) => endMap(pOb(librarian)).asInstanceOf[Task[Librarian[Any]]].map(_.get)
             }))
             .map {
@@ -1178,6 +1179,6 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             .map(librarian.copy(_))
       }
 
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 }

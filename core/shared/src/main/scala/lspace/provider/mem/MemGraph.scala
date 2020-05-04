@@ -27,7 +27,7 @@ object MemGraph {
       val iri: String = _iri
 
       lazy val idProvider: IdProvider = new IdProvider {
-        private val id       = Atomic(1000l)
+        private val id       = Atomic(1000L)
         def next: Task[Long] = Task.now(id.incrementAndGet())
       }
 
@@ -169,10 +169,10 @@ trait MemGraph extends Graph {
     * delete in-/out-going edges from the resource
     * @param resource
     */
-  protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] = {
-    Observable.fromIterable(resource.outE()).mapEval(_.remove()) ++ Observable
+  protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] =
+    (Observable.fromIterable(resource.outE()).mapEval(_.remove()) ++ Observable
       .fromIterable(resource.inE())
-      .mapEval(_.remove()) completedL
+      .mapEval(_.remove())).completedL
 //    Observable.fromIterable(resource.outEMap()).flatMap {
 //      case (key, properties) =>
 //        Observable
@@ -196,7 +196,6 @@ trait MemGraph extends Graph {
 //              _ <- edge.from.removeOut(edge)
 //            } yield ())
 //    } completedL
-  }
 
   def toFile(path: String = "defaultname.json",
              process: (Observable[Resource[_]], String => Unit) => Task[String]): Task[Unit] =

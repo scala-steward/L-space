@@ -17,7 +17,7 @@ object And
     case node: And => Task.now(node)
     case _ =>
       for {
-        traversals <- Task.gather(
+        traversals <- Task.parSequence(
           node
             .out(keys.traversalTraversal)
             .map(
@@ -36,7 +36,7 @@ object And
           "A traversal which must have a non-empty result",
           `@range` = ListType(Traversal.ontology) :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property.as(ListType(Traversal.ontology))
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
 
@@ -48,7 +48,7 @@ object And
   implicit def toNode(and: And): Task[Node] = {
     for {
       node       <- DetachedGraph.nodes.create(ontology)
-      traversals <- Task.gather(and.traversals.map(_.toNode))
+      traversals <- Task.parSequence(and.traversals.map(_.toNode))
       _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
   }.memoizeOnSuccess

@@ -34,7 +34,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
     lazy val compact: String = activeContext.compactIri(iri)
   }
 
-  def fromNode(node: Node, expectedTypes: Set[ClassType[_]] = Set())(implicit activeContext: ActiveContext): JOIP = {
+  def fromNode(node: Node, expectedTypes: Set[ClassType[_]] = Set())(implicit activeContext: ActiveContext): JOIP =
     node match {
       case node: Node if node.labels.contains(DataType.ontology) =>
         if (node.labels.toSet == expectedTypes) JsonObjectInProgress(List(types.`@id` -> node.iri.asJson))
@@ -73,11 +73,10 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
             )(newAc)
         }
     }
-  }
 
 //  implicit class WithDictionary(jsonIP: JOIP) {
 //    implicit val activeContext = jsonIP.activeContext
-  def addEdges(resource: Resource[_])(implicit activeContext: ActiveContext): (List[(String, Json)], ActiveContext) = {
+  def addEdges(resource: Resource[_])(implicit activeContext: ActiveContext): (List[(String, Json)], ActiveContext) =
     resource
       .outEMap()
       .filterNot { case (key, properties) => Graph.baseKeys.contains(key) }
@@ -92,8 +91,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case (result, activeContext) =>
         result.toList -> activeContext
     }
-  }
-//  }
+  //  }
 
   def fromEdges(key: Property, edges: List[Edge[_, _]])(implicit activeContext: ActiveContext): JIP = {
 
@@ -131,18 +129,16 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
     }
   }
 
-  protected def edgeToAsJson[T](edge: Edge[_, T])(implicit activeContext: ActiveContext): JIP = {
+  protected def edgeToAsJson[T](edge: Edge[_, T])(implicit activeContext: ActiveContext): JIP =
     fromAny(edge.to,
             activeContext.definitions
               .get(edge.key.iri)
               .flatMap(_.`@type`.headOption)
 //              .orElse(edge.key.range().headOption)
     )
-  }
 
-  private def edgeFromAsJson[T](edge: Edge[_, T])(implicit activeContext: ActiveContext): JIP = {
+  private def edgeFromAsJson[T](edge: Edge[_, T])(implicit activeContext: ActiveContext): JIP =
     fromAny(edge.from, None)(activeContext)
-  }
 
   def fromEdge(edge: Edge[_, _])(implicit activeContext: ActiveContext): JOIP = {
     val (keyIri, newActiveContext) = activeContext.compactIri(edge.key)
@@ -157,14 +153,13 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       }: _*) ++ List(types.`@type` -> keyIri.asJson))(newAc)
   }
 
-  def fromData(value: Any, expectedType: DataType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromData(value: Any, expectedType: DataType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: LiteralType[_]    => fromLiteral(value, label)
       case label: StructuredType[_] => fromStructured(value, label)
     }
-  }
 
-  def fromLiteral(value: Any, expectedType: LiteralType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromLiteral(value: Any, expectedType: LiteralType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: BoolType[_] =>
         value match {
@@ -175,77 +170,67 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case label: NumericType[_]  => fromNumeric(value, label)
       case label: TextType[_]     => fromText(value, label)
     }
-  }
 
-  def fromCalendar(value: Any, expectedType: CalendarType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromCalendar(value: Any, expectedType: CalendarType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: DateTimeType[_]  => fromDateTime(value, label)
       case label: LocalDateType[_] => fromDate(value, label)
       case label: LocalTimeType[_] => fromTime(value, label)
     }
-  }
 
-  def fromDateTime(value: Any, expectedType: DateTimeType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromDateTime(value: Any, expectedType: DateTimeType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: Instant       => JsonInProgress(v.toString())
       case v: LocalDateTime => JsonInProgress(v.toString())
       case _                => throw ToJsonException(s"datetime expected ${value.getClass} found")
     }
-  }
 
-  def fromDate(value: Any, expectedType: LocalDateType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromDate(value: Any, expectedType: LocalDateType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: LocalDate => JsonInProgress(v.toString())
       case _            => throw ToJsonException(s"date expected ${value.getClass} found")
     }
-  }
 
-  def fromTime(value: Any, expectedType: LocalTimeType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromTime(value: Any, expectedType: LocalTimeType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: LocalTime => JsonInProgress(v.toString())
       case _ =>
         throw ToJsonException(s"time expected ${value.getClass} found")
     }
-  }
 
-  def fromNumeric(value: Any, expectedType: NumericType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromNumeric(value: Any, expectedType: NumericType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: IntType[_]    => fromInt(value, label)
       case label: DoubleType[_] => fromDouble(value, label)
       case label: LongType[_]   => fromLong(value, label)
     }
-  }
 
-  def fromInt(value: Any, expectedType: IntType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromInt(value: Any, expectedType: IntType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: Int => JsonInProgress(v)
       case _ =>
         throw ToJsonException(s"int expected ${value.getClass} found")
     }
-  }
 
-  def fromDouble(value: Any, expectedType: DoubleType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromDouble(value: Any, expectedType: DoubleType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: Double => JsonInProgress(v)
       case _         => throw ToJsonException(s"double expected ${value.getClass} found")
     }
-  }
 
-  def fromLong(value: Any, expectedType: LongType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromLong(value: Any, expectedType: LongType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: Long => JsonInProgress(v)
       case _       => throw ToJsonException(s"long expected ${value.getClass} found")
     }
-  }
 
-  def fromText(value: Any, expectedType: TextType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromText(value: Any, expectedType: TextType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: String => JsonInProgress(v)
       case _         => throw ToJsonException(s"string expected ${value.getClass} found")
     }
-  }
 
-  def fromStructured(value: Any, expectedType: StructuredType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromStructured(value: Any, expectedType: StructuredType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: CollectionType[_] => fromCollection(value, label)
       //        case label: ColorType[_] =>
@@ -253,7 +238,6 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case label: QuantityType[_]  => fromQuantity(value, label)
       case label: TupleType[_]     => fromTuple(value, label)
     }
-  }
 
   private def toArray(v: Seq[_], label: Option[ClassType[_]])(implicit activeContext: ActiveContext): JIP = {
     val (jsons, ac) = v.foldLeft((List[Json](), activeContext)) {
@@ -264,7 +248,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
     new JIP(jsons)(ac)
   }
 
-  def fromCollection(value: Any, expectedType: CollectionType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromCollection(value: Any, expectedType: CollectionType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: ListType[_] =>
         value match {
@@ -299,16 +283,14 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
           case _            => throw ToJsonException(s"list expected ${value.getClass} found")
         }
     }
-  }
-  def fromGeometric(value: Any, expectedType: GeometricType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromGeometric(value: Any, expectedType: GeometricType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
       case v: Geometry =>
         JsonInProgress(baseEncoder.geojsonEncoder.encodeGeometry(v)) //no implicit conversion which encoder to an object (including redundant typing of the main object
       case _ => throw ToJsonException(s"int expected ${value.getClass} found")
     }
-  }
 
-  def fromQuantity(value: Any, expectedType: QuantityType[_])(implicit activeContext: ActiveContext): JIP = {
+  def fromQuantity(value: Any, expectedType: QuantityType[_])(implicit activeContext: ActiveContext): JIP =
     expectedType match {
       case label: DurationType[Any] =>
         value match {
@@ -317,7 +299,6 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
           case _ => throw ToJsonException(s"duration expected ${value.getClass} found")
         }
     }
-  }
   def fromTuple(value: Any, expectedType: TupleType[_])(implicit activeContext: ActiveContext): JIP = {
     val (jsons, newAc) = value
       .asInstanceOf[Product]
@@ -369,7 +350,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
 //    }
   }
 
-  def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: ActiveContext): JIP = {
+  def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit activeContext: ActiveContext): JIP =
     value match {
       case resource: IriResource =>
         resource match {
@@ -438,7 +419,6 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
             jip.activeContext)
         }
     }
-  }
 
   /**
     * ontology to json, TODO: add and return @context
@@ -564,7 +544,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
     JsonObjectInProgress[Json](List[(String, Json)]() ++ jsProperties ++ oProperty)(newActiveContext)
   }
 
-  def ctListToJson(l: List[ClassType[_]])(implicit activeContext: ActiveContext): JIP = {
+  def ctListToJson(l: List[ClassType[_]])(implicit activeContext: ActiveContext): JIP =
     if (l.lengthCompare(1) == 0 && l.head.iri.isEmpty) JsonInProgress("".asJson)
     else
       l.foldLeft[(List[Json], ActiveContext)](List() -> activeContext) {
@@ -588,7 +568,6 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
               }
           }
       } match { case (l, activeContext) => JsonInProgress(l.asJson)(activeContext) }
-  }
 
   implicit class WithActiveContext(context: ActiveContext) {
     def asJson: Option[Json] = fromActiveContext(context)
@@ -670,7 +649,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
   implicit class WithJsonInProgress(jip: JsonInProgress[Json]) {
 
     lazy val withContext: Json =
-      ListMap(jip.activeContext.asJson.map(types.`@context` -> _).toList: _*) ++ ListMap(types.`@graph` -> jip.json) asJson
+      (ListMap(jip.activeContext.asJson.map(types.`@context` -> _).toList: _*) ++ ListMap(types.`@graph` -> jip.json)).asJson
   }
 
   implicit class WithJsonObjectInProgress(joip: JsonObjectInProgress[Json]) {
@@ -682,8 +661,8 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       val context = joip.activeContext.asJson
 
       if (context.isDefined)
-        ListMap(types.`@context` -> context.get) ++ joip.json asJson
-      else ListMap[String, Json]() ++ joip.json asJson
+        (ListMap(types.`@context` -> context.get) ++ joip.json).asJson
+      else (ListMap[String, Json]() ++ joip.json).asJson
     }
   }
 

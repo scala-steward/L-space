@@ -9,7 +9,7 @@ import scala.collection.immutable.ListSet
 abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
   import graph._
   def apply(): Observable[Resource[_]] = nodes() ++ edges() ++ values()
-  def count(): Task[Long]              = Task.gather(List(nodeStore.count(), edgeStore.count(), valueStore.count())).map(_.sum)
+  def count(): Task[Long]              = Task.parSequence(List(nodeStore.count(), edgeStore.count(), valueStore.count())).map(_.sum)
 
   def hasIri(iris: List[String]): Observable[Resource[Any]] = {
     val validIris = iris.filter(_.nonEmpty)
@@ -25,14 +25,13 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
     } else Observable[Resource[_]]()
   }
 
-  def upsert[V](resource: Resource[V]): Task[Resource[V]] = {
+  def upsert[V](resource: Resource[V]): Task[Resource[V]] =
     upsertR(resource)
-    //      value match {
-    //        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
-    //        case value                 => values.create(value).asInstanceOf[Resource[V]]
-    //      }
-  }
-  private def upsertR[V](value: Resource[V]): Task[Resource[V]] = {
+  //      value match {
+  //        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
+  //        case value                 => values.create(value).asInstanceOf[Resource[V]]
+  //      }
+  private def upsertR[V](value: Resource[V]): Task[Resource[V]] =
     value match {
       //        case resource: _Resource[V]       => resource
       case resource: WrappedResource[V] => upsertR(resource.self)
@@ -54,7 +53,6 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
             Task.raiseError(new Exception("???"))
         }
     }
-  }
 
   def hasId(id: Long): Task[Option[Resource[Any]]] =
     for {

@@ -17,7 +17,7 @@ object Or
 
   def toStep(node: Node): Task[Or] =
     for {
-      traversals <- Task.gather(
+      traversals <- Task.parSequence(
         node
           .out(keys.traversalTraversal)
           .map(
@@ -36,7 +36,7 @@ object Or
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = ListType(Traversal.ontology) :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property.as(ListType(Traversal.ontology))
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {
@@ -47,7 +47,7 @@ object Or
   implicit def toNode(step: Or): Task[Node] = {
     for {
       node       <- DetachedGraph.nodes.create(ontology)
-      traversals <- Task.gather(step.traversals.map(_.toNode))
+      traversals <- Task.parSequence(step.traversals.map(_.toNode))
       _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
   }.memoizeOnSuccess

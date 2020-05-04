@@ -41,7 +41,7 @@ object Has
           "A key",
           `@range` = Property.ontology :: Nil
         )
-    val keyUrl: TypedProperty[Node] = key.property as Property.ontology
+    val keyUrl: TypedProperty[Node] = key.property.as(Property.ontology)
 
     object predicate
         extends PropertyDef(
@@ -50,7 +50,7 @@ object Has
           "A Predicate",
           `@range` = P.ontology :: Nil
         )
-    val predicateUrl: TypedProperty[Node] = predicate.property as P.ontology
+    val predicateUrl: TypedProperty[Node] = predicate.property.as(P.ontology)
   }
   override lazy val properties: List[Property] = keys.key.property :: keys.predicate.property :: HasStep.properties
   trait Properties extends HasStep.Properties {
@@ -64,8 +64,8 @@ object Has
     for {
       node       <- DetachedGraph.nodes.create(ontology)
       _          <- node.addOut(keys.key, step.key)
-      predicates <- Task.gather(step.predicate.toList.map(_.toNode))
-      _          <- Task.gather(predicates.map(node.addOut(keys.predicateUrl, _)))
+      predicates <- Task.parSequence(step.predicate.toList.map(_.toNode))
+      _          <- Task.parSequence(predicates.map(node.addOut(keys.predicateUrl, _)))
     } yield node
   }.memoizeOnSuccess
 

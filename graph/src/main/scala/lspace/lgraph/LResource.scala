@@ -38,7 +38,7 @@ trait LResource[T] extends Resource[T] {
     new ConcurrentHashMap[Property, LinksSet[T, _]](16, 0.9f, 32).asScala
   private val linksOutWriteLock = new Object
 
-  def _addOut(edge: Edge[T, _]): Unit = {
+  def _addOut(edge: Edge[T, _]): Unit =
     linksOutWriteLock.synchronized {
       val time = LResource.getLastAccessStamp()
       _lastused = LResource.getLastAccessStamp()
@@ -56,14 +56,13 @@ trait LResource[T] extends Resource[T] {
             .asInstanceOf[HashSet[Edge[T, Any]]] + edge.asInstanceOf[Edge[T, Any]]
         )
     }
-  }
 
   protected[lgraph] var _lastinsync: Option[Long] = None
   private val linksIn: concurrent.Map[Property, LinksSet[_, T]] =
     new ConcurrentHashMap[Property, LinksSet[_, T]](2, 0.9f, 4).asScala
   private val linksInWriteLock = new Object
 
-  def _addIn(edge: Edge[_, T]): Unit = {
+  def _addIn(edge: Edge[_, T]): Unit =
     linksInWriteLock.synchronized {
       val time = LResource.getLastAccessStamp()
       _lastused = LResource.getLastAccessStamp()
@@ -81,7 +80,6 @@ trait LResource[T] extends Resource[T] {
             .asInstanceOf[HashSet[Edge[Any, T]]] + edge.asInstanceOf[Edge[Any, T]]
         )
     }
-  }
 
   /*private def _outE(key: Property*): List[Edge[T, Any]] = {
     _lastused = LResource.getLastAccessStamp()
@@ -121,7 +119,7 @@ trait LResource[T] extends Resource[T] {
   }*/
 
   override def keys: Set[Property] =
-    linksOut.keySet ++ linksIn.keySet toSet //TODO: this returns only from cached edges, query LStore
+    (linksOut.keySet ++ linksIn.keySet).toSet //TODO: this returns only from cached edges, query LStore
 
   def out(key: Property*): List[Any] =
     if (key.nonEmpty)
@@ -132,7 +130,7 @@ trait LResource[T] extends Resource[T] {
 //    _outE(key: _*)
 //      .map(_.to.value)
 
-  def outMap(key: Property*): Map[Property, List[Any]] = {
+  def outMap(key: Property*): Map[Property, List[Any]] =
     if (key.isEmpty) linksOut.toMap.mapValues(_.links.map(_.to.value).toList).toMap
     else
       linksOut.toMap
@@ -140,18 +138,16 @@ trait LResource[T] extends Resource[T] {
         .mapValues(_.links.map(_.to.value).toList)
         .toMap
 //    _outE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.to.value))
-  }
 
-  def outE(key: Property*): List[Edge[T, Any]] = {
+  def outE(key: Property*): List[Edge[T, Any]] =
     if (key.nonEmpty)
       (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
         .flatMap(key => linksOut.get(key).toList.flatMap(_.links.toList))
         .asInstanceOf[List[Edge[T, Any]]]
     else linksOut.values.toList.flatMap(_.links.toList).asInstanceOf[List[Edge[T, Any]]]
 //    _outE(key: _*)
-  }
 
-  def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
+  def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] =
     if (key.isEmpty) linksOut.toMap.mapValues(_.links.toList).toMap
     else
       linksOut.toMap
@@ -159,7 +155,6 @@ trait LResource[T] extends Resource[T] {
         .mapValues(_.links.toList)
         .toMap
 //    _outE(key.toList: _*).groupBy(_.key)
-  }
 
   /*private def _inE(key: Property*): List[Edge[Any, T]] = {
     _lastused = LResource.getLastAccessStamp()
@@ -214,16 +209,15 @@ trait LResource[T] extends Resource[T] {
         .toMap
 //    _inE(key.toList: _*).groupBy(_.key).mapValues(_.map(_.from.value))
 
-  def inE(key: Property*): List[Edge[Any, T]] = {
+  def inE(key: Property*): List[Edge[Any, T]] =
     if (key.nonEmpty)
       (key.toSet ++ key.toList.flatMap(_.extendedBy.all())).toList
         .flatMap(key => linksIn.get(key).toList.flatMap(_.links.toList))
         .asInstanceOf[List[Edge[Any, T]]]
     else linksIn.values.toList.flatMap(_.links.toList).asInstanceOf[List[Edge[Any, T]]]
 //    _inE(key: _*)
-  }
 
-  def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
+  def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] =
     if (key.isEmpty) linksIn.toMap.mapValues(_.links.toList).toMap
     else
       linksIn.toMap
@@ -231,7 +225,6 @@ trait LResource[T] extends Resource[T] {
         .mapValues(_.links.toList)
         .toMap
 //    _inE(key.toList: _*).groupBy(_.key)
-  }
 
   def removeIn[V >: T](edge: Edge[_, V]): Task[Unit] = Task {
     synchronized {

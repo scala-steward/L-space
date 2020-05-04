@@ -150,7 +150,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
       //      case step: R =>
 
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def traverseStep(step: TraverseStep, steps: List[Step])(
@@ -288,8 +288,8 @@ abstract class SyncGuide extends LocalGuide[Stream] {
           case step: HasIri =>
             obs: Stream[Librarian[Any]] =>
               obs.filter(_.get match {
-                case r: Resource[_] if step.iris intersect r.iris nonEmpty => true
-                case _                                                     => false
+                case r: Resource[_] if step.iris.intersect(r.iris).nonEmpty => true
+                case _                                                      => false
               })
           case step: HasLabel =>
             obs: Stream[Librarian[Any]] =>
@@ -367,7 +367,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
             }
           }
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def reducingStep[T](step: ReducingStep)(implicit graph: Lspace): Stream[Librarian[T]] => Stream[Librarian[T]] = {
@@ -398,25 +398,25 @@ abstract class SyncGuide extends LocalGuide[Stream] {
         import cats.implicits._
         (step.by.et.iri match {
           case lspace.NS.types.`@int` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Int]))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Int]))
           case lspace.NS.types.`@double` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Double]))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Double]))
           case lspace.NS.types.`@long` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Long]))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Long]))
           case lspace.NS.types.`@number` =>
-            byObsF andThen (_.minBy(_._2 match {
+            byObsF.andThen(_.minBy(_._2 match {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
             }))
           case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
           case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
           case lspace.NS.types.`@date` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
-            byObsF andThen (_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+            byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
         }).andThen(_._1).andThen(Stream(_))
       case step: Max =>
         val byObservable = traversalToF(step.by)
@@ -436,25 +436,25 @@ abstract class SyncGuide extends LocalGuide[Stream] {
           }
         (step.by.et.iri match {
           case lspace.NS.types.`@int` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Int]))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Int]))
           case lspace.NS.types.`@double` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Double]))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Double]))
           case lspace.NS.types.`@long` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Long]))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Long]))
           case lspace.NS.types.`@number` =>
-            byObsF andThen (_.maxBy(_._2 match {
+            byObsF.andThen(_.maxBy(_._2 match {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
             }))
           case lspace.NS.types.`@datetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
           case lspace.NS.types.`@localdatetime` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalDateTime].toEpochSecond(ZoneOffset.UTC)))
           case lspace.NS.types.`@date` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
-            byObsF andThen (_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+            byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
         }).andThen(_._1).andThen(Stream(_))
     }
     f
@@ -661,7 +661,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
             }
           }
     }
-    f.asInstanceOf[Stream[Librarian[Any]] => Stream[Librarian[Any]]] andThen nextStep
+    f.asInstanceOf[Stream[Librarian[Any]] => Stream[Librarian[Any]]].andThen(nextStep)
   }
 
   def collectingBarrierStep(step: GroupingBarrierStep, steps: List[Step], isRootGroup: Boolean = false)(
@@ -712,7 +712,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
             .map(createLibrarian(_))
             .asInstanceOf[Stream[Librarian[Any]]]
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def countStep(step: Count, steps: List[Step])(
@@ -724,7 +724,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
         obs: Stream[Librarian[Any]] =>
           Stream(createLibrarian(obs.size.toLong))
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def reducingBarrierStep(step: ReducingBarrierStep, steps: List[Step])(
@@ -774,7 +774,7 @@ abstract class SyncGuide extends LocalGuide[Stream] {
                 }
                 .sum))
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
 //  def filterBarrierStep(step: FilterBarrierStep, steps: List[Step])(
@@ -811,23 +811,23 @@ abstract class SyncGuide extends LocalGuide[Stream] {
         (step.by.et.iri match {
           case lspace.NS.types.`@string` =>
             val ordering = if (step.increasing) Ordering.String else Ordering.String.reverse
-            byObsF andThen (obs => obs.sortBy(_._2.asInstanceOf[String])(ordering))
+            byObsF.andThen(obs => obs.sortBy(_._2.asInstanceOf[String])(ordering))
           case lspace.NS.types.`@int` =>
             val ordering = if (step.increasing) Ordering.Int else Ordering.Int.reverse
-            byObsF andThen (obs => obs.sortBy(_._2.asInstanceOf[Int])(ordering))
+            byObsF.andThen(obs => obs.sortBy(_._2.asInstanceOf[Int])(ordering))
           case lspace.NS.types.`@double` =>
             val ordering =
               if (step.increasing) lspace.datatype.util.Ordering.Double
               else lspace.datatype.util.Ordering.Double.reverse
-            byObsF andThen (obs => obs.sortBy(_._2.asInstanceOf[Double])(ordering))
+            byObsF.andThen(obs => obs.sortBy(_._2.asInstanceOf[Double])(ordering))
           case lspace.NS.types.`@long` =>
             val ordering = if (step.increasing) Ordering.Long else Ordering.Long.reverse
-            byObsF andThen (obs => obs.sortBy(_._2.asInstanceOf[Long])(ordering))
+            byObsF.andThen(obs => obs.sortBy(_._2.asInstanceOf[Long])(ordering))
           case lspace.NS.types.`@number` =>
             val ordering =
               if (step.increasing) lspace.datatype.util.Ordering.Double
               else lspace.datatype.util.Ordering.Double.reverse
-            byObsF andThen (obs =>
+            byObsF.andThen(obs =>
               obs.sortBy(_._2 match {
                 case v: Int    => v.toDouble
                 case v: Double => v
@@ -835,55 +835,55 @@ abstract class SyncGuide extends LocalGuide[Stream] {
               })(ordering))
           case lspace.NS.types.`@datetime` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: Instant), (l2, v2: Instant)) => v1.isBefore(v2)
-                })
+              })
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: Instant), (l2, v2: Instant)) => v1.isAfter(v2)
-                })
+              })
             }
           case lspace.NS.types.`@localdatetime` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: LocalDateTime), (l2, v2: LocalDateTime)) => v1.isBefore(v2)
-                })
+              })
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: LocalDateTime), (l2, v2: LocalDateTime)) => v1.isAfter(v2)
-                })
+              })
             }
           case lspace.NS.types.`@date` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: LocalDate), (l2, v2: LocalDate)) => v1.isBefore(v2)
-                })
+              })
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: LocalDate), (l2, v2: LocalDate)) => v1.isAfter(v2)
-                })
+              })
             }
           case lspace.NS.types.`@time` =>
             if (step.increasing) {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: LocalTime), (l2, v2: LocalTime)) => v1.isBefore(v2)
-                })
+              })
             } else {
-              byObsF andThen (obs =>
+              byObsF.andThen(obs =>
                 obs.sortWith {
                   case ((l1, v1: LocalTime), (l2, v2: LocalTime)) => v1.isAfter(v2)
-                })
+              })
             }
         }).andThen(_.map(_._1))
     }
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   def projectionStep(step: ProjectionStep, steps: List[Step])(
@@ -974,12 +974,13 @@ abstract class SyncGuide extends LocalGuide[Stream] {
               }
         }
     }
-    f andThen { r =>
-      r.map {
-        case l: Librarian[Any] => l
-        case other             => createLibrarian(other)
+    f.andThen { r =>
+        r.map {
+          case l: Librarian[Any] => l
+          case other             => createLibrarian(other)
+        }
       }
-    } andThen nextStep
+      .andThen(nextStep)
   }
   def projectStep[Traversals <: HList](step: Project[Traversals], steps: List[Step])(
       implicit graph: Lspace): Stream[Librarian[Any]] => Stream[Librarian[Any]] = {
@@ -1043,11 +1044,11 @@ abstract class SyncGuide extends LocalGuide[Stream] {
 //          }
 //    }
 
-    f andThen nextStep
+    f.andThen(nextStep)
   }
 
   protected def select(step: Select[_], traversers: Stream[Librarian[Any]])(
-      implicit graph: Graph): Stream[Librarian[Any]] = {
+      implicit graph: Graph): Stream[Librarian[Any]] =
     traversers.map { t =>
       step.names match {
         case List() =>
@@ -1084,5 +1085,4 @@ abstract class SyncGuide extends LocalGuide[Stream] {
              labeled.getOrElse(d, throw new Exception("could not select label 4 ..."))))
       }
     }
-  }
 }

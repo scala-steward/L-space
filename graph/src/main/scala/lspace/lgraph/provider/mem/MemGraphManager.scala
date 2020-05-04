@@ -12,7 +12,7 @@ class MemGraphManager[G <: LGraph](override val graph: G) extends GraphManager[G
 
   override def idProvider: LGraphIdProvider = new LGraphIdProvider {
     protected def newIdRange: Vector[Long] = Vector()
-    private val id                         = Atomic(1000l)
+    private val id                         = Atomic(1000L)
     override def next: Task[Long]          = Task.now(id.incrementAndGet())
   }
 

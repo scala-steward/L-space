@@ -16,10 +16,9 @@ object LEdgeStore {
 }
 
 class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] with EdgeStore[G] {
-  override def store(edge: T): Task[Unit] = {
+  override def store(edge: T): Task[Unit] =
 //    if ((edge.key == `@id` || edge.key == `@ids`) && edge.to.isInstanceOf[graph._Value[String]])
 //      graph.`@idStore`.store(edge.to.asInstanceOf[graph._Value[String]])
-
     (for {
       _ <- super.store(edge)
 
@@ -28,17 +27,15 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     } yield ()).executeOn(LStore.ec).startAndForget
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
 
-  override def store(edges: List[T]): Task[Unit] = {
+  override def store(edges: List[T]): Task[Unit] =
     (for {
-      _ <- Task.gatherUnordered(edges.map(super.store))
+      _ <- Task.parSequenceUnordered(edges.map(super.store))
       _ <- graph.storeManager
         .storeEdges(edges)
     } yield ()).executeOn(LStore.ec).startAndForget
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
 
   override def cache(edge: T): Unit = {
 
@@ -61,8 +58,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     }
   }
 
-  override def uncache(edge: T): Unit = {
-
+  override def uncache(edge: T): Unit =
 //    if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
 //      case node: graph.nodeStore.T =>
 //        graph.nodeStore.uncacheByIri(node)
@@ -78,9 +74,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
 //    edge.to
 //      .asInstanceOf[LResource[Any]]
 //      .removeIn(edge.asInstanceOf[Edge[_, Any]])
-
     super.uncache(edge)
-  }
 
   override def hasIri(iri: String): Observable[T2] = {
     val cachedResult = cachedByIri(iri).filterNot(e => isDeleted(e.id))
@@ -132,7 +126,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
                                                      else Observable.empty[T2])
   }
 
-  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Observable[T2] = {
+  def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Observable[T2] =
     fromId match {
       case None =>
         key match {
@@ -163,7 +157,6 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
             }
         }
     }
-  }
 
   def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): Stream[T] = ???
 
@@ -184,7 +177,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     val delTime = Instant.now()
     edges.foreach(edge => _deleted += edge.id -> delTime)
     for {
-      _ <- Task.gatherUnordered(edges.map(super.delete))
+      _ <- Task.parSequenceUnordered(edges.map(super.delete))
       _ <- graph.storeManager
         .deleteEdges(edges)
         .executeOn(LStore.ec)

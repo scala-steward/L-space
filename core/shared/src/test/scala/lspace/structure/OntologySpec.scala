@@ -10,7 +10,7 @@ class OntologySpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  "Ontologies" can {
+  "Ontologies".can {
     "be compared by iri" in {
       new Ontology("abc") shouldBe new Ontology("abc")
       new Ontology("abc") should not be new Ontology("abcd")
@@ -23,7 +23,7 @@ class OntologySpec extends AsyncWordSpec with Matchers {
     }
   }
 
-  "An ontology" can {
+  "An ontology".can {
     "extend some other ontology" in {
       val ontology = V.ontology
       ontology.extendedClasses().size shouldBe 1
@@ -61,7 +61,7 @@ class OntologySpec extends AsyncWordSpec with Matchers {
     ".+ thread-safe" in {
       val p = new Ontology("a")
       (for {
-        _ <- Task.gatherUnordered {
+        _ <- Task.parSequenceUnordered {
           (1 to 1000).map(i => new Property(s"a$i")).map(p.properties.+(_)).map(Task.now)
         }
       } yield p.properties().size shouldBe 1000).runToFuture
@@ -69,7 +69,7 @@ class OntologySpec extends AsyncWordSpec with Matchers {
     ".++ thread-safe" in {
       val p = new Property("a")
       (for {
-        _ <- Task.gatherUnordered {
+        _ <- Task.parSequenceUnordered {
           (1 to 1000).map(i => new Property(s"a$i")).grouped(100).map(p.properties.++(_)).map(Task.now).toIterable
         }
       } yield p.properties().size shouldBe 1000).runToFuture

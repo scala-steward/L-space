@@ -69,9 +69,9 @@ object Property {
       )
 
       if (properties.size > 99) throw new Exception("extend default-property-id range!")
-      val byId    = (100l to 100l + properties.size - 1 toList).zip(properties).toMap
-      val byIri   = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> p) }.toMap
-      val idByIri = byId.toList.flatMap { case (id, p) => p.iri :: p.iris.toList map (_ -> id) }.toMap
+      val byId    = (100L to 100L + properties.size - 1).toList.zip(properties).toMap
+      val byIri   = byId.toList.flatMap { case (id, p) => (p.iri :: p.iris.toList).map(_ -> p) }.toMap
+      val idByIri = byId.toList.flatMap { case (id, p) => (p.iri :: p.iris.toList).map(_ -> id) }.toMap
     }
     private[lspace] val byIri: concurrent.Map[String, Property] =
       new ConcurrentHashMap[String, Property]().asScala
@@ -223,7 +223,7 @@ object Property {
         .toList
         .flatten
         .headOption
-        .map(property.inverseOf set _)
+        .map(property.inverseOf.set(_))
 
       property
     }
@@ -310,41 +310,41 @@ object Property {
 //    lazy val `@ranges`: Property     = TupleType.keys.range
 
     object typed {
-      lazy val iriUrlString: TypedProperty[String]    = `@id` as `@string`
-      lazy val irisUrlString: TypedProperty[String]   = `@ids` as `@string`
-      lazy val containerString: TypedProperty[String] = `@container` as `@string`
+      lazy val iriUrlString: TypedProperty[String]    = `@id`.as(`@string`)
+      lazy val irisUrlString: TypedProperty[String]   = `@ids`.as(`@string`)
+      lazy val containerString: TypedProperty[String] = `@container`.as(`@string`)
       //  lazy val entryInt: TypedPropertyKey[Int] = entry as intType)
-      lazy val rangeOntology: TypedProperty[Node] = `@range` as Ontology.ontology
-      lazy val rangeProperty: TypedProperty[Node] = `@range` as Property.ontology
-      lazy val rangeDataType: TypedProperty[Node] = `@range` as DataType.ontology
+      lazy val rangeOntology: TypedProperty[Node] = `@range`.as(Ontology.ontology)
+      lazy val rangeProperty: TypedProperty[Node] = `@range`.as(Property.ontology)
+      lazy val rangeDataType: TypedProperty[Node] = `@range`.as(DataType.ontology)
 //      lazy val rangeListClassType: TypedProperty[Node] = `@range` as ListType()
 
-      lazy val typeOntology: TypedProperty[Node] = `@type` as Ontology.ontology //Ontology.classType
+      lazy val typeOntology: TypedProperty[Node] = `@type`.as(Ontology.ontology) //Ontology.classType
       //  TYPE.addRange(ontology)
-      lazy val typeProperty: TypedProperty[Node] = `@type` as Property.ontology //Property.classType
+      lazy val typeProperty: TypedProperty[Node] = `@type`.as(Property.ontology) //Property.classType
       //  TYPE.addRange(property)
-      lazy val typeDatatype: TypedProperty[Node] = `@type` as DataType.ontology //as DataType.classType
+      lazy val typeDatatype: TypedProperty[Node] = `@type`.as(DataType.ontology) //as DataType.classType
       //  TYPE.addRange(datatype)
       lazy val extendsOntology
-        : TypedProperty[List[Node]] = `@extends` as ListType(Ontology.ontology) //as Ontology.classType
+        : TypedProperty[List[Node]] = `@extends`.as(ListType(Ontology.ontology)) //as Ontology.classType
       lazy val extendsProperty
-        : TypedProperty[List[Node]] = `@extends` as ListType(Property.ontology) //as Property.classType
+        : TypedProperty[List[Node]] = `@extends`.as(ListType(Property.ontology)) //as Property.classType
       lazy val extendsDataType
-        : TypedProperty[List[Node]]                  = `@extends` as ListType(DataType.ontology) //as DataType.classType
-      lazy val propertyProperty: TypedProperty[Node] = `@properties` as Property.ontology //as Property.classType
-      lazy val languageString: TypedProperty[String] = `@language` as `@string`
-      lazy val indexString: TypedProperty[String]    = `@index` as `@string`
-      lazy val labelString: TypedProperty[String]    = `@label` as `@string`
-      lazy val commentString: TypedProperty[String]  = `@comment` as `@string`
-      lazy val baseString: TypedProperty[String]     = `@base` as `@string`
-      lazy val pvalueString: TypedProperty[String]   = `@pvalue` as `@string`
+        : TypedProperty[List[Node]]                  = `@extends`.as(ListType(DataType.ontology)) //as DataType.classType
+      lazy val propertyProperty: TypedProperty[Node] = `@properties`.as(Property.ontology) //as Property.classType
+      lazy val languageString: TypedProperty[String] = `@language`.as(`@string`)
+      lazy val indexString: TypedProperty[String]    = `@index`.as(`@string`)
+      lazy val labelString: TypedProperty[String]    = `@label`.as(`@string`)
+      lazy val commentString: TypedProperty[String]  = `@comment`.as(`@string`)
+      lazy val baseString: TypedProperty[String]     = `@base`.as(`@string`)
+      lazy val pvalueString: TypedProperty[String]   = `@pvalue`.as(`@string`)
 
-      lazy val startDateTime: TypedProperty[Instant]         = `@start` as `@datetime`
-      lazy val endDateTime: TypedProperty[Instant]           = `@end` as `@datetime`
-      lazy val createdonDateTime: TypedProperty[Instant]     = `@createdon` as `@datetime`
-      lazy val modifiedonDateTime: TypedProperty[Instant]    = `@modifiedon` as `@datetime`
-      lazy val deletedonDateTime: TypedProperty[Instant]     = `@deletedon` as `@datetime`
-      lazy val transcendedOnDateTime: TypedProperty[Instant] = `@transcendedon` as `@datetime`
+      lazy val startDateTime: TypedProperty[Instant]         = `@start`.as(`@datetime`)
+      lazy val endDateTime: TypedProperty[Instant]           = `@end`.as(`@datetime`)
+      lazy val createdonDateTime: TypedProperty[Instant]     = `@createdon`.as(`@datetime`)
+      lazy val modifiedonDateTime: TypedProperty[Instant]    = `@modifiedon`.as(`@datetime`)
+      lazy val deletedonDateTime: TypedProperty[Instant]     = `@deletedon`.as(`@datetime`)
+      lazy val transcendedOnDateTime: TypedProperty[Instant] = `@transcendedon`.as(`@datetime`)
 //      lazy val valueListClassType: TypedProperty[List[Node]] = `@valueRange` as ListType(
 //        Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil)
 //      lazy val keyListClassType: TypedProperty[List[Node]] = `@keyRange` as ListType(
@@ -427,8 +427,8 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     : Coeval[List[ClassType[Any]]] = Coeval(List()).memoizeOnSuccess //_range() ++ extendedClasses.flatMap(_.range) distinct
 
   object range {
-    def apply(): List[ClassType[Any]] = rangeList()
-    def apply(iri: String): Option[ClassType[Any]] = {
+    def apply(): List[ClassType[Any]]              = rangeList()
+    def apply(iri: String): Option[ClassType[Any]] =
 //      println(s"range find ${iri}")
       rangeList().find(_.iris.contains(iri)).orElse {
 //        println(s"not found range ${iri} in ${apply().map(_.iris)}")
@@ -439,7 +439,6 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
         }
         result
       }
-    }
     def +(range: => ClassType[Any]): this.type = this.synchronized {
       rangeList = rangeList.map { current =>
         val _range = range

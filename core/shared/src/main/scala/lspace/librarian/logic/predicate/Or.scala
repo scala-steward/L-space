@@ -7,9 +7,8 @@ import monix.eval.Task
 
 object Or extends PredicateDef("Or") with PredicateWrapper[Or] {
 
-  def toP(node: Node): Or = {
+  def toP(node: Node): Or =
     Or(node.out(keys.predicateP).flatten.map(P.toP))
-  }
 
   object keys extends P.Properties {
     object predicate
@@ -19,7 +18,7 @@ object Or extends PredicateDef("Or") with PredicateWrapper[Or] {
           "Any value",
           `@range` = ListType(P.ontology) :: Nil
         ) {}
-    lazy val predicateP: TypedProperty[List[Node]] = predicate as ListType(P.ontology)
+    lazy val predicateP: TypedProperty[List[Node]] = predicate.as(ListType(P.ontology))
   }
   override lazy val properties: List[Property] = keys.predicate.property :: P.properties
   trait Properties extends P.Properties {
@@ -27,13 +26,12 @@ object Or extends PredicateDef("Or") with PredicateWrapper[Or] {
     lazy val predicateP = keys.predicateP
   }
 
-  implicit def toNode(p: Or): Task[Node] = {
+  implicit def toNode(p: Or): Task[Node] =
     for {
       node       <- DetachedGraph.nodes.create(ontology)
-      predicates <- Task.gather(p.predicate.map(_.toNode))
+      predicates <- Task.parSequence(p.predicate.map(_.toNode))
       _          <- node.addOut(keys.predicate, predicates)
     } yield node
-  }
 
   implicit class WithOrPredicate(or: Or) {
     def &&[T, PR[Z] <: P[Z]](predicate: PR[T]*): And = And((or: P[Any]) :: predicate.toList)

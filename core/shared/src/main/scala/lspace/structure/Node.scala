@@ -53,7 +53,7 @@ trait Node extends Resource[Node] {
 
   def remove(): Task[Unit] = graph.nodes.delete(this)
 
-  def removeLabel(classType: Ontology)
+  def removeLabel(classType: Ontology): Unit
 
   override def equals(o: scala.Any): Boolean = o match {
     case resource: graph._Node => sameResource(resource)

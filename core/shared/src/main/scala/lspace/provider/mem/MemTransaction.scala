@@ -12,7 +12,7 @@ object MemTransaction {
 }
 
 class MemTransaction(override val parent: MemGraph) extends Transaction(parent) {
-  val iri: String  = parent.iri + "/" + java.time.Instant.now() + "/" + (Math.random() * 100000 toInt)
+  val iri: String  = parent.iri + "/" + java.time.Instant.now() + "/" + (Math.random() * 100000).toInt
   private val self = this
   private val _iri = iri
 
@@ -22,7 +22,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
     val graph: MemGraph      = self
     val index: MemIndexGraph = this
   }
-  override def commit(): Task[Unit] = {
+  override def commit(): Task[Unit] =
     if (isOpen) {
 //      println(s"commit ${nodes.added.size} nodes")
 //      println(s"commit ${edges.added.size} edges")
@@ -38,7 +38,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
           others.map(value => parent.newValue(value.id, value.value, value.label))
         }
 //        _ <- Task.defer { parent.values().toListL.map(r => println(r.map(_.prettyPrint))) }
-        newNodes <- Task.gather {
+        newNodes <- Task.parSequence {
           nodes.added.toList.map(_._2).map { node =>
             for {
               newNode <- Task { parent.newNode(node.id) }
@@ -114,7 +114,6 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
 
       } yield ()
     } else Task.unit
-  }
 
   /**
     * clears the transaction's MemGraph

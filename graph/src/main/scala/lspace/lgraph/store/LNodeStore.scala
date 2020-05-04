@@ -65,7 +65,7 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
         .executeOn(LStore.ec)
   }
 
-  override def store(node: T): Task[Unit] = {
+  override def store(node: T): Task[Unit] =
     for {
       _ <- super.store(node)
       _ <- graph.storeManager
@@ -73,11 +73,10 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
 
-  override def store(nodes: List[T]): Task[Unit] = {
+  override def store(nodes: List[T]): Task[Unit] =
     for {
-      _ <- Task.gatherUnordered(nodes.map(super.store))
+      _ <- Task.parSequenceUnordered(nodes.map(super.store))
       _ <- graph.storeManager
         .storeNodes(nodes)
         .executeOn(LStore.ec)
@@ -85,7 +84,6 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     } yield ()
 //      .runSyncUnsafe(15 seconds)(monix.execution.Scheduler.global, monix.execution.schedulers.CanBlock.permit)
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
 
   override def delete(node: T): Task[Unit] = Task.defer {
     _deleted += node.id -> Instant.now()
@@ -103,7 +101,7 @@ class LNodeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
     val delTime = Instant.now()
     nodes.foreach(node => _deleted += node.id -> delTime)
     for {
-      _ <- Task.gatherUnordered(nodes.map(super.delete))
+      _ <- Task.parSequenceUnordered(nodes.map(super.delete))
       _ <- graph.storeManager
         .deleteNodes(nodes)
         .executeOn(LStore.ec)
