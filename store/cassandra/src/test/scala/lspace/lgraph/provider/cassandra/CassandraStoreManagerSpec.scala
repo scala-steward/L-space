@@ -25,7 +25,7 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
   val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", 9042)
 
   lazy val initTask = (for {
-    _ <- Task.gatherUnordered(
+    _ <- Task.parSequenceUnordered(
       Seq(
         for {
           _ <- graph.init

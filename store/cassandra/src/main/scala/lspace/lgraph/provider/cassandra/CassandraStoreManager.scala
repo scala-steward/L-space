@@ -530,7 +530,7 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 
   lazy val init: Task[Unit] =
     (for {
-      _ <- Task.gatherUnordered(
+      _ <- Task.parSequenceUnordered(
         Seq(
           Task.deferFuture(database.nodes.create.ifNotExists().future()),
 //          Task.deferFuture(database.nodesByIri.create.ifNotExists().future()),

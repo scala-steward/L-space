@@ -22,7 +22,7 @@ object HasId
           container = types.`@set` :: Nil,
           `@range` = DataType.default.`@long` :: Nil
         )
-    val idLong: TypedProperty[Long] = id.property as DataType.default.`@long`
+    val idLong: TypedProperty[Long] = id.property.as(DataType.default.`@long`)
   }
   override lazy val properties: List[Property] = keys.id.property :: HasStep.properties
   trait Properties extends HasStep.Properties {
@@ -33,7 +33,7 @@ object HasId
   implicit def toNode(step: HasId): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- Task.gather(step.ids.map(node.addOut(keys.id, _)))
+      _    <- Task.parSequence(step.ids.map(node.addOut(keys.id, _)))
     } yield node
   }.memoizeOnSuccess
 

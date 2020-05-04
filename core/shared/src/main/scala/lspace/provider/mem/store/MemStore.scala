@@ -21,9 +21,8 @@ trait MemStore[G <: MemGraph] extends Store[G] {
     new ConcurrentHashMap[Long, T2](16, 0.9f, 32).asScala
 
   def store(resource: T): Task[Unit] = Task { cache(resource) }
-  def cache(resource: T): Unit = {
+  def cache(resource: T): Unit =
     data += resource.id -> resource.asInstanceOf[T2]
-  }
 
   def store(resources: List[T]): Task[Unit] = Task { cache(resources) }
   def cache(resources: List[T]): Unit       = resources.foreach(cache)
@@ -43,7 +42,7 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   }
   def delete(resources: List[T]): Task[Unit] =
     for {
-      _ <- Task.gather {
+      _ <- Task.parSequence {
         resources.map(delete)
       }
     } yield ()

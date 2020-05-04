@@ -1,7 +1,9 @@
-package lspace.encode.argonaut
+package lspace.codec.circe
 
-class EncodeJsonLDSpec
-    extends lspace.encode.EncodeJsonLDSpec(lspace.codec.json.jsonld.Encoder.apply(lspace.codec.argonaut.nativeEncoder)) {
+import lspace.codec.json.jsonld
+import lspace.structure.Graph
+
+class JsonLDDecoderSpec extends jsonld.JsonLDDecoderSpec(jsonld.Decoder(Graph("DecoderSpec"))) {
 
   try {
     lspace.parse.test
@@ -9,5 +11,4 @@ class EncodeJsonLDSpec
   } catch {
     case e: Throwable => e.printStackTrace()
   }
-
 }

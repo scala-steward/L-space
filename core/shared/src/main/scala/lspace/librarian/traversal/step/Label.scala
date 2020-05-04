@@ -9,7 +9,7 @@ object Label extends StepDef("Label", "A label-step ..", MoveStep.ontology :: Ni
 
   def toStep(node: Node): Task[Label] =
     for {
-      labels <- Task.gather(
+      labels <- Task.parSequence(
         node
           .out(keys.`ns.l-space.eu/librarian/MoveStep/label`)
           .collect {
@@ -29,7 +29,7 @@ object Label extends StepDef("Label", "A label-step ..", MoveStep.ontology :: Ni
   implicit def toNode(step: Label): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _ <- Task.gather(step.label.map {
+      _ <- Task.parSequence(step.label.map {
         case ontology: Ontology =>
           node.addOut(keys.`ns.l-space.eu/librarian/MoveStep/label`, ontology.asInstanceOf[Ontology])
         case property: Property =>

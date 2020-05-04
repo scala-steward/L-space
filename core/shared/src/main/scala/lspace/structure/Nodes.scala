@@ -36,15 +36,14 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     else Observable[Node]()
   }
 
-  def create(ontology: Ontology*): Task[Node] = {
+  def create(ontology: Ontology*): Task[Node] =
     for {
       id <- idProvider.next
       node = newNode(id)
       u <- Task.sequence(ontology.map(node.addLabel))
     } yield node
-  }
 
-  def create(iri: String, ontology: Ontology*): Task[Node] = {
+  def create(iri: String, ontology: Ontology*): Task[Node] =
     for {
       id <- idProvider.next
       node = newNode(id)
@@ -52,11 +51,9 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
       _ <- if (iri.nonEmpty) node.addOut(Label.P.`@id`, iri) else Task.unit
       _ <- if (iri.nonEmpty) node.addOut(Label.P.`@ids`, iri) else Task.unit
     } yield node
-  }
 
-  def upsert(iri: String, ontologies: Ontology*): Task[Node] = {
+  def upsert(iri: String, ontologies: Ontology*): Task[Node] =
     upsert(iri, Set[String](), ontologies: _*)
-  }
 
   private val upsertingTasks: concurrent.Map[String, Task[Node]] =
     new ConcurrentHashMap[String, Task[Node]]().asScala
@@ -67,7 +64,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     * @param iris a set of iri's which should all resolve to the same resource
     * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
     */
-  def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] = {
+  def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] =
     upsertingTasks
       .getOrElseUpdate(
         iri,
@@ -91,15 +88,14 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
           .memoize
       )
       .flatMap { node =>
-        val newIris = ((iris + iri) diff node.iris).toList.filter(_.nonEmpty) //only add new iris
+        val newIris = (iris + iri).diff(node.iris).toList.filter(_.nonEmpty) //only add new iris
         for {
           _ <- Task.sequence(newIris.map(node.addOut(Label.P.`@ids`, _)))
           _ <- Task.sequence(ontologies.map(node.addLabel))
         } yield node
       }
-  }
 
-  def upsert(node: Node): Task[Node] = {
+  def upsert(node: Node): Task[Node] =
     if (node.graph != thisgraph) { //
       for {
         edges <- node.g.outE().withGraph(node.graph).toListF
@@ -107,7 +103,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
           for {
             newNode <- upsert(node.iri)
             _ <- {
-              val newIris = ((node.iris) diff newNode.iris).toList.filter(_.nonEmpty) //only add new iris
+              val newIris = (node.iris).diff(newNode.iris).toList.filter(_.nonEmpty) //only add new iris
               for {
                 _ <- Task.sequence(newIris.map(newNode.addOut(Label.P.`@ids`, _)))
                 _ <- Task.sequence(node.labels.map(newNode.addLabel))
@@ -117,7 +113,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
         else {
           for {
             newNode <- create()
-            u       <- Task.gather(node.labels.map(newNode.addLabel))
+            u       <- Task.parSequence(node.labels.map(newNode.addLabel))
             v       <- addMeta(node, newNode)
           } yield newNode
         }
@@ -125,7 +121,6 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     } else {
       Task.now(node)
     }
-  }
 
   /**
     * adds a node to the graph including all edges and (meta) edges on edges as long as edges have edges
@@ -138,7 +133,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     case _ =>
       for {
         newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create() //FIX: ignores node.iris for empty node.iri
-        u       <- Task.gather(node.labels.map(newNode.addLabel))
+        u       <- Task.parSequence(node.labels.map(newNode.addLabel))
         v       <- addMeta(node, newNode)
       } yield newNode
   }

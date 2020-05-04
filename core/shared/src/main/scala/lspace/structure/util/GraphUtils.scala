@@ -53,7 +53,7 @@ trait GraphUtils {
                         typesToAdd += ontology
                       }
                     }
-                    val newIris = (slave.iris diff nodes.head.iris).toList.filter(_.nonEmpty)
+                    val newIris = slave.iris.diff(nodes.head.iris).toList.filter(_.nonEmpty)
                     //      typesToRemove.foreach(_.remove()) ???
                     val linksIn  = slave.inEMap()
                     val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
@@ -63,18 +63,18 @@ trait GraphUtils {
                         typesToAdd
                           .filterNot(tpe => typesToAdd.exists(_.`extends`(tpe)))
                           .map(tpe => unmerged.head.addLabel(tpe)))
-                      _ <- Task.gatherUnordered(linksIn.map {
+                      _ <- Task.parSequenceUnordered(linksIn.map {
                         case (key, properties) =>
-                          Task.gatherUnordered(properties.map { property =>
+                          Task.parSequenceUnordered(properties.map { property =>
                             for {
                               _ <- property.from.addOut(property.key, unmerged.head)
                               _ <- property.remove()
                             } yield ()
                           })
                       })
-                      _ <- Task.gatherUnordered(linksOut.map {
+                      _ <- Task.parSequenceUnordered(linksOut.map {
                         case (key, properties) =>
-                          Task.gatherUnordered(properties.map { property =>
+                          Task.parSequenceUnordered(properties.map { property =>
                             for {
                               _ <- unmerged.head.addOut(property.key, property.to)
                               _ <- property.remove()
@@ -85,7 +85,7 @@ trait GraphUtils {
                       _ <- slave.remove()
                     } yield ()
                 })
-                //_ <- Task.gather(transcended.map(_.remove()))
+                //_ <- Task.parSequence(transcended.map(_.remove()))
               } yield {
                 unmerged.head
               }
@@ -96,7 +96,7 @@ trait GraphUtils {
             })
             .memoizeOnSuccess
         )
-        node2 <- node.graph.nodes.hasIri(node.iris + node.iri toList).toListL.flatMap {
+        node2 <- node.graph.nodes.hasIri((node.iris + node.iri).toList).toListL.flatMap {
           case List(node) =>
             Task(node)
           case List() =>
@@ -139,15 +139,15 @@ trait GraphUtils {
                   val linksIn  = slave.inEMap()
                   val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
                   for {
-                    _ <- Task.gatherUnordered(linksIn.map {
+                    _ <- Task.parSequenceUnordered(linksIn.map {
                       case (key, properties) =>
-                        Task.gatherUnordered(properties.map { property =>
+                        Task.parSequenceUnordered(properties.map { property =>
                           property.from.addOut(property.key, unmerged.head)
                         })
                     })
-                    _ <- Task.gatherUnordered(linksOut.map {
+                    _ <- Task.parSequenceUnordered(linksOut.map {
                       case (key, properties) =>
-                        Task.gatherUnordered(properties.map { property =>
+                        Task.parSequenceUnordered(properties.map { property =>
                           unmerged.head.addOut(property.key, property.to)
                         })
                     })
@@ -167,7 +167,7 @@ trait GraphUtils {
 //                  case list =>
 //                    mergeValues(list.toSet)
 //                }
-              //_ <- Task.gather(transcended.map(_.remove()))
+              //_ <- Task.parSequence(transcended.map(_.remove()))
             } yield unmerged.head
           }
           .onErrorHandle { f =>

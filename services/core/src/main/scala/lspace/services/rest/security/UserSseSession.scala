@@ -6,7 +6,6 @@ import lspace.Label
 import lspace.client.{Client, User}
 import lspace.client.session.{ClientSession, OpenSession, UserSession}
 import lspace.provider.detached.DetachedGraph
-import lspace.structure.Property
 import monix.eval.Task
 
 object UserSseSession {
@@ -14,8 +13,7 @@ object UserSseSession {
             client: Client,
             user: User,
             expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant)
-    : Task[UserSseSession] = {
-
+    : Task[UserSseSession] =
     for {
       node        <- DetachedGraph.nodes.create(UserSession.ontology)
       _           <- node.addOut(Label.P.typed.iriUrlString, iri)
@@ -27,7 +25,6 @@ object UserSseSession {
       _           <- node.addOut(UserSession.keys.`lspace:UserSession/user@User`, userNode)
       userSession <- UserSession.toUserSession(node)
     } yield new UserSseSession(userSession)
-  }
 }
 
 class UserSseSession(override val session: UserSession) extends ClientSseSession(session) with UserSession {

@@ -54,9 +54,8 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
       Task(try { scala.io.Source.fromFile(filename) } catch {
         case e: FileNotFoundException =>
           new BufferedSource(new InputStream {
-            override def read(): Int = {
+            override def read(): Int =
               -1 // end of stream
-            }
           }) //from java 11 this can be replaced with InputStream.nullInputStream()
       })
     } { in =>
@@ -208,7 +207,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
       decoder
         .parse(raw)
         .onErrorHandle { f =>
-          scribe.error(f.getMessage + s" ${raw}")
+          scribe.error(f.getMessage + s" $raw")
           baseEncoder.jNull
         }
         .flatMap(decoder.contextProcessing.apply(ActiveContext(), _))
@@ -291,7 +290,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
                                 }
                               ).map(graph.values.upsert(_, label))
                           }
-                          .getOrElse(throw FromJsonException(s"unknown datatype ${key}"))
+                          .getOrElse(throw FromJsonException(s"unknown datatype $key"))
                     }
                 })
               case None =>
@@ -420,7 +419,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
                                     for {
                                       fromResource <- decoder
                                         .tryNodeRef(from)
-                                        .getOrElse(Task.raiseError(FromJsonException(s"cannot parse noderef ${from}")))
+                                        .getOrElse(Task.raiseError(FromJsonException(s"cannot parse noderef $from")))
                                       toResource <- decoder.toResource(to, Some(dt2))
                                       edge       <- fromResource --- property --> toResource
                                     } yield {
@@ -928,7 +927,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
     scribe.info(s"persisting ${graph.iri} to $path")
 
     Task
-      .gatherUnordered(Seq(
+      .parSequenceUnordered(Seq(
         graphfiles.write.literals.use(writeLiterals).onErrorHandle { f =>
           println(f.getMessage); throw f
         },

@@ -14,7 +14,7 @@ object Union
 
   def toStep(node: Node): Task[Union[ClassType[Any], ClassType[Any]]] =
     for {
-      traversals <- Task.gather(
+      traversals <- Task.parSequence(
         node
           .out(keys.traversalTraversal)
           .map(
@@ -33,7 +33,7 @@ object Union
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[List[Node]] = traversal.property as ListType(Traversal.ontology)
+    val traversalTraversal: TypedProperty[List[Node]] = traversal.property.as(ListType(Traversal.ontology))
   }
   override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
   trait Properties extends BranchStep.Properties {
@@ -44,7 +44,7 @@ object Union
   implicit def toNode(step: Union[_ <: ClassType[_], _ <: ClassType[_]]): Task[Node] = {
     for {
       node       <- DetachedGraph.nodes.create(ontology)
-      traversals <- Task.gather(step.traversals.map(_.toNode))
+      traversals <- Task.parSequence(step.traversals.map(_.toNode))
       _          <- node.addOut(keys.traversalTraversal, traversals)
     } yield node
   }.memoizeOnSuccess

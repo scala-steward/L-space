@@ -1,39 +1,39 @@
 package lspace.librarian.logic
 
-import org.scalatest.{AppendedClues, Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.AppendedClues
+import org.scalatest.matchers.should.Matchers
 import predicate._
 
-trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
+trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
   def assistent: Assistent
 
   import shapeless.=:!=
   def pTests[T, T2, X, P0[Z] <: P[Z]](ah: Assistent#Helper[P[T]],
                                       validValues: List[T2],
                                       invalidValues: List[T2],
-                                      incomparableValues: List[X])(implicit /*ev1: T2 <:< T, */ ev2: T =:!= X) = {
-
-    s"test ${ah.p.toString} ${ah.p._pvalue.getClass}" which {
+                                      incomparableValues: List[X])(implicit /*ev1: T2 <:< T, */ ev2: T =:!= X) =
+    s"test ${ah.p.toString} ${ah.p._pvalue.getClass}".which {
       s"is comparable and asserts true to ${validValues.mkString(" and ")}" in {
         validValues.foreach { t =>
-          ah.comparable(t) shouldBe true withClue s" => $t should be comparable"
-          ah.assert(t) shouldBe true withClue s" => $t"
+          (ah.comparable(t) shouldBe true).withClue(s" => $t should be comparable")
+          (ah.assert(t) shouldBe true).withClue(s" => $t")
         }
       }
       s"is comparable and asserts false to ${invalidValues.mkString(" and ")}" in {
         invalidValues.foreach { t =>
-          ah.comparable(t) shouldBe true withClue s" => $t should be comparable"
-          ah.assert(t) shouldBe false withClue s" => $t"
+          (ah.comparable(t) shouldBe true).withClue(s" => $t should be comparable")
+          (ah.assert(t) shouldBe false).withClue(s" => $t")
         }
       }
       s"is not comparable to ${incomparableValues.mkString(" and ")}" in {
         incomparableValues.foreach { x =>
-          ah.comparable(x) shouldBe false withClue s" => $x should not be comparable"
+          (ah.comparable(x) shouldBe false).withClue(s" => $x should not be comparable")
         }
       }
     }
-  }
 
-  "a string assistent" can {
+  "a string assistent".can {
     pTests(assistent.eqv(Eqv("abc")), "abc" :: Nil, "abcd" :: 1 :: Nil, List[Any]())
     pTests(assistent.neqv(Neqv("abc")), 1 :: "abcd" :: Nil, "abc" :: Nil, List[Any]())
     pTests(assistent.gt(Gt("abc")), "abcd" :: Nil, "abc" :: Nil, 1 :: Nil)
@@ -45,7 +45,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
     pTests(assistent.inside(Inside("ab", "abcdef")), "abc" :: "abcde" :: Nil, "ab" :: Nil, 1 :: Nil)
   }
 
-  "an numeric assistent" can {
+  "an numeric assistent".can {
     //Numeric type tests
     pTests(assistent.eqv(Eqv(1)), 1 :: 1.0 :: 1L :: Nil, 2 :: 3L :: 3.3 :: Nil, List[Any]())
     pTests(assistent.eqv(Eqv(2.0)), 2 :: 2.0 :: 2L :: Nil, 1 :: 3L :: 3.3 :: Nil, List[Any]())
@@ -111,7 +111,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
            "a" :: 3 :: new {} :: Nil)
   }
 
-  "a date assistent" can {
+  "a date assistent".can {
     import lspace.datatype.util.Implicits._
     pTests(assistent.eqv(Eqv("1996-08-18".toDate.get)),
            "1996-08-18".toDate.get :: Nil,
@@ -161,7 +161,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
     )
   }
 
-  "a time assistent" can {
+  "a time assistent".can {
     import lspace.datatype.util.Implicits._
     pTests(assistent.eqv(Eqv("11:13:49".toTime.get)),
            "11:13:49".toTime.get :: Nil,
@@ -211,7 +211,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
     )
   }
 
-  "a datetime assistent" can {
+  "a datetime assistent".can {
     import lspace.datatype.util.Implicits._
     pTests(
       assistent.eqv(Eqv("1996-08-18T01:12:00Z".toDateTime.get)),
@@ -269,7 +269,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
     )
   }
 
-  "a localdatetime assistent" can {
+  "a localdatetime assistent".can {
     import lspace.datatype.util.Implicits._
     pTests(
       assistent.eqv(Eqv("1996-08-18T01:12:00".toLocalDateTime.get)),
@@ -327,7 +327,7 @@ trait AssistentSpec extends WordSpec with Matchers with AppendedClues {
     )
   }
 
-  "a geometry assistent" can {
+  "a geometry assistent".can {
     import lspace.types.geo._
     pTests(
       assistent.eqv(Eqv(Point(4, 9))),

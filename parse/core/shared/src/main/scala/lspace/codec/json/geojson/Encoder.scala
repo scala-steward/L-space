@@ -23,8 +23,8 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
     case value: LocalTime     => value.asJson
     case value: Boolean       => value.asJson
     case value: String        => value.asJson
-    case value: Map[Any, Any] => value.map { case (key, value) => key.toString -> encodeValue(value) }.asJson
-    case value: List[Any]     => value.map(encodeValue).asJson
+    case value: Map[_, _]     => value.map { case (key, value) => key.toString -> encodeValue(value) }.asJson
+    case value: List[_]       => value.map(encodeValue).asJson
   }
 
   def encodeFeature(feature: Feature[Geometry]): Json = {
@@ -33,9 +33,8 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
        else Map[String, Json]())
   }.toMap.asJson
 
-  def encodeFeatureCollection(featureCollection: FeatureCollection[Geometry]): Json = {
+  def encodeFeatureCollection(featureCollection: FeatureCollection[Geometry]): Json =
     Map("type" -> "FeatureCollection".asJson, "features" -> featureCollection.features.map(encodeFeature).asJson).asJson
-  }
 
   def encodeGeometry(geometry: Geometry): Json = geometry match {
     case point: Point =>

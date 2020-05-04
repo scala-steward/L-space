@@ -32,7 +32,7 @@ object Traversal
 
     for {
       steps0 <- Task
-        .gather(node.out(keys.stepsNode).take(1).flatMap(_.toList).map(Step.toStep))
+        .parSequence(node.out(keys.stepsNode).take(1).flatMap(_.toList).map(Step.toStep))
         .map(_.foldLeft[HList](HNil) {
           case (hlist, step) => step :: hlist
         })
@@ -52,7 +52,7 @@ object Traversal
           `@range` = VectorType(Step.ontology) :: Nil
         ) {}
 
-    lazy val stepsNode: TypedProperty[Vector[Node]] = steps.property as VectorType(Step.ontology)
+    lazy val stepsNode: TypedProperty[Vector[Node]] = steps.property.as(VectorType(Step.ontology))
   }
 
   override lazy val properties: List[Property] = keys.steps :: Nil
@@ -150,7 +150,7 @@ object Traversal
     }
 
     def hasId(id: Long, ids: Long*): Traversal[ST[Start], ET[End], HasId :: Steps] =
-      add(HasId(id :: ids.toList toSet))
+      add(HasId((id :: ids.toList).toSet))
     def hasId(ids: Set[Long]): Traversal[ST[Start], ET[End], HasId :: Steps] = add(HasId(ids))
 
     /**
@@ -160,7 +160,7 @@ object Traversal
       * @return
       */
     def hasIri(iri: String, uris: String*): Traversal[ST[Start], ET[End], HasIri :: Steps] =
-      add(HasIri(iri :: uris.toList toSet))
+      add(HasIri((iri :: uris.toList).toSet))
     def hasIri(iris: Set[String]): Traversal[ST[Start], ET[End], HasIri :: Steps] =
       add(HasIri(iris))
 
@@ -868,14 +868,12 @@ object Traversal
       extends BaseMod[Start, ST, Edge[In, Out], ET, Steps] {
 
     def from[InC, InCT <: ClassType[InC]](
-        implicit ct: ClassTypeable.Aux[In, InC, InCT]): Traversal[ST[Start], InCT, From :: Steps] = {
+        implicit ct: ClassTypeable.Aux[In, InC, InCT]): Traversal[ST[Start], InCT, From :: Steps] =
       add(From: From, st, ct.ct)
-    }
 
     def to[OutC, OutCT <: ClassType[OutC]](
-        implicit ct: ClassTypeable.Aux[Out, OutC, OutCT]): Traversal[ST[Start], OutCT, To :: Steps] = {
+        implicit ct: ClassTypeable.Aux[Out, OutC, OutCT]): Traversal[ST[Start], OutCT, To :: Steps] =
       add(To: To, st, ct.ct)
-    }
 
     /**
       * this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in EdgeStepsHelper overwrites all other definitions... :S
@@ -1491,13 +1489,12 @@ case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], +Steps <: HLi
   lazy val toNode: Task[Node] = {
     for {
       node  <- DetachedGraph.nodes.create(Traversal.ontology)
-      steps <- Task.gather(stepsList.map(_.toNode).toVector)
+      steps <- Task.parSequence(stepsList.map(_.toNode).toVector)
       e     <- if (steps.nonEmpty) node.addOut(keys.stepsNode, steps) else Task.unit
     } yield node
   }.memoizeOnSuccess
 
-  def prettyPrint: String = {
+  def prettyPrint: String =
 //    segmentList.map(_.prettyPrint).mkString(".")
     stepsList.map(_.prettyPrint).mkString(".")
-  }
 }

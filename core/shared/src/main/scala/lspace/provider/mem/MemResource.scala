@@ -53,7 +53,7 @@ trait MemResource[T] extends Resource[T] {
       .getOrElse(edge.key, HashSet[Edge[_, T]]()) + edge)
   }
 
-  override def keys: Set[Property] = linksOut.keySet ++ linksIn.keySet toSet
+  override def keys: Set[Property] = (linksOut.keySet ++ linksIn.keySet).toSet
 
   def out(key: Property*): List[Any] =
     if (key.nonEmpty)
@@ -62,10 +62,9 @@ trait MemResource[T] extends Resource[T] {
         .map(_.to.value)
     else linksOut.values.flatten.map(_.to.value).toList
 
-  def outMap(key: Property*): Map[Property, List[Any]] = {
+  def outMap(key: Property*): Map[Property, List[Any]] =
     if (key.isEmpty) linksOut.toMap.mapValues(_.map(_.to.value).toList).toMap
     else outE(key: _*).groupBy(_.key).mapValues(_.map(_.to.value)).toMap
-  }
 
   def outE(key: Property*): List[Edge[T, Any]] =
     if (key.nonEmpty)
@@ -74,10 +73,9 @@ trait MemResource[T] extends Resource[T] {
         .asInstanceOf[List[Edge[T, Any]]]
     else linksOut.values.toList.flatten.asInstanceOf[List[Edge[T, Any]]]
 
-  def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] = {
+  def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] =
     if (key.isEmpty) linksOut.toMap.mapValues(_.asInstanceOf[HashSet[Edge[T, Any]]].toList).toMap
     else outE(key: _*).groupBy(_.key)
-  }
 
   def in(key: Property*): List[Any] =
     if (key.nonEmpty)
@@ -86,10 +84,9 @@ trait MemResource[T] extends Resource[T] {
         .map(_.from.value)
     else linksIn.values.toList.flatten.map(_.from.value)
 
-  def inMap(key: Property*): Map[Property, List[Any]] = {
+  def inMap(key: Property*): Map[Property, List[Any]] =
     if (key.isEmpty) linksIn.toMap.mapValues(_.map(_.from.value).toList).toMap
     else inE(key: _*).groupBy(_.key).mapValues(_.map(_.from.value)).toMap
-  }
 
   def inE(key: Property*): List[Edge[Any, T]] =
     if (key.nonEmpty)
@@ -98,10 +95,9 @@ trait MemResource[T] extends Resource[T] {
         .asInstanceOf[List[Edge[Any, T]]]
     else linksIn.values.toList.flatten.asInstanceOf[List[Edge[Any, T]]]
 
-  def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] = {
+  def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] =
     if (key.isEmpty) linksIn.toMap.mapValues(_.asInstanceOf[HashSet[Edge[Any, T]]].toList).toMap
     else inE(key.toList: _*).groupBy(_.key)
-  }
 
   private def validateDT[V](dt: DataType[V], value: V) =
     if (dt.iri.nonEmpty) dt else ClassType.detect(value)
@@ -117,7 +113,8 @@ trait MemResource[T] extends Resource[T] {
             else linksIn += edge.key -> newSet
 //            edge.remove()
           } else Task.unit
-      } completedL
+        }
+        .completedL
     }
   }
   def removeOut[V >: T](edge: Edge[V, _]): Task[Unit] = Task.defer {
@@ -131,21 +128,22 @@ trait MemResource[T] extends Resource[T] {
             else linksOut += edge.key -> newSet
 //            edge.remove()
           } else Task.unit
-      } completedL
+        }
+        .completedL
     }
   }
   def removeIn(key: Property): Task[Unit] = Task.defer {
     Lock.synchronized {
       val toRemove = inE(key)
       linksIn -= key
-      for { _ <- Task.gather(toRemove.map(_.remove())) } yield ()
+      for { _ <- Task.parSequence(toRemove.map(_.remove())) } yield ()
     }
   }
   def removeOut(key: Property): Task[Unit] = Task.defer {
     Lock.synchronized {
       val toRemove = outE(key)
       linksOut -= key
-      for { _ <- Task.gather(toRemove.map(_.remove())) } yield ()
+      for { _ <- Task.parSequence(toRemove.map(_.remove())) } yield ()
     }
   }
 }

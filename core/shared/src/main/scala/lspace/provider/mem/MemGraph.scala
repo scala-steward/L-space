@@ -170,9 +170,9 @@ trait MemGraph extends Graph {
     * @param resource
     */
   protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] =
-    Observable.fromIterable(resource.outE()).mapEval(_.remove()) ++ Observable
+    (Observable.fromIterable(resource.outE()).mapEval(_.remove()) ++ Observable
       .fromIterable(resource.inE())
-      .mapEval(_.remove()) completedL
+      .mapEval(_.remove())).completedL
 //    Observable.fromIterable(resource.outEMap()).flatMap {
 //      case (key, properties) =>
 //        Observable

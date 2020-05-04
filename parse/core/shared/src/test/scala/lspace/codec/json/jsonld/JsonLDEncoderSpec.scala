@@ -8,8 +8,8 @@ import lspace.structure.SampledGraph
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatest.FutureOutcome
-import scribe.Level
-import scribe.format.Formatter
+//import scribe.Level
+//import scribe.format.Formatter
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
@@ -20,11 +20,11 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  scribe.Logger.root
-    .clearHandlers()
-    .clearModifiers()
-    .withHandler(minimumLevel = Some(Level.Trace), formatter = Formatter.enhanced)
-    .replace()
+//  scribe.Logger.root
+//    .clearHandlers()
+//    .clearModifiers()
+//    .withHandler(minimumLevel = Some(Level.Trace), formatter = Formatter.enhanced)
+//    .replace()
 
   val graph: Graph                    = MemGraph("DecoderSpec")
   val sampleGraph                     = SampledGraph(MemGraph("DecoderSpec-sample"))
@@ -34,14 +34,13 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
     sample <- sampleGraph.load
   } yield sample).memoizeOnSuccess
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
-  "The JsonLDEncoder" can {
-    "encode a Node" which {
+  "The JsonLDEncoder".can {
+    "encode a Node".which {
       "uses a default context if provided" in {
         val person = Ontology.ontologies.getOrCreate("https://example.org/Person")
         val defaultContext = ActiveContext(
@@ -76,7 +75,7 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
         } yield succeed).runToFuture
       }
     }
-    "encode an ActiveContext" which {
+    "encode an ActiveContext".which {
       "exists of just a remote context" in {
         val defaultContext =
           ActiveContext(remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext())))

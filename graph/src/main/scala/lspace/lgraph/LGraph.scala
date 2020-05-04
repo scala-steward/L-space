@@ -46,7 +46,7 @@ object LGraph {
                 storeManager.init,
                 index.storeManager.init
               ))
-        } yield ()) memoize
+        } yield ()).memoize
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
 
@@ -221,14 +221,13 @@ trait LGraph extends Graph {
   override protected[lspace] def createEdge[S, E](id: Long,
                                                   from: _Resource[S],
                                                   key: Property,
-                                                  to: _Resource[E]): Task[GEdge[S, E]] = {
+                                                  to: _Resource[E]): Task[GEdge[S, E]] =
     for { edge <- super.createEdge(id, from, key, to) } yield {
       val lastaccess = LResource.getLastAccessStamp()
       edge._lastoutsync = Some(lastaccess)
       edge._lastinsync = Some(lastaccess)
       edge
     }
-  }
 
   object writevalue
   protected[lspace] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T] =
@@ -250,24 +249,22 @@ trait LGraph extends Graph {
       }
       .asInstanceOf[GValue[T]]
 
-  override protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
+  override protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] =
     for { rv <- super.createValue(id, value, dt) } yield {
       val lastaccess = LResource.getLastAccessStamp()
       rv._lastoutsync = Some(lastaccess)
       rv._lastinsync = Some(lastaccess)
       rv
     }
-  }
 
-  protected[lspace] def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] = {
-    Observable.fromIterable(resource.asInstanceOf[LResource[Any]].outEMap()).flatMap {
+  protected[lspace] def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] =
+    (Observable.fromIterable(resource.asInstanceOf[LResource[Any]].outEMap()).flatMap {
       case (key, properties) =>
         Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
     } ++ Observable.fromIterable(resource.asInstanceOf[LResource[Any]].inEMap()).flatMap {
       case (key, properties) =>
         Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
-    } completedL
-  }
+    }).completedL
 
   override def transaction: Transaction = LTransaction(thisgraph)
 
@@ -279,11 +276,10 @@ trait LGraph extends Graph {
       _ <- storeManager.purge
     } yield ()
 
-  override def close(): Task[Unit] = {
+  override def close(): Task[Unit] =
     super
       .close()
       .flatMap { u =>
         storeManager.close()
       }
-  }
 }

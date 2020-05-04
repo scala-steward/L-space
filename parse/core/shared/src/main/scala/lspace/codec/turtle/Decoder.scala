@@ -50,7 +50,7 @@ trait Decoder {
   implicit class WithString(s: String) {
     def stripLtGt: String = s.stripPrefix("<").stripSuffix(">")
 
-    def toResource(implicit activeContext: ActiveContext): Task[Resource[_]] = {
+    def toResource(implicit activeContext: ActiveContext): Task[Resource[_]] =
       s match {
         case nodeLike if nodeLike.startsWith("<") && nodeLike.endsWith(">") =>
           activeContext.expandIri(nodeLike.stripLtGt) match {
@@ -68,41 +68,39 @@ trait Decoder {
           graph.values.upsert(stringLike.stripSuffix("^^xsd:string").stripPrefix("\"").stripSuffix("\""))
         case string => graph.values.upsert(string.stripPrefix("\"").stripSuffix("\""))
       }
-    }
   }
 
   implicit class WithTurtle(turtle: Turtle) {
     implicit val activeContext = turtle.context
-    def process: Task[Graph] = {
+    def process: Task[Graph] =
       for {
-        _ <- Task.gather(turtle.statements.map { statement =>
+        _ <- Task.parSequence(turtle.statements.map { statement =>
           for {
             subject <- statement.subject match {
               case Iri(iri)   => graph.nodes.upsert(iri)
               case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
             }
             p <- statement.predicates.process
-            _ <- Task.gather(p.map { case (property, resource) => subject --- property --> resource })
+            _ <- Task.parSequence(p.map { case (property, resource) => subject --- property --> resource })
           } yield ()
         })
       } yield graph
-    }
   }
 
   implicit class WithPredicates(predicates: Predicates)(implicit activeContext: ActiveContext) {
-    def process: Task[List[(Property, Resource[_])]] = {
+    def process: Task[List[(Property, Resource[_])]] =
       Task
-        .gather(predicates.pv.map {
+        .parSequence(predicates.pv.map {
           case (p, Single(o)) => o.toResource.map(r => List(Property.properties.getOrCreate(p.iri, Set()) -> r))
           case (p, Multi(os)) =>
             val property = Property.properties.getOrCreate(p.iri, Set())
-            Task.gather(os.map {
+            Task.parSequence(os.map {
               case Single(o) => o.toResource.map(property -> _)
               case predicates: Predicates =>
                 for {
                   node <- graph.nodes.create()
                   p    <- predicates.process
-                  _ <- Task.gather(p.map {
+                  _ <- Task.parSequence(p.map {
                     case (property, resource) => node --- property --> resource
                   })
                 } yield property -> node
@@ -112,13 +110,12 @@ trait Decoder {
             for {
               node <- graph.nodes.create()
               p2   <- predicates.process
-              _ <- Task.gather(p2.map {
+              _ <- Task.parSequence(p2.map {
                 case (property, resource) => node --- property --> resource
               })
             } yield List(Property.properties.getOrCreate(p.iri, Set()) -> node)
         })
         .map(_.flatten)
-    }
   }
 
   def parse(string: String): Task[Turtle] = {
@@ -186,7 +183,7 @@ trait Decoder {
           }
       }
 
-    def wordsToPredicates(words: List[String]): (Predicates, List[String]) = {
+    def wordsToPredicates(words: List[String]): (Predicates, List[String]) =
       words match {
         case p :: o :: "." :: Nil =>
           Predicates((activeContext.expandIri(p.stripLtGt).asInstanceOf[Iri] -> Single(o)) :: Nil) -> Nil
@@ -221,9 +218,8 @@ trait Decoder {
           }
         case _ => throw new Exception("??")
       }
-    }
 
-    def subjectBlankNode(words: List[String], predicate: Identifier): (Predicates, List[String]) = {
+    def subjectBlankNode(words: List[String], predicate: Identifier): (Predicates, List[String]) =
       words match {
         case p :: "[" :: words =>
           val (predicates, tail) = subjectBlankNode(words, activeContext.expandIri(p.stripLtGt))
@@ -237,9 +233,8 @@ trait Decoder {
           }
         case _ => throw new Exception("??")
       }
-    }
 
-    def wordsToObjects(words: List[String], predicate: Identifier): (Multi, List[String]) = {
+    def wordsToObjects(words: List[String], predicate: Identifier): (Multi, List[String]) =
       words match {
         case o :: "," :: words =>
           val (oTail, tail) = wordsToObjects(words, predicate)
@@ -247,7 +242,6 @@ trait Decoder {
         case o :: ";" :: words => Multi(Single(o) :: Nil) -> (";" :: words)
         case _                 => throw new Exception("??")
       }
-    }
 
     Task.eval {
       Turtle(

@@ -7,7 +7,9 @@ import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal.UntypedTraversal
 import lspace.structure.index.shape.Shape
 import monix.eval.Task
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 
 trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
   def graph: Graph
@@ -15,8 +17,8 @@ trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
 
   import lspace.Implicits.Scheduler.global
 
-  def indexTests(graph: Graph) = {
-    "An index" can {
+  def indexTests(graph: Graph) =
+    "An index".can {
       "test for string-predicates" in {
         (for {
           index <- createIndex(lspace.g.has(`@id`).untyped)
@@ -52,7 +54,7 @@ trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
           succeed
         }).runToFuture
       }
-      "test for numeric-predicates" ignore {
+      "test for numeric-predicates".ignore {
         (for {
           index <- createIndex(lspace.__[Any, Any].has(`@id`).untyped)
           node1 <- graph.nodes.create()
@@ -93,5 +95,4 @@ trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
         } yield succeed).runToFuture
       }
     }
-  }
 }

@@ -13,7 +13,7 @@ object In
 
   def toStep(node: Node): Task[In] =
     for {
-      properties <- Task.gatherUnordered(
+      properties <- Task.parSequenceUnordered(
         node
           .outE(MoveStep.keys.label)
           .map(_.to.iri)
@@ -29,7 +29,7 @@ object In
   implicit def toNode(step: In): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- Task.gather(step.label.map(label => node.addOut(MoveStep.keys.label, label)))
+      _    <- Task.parSequence(step.label.map(label => node.addOut(MoveStep.keys.label, label)))
     } yield node
   }.memoizeOnSuccess
 }

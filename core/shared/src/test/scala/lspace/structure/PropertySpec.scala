@@ -8,7 +8,7 @@ class PropertySpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  "Properties" can {
+  "Properties".can {
     "be compared by iri" in {
       Task {
         new Property("abc") shouldBe new Property("abc")
@@ -26,7 +26,7 @@ class PropertySpec extends AsyncWordSpec with Matchers {
     ".+ thread-safe" in {
       val p = new Property("a")
       (for {
-        _ <- Task.gatherUnordered {
+        _ <- Task.parSequenceUnordered {
           (1 to 1000).map(i => new Property(s"a$i")).map(p.properties.+(_)).map(Task.now)
         }
       } yield p.properties().size shouldBe 1000).runToFuture
@@ -34,13 +34,13 @@ class PropertySpec extends AsyncWordSpec with Matchers {
     ".++ thread-safe" in {
       val p = new Property("a")
       (for {
-        _ <- Task.gatherUnordered {
+        _ <- Task.parSequenceUnordered {
           (1 to 1000).map(i => new Property(s"a$i")).grouped(100).map(p.properties.++(_)).map(Task.now).toIterable
         }
       } yield p.properties().size shouldBe 1000).runToFuture
     }
   }
-  "A property" can {
+  "A property".can {
     "extends can be circular" in {
       val a: Property = "a"
       val b: Property = "b"

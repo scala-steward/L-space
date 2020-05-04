@@ -135,10 +135,14 @@ object EncodeJson {
                 Some(values.map(value => encoder.fromAny(value, activeContext.expectedType(expKey)).json).asJson)
             }
           case projections =>
-            Some((projection.projections zip result) flatMap {
-              case (projection, result: List[Any]) =>
-                namedProjection(projection, result).map(v => projection.alias -> v)
-            } toMap).map(_.asJson)
+            Some(
+              (projections
+                .zip(result))
+                .flatMap {
+                  case (projection, result: List[_]) =>
+                    namedProjection(projection, result).map(v => projection.alias -> v)
+                }
+                .toMap).map(_.asJson)
         }
     }
   }
@@ -151,23 +155,25 @@ object EncodeJson {
       case Nil => List[Json]().asJson
       case result =>
         (result.map {
-          case result: List[Any] =>
-            ((queryResult.query.projections zip result) flatMap {
-              case (projection, result: List[Any]) =>
-                namedProjection(projection, result).map(projection.alias -> _)
-              case (projection, result: List[Any]) =>
-                namedProjection(projection, result).map(projection.alias -> _)
-            } toMap).asJson
+          case result: List[_] =>
+            ((queryResult.query.projections
+              .zip(result))
+              .flatMap {
+                case (projection, result: List[_]) =>
+                  namedProjection(projection, result).map(projection.alias -> _)
+              }
+              .toMap)
+              .asJson
           case result: Product =>
-            ((queryResult.query.projections zip result.productIterator.toList) flatMap {
-              case (projection, result: List[Any]) =>
-                namedProjection(projection, result).map(projection.alias -> _)
-              case (projection, result: List[Any]) =>
-                namedProjection(projection, result).map(projection.alias -> _)
-            } toMap).asJson
+            ((queryResult.query.projections
+              .zip(result.productIterator.toList))
+              .flatMap {
+                case (projection, result: List[_]) =>
+                  namedProjection(projection, result).map(projection.alias -> _)
+              }
+              .toMap)
+              .asJson
         }).asJson
-
-      case _ => throw new Exception("XXX")
     }
   }
 

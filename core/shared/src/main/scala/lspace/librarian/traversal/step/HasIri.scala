@@ -22,7 +22,7 @@ object HasIri
           container = types.`@set` :: Nil,
           `@range` = DataType.default.`@string` :: Nil
         )
-    val iriString: TypedProperty[String] = iri.property as DataType.default.`@string`
+    val iriString: TypedProperty[String] = iri.property.as(DataType.default.`@string`)
   }
   override lazy val properties: List[Property] = keys.iri.property :: HasStep.properties
   trait Properties extends HasStep.Properties {
@@ -33,7 +33,7 @@ object HasIri
   implicit def toNode(step: HasIri): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- Task.gather(step.iris.map(node.addOut(keys.iri, _)))
+      _    <- Task.parSequence(step.iris.map(node.addOut(keys.iri, _)))
     } yield node
   }.memoizeOnSuccess
 

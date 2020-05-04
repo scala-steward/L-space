@@ -20,7 +20,7 @@ object And extends PredicateDef("And") with PredicateWrapper[And] {
           "Any value",
           `@range` = ListType(P.ontology) :: Nil
         ) {}
-    lazy val predicateP: TypedProperty[List[Node]] = predicate as ListType(P.ontology)
+    lazy val predicateP: TypedProperty[List[Node]] = predicate.as(ListType(P.ontology))
   }
   override lazy val properties: List[Property] = keys.predicate.property :: P.properties
   trait Properties extends P.Properties {
@@ -28,13 +28,12 @@ object And extends PredicateDef("And") with PredicateWrapper[And] {
     lazy val predicateP = keys.predicateP
   }
 
-  implicit def toNode(p: And): Task[Node] = {
+  implicit def toNode(p: And): Task[Node] =
     for {
       node       <- DetachedGraph.nodes.create(ontology)
-      predicates <- Task.gather(p.predicate.map(_.toNode))
+      predicates <- Task.parSequence(p.predicate.map(_.toNode))
       _          <- node.addOut(keys.predicate, predicates)
     } yield node
-  }
 
   implicit class WithAndPredicate(and: And) {
     def &&[T, PR[Z] <: P[Z]](predicate: PR[T]*): And = And(and.predicate ::: predicate.toList)

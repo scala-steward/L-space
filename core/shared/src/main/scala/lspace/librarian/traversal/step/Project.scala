@@ -15,7 +15,7 @@ object Project
 
   def toStep(node: Node): Task[Project[HList]] =
     for {
-      by <- Task.gather(
+      by <- Task.parSequence(
         node
           .out(keys.byTraversal)
           .map(
@@ -34,7 +34,7 @@ object Project
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[List[Node]] = by.property as ListType(Traversal.ontology)
+    val byTraversal: TypedProperty[List[Node]] = by.property.as(ListType(Traversal.ontology))
   }
   override lazy val properties: List[Property] = keys.by :: ProjectionStep.properties
   trait Properties extends ProjectionStep.Properties
@@ -47,7 +47,7 @@ object Project
 
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      traversals <- Task.gather(
+      traversals <- Task.parSequence(
         project.by.runtimeList
           .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
           .map(_.toNode))

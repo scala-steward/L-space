@@ -7,13 +7,12 @@ import lspace.librarian.task.Guide
 import lspace.provider.mem.MemGraph
 import lspace.util.SampleGraph
 import monix.eval.Task
-import monix.execution.Scheduler
 import monix.reactive.Observable
-import org.scalatest.{AsyncWordSpec, BeforeAndAfterAll, Matchers, Outcome}
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.collection.JavaConverters._
 
 trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
   import SampleGraph.ontologies._
@@ -27,10 +26,10 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
 
   def graphTests(graph: Graph) = {
     "a graph" should {
-      "have an id provider" which {
+      "have an id provider".which {
         "provides unique a unique id, even when dealing with concurrency" in {
           Task
-            .gather((1 to 100).map(i => graph.idProvider.next))
+            .parSequence((1 to 100).map(i => graph.idProvider.next))
             .map { ids =>
               ids.toSet.size shouldBe 100
             }
@@ -38,8 +37,8 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             .runToFuture
         }
       }
-      "have a nodes API" which {
-        "can create a node" which {
+      "have a nodes API".which {
+        "can create a node".which {
           "is empty when no labels are provided" in {
             (for {
               node <- graph.nodes.create()
@@ -62,7 +61,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             }).timeout(4000.millis).runToFuture
           }
         }
-        "upsert a node by iri" which {
+        "upsert a node by iri".which {
           "creates a new node when no node is identified by this iri" in {
             (for {
               node <- graph.nodes.upsert("upsert-node-iri")
@@ -122,7 +121,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
         }
       }
 //      "have an edges API" which {}
-      "have a values API" which {
+      "have a values API".which {
         "create a value" in {
           (for {
             value <- graph.values.create("unique-word")
@@ -176,7 +175,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
         } yield succeed).timeout(4000.millis).runToFuture
       }
 
-      "support traversals" which {
+      "support traversals".which {
         "test..." in {
           (for {
             node <- graph.nodes.upsert("abc")
@@ -236,7 +235,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
     val sampleGraph = sampledGraph.graph
 
     "a samplegraph graph" should {
-      "have a namespace" which {
+      "have a namespace".which {
         "contains the person-ontology" in {
           sampleGraph.ns.ontologies
             .get(SampleGraph.Person.ontology.iri)
@@ -285,7 +284,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             SampleGraph.properties.name.property)
         }
       }
-      "have sample data" which {
+      "have sample data".which {
         "contains certain nodes" in {
           (for {
             garrison <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/56789").headL

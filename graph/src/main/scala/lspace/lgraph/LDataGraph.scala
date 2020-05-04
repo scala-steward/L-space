@@ -7,15 +7,14 @@ trait LDataGraph extends LGraph with DataGraph {
 
   def index: LIndexGraph
 
-  override def persist: Task[Unit] = {
+  override def persist: Task[Unit] =
     for {
       _ <- Task
-        .gatherUnordered(
+        .parSequenceUnordered(
           Seq(
             storeManager.persist,
             ns.storeManager.persist,
             index.storeManager.persist
           ))
     } yield ()
-  }
 }

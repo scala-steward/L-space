@@ -5,8 +5,8 @@ import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty, NamedActiveContext}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
-import scribe.Level
-import scribe.format.Formatter
+//import scribe.Level
+//import scribe.format.Formatter
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
@@ -16,16 +16,16 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  scribe.Logger.root
-    .clearHandlers()
-    .clearModifiers()
-    .withHandler(minimumLevel = Some(Level.Trace), formatter = Formatter.enhanced)
-    .replace()
+//  scribe.Logger.root
+//    .clearHandlers()
+//    .clearModifiers()
+//    .withHandler(minimumLevel = Some(Level.Trace), formatter = Formatter.enhanced)
+//    .replace()
 
   val graph: Graph = decoder.graph
 
   "The Decoder" should {
-    "decode any ontology" which {
+    "decode any ontology".which {
       "is served by schema.org" in {
         decoder
           .toOntology("http://schema.org/Person")(ActiveContext())
@@ -43,7 +43,7 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .runToFuture
       }
     }
-    "decode any property" which {
+    "decode any property".which {
       "is served by schema.org" in {
         decoder
           .toProperty("http://schema.org/artEdition")(ActiveContext())
@@ -57,7 +57,7 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .runToFuture
       }
     }
-    "decode a vocabulary" ignore {
+    "decode a vocabulary".ignore {
       decoder
         .fetchVocabularyGraph("https://schema.org/version/3.5/all-layers.jsonld")(ActiveContext())
         .map { u =>
@@ -83,7 +83,7 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .map(_ shouldBe traversal)
           .runToFuture
       } catch {
-        case e =>
+        case e: Throwable =>
           e.printStackTrace()
           fail()
       }
@@ -94,8 +94,8 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .hasLabel(Ontology("https://ns.hoorn.nl/Project"))
           .range(0, 10)
           .project(_.iri)
-          .by(_.out(Property("http://schema.org/geo") as `@geo`))
-          .by(_.out(Property("http://schema.org/description") as `@string`))
+          .by(_.out(Property("http://schema.org/geo").as(`@geo`)))
+          .by(_.out(Property("http://schema.org/description").as(`@string`)))
         decoder
           .stringToLabeledNode(
             """{"@context":{"0":"https://ns.l-space.eu/librarian/"},"@type":"0:Traversal","0:Traversal/steps":{"@value":[{"@type":"0:step/N"},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"https://ns.hoorn.nl/Project"}},{"@type":"0:step/Range","0:step/Range/low":{"@value":0,"@type":"@int"},"0:step/Range/high":{"@value":10,"@type":"@int"}},{"@type":"0:step/Project","0:step/Project/by":{"@value":[{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"http://schema.org/description"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"http://schema.org/geo"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@geo"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"@id"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}],"@type":"@list(https://ns.l-space.eu/librarian/Traversal)"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}""",
@@ -107,12 +107,12 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .map(_ shouldBe traversal)
           .runToFuture
       } catch {
-        case e =>
+        case e: Throwable =>
           e.printStackTrace()
           fail()
       }
     }
-    "decode any node" which {
+    "decode any node".which {
       "uses a context if provided" in {
         val person = Ontology.ontologies.getOrCreate("https://example.org/Person")
         val defaultContext = ActiveContext(
@@ -130,7 +130,7 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
         } yield succeed).runToFuture
       }
     }
-    "decode a Context" which {
+    "decode a Context".which {
       "exists of just a remote context" in {
         val defaultContext =
           ActiveContext(remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext())))

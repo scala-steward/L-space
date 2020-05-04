@@ -9,7 +9,8 @@ import lspace.librarian.logic.{predicate => p}
 import lspace.provider.mem.MemGraph
 import monix.eval.Task
 import monix.execution.Scheduler
-import org.scalatest.{AsyncWordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 import shapeless._
 
 import scala.concurrent.Future
@@ -28,7 +29,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //      newTraversal <- toTraversal(node)
 //    } yield traversal shouldBe newTraversal) //.runToFuture
 
-  "A traversal" which {
+  "A traversal".which {
     "starts empty" in Future {
       val graphName = "data.example.com/test"
       g.stepsList.size shouldBe 0
@@ -48,7 +49,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //      g.N.hasLabel("Officer")
 ////      g.N.repeat(_.out("knows"), _.hasLabel(Ontology("Officer")), 3, true)
 //    }
-    "end-type is numeric" can {
+    "end-type is numeric".can {
       "be summed up" in Future {
         "g.V.hasLabel[Int].sum" should compile
         "g.V.hasLabel[Double].sum" should compile
@@ -64,7 +65,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         "g.V.hasLabel[Any].mean" shouldNot compile
       }
     }
-    "end-type is numeric or temporal" can {
+    "end-type is numeric or temporal".can {
       "be filtered for a max-value" in Future {
         "g.V.hasLabel[Int].max" should compile
         "g.V.hasLabel[Double].max" should compile
@@ -86,14 +87,14 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         "g.V.hasLabel[Any].min" shouldNot compile
       }
     }
-    "start with any step extending TraversalStep" ignore {
+    "start with any step extending TraversalStep".ignore {
       lspace.g.N().in().stepsList.size shouldBe 2
       lspace.g.N().out().stepsList.size shouldBe 2
       lspace.g.N().out().hasIri("abc").stepsList.size shouldBe 3
       val pDouble =
         Property("schema/x")
       pDouble.range + DataType.default.`@double`
-      val typedPDouble: TypedProperty[Double] = pDouble as DataType.default.`@double`
+      val typedPDouble: TypedProperty[Double] = pDouble.as(DataType.default.`@double`)
       graph.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
 
@@ -149,7 +150,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       val pString = Property("aa")
       pString.range + DataType.default.`@string`
 
-      val typedPString: TypedProperty[String] = pString as DataType.default.`@string`
+      val typedPString: TypedProperty[String] = pString.as(DataType.default.`@string`)
       graph.ns.properties.store(pString)
       lspace.g.N().has(pDouble, P.startsWith("a")).stepsList.size shouldBe 2
     }
@@ -163,11 +164,11 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //      test.sum
 //      lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
-    "contains labels (as-steps)" can {
-      "be selected by valid name" ignore Future {
+    "contains labels (as-steps)".can {
+      "be selected by valid name".ignore(Future {
         """g.V.as("aname").select("aname")""" should compile
         """g.V.as("aname").select("wrongname")""" shouldNot compile
-      }
+      })
     }
   }
 
@@ -177,7 +178,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 //      g.N.outMap().hasLabel(`@int`).et shouldBe `@int`
 //    }
 //  }
-  "A traversal has an expected result type" can {
+  "A traversal has an expected result type".can {
     """g.out()""" in Future {
       (g.out().et: ClassType[Any]) shouldBe ClassType.stubAny
     }
@@ -327,7 +328,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       g.N.out().path.et shouldBe ListType()
     }
   }
-  "Traversals" can {
+  "Traversals".can {
     "be compared" in Future {
       g.N().count shouldBe g.N().count
       g.N().hasId(1) shouldBe g.N().hasId(1)

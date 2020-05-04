@@ -38,7 +38,7 @@ object DecodeJson {
               val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
               for {
                 fNode <- resultGraph.nodes.create()
-                _ <- Task.gatherUnordered(
+                _ <- Task.parSequenceUnordered(
                   node.outE().filter(e => validProperty(e.key)).map(e => fNode --- e.key --> e.to))
               } yield fNode
             }
@@ -74,13 +74,13 @@ object DecodeJson {
       val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
       for {
         fNode <- resultGraph.nodes.create()
-        _     <- Task.gatherUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
+        _     <- Task.parSequenceUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
       } yield fNode
     } else if (forbiddenProperties.nonEmpty) { node: Node =>
       val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
       for {
         fNode <- resultGraph.nodes.create()
-        _ <- Task.gatherUnordered(
+        _ <- Task.parSequenceUnordered(
           node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
       } yield fNode
     } else { node: Node =>

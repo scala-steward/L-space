@@ -220,9 +220,9 @@ object DataType
         //      `@datatype`
       )
       if (datatypes.size > 99) throw new Exception("extend default-datatype-id range!")
-      val byId    = (0L to datatypes.size - 1 toList).zip(datatypes).toMap
-      val byIri   = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> dt) }.toMap
-      val idByIri = byId.toList.flatMap { case (id, dt) => dt.iri :: dt.iris.toList map (_ -> id) }.toMap
+      val byId    = (0L to datatypes.size - 1).toList.zip(datatypes).toMap
+      val byIri   = byId.toList.flatMap { case (id, dt) => (dt.iri :: dt.iris.toList).map(_ -> dt) }.toMap
+      val idByIri = byId.toList.flatMap { case (id, dt) => (dt.iri :: dt.iris.toList).map(_ -> id) }.toMap
     }
     private[lspace] val byIri: concurrent.Map[String, DataType[_]] =
       new ConcurrentHashMap[String, DataType[_]]().asScala

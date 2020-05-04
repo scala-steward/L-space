@@ -13,7 +13,7 @@ object Decoder {
 class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder {
   import decoder._
 
-  def autodiscoverValue(json: Json): Coeval[Any] = {
+  def autodiscoverValue(json: Json): Coeval[Any] =
     json.int
       .orElse(json.double)
       .orElse(json.long)
@@ -30,9 +30,8 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
         .map(Coeval.traverse(_)(f => f).map(_.toMap)))
 //      .orElse(decodeGeometryOption(json))
       .getOrElse(Coeval.raiseError(new Exception("autodiscover not possible")))
-  }
 
-  def decodeFeature(map: Map[String, Json]): Task[Feature[Geometry]] = {
+  def decodeFeature(map: Map[String, Json]): Task[Feature[Geometry]] =
     for {
       geometry <- map
         .get("geometry")
@@ -54,14 +53,11 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
             .map(_.toMap))
         .to[Task]
     } yield Feature(geometry, properties)
-  }
-  def decodeFeatureOption(map: Map[String, Json]): Option[Task[Feature[Geometry]]] = {
+  def decodeFeatureOption(map: Map[String, Json]): Option[Task[Feature[Geometry]]] =
     if (map.get("type").exists(decoder.jsonToString(_).contains("Feature"))) Some(decodeFeature(map)) else None
-  }
-  def decode(json: String): Task[FeatureCollection[Geometry]] = {
+  def decode(json: String): Task[FeatureCollection[Geometry]] =
     decoder.parse(json).flatMap(decode(_))
-  }
-  def decode(json: Json): Task[FeatureCollection[Geometry]] = {
+  def decode(json: Json): Task[FeatureCollection[Geometry]] =
     decoder
       .jsonToMap(json)
       .map { map =>
@@ -78,7 +74,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
                         .jsonToMap(_)
                         .map(decodeFeatureOption(_).getOrElse(Task.raiseError(new Exception("invalid feature"))))
                         .getOrElse(Task.raiseError(new Exception("feature must be an object")))))
-                      .map(Task.gather(_))
+                      .map(Task.parSequence(_))
                       .getOrElse(Task.raiseError(new Exception("features must be an array"))))
                   .getOrElse(Task.raiseError(new Exception("FeatureCollection without 'features' is weird")))
                   .map(FeatureCollection(_))
@@ -93,7 +89,6 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
         }
       }
       .getOrElse(Task.raiseError(new Exception("invalid geojson")))
-  }
 
   def decodeGeometryOption(json: Json): Option[Geometry] =
     decoder
@@ -104,14 +99,13 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
         ))
   def decodeGeometry(map: Map[String, Json]): Geometry =
     decodeGeometryOption(map).getOrElse(throw new Exception("geometry without type"))
-  def decodeGeometryOption(map: Map[String, Json]): Option[Geometry] = {
+  def decodeGeometryOption(map: Map[String, Json]): Option[Geometry] =
     map.get("type").flatMap(decoder.jsonToString).map {
       case "GeometryCollection" => decodeGeometryCollection(map)
       case iri                  => decodeGeometryCoordinates(iri, decodeCoordinates(map))
     }
-  }
 
-  def decodeGeometryCoordinates(iri: String, coordinates: List[Json]): Geometry = {
+  def decodeGeometryCoordinates(iri: String, coordinates: List[Json]): Geometry =
     iri match {
       case "Point"           => decodePoint(coordinates)
       case "MultiPoint"      => decodeMultiPoint(coordinates)
@@ -121,119 +115,107 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       case "MultiPolygon"    => decodeMultiPolygon(coordinates)
       case _                 => throw FromJsonException(s"not a valid geojson Geometry $iri")
     }
-  }
 
-  def decodeCoordinates(map: Map[String, Json]): List[Json] = {
+  def decodeCoordinates(map: Map[String, Json]): List[Json] =
     map
       .get("coordinates")
       .map(decoder.jsonToList(_).getOrElse(throw new Exception("coordinates is expected to be an array")))
       .getOrElse(throw new Exception("geometry without coordinates is invalid"))
-  }
 
-  def jsonToPoint(json: Json): Option[Point] = {
+  def jsonToPoint(json: Json): Option[Point] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "Point" => decodePoint(decodeCoordinates(map))
       })
-  }
-  def decodePoint(coordinates: List[Json]): Point = {
+  def decodePoint(coordinates: List[Json]): Point =
     coordinates match {
       case List(x, y) =>
         (decoder.jsonToDouble(x) -> decoder.jsonToDouble(y)) match {
           case (Some(x), Some(y)) => Point(x, y)
-          case _                  => throw FromJsonException(s"not a valid geojson Point ${coordinates}")
+          case _                  => throw FromJsonException(s"not a valid geojson Point $coordinates")
         }
-      case _ => throw FromJsonException(s"not a valid geojson Point ${coordinates}")
+      case _ => throw FromJsonException(s"not a valid geojson Point $coordinates")
     }
-  }
 
-  def jsonToMultiPoint(json: Json): Option[MultiPoint] = {
+  def jsonToMultiPoint(json: Json): Option[MultiPoint] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiPoint" => decodeMultiPoint(decodeCoordinates(map))
       })
-  }
   def decodeMultiPoint(coordinates: List[Json]): MultiPoint =
     MultiPoint(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodePoint(coordinates)
-      case _                 => throw FromJsonException(s"not a valid geojson MultiPoint ${coordinates}")
+      case _                 => throw FromJsonException(s"not a valid geojson MultiPoint $coordinates")
     }: _*)
 
-  def jsonToLine(json: Json): Option[Line] = {
+  def jsonToLine(json: Json): Option[Line] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "LineString" => decodeLine(decodeCoordinates(map))
       })
-  }
-  def decodeLine(coordinates: List[Json]): Line = {
+  def decodeLine(coordinates: List[Json]): Line =
     Line(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodePoint(coordinates)
-      case _                 => throw FromJsonException(s"not a valid geojson Line ${coordinates}")
+      case _                 => throw FromJsonException(s"not a valid geojson Line $coordinates")
     }: _*)
-  }
 
-  def jsonToMultiLine(json: Json): Option[MultiLine] = {
+  def jsonToMultiLine(json: Json): Option[MultiLine] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiLineString" => decodeMultiLine(decodeCoordinates(map))
       })
-  }
   def decodeMultiLine(coordinates: List[Json]): MultiLine =
     MultiLine(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodeLine(coordinates)
-      case _                 => throw FromJsonException(s"not a valid geojson MultiLine ${coordinates}")
+      case _                 => throw FromJsonException(s"not a valid geojson MultiLine $coordinates")
     }: _*)
 
-  def jsonToPolygon(json: Json): Option[Polygon] = {
+  def jsonToPolygon(json: Json): Option[Polygon] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "Polygon" => decodePolygon(decodeCoordinates(map))
       })
-  }
   //TODO: array of polygons (donuts)
-  def decodePolygon(coordinates: List[Json]): Polygon = {
+  def decodePolygon(coordinates: List[Json]): Polygon =
     Polygon(coordinates.map(decoder.jsonToList).flatMap {
       case Some(coordinates) =>
         coordinates.headOption.map(decoder.jsonToList).map {
           case Some(coordinates) => decodePoint(coordinates)
-          case _                 => throw FromJsonException(s"not a valid geojson Polygon ${coordinates}")
+          case _                 => throw FromJsonException(s"not a valid geojson Polygon $coordinates")
         }
-      case _ => throw FromJsonException(s"not a valid geojson Polygon ${coordinates}")
+      case _ => throw FromJsonException(s"not a valid geojson Polygon $coordinates")
     }: _*)
-  }
 
-  def jsonToMultiPolygon(json: Json): Option[MultiPolygon] = {
+  def jsonToMultiPolygon(json: Json): Option[MultiPolygon] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiPolygon" => decodeMultiPolygon(decodeCoordinates(map))
       })
-  }
   def decodeMultiPolygon(coordinates: List[Json]): MultiPolygon =
     MultiPolygon(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodePolygon(coordinates)
       case _                 => throw FromJsonException("not a valid geojson MultiPolygon")
     }: _*)
 
-  def jsonToMultiGeometry(json: Json): Option[MultiGeometry] = {
+  def jsonToMultiGeometry(json: Json): Option[MultiGeometry] =
     decoder
       .jsonToMap(json)
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "GeometryCollection" => decodeGeometryCollection(map)
       })
-  }
   def decodeGeometryCollection(map: Map[String, Json]): MultiGeometry =
     map.get("geometries") match {
       case Some(json) =>

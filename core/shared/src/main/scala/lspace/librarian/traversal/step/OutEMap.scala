@@ -10,7 +10,7 @@ object OutEMap extends StepDef("OutEMap", "An outEMap-step ..", MoveStep.ontolog
 
   def toStep(node: Node): Task[OutEMap] =
     for {
-      properties <- Task.gatherUnordered(
+      properties <- Task.parSequenceUnordered(
         node
           .outE(MoveStep.keys.label)
           .map(_.to.iri)
@@ -26,7 +26,7 @@ object OutEMap extends StepDef("OutEMap", "An outEMap-step ..", MoveStep.ontolog
   implicit def toNode(step: OutEMap): Task[Node] = {
     for {
       node <- DetachedGraph.nodes.create(ontology)
-      _    <- Task.gather(step.label.map(label => node.addOut(MoveStep.keys.label, label)))
+      _    <- Task.parSequence(step.label.map(label => node.addOut(MoveStep.keys.label, label)))
     } yield node
   }.memoizeOnSuccess
 
