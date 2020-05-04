@@ -3,7 +3,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
   val finch      = "0.32.1"
-  val monix      = "3.2.0"
+  val monix      = "3.2.1"
   val sttpClient = "2.1.0-RC1"
   val sttpCore   = "2.1.1"
   val sttpTapir  = "0.14.3"
