@@ -46,7 +46,7 @@ object Dependencies {
     "com.softwaremill.sttp.client" %% "async-http-client-backend-monix" % Version.sttpCore
   )
 
-  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.5"))
+  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.0"))
 
   val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.13.0"))
 
