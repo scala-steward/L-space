@@ -1,9 +1,11 @@
 package lspace.codec.circe
 
+import lspace.client.io.HttpClientAsyncHttp
 import lspace.codec.json.jsonld
 import lspace.structure.Graph
 
-class JsonLDDecoderSpec extends jsonld.JsonLDDecoderSpec(jsonld.Decoder(Graph("DecoderSpec"))) {
+class JsonLDDecoderSpec
+    extends jsonld.JsonLDDecoderSpec(jsonld.Decoder(Graph("DecoderSpec"))(nativeDecoder, HttpClientAsyncHttp)) {
 
   try {
     lspace.parse.test

@@ -6,6 +6,7 @@ import lspace.librarian.task.{AsyncGuide, AsyncGuideSpec, Guide}
 import lspace.structure._
 import monix.eval.Task
 import org.scalatest.FutureOutcome
+import scribe.Level
 
 class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec {
   implicit val guide = lspace.Implicits.AsyncGuide.guide
@@ -14,6 +15,9 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
 
   implicit val baseEncoder = lspace.codec.argonaut.nativeEncoder
   implicit val baseDecoder = lspace.codec.argonaut.nativeDecoder
+  implicit val httpClient  = lspace.client.io.HttpClientAsyncHttp
+
+  scribe.Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Warn)).replace()
 
   def createGraph(iri: String): Graph = {
     val storage = FileStoreProvider(iri, "_data/" + iri)
@@ -23,7 +27,7 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
   lazy val initTask = (for {
     _ <- Task {
       val directory = new java.io.File("_data")
-      def deleteAll(file: java.io.File): Unit = {
+      def deleteAll(file: java.io.File): Unit =
         try {
           if (file.exists()) {
             if (file.isDirectory && file.listFiles().toList.nonEmpty)
@@ -38,7 +42,6 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
         } catch {
           case e: Throwable => scribe.warn(e.getMessage)
         }
-      }
       deleteAll(directory)
     }
     _ <- sampleGraph.load
@@ -59,11 +62,10 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
   lazy val graphToPersist       = SampledGraph(createGraph("FileStoreManagerSpec-persisted-sample"))
   lazy val samplePersistedGraph = SampledGraph(createGraph("FileStoreManagerSpec-persisted-sample"))
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
   "FileStoreManager" when {
     "new" should {

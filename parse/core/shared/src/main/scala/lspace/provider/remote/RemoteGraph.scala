@@ -3,6 +3,7 @@ package lspace.provider.remote
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
+import lspace.client.io.HttpClient
 import lspace.datatype.DataType
 import lspace.librarian.task.Guide
 import lspace.librarian.traversal.{Collection, Traversal}
@@ -17,26 +18,26 @@ import sttp.model._
 import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.codec.json.jsonld.{JsonLDDecoder, JsonLDEncoder}
 import lspace.codec.ActiveContext
-import lspace.parse.util.HttpClient
 import monix.reactive.Observable
 
 object RemoteGraph {
   def apply[F[_], Json](iri: String, host: String, port: Int, path: List[String] = List())(
       implicit baseEncoder: JsonEncoder[Json],
-      baseDecoder: JsonDecoder[Json]): RemoteGraph[Json] =
-    new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder) {}
+      baseDecoder: JsonDecoder[Json],
+      httpClient: HttpClient): RemoteGraph[Json] =
+    new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder, httpClient) {}
 }
 //TODO: add session/credential config
 abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String])(
     implicit baseEncoder: JsonEncoder[Json],
-    baseDecoder: JsonDecoder[Json])
+    baseDecoder: JsonDecoder[Json],
+    httpClient: HttpClient)
     extends Graph {
 
-  implicit val httpClient = lspace.parse.util.HttpClientImpl
-  val cache: Graph        = Graph.apply(iri)
+  val cache: Graph = Graph.apply(iri)
 
   val encoder: JsonLDEncoder[Json] = JsonLDEncoder(baseEncoder)
-  val decoder: JsonLDDecoder[Json] = JsonLDDecoder(cache)(baseDecoder)
+  val decoder: JsonLDDecoder[Json] = JsonLDDecoder(cache)(baseDecoder, httpClient)
 
   val serviceUri = uri"$host:$port/$path"
 
@@ -62,8 +63,7 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
       traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
       guide: Guide[F]): F[Any] = executeTraversal(traversal).asInstanceOf[F[Any]]
   protected[lspace] def executeTraversal[F[_]](
-      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Observable[Any] = {
-
+      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Observable[Any] =
     Observable
       .fromTask(for {
         node <- traversal.toNode
@@ -95,7 +95,5 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
       .flatten
 
 //    guide.buildTraversal[Any](traversal)(this)
-
-  }
 
 }

@@ -4,6 +4,7 @@ import java.io.PrintWriter
 import java.time.{Instant, LocalDate, LocalTime}
 
 import cats.effect.{Resource => CResource}
+import lspace.client.io.HttpClient
 import lspace.codec._
 import lspace.codec.exception.FromJsonException
 import lspace.codec.json.{JsonDecoder, JsonEncoder}
@@ -21,7 +22,8 @@ import scala.io.BufferedSource
 object FileStoreManager {
 
   def apply[G <: LGraph, Json](graph: G, path: String)(implicit encoder: JsonEncoder[Json],
-                                                       decoder: JsonDecoder[Json]) =
+                                                       decoder: JsonDecoder[Json],
+                                                       httpClient: HttpClient) =
     new FileStoreManager(graph, path) {}
 
   implicit val ec = monix.execution.Scheduler.io("filestore-io")
@@ -34,7 +36,8 @@ object FileStoreManager {
   * @tparam G
   */
 class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(implicit baseEncoder: JsonEncoder[Json],
-                                                                               baseDecoder: JsonDecoder[Json])
+                                                                               baseDecoder: JsonDecoder[Json],
+                                                                               httpClient: HttpClient)
     extends StoreManager(graph) {
 
   val encoder: EncodeLDFS[Json] = EncodeLDFS()
@@ -351,7 +354,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
 
   private def readLiteralEdges(idMaps: IdMaps): Task[IdMaps] = {
     scribe.info(s"read literals edges ${graph.iri}")
-    val decoder = DecodeLDFS(graph, idMaps)(baseDecoder)
+    val decoder = DecodeLDFS(graph, idMaps)(baseDecoder, httpClient)
     graphfiles.read.context.literalEdges
       .use(parseContext)
       .flatMap { implicit context =>
@@ -486,7 +489,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
 
   private def readStructuredEdges(idMaps: IdMaps): Task[IdMaps] = {
     scribe.info(s"read structures edges ${graph.iri}")
-    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)(baseDecoder)
+    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)(baseDecoder, httpClient)
     graphfiles.read.context.structuredEdges
       .use(parseContext)
       .flatMap { implicit context =>
@@ -634,7 +637,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
 
   private def readStructures(idMaps: IdMaps): Task[IdMaps] = {
     scribe.info(s"read structures ${graph.iri}")
-    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)(baseDecoder)
+    val decoder: DecodeLDFS[Json] = DecodeLDFS(graph, idMaps)(baseDecoder, httpClient)
     graphfiles.read.context.structures
       .use(parseContext)
       .flatMap { implicit context =>

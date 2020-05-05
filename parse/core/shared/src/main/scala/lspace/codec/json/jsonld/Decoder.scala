@@ -5,12 +5,12 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.Label
 import lspace.Label.D._
 import lspace.NS.types
+import lspace.client.io.HttpClient
 import lspace.codec._
 import lspace.codec.exception.{FromJsonException, NotAClassNorProperty, NotAcceptableException, UnexpectedJsonException}
 import lspace.codec.json.JsonDecoder
 import lspace.codec.json.geojson.GeoJsonDecoder
 import lspace.datatype._
-import lspace.parse.util.HttpClient
 import lspace.structure._
 import lspace.types.string.{Blank, Iri}
 import monix.eval.Task
@@ -24,14 +24,15 @@ import scala.util.Try
 
 object Decoder {
 //  type Aux[Json0] = Decoder { type Json = Json0 }
-
+  type HKW[T]
   def apply[Json](graph0: Lspace)(implicit
-                                  baseDecoder0: JsonDecoder[Json]): Decoder[Json] =
-    new Decoder()(baseDecoder0) {
+                                  baseDecoder0: JsonDecoder[Json],
+                                  httpClient0: HttpClient): Decoder[Json] =
+    new Decoder()(baseDecoder0, httpClient0) {
 //      type Json = Json0
       val graph: Graph = graph0
 //      implicit def baseDecoder: JsonDecoder = baseDecoder0
-      lazy val nsDecoder = new Decoder()(baseDecoder0) {
+      lazy val nsDecoder = new Decoder()(baseDecoder0, httpClient0) {
 //        type Json = Json0
         val graph: Graph = graph0.ns
 //        implicit def baseDecoder: JsonDecoder = baseDecoder0
@@ -40,7 +41,8 @@ object Decoder {
     }
 }
 
-abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extends lspace.codec.Decoder {
+abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val httpClient: HttpClient)
+    extends lspace.codec.Decoder {
   def graph: Graph
   def nsDecoder: Decoder[Json]
 //  type Json = baseDecoder.Json
@@ -56,7 +58,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
   protected lazy val blankValues: concurrent.Map[String, Task[Value[_]]] =
     new ConcurrentHashMap[String, Task[Value[_]]](16, 0.9f, 32).asScala
 
-  def apply(graph0: Lspace): Decoder[Json] = Decoder.apply(graph0)(baseDecoder)
+  def apply(graph0: Lspace): Decoder[Json] = Decoder.apply(graph0)(baseDecoder, httpClient)
 
 //  implicit def decoder: Decoder = this
   def parse(string: String): Task[Json] = baseDecoder.parse(string)
@@ -1699,7 +1701,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json]) extend
   protected lazy val fetchingInProgress: concurrent.Map[String, Task[Json]] =
     new ConcurrentHashMap[String, Task[Json]](16, 0.9f, 32).asScala
 
-  val httpClient = lspace.parse.util.HttpClientImpl
+//  val httpClient = lspace.parse.util.HttpClientImpl
   def fetch(iri: String): Task[Json] = //TODO: create unique task, goal: do not fetch the same resource multiple times in parallel
     fetchingInProgress.getOrElseUpdate(
       iri, {

@@ -1,6 +1,7 @@
 package lspace.lgraph.provider.file
 
 import lspace.NS.types
+import lspace.client.io.HttpClient
 import lspace.codec.{ActiveContext, ExpandedMap}
 import lspace.codec.exception.FromJsonException
 import lspace.codec.json.JsonDecoder
@@ -9,17 +10,19 @@ import lspace.structure._
 import monix.eval.Task
 
 case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps())(
-    implicit override val baseDecoder: JsonDecoder[Json])
+    implicit
+    override val baseDecoder: JsonDecoder[Json],
+    httpClient: HttpClient)
     extends Decoder {
   import baseDecoder._
 
   override def apply(graph0: Lspace): lspace.codec.json.jsonld.Decoder[Json] =
-    DecodeLDFS.apply(graph0, idMaps)(baseDecoder)
+    DecodeLDFS.apply(graph0, idMaps)(baseDecoder, httpClient)
 
   lazy val nsDecoder = {
     def graph0       = graph
     def baseDecoder0 = baseDecoder
-    new Decoder()(baseDecoder) {
+    new Decoder()(baseDecoder, httpClient) {
       val graph: Graph = graph0.ns
 //      implicit def baseDecoder: JsonDecoder[Json] = baseDecoder0
       lazy val nsDecoder = this
@@ -40,7 +43,7 @@ case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps()
       )
 
   override def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
-      implicit activeContext: ActiveContext): Task[Node] = {
+      implicit activeContext: ActiveContext): Task[Node] =
     expandedJson
       .get(types.`@id`)
       .flatMap(json =>
@@ -64,7 +67,6 @@ case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps()
       }
       .getOrElse(Task.raiseError(FromJsonException(s"@id is expected to be a long in ld+json+fs ${expandedJson
         .get(types.`@id`)}")))
-  }
 
   override def tryEdgeRef(json: Json, label: Property)(
       implicit activeContext: ActiveContext): Option[Task[Edge[_, _]]] =
