@@ -82,9 +82,11 @@ object Dependencies {
   )
 
   val servicesDeps = Seq(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"             % Version.sttpTapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.sttpTapir,
-    "com.vmunier"                 %% "scalajs-scripts"        % "1.1.4",
+    "com.softwaremill.sttp.tapir" %% "tapir-core"               % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server"   % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"       % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.sttpTapir,
+    "com.vmunier"                 %% "scalajs-scripts"          % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi" %% "scalatags" % "0.9.0" //TODO: replace with Laminar
 //    "com.raquo" %% "domtypes"   % "0.9.5",

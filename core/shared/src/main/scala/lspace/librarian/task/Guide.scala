@@ -43,7 +43,7 @@ abstract class Guide[F[_]: Functor] {
 
   def executeTraversal[Out](
       traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Graph => F[Out] = { graph =>
-    graph.executeTraversal(traversal, this).asInstanceOf[F[Out]]
+    graph.traverse(traversal, this).asInstanceOf[F[Out]]
   }
 
 //  implicit class WithF[A](list: F[A]) {
@@ -82,7 +82,7 @@ abstract class Guide[F[_]: Functor] {
   def buildNextStep(steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]]
 
   def traversalToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
-      implicit graph: Graph): Librarian[Any] => F[Librarian[Any]] = {
+      implicit graph: Graph): Librarian[Any] => F[Librarian[Any]] =
     traversal.stepsList match {
       case Nil =>
         librarian: Librarian[Any] =>
@@ -92,10 +92,9 @@ abstract class Guide[F[_]: Functor] {
         librarian: Librarian[Any] =>
           nextStep(createF(librarian))
     }
-  }
 
   def traversalsToF(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList])(
-      implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]] = {
+      implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]] =
     traversal.stepsList match {
       case Nil =>
         librarians: F[Librarian[Any]] =>
@@ -105,7 +104,6 @@ abstract class Guide[F[_]: Functor] {
         librarians: F[Librarian[Any]] =>
           nextStep(librarians)
     }
-  }
 
   def reducedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
     if (EndMapper.EndMapper0.ReducedEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>

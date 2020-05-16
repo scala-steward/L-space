@@ -152,7 +152,7 @@ trait Graph extends IriResource with GraphUtils { self =>
   def values: Values               = _values
 
   protected[lspace] def newNode(id: Long): GNode
-  protected[lspace] def getOrCreateNode(id: Long): Task[GNode] = {
+  protected[lspace] def getOrCreateNode(id: Long): Task[GNode] =
     nodeStore
       .hasId(id)
       .flatMap(_.map(Task.now).getOrElse {
@@ -161,7 +161,6 @@ trait Graph extends IriResource with GraphUtils { self =>
           u    <- storeNode(node)
         } yield node
       })
-  }
   final def +(label: Ontology): Task[Node]         = nodes.create(label)
   protected def storeNode(node: _Node): Task[Unit] = nodeStore.store(node)
 
@@ -170,9 +169,8 @@ trait Graph extends IriResource with GraphUtils { self =>
   protected[lspace] def createEdge[S, E](id: Long,
                                          from: _Resource[S],
                                          key: Property,
-                                         to: _Resource[E]): Task[GEdge[S, E]] = {
+                                         to: _Resource[E]): Task[GEdge[S, E]] =
 //    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
-
     for {
       _ <- (if (Property.properties.default.byIri.get(key.iri).isEmpty)
               ns.properties.store(key)
@@ -190,19 +188,17 @@ trait Graph extends IriResource with GraphUtils { self =>
         } else Task.unit
       }
     } yield edge
-  }
 
   protected def storeEdge(edge: _Edge[_, _]): Task[Unit] = edgeStore.store(edge)
 
   protected[lspace] def newValue[T](id: Long, value: T, label: DataType[T]): GValue[T]
-  protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
+  protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] =
 //    if (ns.datatypes.get(dt.iri).isEmpty) ns.datatypes.store(dt)
 //    ns.datatypes.store(dt).runToFuture(monix.execution.Scheduler.global)
     for {
       _value <- Task.now(newValue(id, value, dt))
       u      <- storeValue(_value.asInstanceOf[_Value[_]])
     } yield _value
-  }
 
   protected def storeValue(value: _Value[_]): Task[Unit] = valueStore.store(value)
 
@@ -210,34 +206,31 @@ trait Graph extends IriResource with GraphUtils { self =>
     * deletes the Node from the graph
     * @param node
     */
-  protected[lspace] def deleteNode(node: _Node): Task[Unit] = {
+  protected[lspace] def deleteNode(node: _Node): Task[Unit] =
     for {
       _ <- deleteResource(node)
       _ <- nodeStore.delete(node)
     } yield ()
-  }
 
   /**
     * deletes the Edge from the graph
     * @param edge
     */
-  protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] = {
+  protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =
     for {
       _ <- deleteResource(edge)
       _ <- edgeStore.delete(edge)
     } yield ()
-  }
 
   /**
     * deletes the Value from the graph
     * @param value
     */
-  protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] = {
+  protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] =
     for {
       _ <- deleteResource(value)
       _ <- valueStore.delete(value)
     } yield ()
-  }
 
   /**
     * TODO: rename to _deleteProperties/_deleteEdges?
@@ -286,7 +279,7 @@ trait Graph extends IriResource with GraphUtils { self =>
             new ConcurrentHashMap[Long, Edge[_, _]]().asScala
           val edgesToRetry: scala.collection.concurrent.Map[Long, Edge[_, _]] =
             new ConcurrentHashMap[Long, Edge[_, _]]().asScala
-          def retryEdges(): Task[Boolean] = {
+          def retryEdges(): Task[Boolean] =
             Observable
               .fromIterable(edgesToRetry.values)
               .mapEval { edge =>
@@ -301,8 +294,7 @@ trait Graph extends IriResource with GraphUtils { self =>
               .map { f =>
                 edgesToRetry.isEmpty
               }
-          }
-          def mergeEdge(edge: Edge[_, _]): Task[Unit] = {
+          def mergeEdge(edge: Edge[_, _]): Task[Unit] =
             (for {
               from <- Try(edge.from match {
                 case (resource: Node) =>
@@ -336,7 +328,6 @@ trait Graph extends IriResource with GraphUtils { self =>
                   new Exception("could not merge yet")
                 }
               }
-          }
           for {
             edges <- graph
               .edges()
@@ -370,9 +361,8 @@ trait Graph extends IriResource with GraphUtils { self =>
                                                 mapper: ResultMapper[F, ET[End], OutCT]): mapper.FT =
     mapper.apply(traversal, this).asInstanceOf[mapper.FT]
 
-  protected[lspace] def executeTraversal[F[_]](
-      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
-      guide: Guide[F]): F[Any] = guide.buildTraversal[Any](traversal)(this)
+  protected[lspace] def traverse[F[_]](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+                                       guide: Guide[F]): F[Any] = guide.buildTraversal[Any](traversal)(this)
 
   def persist: Task[Unit] = Task.unit
 
