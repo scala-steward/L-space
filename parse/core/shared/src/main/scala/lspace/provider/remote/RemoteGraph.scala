@@ -59,7 +59,7 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
 
   override def init: Task[Unit] = ???
 
-  override protected[lspace] def executeTraversal[F[_]](
+  override protected[lspace] def traverse[F[_]](
       traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
       guide: Guide[F]): F[Any] = executeTraversal(traversal).asInstanceOf[F[Any]]
   protected[lspace] def executeTraversal[F[_]](
