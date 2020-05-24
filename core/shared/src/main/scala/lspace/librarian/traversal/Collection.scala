@@ -3,6 +3,7 @@ package lspace.librarian.traversal
 import java.time.Instant
 
 import lspace.datatype.{DataType, ListType}
+import lspace.librarian.traversal.step.Step
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.{OntologyDef, _}
 import monix.eval.Task

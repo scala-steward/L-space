@@ -4,33 +4,9 @@ import java.time.Instant
 
 import cats.Functor
 import cats.implicits._
-import lspace.librarian.logic.Assistent
 import lspace.librarian.traversal.step._
 import lspace.librarian.traversal.util.EndMapper
-import lspace.librarian.traversal.{
-  BarrierStep,
-  BranchStep,
-  ClipStep,
-  EnvironmentStep,
-  FilterBarrierStep,
-  FilterStep,
-  GraphStep,
-  GroupingBarrierStep,
-  Librarian,
-  MapStep,
-  MoveStep,
-  ProjectionStep,
-  RearrangeBarrierStep,
-  RearrangeStep,
-  ReducingBarrierStep,
-  ReducingStep,
-  ResourceStep,
-  Step,
-  Traversal,
-  TraversalPath,
-  TraverseStep,
-  UntypedTraversal
-}
+import lspace.librarian.traversal.{Librarian, Traversal, TraversalPath}
 import lspace.structure.{ClassType, Graph, Resource}
 import shapeless.HList
 

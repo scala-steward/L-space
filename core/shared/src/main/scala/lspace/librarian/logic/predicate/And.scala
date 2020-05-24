@@ -41,7 +41,7 @@ object And extends PredicateDef("And") with PredicateWrapper[And] {
   }
 }
 case class And(predicate: List[P[Any]]) extends P[Any] {
-  def _pvalue: Any = predicate.map(_._pvalue)
+  protected[logic] def _pvalue: Any = predicate.map(_._pvalue)
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"and(${predicate.map(_.prettyPrint).mkString(", ")})"

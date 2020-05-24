@@ -67,11 +67,11 @@ object Graph {
       def ct: CT = GraphType[T]
     }
 
-  lspace.librarian.traversal.Step.steps
+  lspace.librarian.traversal.step.Step.steps
     .map(_.ontology)
   lspace.librarian.logic.predicate.P.predicates
     .map(_.ontology)
-  lspace.librarian.traversal.Step.steps
+  lspace.librarian.traversal.step.Step.steps
     .map(_.properties)
   lspace.librarian.logic.predicate.P.predicates
     .map(_.properties)

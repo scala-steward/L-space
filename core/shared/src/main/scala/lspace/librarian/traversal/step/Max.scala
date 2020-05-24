@@ -3,7 +3,6 @@ package lspace.librarian.traversal.step
 import lspace.datatype._
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
-import lspace.provider.mem.MemResource
 import lspace.structure._
 import monix.eval.Task
 import shapeless.{HList, HNil}

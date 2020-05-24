@@ -1,7 +1,8 @@
 package lspace.structure
 
 import lspace.datatype.DataType
-import lspace.librarian.traversal.{Step, Traversal}
+import lspace.librarian.traversal.Traversal
+import lspace.librarian.traversal.step.Step
 import lspace.structure.index.Indexes
 import lspace.structure.util.IdProvider
 import monix.eval.Task

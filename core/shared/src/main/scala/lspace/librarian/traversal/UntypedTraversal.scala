@@ -2,6 +2,7 @@ package lspace.librarian.traversal
 
 import lspace.datatype.ListType
 import lspace.librarian.task.Guide
+import lspace.librarian.traversal.step.Step
 import lspace.librarian.traversal.util.ResultMapper
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.{ClassType, Graph, Node}

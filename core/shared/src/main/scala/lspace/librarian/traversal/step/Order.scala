@@ -1,9 +1,8 @@
 package lspace.librarian.traversal.step
 
-import lspace.datatype._
+import lspace.datatype.{DataType, _}
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
-import lspace.datatype.DataType
 import lspace.structure._
 import monix.eval.Task
 import shapeless.{HList, HNil}

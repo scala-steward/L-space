@@ -1,12 +1,11 @@
 package lspace.librarian.traversal.step
 
+import lspace.NS.types
 import lspace.datatype.{DataType, ListType}
-import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
-import lspace.NS.types
 import monix.eval.Task
-import shapeless.{HList, Poly1}
+import shapeless.HList
 
 object Select
     extends StepDef("Select",

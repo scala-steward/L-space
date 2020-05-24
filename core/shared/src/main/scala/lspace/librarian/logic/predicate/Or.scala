@@ -40,7 +40,7 @@ object Or extends PredicateDef("Or") with PredicateWrapper[Or] {
 }
 
 case class Or(predicate: List[P[_]]) extends P[Any] {
-  def _pvalue: Any = predicate.map(_._pvalue)
+  protected[logic] def _pvalue: Any = predicate.map(_._pvalue)
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = s"or(${predicate.map(_.prettyPrint).mkString(", ")})"

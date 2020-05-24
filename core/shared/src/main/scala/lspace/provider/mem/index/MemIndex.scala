@@ -1,8 +1,8 @@
 package lspace.provider.mem.index
 
 import lspace.librarian.logic.predicate.P
-import lspace.librarian.traversal.step.{Has, HasLabel, Out}
-import lspace.librarian.traversal.{Step, UntypedTraversal}
+import lspace.librarian.traversal.UntypedTraversal
+import lspace.librarian.traversal.step.{Has, HasLabel, Out, Step}
 import lspace.structure.Property
 import lspace.structure.index.Index
 import lspace.structure.index.shape.Shape
