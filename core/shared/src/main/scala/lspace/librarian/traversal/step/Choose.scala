@@ -1,7 +1,7 @@
 package lspace.librarian.traversal.step
 
 import lspace.NS.types
-import lspace.librarian.traversal.{BranchStep, StepDef, StepWrapper, Traversal, TypedKey}
+import lspace.librarian.traversal.{Traversal, TypedKey}
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task

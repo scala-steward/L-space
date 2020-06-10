@@ -3,7 +3,6 @@ package lspace.codec.graphql
 import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty}
 import lspace.graphql.{GraphQL, Projection, Query}
-import lspace.librarian.traversal.{Step, UntypedTraversal}
 
 import scala.annotation.tailrec
 

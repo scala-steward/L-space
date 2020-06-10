@@ -2,10 +2,9 @@ package lspace.librarian.traversal.step
 
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
-import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
 import monix.eval.Task
-import shapeless.{HList, HNil}
+import shapeless.HList
 
 object Not extends StepDef("Not", "A not-step ..", FilterStep.ontology :: Nil) with StepWrapper[Not] {
 

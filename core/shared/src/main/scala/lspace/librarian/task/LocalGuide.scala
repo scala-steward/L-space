@@ -2,7 +2,7 @@ package lspace.librarian.task
 
 import cats.Functor
 import lspace.librarian.logic.Assistent
-import lspace.librarian.traversal.step.{Count, Project, TimeLimit}
+import lspace.librarian.traversal.step._
 import lspace.librarian.traversal._
 import lspace.structure.Graph
 import shapeless.HList

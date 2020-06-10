@@ -4,7 +4,7 @@ import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
-import shapeless.{HList, HNil}
+import shapeless.HList
 
 object Group
     extends StepDef("Group", "A group-step groups traversers.", GroupingBarrierStep.ontology :: Nil)

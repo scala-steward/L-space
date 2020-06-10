@@ -6,8 +6,8 @@ import lspace.Label
 import lspace.structure.Property.default
 import monix.eval.Task
 
-import scala.collection.{concurrent, mutable}
 import scala.collection.JavaConverters._
+import scala.collection.concurrent
 
 abstract class Properties(val graph: NameSpaceGraph) {
   import graph._
@@ -137,14 +137,14 @@ abstract class Properties(val graph: NameSpaceGraph) {
                     case (language, label) =>
                       for {
                         label <- node.addOut(Property.default.`@label`, label)
-                        lang  <- label.addOut(Property.default.`@language`, language)
+                        _     <- label.addOut(Property.default.`@language`, language)
                       } yield label
                   })
                   comments <- Task.parSequence(property.comment().map {
                     case (language, comment) =>
                       for {
                         comment <- node.addOut(Property.default.`@comment`, comment)
-                        lang    <- comment.addOut(Property.default.`@language`, language)
+                        _       <- comment.addOut(Property.default.`@language`, language)
                       } yield comment
                   })
                 } yield {

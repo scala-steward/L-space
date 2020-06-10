@@ -1,12 +1,11 @@
 package lspace.librarian.traversal.step
 
+import lspace.datatype.ListType
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
-import lspace.NS.types
-import lspace.datatype.ListType
 import monix.eval.Task
-import shapeless.{HList, HNil}
+import shapeless.HList
 
 object Union
     extends StepDef("Union", "A union-step ..", BranchStep.ontology :: Nil)

@@ -1,7 +1,7 @@
-package lspace.librarian.traversal //FIX: move to lspace.librarian.traversal.step
+package lspace.librarian.traversal.step
 
 import lspace.datatype.{DataType, DataTypeDef}
-import lspace.librarian.traversal.step._
+import lspace.librarian.traversal.TypedKey
 import lspace.structure._
 import lspace.structure.OntologyDef
 import lspace.structure.PropertyDef
@@ -13,63 +13,63 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
     case step: Step => Task.now(step)
     case _ =>
       node.labels match {
-        case list if list.contains(step.G.ontology)         => G.toStep(node)
-        case list if list.contains(step.N.ontology)         => N.toStep(node)
-        case list if list.contains(step.V.ontology)         => V.toStep(node)
-        case list if list.contains(step.R.ontology)         => R.toStep(node)
-        case list if list.contains(step.E.ontology)         => E.toStep(node)
-        case list if list.contains(step.Drop.ontology)      => Drop.toStep(node)
-        case list if list.contains(step.Dedup.ontology)     => Dedup.toStep(node)
-        case list if list.contains(step.Out.ontology)       => Out.toStep(node)
-        case list if list.contains(step.OutMap.ontology)    => OutMap.toStep(node)
-        case list if list.contains(step.OutE.ontology)      => OutE.toStep(node)
-        case list if list.contains(step.From.ontology)      => From.toStep(node)
-        case list if list.contains(step.OutEMap.ontology)   => OutEMap.toStep(node)
-        case list if list.contains(step.Group.ontology)     => Group.toStep(node)
-        case list if list.contains(step.Path.ontology)      => Path.toStep(node)
-        case list if list.contains(step.Id.ontology)        => Id.toStep(node)
-        case list if list.contains(step.In.ontology)        => In.toStep(node)
-        case list if list.contains(step.InMap.ontology)     => InMap.toStep(node)
-        case list if list.contains(step.InE.ontology)       => InE.toStep(node)
-        case list if list.contains(step.To.ontology)        => To.toStep(node)
-        case list if list.contains(step.InEMap.ontology)    => InEMap.toStep(node)
-        case list if list.contains(step.Has.ontology)       => Has.toStep(node)
-        case list if list.contains(step.HasNot.ontology)    => HasNot.toStep(node)
-        case list if list.contains(step.HasId.ontology)     => HasId.toStep(node)
-        case list if list.contains(step.HasIri.ontology)    => HasIri.toStep(node)
-        case list if list.contains(step.HasLabel.ontology)  => HasLabel.toStep(node)
-        case list if list.contains(step.HasValue.ontology)  => HasValue.toStep(node)
-        case list if list.contains(step.Coin.ontology)      => Coin.toStep(node)
-        case list if list.contains(step.Constant.ontology)  => Constant.toStep(node)
-        case list if list.contains(step.As.ontology)        => As.toStep(node)
-        case list if list.contains(step.Repeat.ontology)    => Repeat.toStep(node)
-        case list if list.contains(step.Select.ontology)    => Select.toStep(node)
-        case list if list.contains(step.Project.ontology)   => Project.toStep(node)
-        case list if list.contains(step.Where.ontology)     => Where.toStep(node)
-        case list if list.contains(step.And.ontology)       => And.toStep(node)
-        case list if list.contains(step.Or.ontology)        => Or.toStep(node)
-        case list if list.contains(step.Not.ontology)       => Not.toStep(node)
-        case list if list.contains(step.Union.ontology)     => Union.toStep(node)
-        case list if list.contains(step.Choose.ontology)    => Choose.toStep(node)
-        case list if list.contains(step.Coalesce.ontology)  => Coalesce.toStep(node)
-        case list if list.contains(step.Local.ontology)     => Local.toStep(node)
-        case list if list.contains(step.Range.ontology)     => Range.toStep(node)
-        case list if list.contains(step.Label.ontology)     => Label.toStep(node)
-        case list if list.contains(step.Head.ontology)      => Head.toStep(node)
-        case list if list.contains(step.Last.ontology)      => Last.toStep(node)
-        case list if list.contains(step.Limit.ontology)     => Limit.toStep(node)
-        case list if list.contains(step.Skip.ontology)      => Skip.toStep(node)
-        case list if list.contains(step.Tail.ontology)      => Tail.toStep(node)
-        case list if list.contains(step.Order.ontology)     => Order.toStep(node)
-        case list if list.contains(step.Count.ontology)     => Count.toStep(node)
-        case list if list.contains(step.Is.ontology)        => Is.toStep(node)
-        case list if list.contains(step.Sum.ontology)       => Sum.toStep(node)
-        case list if list.contains(step.Max.ontology)       => Max.toStep(node)
-        case list if list.contains(step.Min.ontology)       => Min.toStep(node)
-        case list if list.contains(step.Mean.ontology)      => Mean.toStep(node)
-        case list if list.contains(step.TimeLimit.ontology) => TimeLimit.toStep(node)
+        case list if list.contains(G.ontology)         => G.toStep(node)
+        case list if list.contains(N.ontology)         => N.toStep(node)
+        case list if list.contains(V.ontology)         => V.toStep(node)
+        case list if list.contains(R.ontology)         => R.toStep(node)
+        case list if list.contains(E.ontology)         => E.toStep(node)
+        case list if list.contains(Drop.ontology)      => Drop.toStep(node)
+        case list if list.contains(Dedup.ontology)     => Dedup.toStep(node)
+        case list if list.contains(Out.ontology)       => Out.toStep(node)
+        case list if list.contains(OutMap.ontology)    => OutMap.toStep(node)
+        case list if list.contains(OutE.ontology)      => OutE.toStep(node)
+        case list if list.contains(From.ontology)      => From.toStep(node)
+        case list if list.contains(OutEMap.ontology)   => OutEMap.toStep(node)
+        case list if list.contains(Group.ontology)     => Group.toStep(node)
+        case list if list.contains(Path.ontology)      => Path.toStep(node)
+        case list if list.contains(Id.ontology)        => Id.toStep(node)
+        case list if list.contains(In.ontology)        => In.toStep(node)
+        case list if list.contains(InMap.ontology)     => InMap.toStep(node)
+        case list if list.contains(InE.ontology)       => InE.toStep(node)
+        case list if list.contains(To.ontology)        => To.toStep(node)
+        case list if list.contains(InEMap.ontology)    => InEMap.toStep(node)
+        case list if list.contains(Has.ontology)       => Has.toStep(node)
+        case list if list.contains(HasNot.ontology)    => HasNot.toStep(node)
+        case list if list.contains(HasId.ontology)     => HasId.toStep(node)
+        case list if list.contains(HasIri.ontology)    => HasIri.toStep(node)
+        case list if list.contains(HasLabel.ontology)  => HasLabel.toStep(node)
+        case list if list.contains(HasValue.ontology)  => HasValue.toStep(node)
+        case list if list.contains(Coin.ontology)      => Coin.toStep(node)
+        case list if list.contains(Constant.ontology)  => Constant.toStep(node)
+        case list if list.contains(As.ontology)        => As.toStep(node)
+        case list if list.contains(Repeat.ontology)    => Repeat.toStep(node)
+        case list if list.contains(Select.ontology)    => Select.toStep(node)
+        case list if list.contains(Project.ontology)   => Project.toStep(node)
+        case list if list.contains(Where.ontology)     => Where.toStep(node)
+        case list if list.contains(And.ontology)       => And.toStep(node)
+        case list if list.contains(Or.ontology)        => Or.toStep(node)
+        case list if list.contains(Not.ontology)       => Not.toStep(node)
+        case list if list.contains(Union.ontology)     => Union.toStep(node)
+        case list if list.contains(Choose.ontology)    => Choose.toStep(node)
+        case list if list.contains(Coalesce.ontology)  => Coalesce.toStep(node)
+        case list if list.contains(Local.ontology)     => Local.toStep(node)
+        case list if list.contains(Range.ontology)     => Range.toStep(node)
+        case list if list.contains(Label.ontology)     => Label.toStep(node)
+        case list if list.contains(Head.ontology)      => Head.toStep(node)
+        case list if list.contains(Last.ontology)      => Last.toStep(node)
+        case list if list.contains(Limit.ontology)     => Limit.toStep(node)
+        case list if list.contains(Skip.ontology)      => Skip.toStep(node)
+        case list if list.contains(Tail.ontology)      => Tail.toStep(node)
+        case list if list.contains(Order.ontology)     => Order.toStep(node)
+        case list if list.contains(Count.ontology)     => Count.toStep(node)
+        case list if list.contains(Is.ontology)        => Is.toStep(node)
+        case list if list.contains(Sum.ontology)       => Sum.toStep(node)
+        case list if list.contains(Max.ontology)       => Max.toStep(node)
+        case list if list.contains(Min.ontology)       => Min.toStep(node)
+        case list if list.contains(Mean.ontology)      => Mean.toStep(node)
+        case list if list.contains(TimeLimit.ontology) => TimeLimit.toStep(node)
         case list =>
-          throw new Exception(s"No valid Step-ontology found for types ${list}")
+          throw new Exception(s"No valid Step-ontology found for types $list")
       }
   }
 
@@ -184,7 +184,7 @@ object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", Branch
           "A label",
           `@range` = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
         ) {}
-    lazy val labelUrl: TypedProperty[IriResource] = label.property as DataType.default.`@url`
+    lazy val labelUrl: TypedProperty[IriResource] = label.property.as(DataType.default.`@url`)
   }
 
   override lazy val properties: List[Property] = keys.label.property :: BranchStep.properties
@@ -304,16 +304,23 @@ object ClipStep extends StepDef(label = "ClipStep", comment = "ClipStep", Filter
 }
 trait HasStep extends FilterStep
 object HasStep extends StepDef(label = "HasStep", comment = "HasStep", FilterStep.ontology :: Nil) {
+
   sealed trait ClassTypeLabel[T]
+
   sealed trait PropertyLabel[T] extends ClassTypeLabel[T]
+
   implicit def IsPropertyDef[T <: PropertyDef] = new PropertyLabel[T] {}
-  implicit object IsProperty    extends PropertyLabel[Property]
-  implicit object IsString      extends PropertyLabel[String]
+  implicit object IsProperty extends PropertyLabel[Property]
+  implicit object IsString   extends PropertyLabel[String]
+
   sealed trait DataTypeLabel[T] extends ClassTypeLabel[T]
+
   implicit def IsDataTypeDef[T <: DataTypeDef[_]] = new DataTypeLabel[T] {}
-  implicit object IsDataType    extends DataTypeLabel[DataType[_]]
-  implicit object IsString1     extends DataTypeLabel[String]
+  implicit object IsDataType extends DataTypeLabel[DataType[_]]
+  implicit object IsString1  extends DataTypeLabel[String]
+
   sealed trait OntologyLabel[T] extends ClassTypeLabel[T]
+
   implicit def IsOntologyDef[T <: OntologyDef] = new OntologyLabel[T] {}
   implicit object IsOntology extends OntologyLabel[Ontology]
   implicit object IsString2  extends OntologyLabel[String]
@@ -331,7 +338,7 @@ object BranchStep extends StepDef(label = "BranchStep", comment = "BranchStep", 
 }
 
 abstract class StepDef(label: String, comment: String = "", `@extends`: => List[Ontology] = List(Step.ontology))
-    extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/step/${label}", Set(), label, comment, `@extends`)
+    extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/step/$label", Set(), label, comment, `@extends`)
 
 trait StepWrapper[T <: Step] {
   def toStep(node: Node): Task[T]

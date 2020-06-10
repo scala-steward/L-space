@@ -146,13 +146,13 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 }
 
 trait P[+T] extends Product with Serializable {
-  def _pvalue: Any
+  protected[logic] def _pvalue: Any
   def toNode: Task[Node]
   def prettyPrint: String
 }
 
 trait EqP[+T] extends P[T] {
-  def _pvalue: Any = pvalue
+  protected[logic] def _pvalue: Any = pvalue
   def pvalue: T
 }
 object EqP
@@ -184,7 +184,7 @@ object OrderP
   trait Properties extends EqP.Properties
 }
 trait RangeP[+T] extends P[T] {
-  def _pvalue: Any = lower -> upper
+  protected[logic] def _pvalue: Any = lower -> upper
   def lower: T
   def upper: T
 }
@@ -222,7 +222,7 @@ object RangeP extends PredicateDef(label = "RangeP", comment = "Range predicate"
 //  trait Properties extends EqP.Properties
 //}
 trait CollectionP[+T] extends P[T] {
-  def _pvalue: Any = pvalue
+  protected[logic] def _pvalue: Any = pvalue
   def pvalue: T
 }
 object CollectionP

@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.structure.{Node, Ontology, Property}
+import lspace.structure.{Node, Ontology}
 import monix.eval.Task
 
 import scala.collection.mutable
