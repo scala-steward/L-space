@@ -1,7 +1,5 @@
 package lspace.structure
 
-import monix.eval.Coeval
-
 object OntologyDef {
   implicit def oDefToOntology[T <: OntologyDef](df: T): Ontology = df.ontology
 

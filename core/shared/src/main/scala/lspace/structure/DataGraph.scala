@@ -22,7 +22,7 @@ trait DataGraph extends Graph {
     } yield node
   }
 
-  override protected[lspace] def storeNode(node: _Node): Task[Unit] =
+  override protected[lspace] def storeNode(node: GNode): Task[Unit] =
     for {
       _ <- super.storeNode(node)
       _ <- indexNode(node)

@@ -2,9 +2,7 @@ package lspace.structure.index
 
 import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal.{Traversal, UntypedTraversal}
-import lspace.provider.detached.DetachedGraph
-import lspace.structure.OntologyDef
-import lspace.structure._
+import lspace.structure.{OntologyDef, _}
 import lspace.structure.index.shape.Shape
 import monix.eval.Task
 import monix.reactive.Observable
@@ -42,7 +40,7 @@ trait Index {
 //  lazy val toNode: Task[Node] = this.memoizeOnSuccess
 
   /**
-    * A traversal-pattern only Segments containing FilterStep's and RearrangeSteps separated by an Out-step
+    * A traversal-pattern containing FilterStep's and RearrangeSteps separated by an Out-step
     * @return
     */
   def traversal: UntypedTraversal

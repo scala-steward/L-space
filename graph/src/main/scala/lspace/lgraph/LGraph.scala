@@ -1,17 +1,13 @@
 package lspace.lgraph
 
+import lspace.datatype.DataType
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store._
-import lspace.lgraph.util.CacheReaper
-import lspace.datatype.DataType
-import monix.eval.Task
-import lspace.librarian.traversal.Traversal
 import lspace.provider.transaction.Transaction
 import lspace.structure._
 import lspace.structure.util.IdProvider
-import monix.execution.{Cancelable, CancelableFuture}
+import monix.eval.Task
 import monix.reactive.Observable
-import shapeless.HList
 
 object LGraph {
 
@@ -25,14 +21,10 @@ object LGraph {
             options: Options = Options(),
             noinit: Boolean = false): LGraph = {
     val _iri           = storeProvider.iri
-    val _storeProvider = storeProvider
-    val _indexProvider = indexProvider
 
     val graph = new LDataGraph {
       val iri: String          = _iri
       private val self: LGraph = this
-
-//      protected[lspace] def storeProvider: StoreProvider = _storeProvider
 
 //      protected lazy val cacheReaper: CacheReaper = CacheReaper(thisgraph)
 
@@ -54,36 +46,12 @@ object LGraph {
         val iri: String = _iri + ".ns"
 
         lazy val graph: LGraph = self
-//        protected[lspace] lazy val storeProvider: StoreProvider = self.storeProvider
-
-//        override lazy val init: CancelableFuture[Unit] =
-//          Task
-//            .sequence(
-//              Seq(
-//                Task.fromFuture(storeManager.init),
-//                Task.fromFuture(index.init)
-//              ))
-//            .foreachL(f => Task.unit)
-//            .memoize
-//            .runToFuture(monix.execution.Scheduler.global)
 
         private lazy val _thisgraph = thisgraph
         lazy val index: LIndexGraph = new LIndexGraph {
           val iri: String = _iri + ".ns" + ".index"
 
-//          override lazy val init: CancelableFuture[Unit] =
-//            Task
-//              .sequence(
-//                Seq(
-//                  Task.fromFuture(storeManager.init)
-//                ))
-//              .foreachL(f => Task.unit)
-//              .memoize
-//              .runToFuture(monix.execution.Scheduler.global)
-
           lazy val graph: LGraph = _thisgraph
-//          protected[lspace] lazy val storeProvider: StoreProvider = _thisgraph.storeProvider
-          lazy val index: LIndexGraph = thisgraph
 
           lazy val storeManager: StoreManager[this.type] = storeProvider.nsIndexManager(thisgraph)
           lazy val indexManager: IndexManager[this.type] = indexProvider.nsManager(thisgraph)
@@ -96,18 +64,6 @@ object LGraph {
         val iri: String = _iri + ".index"
 
         lazy val graph: LGraph      = self
-        private lazy val _thisgraph = thisgraph
-//        protected[lspace] lazy val storeProvider: StoreProvider = _thisgraph.storeProvider
-
-//        lazy val index: LIndexGraph = new LIndexGraph {
-//          def iri: String = _iri + ".index" + ".index"
-//
-//          lazy val graph: LGraph      = _thisgraph
-//          lazy val index: LIndexGraph = this
-//
-//          lazy val storeManager: StoreManager[this.type] = storeProvider.indexIndexManager(this)
-//          lazy val indexManager: IndexManager[this.type] = indexProvider.indexIndexManager(this)
-//        }
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.indexManager(this)
         lazy val indexManager: IndexManager[this.type] = indexProvider.dataManager(this)
@@ -259,10 +215,10 @@ trait LGraph extends Graph {
 
   protected[lspace] def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] =
     (Observable.fromIterable(resource.asInstanceOf[LResource[Any]].outEMap()).flatMap {
-      case (key, properties) =>
+      case (_, properties) =>
         Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
     } ++ Observable.fromIterable(resource.asInstanceOf[LResource[Any]].inEMap()).flatMap {
-      case (key, properties) =>
+      case (_, properties) =>
         Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
     }).completedL
 
@@ -277,9 +233,8 @@ trait LGraph extends Graph {
     } yield ()
 
   override def close(): Task[Unit] =
-    super
-      .close()
-      .flatMap { u =>
-        storeManager.close()
-      }
+    for {
+    _ <- super.close()
+    _ <- storeManager.close()
+    } yield ()
 }

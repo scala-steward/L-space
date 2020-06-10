@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.structure.{Edge, Property, Resource}
+import lspace.structure.Edge
 
 object LEdge {}
 

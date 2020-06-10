@@ -21,8 +21,8 @@ trait IndexGraph extends Graph {
 
   lazy val init: Task[Unit] = Task.unit
 
-  implicit def stepListToTraversal(steps: List[Step]): Traversal[ClassType[Any], ClassType[Any], _ <: HList] =
-    Traversal(steps.toVector)
+//  implicit def stepListToTraversal(steps: List[Step]): Traversal[ClassType[Any], ClassType[Any], _ <: HList] =
+//    Traversal(steps.toVector)
 //  def findIndex(traversal: UntypedTraversal): List[Node] = {
 //    stepListToTraversal(
 //      g.N
@@ -48,10 +48,9 @@ trait IndexGraph extends Graph {
 //    getIndex(values.map(_.keySet).map(Shape(_))).toList.flatMap(_.find(values))
 //  }
 
-  override protected[lspace] def deleteNode(node: _Node): Task[Unit] = {
+  override protected[lspace] def deleteNode(node: _Node): Task[Unit] =
     //    `@typeIndex`.delete()
     super.deleteNode(node)
-  }
 
   abstract override protected[lspace] def createEdge[S, E](id: Long,
                                                            from: _Resource[S],
@@ -59,7 +58,7 @@ trait IndexGraph extends Graph {
                                                            to: _Resource[E]): Task[GEdge[S, E]] =
     for {
       edge <- super.createEdge(id, from, key, to)
-      u    <- storeEdge(edge.asInstanceOf[_Edge[_, _]])
+      _    <- storeEdge(edge)
     } yield edge
 
   override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =

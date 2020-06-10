@@ -7,10 +7,9 @@ import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 import monix.reactive.Observable
 
+import scala.collection.JavaConverters._
 import scala.collection.concurrent
 import scala.collection.immutable.ListSet
-import scala.collection.JavaConverters._
-import shapeless.<:!<
 
 abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   import graph._
@@ -146,7 +145,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             case values =>
               mergeValues(values.toSet)
           }
-          .doOnFinish(f => Task(upsertingTasks.remove(value)))
+          .doOnFinish(_ => Task(upsertingTasks.remove(value)))
           .memoize
       )
       .asInstanceOf[Task[Value[V]]]
@@ -193,11 +192,11 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
           case List() => create(value.value, value.label)
           case List(storedValue: Value[_]) if storedValue.value == value.value =>
             Task.now(storedValue.asInstanceOf[Value[V]])
-          case List(value: Value[_], _*) =>
+          case List(_: Value[_], _*) =>
             Task.raiseError(new Exception("multiple values with the same iri, what should we do?! Dedup?"))
         }
         .flatMap { newValue =>
-          for { u <- addMeta(value, newValue) } yield newValue
+          for { _ <- addMeta(value, newValue) } yield newValue
         }
     } else Task.now(value)
 

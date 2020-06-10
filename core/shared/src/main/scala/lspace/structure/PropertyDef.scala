@@ -1,7 +1,5 @@
 package lspace.structure
 
-import monix.eval.Coeval
-
 object PropertyDef {
   implicit def pDefToProperty(df: PropertyDef): Property = df.property
 }

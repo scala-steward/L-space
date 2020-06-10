@@ -1256,7 +1256,7 @@ case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], +Steps <: HLi
   lazy val stepsList: List[Step] =
     steps.runtimeList.asInstanceOf[List[Step]].reverse
 
-  def untyped: UntypedTraversal = UntypedTraversal(stepsList.toVector)
+  def untyped: UntypedTraversal = UntypedTraversal(this)
 
   def ++[ST0 <: ClassType[_], ET0 <: ClassType[_], Steps0 <: HList, Steps1 >: Steps <: HList, Out <: HList](
     traversal: Traversal[ST0, ET0, Steps0])(implicit //ev: ET <:< ST0,

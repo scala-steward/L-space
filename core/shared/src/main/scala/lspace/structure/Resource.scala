@@ -1,9 +1,8 @@
 package lspace.structure
 
 import lspace.datatype.{DataType, IriType}
-import lspace.structure.util.ClassTypeable
 import lspace.structure.Property.default
-import lspace.util.CacheStatus
+import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 
 object Resource {
@@ -363,13 +362,13 @@ trait Resource[+T] extends IriResource {
 
   def addBoth[V, R[T] <: Resource[T]](key: Property, value: R[V]): Task[(Edge[T, V], Edge[V, T])] = {
     val fromCT = this match {
-      case node: Node       => DataType.default.`@nodeURL`
-      case edge: Edge[_, _] => DataType.default.`@edgeURL`
+      case _: Node       => DataType.default.`@nodeURL`
+      case _: Edge[_, _] => DataType.default.`@edgeURL`
       case value: Value[_]  => value.label
     }
     val valueCT = value match {
-      case node: Node       => DataType.default.`@nodeURL`
-      case edge: Edge[_, _] => DataType.default.`@edgeURL`
+      case _: Node       => DataType.default.`@nodeURL`
+      case _: Edge[_, _] => DataType.default.`@edgeURL`
       case value: Value[_]  => value.label
     }
 

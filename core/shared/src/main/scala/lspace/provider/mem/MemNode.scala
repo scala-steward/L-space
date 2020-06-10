@@ -44,7 +44,7 @@ trait MemNode extends MemResource[Node] with Node {
         for {
           _ <- super._addLabel(ontology)
           _ = _cacheLabel(ontology)
-          _ <- graph.storeNode(this.asInstanceOf[graph._Node]) //TODO: validate, probably not needed for MemGraph
+          _ <- graph.storeNode(this.asInstanceOf[graph.GNode]) //TODO: validate, probably not needed for MemGraph
         } yield ()
       //TODO: index
       else Task.unit

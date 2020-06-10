@@ -2,16 +2,12 @@ package lspace.lgraph
 
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 import lspace.lgraph.store.{StoreManager, StoreProvider}
+import lspace.structure.History
 import lspace.structure.util.IdProvider
-import lspace.structure.{DataGraph, History, NameSpaceGraph}
-import monix.eval.Task
-import monix.execution.CancelableFuture
 
 object LHistory {
   def apply(iri: String, storeProvider: StoreProvider, indexProvider: IndexProvider): LGraph = {
     val _iri           = iri
-    val _storeProvider = storeProvider
-    val _indexProvider = indexProvider
 
     val graph = new LHistory {
       val iri: String  = _iri
@@ -29,7 +25,6 @@ object LHistory {
           def iri: String = _iri + ".ns" + ".index"
 
           lazy val graph: LGraph      = _thisgraph
-          lazy val index: LIndexGraph = this
 
           lazy val storeManager: StoreManager[this.type] = storeProvider.nsIndexManager(this)
           lazy val indexManager: IndexManager[this.type] = indexProvider.nsManager(this)
@@ -41,17 +36,6 @@ object LHistory {
         def iri: String = _iri + ".index"
 
         lazy val graph: LGraph = self
-        private val _thisgraph = thisgraph
-
-//        lazy val index: LIndexGraph = new LIndexGraph {
-//          def iri: String = _iri + ".index" + ".index"
-//
-//          lazy val graph: LGraph      = _thisgraph
-//          lazy val index: LIndexGraph = this
-//
-//          lazy val storeManager: StoreManager[this.type] = storeProvider.indexIndexManager(this)
-//          lazy val indexManager: IndexManager[this.type] = indexProvider.indexIndexManager(this)
-//        }
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.indexManager(this)
         lazy val indexManager: IndexManager[this.type] = indexProvider.dataManager(this)
@@ -59,15 +43,6 @@ object LHistory {
 
       val stateManager: GraphManager[this.type]             = storeProvider.stateManager(this)
       override protected[lspace] def idProvider: IdProvider = stateManager.idProvider
-
-      override def close(): Task[Unit] = Task.unit
-//      {
-//        super
-//          .close()
-//          .flatMap { u =>
-//            storeManager.close()
-//          }(monix.execution.Scheduler.global)
-//      }
     }
     graph.init
     graph

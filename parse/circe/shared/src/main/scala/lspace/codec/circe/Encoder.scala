@@ -2,7 +2,6 @@ package lspace.codec.circe
 
 import io.circe.Json
 import lspace.codec.json
-import lspace.types.geo.Geometry
 
 import scala.collection.immutable.ListMap
 import shapeless.syntax.std.tuple._
