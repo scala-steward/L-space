@@ -99,7 +99,7 @@ trait MemGraph extends Graph {
       .asInstanceOf[GNode]
   }
 
-  override protected[lspace] def storeNode(node: _Node): Task[Unit] = super.storeNode(node)
+  override protected[lspace] def storeNode(node: GNode): Task[Unit] = super.storeNode(node)
 
   protected[this] val newEdgeLock = new Object
   protected[lspace] def newEdge[S, E](id: Long, from: _Resource[S], key: Property, to: _Resource[E]): GEdge[S, E] =

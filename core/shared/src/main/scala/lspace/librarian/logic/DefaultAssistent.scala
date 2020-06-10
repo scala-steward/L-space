@@ -629,14 +629,15 @@ class DefaultAssistent extends Assistent {
   }
 
   private def equalsToList[T](t: T): List[Any] = t match {
-    case v: ListSet[_]   => v.toList
-    case v: List[_]      => v
-    case v: Set[_]       => v.toList
-    case v: Vector[_]    => v.toList
-    case v: (_, _)       => v.productIterator.toList
-    case v: (_, _, _)    => v.productIterator.toList
-    case v: (_, _, _, _) => v.productIterator.toList
-    case v               => List(v)
+    case v: ListSet[_] => v.toList
+    case v: List[_]    => v
+    case v: Set[_]     => v.toList
+    case v: Vector[_]  => v.toList
+//    case v: (_, _)       => v.productIterator.toList
+//    case v: (_, _, _)    => v.productIterator.toList
+//    case v: (_, _, _, _) => v.productIterator.toList
+    case v: Product => v.productIterator.toList
+    case v          => List(v)
   }
 
   def intersectHelper[T](p: Intersect[T]) = new Helper[Intersect[T]](p) {
@@ -646,14 +647,15 @@ class DefaultAssistent extends Assistent {
       value.isInstanceOf[Iterable[_]] || value.isInstanceOf[(_, _)] || value.isInstanceOf[(_, _, _)] || value
         .isInstanceOf[(_, _, _, _)] //nP contains comparable?
     val assert: Any => Boolean = {
-      case v: ListSet[_]   => pvalueList.intersect(v.toList).nonEmpty
-      case v: List[_]      => pvalueList.intersect(v).nonEmpty
-      case v: Set[_]       => pvalueList.intersect(v.toList).nonEmpty
-      case v: Vector[_]    => pvalueList.intersect(v.toList).nonEmpty
-      case v: (_, _)       => pvalueList.intersect(v.productIterator.toList).nonEmpty
-      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).nonEmpty
-      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).nonEmpty
-      case v               => false
+      case v: ListSet[_] => pvalueList.intersect(v.toList).nonEmpty
+      case v: List[_]    => pvalueList.intersect(v).nonEmpty
+      case v: Set[_]     => pvalueList.intersect(v.toList).nonEmpty
+      case v: Vector[_]  => pvalueList.intersect(v.toList).nonEmpty
+//      case v: (_, _)       => pvalueList.intersect(v.productIterator.toList).nonEmpty
+//      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).nonEmpty
+//      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).nonEmpty
+      case v: Product => pvalueList.intersect(v.productIterator.toList).nonEmpty
+      case v          => false
     }
   }
   def intersectStringHelper[T <: String](p: Intersect[T]) = new Helper[Intersect[T]](p) {
@@ -686,14 +688,15 @@ class DefaultAssistent extends Assistent {
       value.isInstanceOf[Iterable[_]] || value.isInstanceOf[(_, _)] || value.isInstanceOf[(_, _, _)] || value
         .isInstanceOf[(_, _, _, _)] //nP contains comparable?
     val assert: Any => Boolean = {
-      case v: ListSet[_]   => v.toList.containsSlice(pvalueList)
-      case v: List[_]      => v.containsSlice(pvalueList)
-      case v: Set[_]       => pvalueList.intersect(v.toList).size == pvalueList.size
-      case v: Vector[_]    => v.toList.containsSlice(pvalueList)
-      case v: (_, _)       => v.productIterator.toList.containsSlice(pvalueList)
-      case v: (_, _, _)    => v.productIterator.toList.containsSlice(pvalueList)
-      case v: (_, _, _, _) => v.productIterator.toList.containsSlice(pvalueList)
-      case v               => false
+      case v: ListSet[_] => v.toList.containsSlice(pvalueList)
+      case v: List[_]    => v.containsSlice(pvalueList)
+      case v: Set[_]     => pvalueList.intersect(v.toList).size == pvalueList.size
+      case v: Vector[_]  => v.toList.containsSlice(pvalueList)
+//      case v: (_, _)       => v.productIterator.toList.containsSlice(pvalueList)
+//      case v: (_, _, _)    => v.productIterator.toList.containsSlice(pvalueList)
+//      case v: (_, _, _, _) => v.productIterator.toList.containsSlice(pvalueList)
+      case v: Product => v.productIterator.toList.containsSlice(pvalueList)
+      case v          => false
     }
   }
   def containsStringHelper[T <: String](p: Contains[T]) = new Helper[Contains[T]](p) {
@@ -717,13 +720,14 @@ class DefaultAssistent extends Assistent {
         .isInstanceOf[(_, _, _, _)] //nP contains comparable?
     val nP = pToHelper(pvalue)
     val assert: Any => Boolean = {
-      case v: ListSet[_]   => v.exists(nP.assert)
-      case v: List[_]      => v.exists(nP.assert)
-      case v: Set[_]       => v.exists(nP.assert)
-      case v: Vector[_]    => v.exists(nP.assert)
-      case v: (_, _)       => v.productIterator.toList.exists(nP.assert)
-      case v: (_, _, _)    => v.productIterator.toList.exists(nP.assert)
-      case v: (_, _, _, _) => v.productIterator.toList.exists(nP.assert)
+      case v: ListSet[_] => v.exists(nP.assert)
+      case v: List[_]    => v.exists(nP.assert)
+      case v: Set[_]     => v.exists(nP.assert)
+      case v: Vector[_]  => v.exists(nP.assert)
+//      case v: (_, _)       => v.productIterator.toList.exists(nP.assert)
+//      case v: (_, _, _)    => v.productIterator.toList.exists(nP.assert)
+//      case v: (_, _, _, _) => v.productIterator.toList.exists(nP.assert)
+      case v: Product => v.productIterator.toList.exists(nP.assert)
     }
   }
   override def contains[T](p: Contains[T]): Helper[Contains[T]] =
@@ -741,14 +745,15 @@ class DefaultAssistent extends Assistent {
       value.isInstanceOf[Iterable[_]] || value.isInstanceOf[(_, _)] || value.isInstanceOf[(_, _, _)] || value
         .isInstanceOf[(_, _, _, _)] //nP contains comparable?
     val assert: Any => Boolean = {
-      case v: ListSet[_]   => pvalueList.intersect(v.toList).isEmpty
-      case v: List[_]      => pvalueList.intersect(v).isEmpty
-      case v: Set[_]       => pvalueList.intersect(v.toList).isEmpty
-      case v: Vector[_]    => pvalueList.intersect(v.toList).isEmpty
-      case v: (_, _)       => pvalueList.intersect(v.productIterator.toList).isEmpty
-      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).isEmpty
-      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).isEmpty
-      case v               => true
+      case v: ListSet[_] => pvalueList.intersect(v.toList).isEmpty
+      case v: List[_]    => pvalueList.intersect(v).isEmpty
+      case v: Set[_]     => pvalueList.intersect(v.toList).isEmpty
+      case v: Vector[_]  => pvalueList.intersect(v.toList).isEmpty
+//      case v: (_, _)       => pvalueList.intersect(v.productIterator.toList).isEmpty
+//      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).isEmpty
+//      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).isEmpty
+      case v: Product => pvalueList.intersect(v.productIterator.toList).isEmpty
+      case v          => true
     }
   }
   def disjointStringHelper[T <: String](p: Disjoint[T]) = new Helper[Disjoint[T]](p) {
@@ -779,14 +784,15 @@ class DefaultAssistent extends Assistent {
       value.isInstanceOf[Iterable[_]] || value.isInstanceOf[(_, _)] || value.isInstanceOf[(_, _, _)] || value
         .isInstanceOf[(_, _, _, _)] //nP contains comparable?
     val assert: Any => Boolean = {
-      case v: ListSet[_]   => pvalueList.containsSlice(v.toList)
-      case v: List[_]      => pvalueList.containsSlice(v)
-      case v: Set[_]       => v.forall(pvalueList.contains)
-      case v: Vector[_]    => pvalueList.containsSlice(v.toList)
-      case v: (_, _)       => pvalueList.containsSlice(v.productIterator.toList)
-      case v: (_, _, _)    => pvalueList.containsSlice(v.productIterator.toList)
-      case v: (_, _, _, _) => pvalueList.containsSlice(v.productIterator.toList)
-      case v               => false
+      case v: ListSet[_] => pvalueList.containsSlice(v.toList)
+      case v: List[_]    => pvalueList.containsSlice(v)
+      case v: Set[_]     => v.forall(pvalueList.contains)
+      case v: Vector[_]  => pvalueList.containsSlice(v.toList)
+//      case v: (_, _)       => pvalueList.containsSlice(v.productIterator.toList)
+//      case v: (_, _, _)    => pvalueList.containsSlice(v.productIterator.toList)
+//      case v: (_, _, _, _) => pvalueList.containsSlice(v.productIterator.toList)
+      case v: Product => pvalueList.containsSlice(v.productIterator.toList)
+      case v          => false
     }
   }
   def withinStringHelper[T <: String](p: Within[T]) = new Helper[Within[T]](p) {
@@ -822,15 +828,19 @@ class DefaultAssistent extends Assistent {
       case v: List[_]    => v.size >= pvalueList.size && v.zip(pvalueList).forall { case (v, p) => v == p }
       case v: Set[_]     => v.size >= pvalueList.size && v.zip(pvalueList).forall { case (v, p) => v == p }
       case v: Vector[_]  => v.size >= pvalueList.size && v.zip(pvalueList).forall { case (v, p) => v == p }
-      case v: (_, _) =>
-        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
-          case (v, p) => v == p
-        }
-      case v: (_, _, _) =>
-        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
-          case (v, p) => v == p
-        }
-      case v: (_, _, _, _) =>
+//      case v: (_, _) =>
+//        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
+//          case (v, p) => v == p
+//        }
+//      case v: (_, _, _) =>
+//        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
+//          case (v, p) => v == p
+//        }
+//      case v: (_, _, _, _) =>
+//        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
+//          case (v, p) => v == p
+//        }
+      case v: Product =>
         v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
           case (v, p) => v == p
         }
@@ -864,19 +874,25 @@ class DefaultAssistent extends Assistent {
         v.size >= pvalueList.size && v.toList.reverse.zip(pvalueList.reverse).forall { case (v, p) => v == p }
       case v: Vector[_] =>
         v.size >= pvalueList.size && v.reverse.zip(pvalueList.reverse).forall { case (v, p) => v == p }
-      case v: (_, _) =>
-        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.reverse
-          .zip(pvalueList.reverse)
-          .forall {
-            case (v, p) => v == p
-          }
-      case v: (_, _, _) =>
-        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.reverse
-          .zip(pvalueList.reverse)
-          .forall {
-            case (v, p) => v == p
-          }
-      case v: (_, _, _, _) =>
+//      case v: (_, _) =>
+//        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.reverse
+//          .zip(pvalueList.reverse)
+//          .forall {
+//            case (v, p) => v == p
+//          }
+//      case v: (_, _, _) =>
+//        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.reverse
+//          .zip(pvalueList.reverse)
+//          .forall {
+//            case (v, p) => v == p
+//          }
+//      case v: (_, _, _, _) =>
+//        v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.reverse
+//          .zip(pvalueList.reverse)
+//          .forall {
+//            case (v, p) => v == p
+//          }
+      case v: Product =>
         v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.reverse
           .zip(pvalueList.reverse)
           .forall {

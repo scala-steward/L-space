@@ -1,17 +1,8 @@
 package lspace.structure
 
-import java.util.concurrent.ConcurrentHashMap
-
-import lspace.Label
 import lspace.datatype._
-import lspace.structure.Property.default
 import lspace.structure.util.IdProvider
-import lspace.util.types.DefaultsToAny
-import monix.eval.{Coeval, Task}
-import monix.execution.CancelableFuture
-
-import scala.collection.{concurrent, mutable}
-import scala.collection.JavaConverters._
+import monix.eval.Task
 
 trait NameSpaceGraph extends DataGraph {
   def ns: this.type = this
@@ -36,9 +27,9 @@ trait NameSpaceGraph extends DataGraph {
       .headOptionL
       .flatMap(_.map(Task.now).getOrElse {
         ct match {
-          case ontology: Ontology    => nodes.upsert(ct.iri, Ontology.ontology)
-          case property: Property    => nodes.upsert(ct.iri, Property.ontology)
-          case datatype: DataType[_] => nodes.upsert(ct.iri, DataType.ontology, Ontology.ontology)
+          case _: Ontology    => nodes.upsert(ct.iri, Ontology.ontology)
+          case _: Property    => nodes.upsert(ct.iri, Property.ontology)
+          case _: DataType[_] => nodes.upsert(ct.iri, DataType.ontology, Ontology.ontology)
         }
       })
       .map(edges.create(resource, key, _))

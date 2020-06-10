@@ -40,14 +40,14 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     for {
       id <- idProvider.next
       node = newNode(id)
-      u <- Task.sequence(ontology.map(node.addLabel))
+      _ <- Task.sequence(ontology.map(node.addLabel))
     } yield node
 
   def create(iri: String, ontology: Ontology*): Task[Node] =
     for {
       id <- idProvider.next
       node = newNode(id)
-      u <- Task.sequence(ontology.map(node.addLabel))
+      _ <- Task.sequence(ontology.map(node.addLabel))
       _ <- if (iri.nonEmpty) node.addOut(Label.P.`@id`, iri) else Task.unit
       _ <- if (iri.nonEmpty) node.addOut(Label.P.`@ids`, iri) else Task.unit
     } yield node
@@ -98,7 +98,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
   def upsert(node: Node): Task[Node] =
     if (node.graph != thisgraph) { //
       for {
-        edges <- node.g.outE().withGraph(node.graph).toListF
+//        edges <- node.outE()//node.g.outE().withGraph(node.graph).toListF
         newNode <- if (node.iri.nonEmpty)
           for {
             newNode <- upsert(node.iri)
@@ -113,8 +113,8 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
         else {
           for {
             newNode <- create()
-            u       <- Task.parSequence(node.labels.map(newNode.addLabel))
-            v       <- addMeta(node, newNode)
+            _       <- Task.parSequence(node.labels.map(newNode.addLabel))
+            _       <- addMeta(node, newNode)
           } yield newNode
         }
       } yield newNode
@@ -133,8 +133,8 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     case _ =>
       for {
         newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create() //FIX: ignores node.iris for empty node.iri
-        u       <- Task.parSequence(node.labels.map(newNode.addLabel))
-        v       <- addMeta(node, newNode)
+        _       <- Task.parSequence(node.labels.map(newNode.addLabel))
+        _       <- addMeta(node, newNode)
       } yield newNode
   }
 

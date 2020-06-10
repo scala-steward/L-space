@@ -17,55 +17,52 @@ object History {
   */
 trait History extends Graph {
 
-  override protected[lspace] def getOrCreateNode(id: Long): Task[GNode] = {
+  override protected[lspace] def getOrCreateNode(id: Long): Task[GNode] =
     for {
       createdNode <- super.getOrCreateNode(id)
       value       <- createValue(id, Instant.now(), DateTimeType.datatype)
       id          <- idProvider.next
       //TODO: make time configurable
-      edge <- edges.create(createdNode, Property.default.`@createdon`, value)
+      _ <- edges.create(createdNode, Property.default.`@createdon`, value)
     } yield createdNode
-  }
 
   override protected[lspace] def createEdge[S, E](id: Long,
                                                   from: _Resource[S],
                                                   key: Property,
-                                                  to: _Resource[E]): Task[GEdge[S, E]] = {
+                                                  to: _Resource[E]): Task[GEdge[S, E]] =
     for {
       createdEdge <- super.createEdge(id, from, key, to)
       id          <- idProvider.next
       time        <- createValue(id, Instant.now(), DateTimeType.datatype).map(_.asInstanceOf[_Resource[Instant]])
-      timeEdge <- super.createEdge[Edge[S, E], Instant](id,
-                                                        createdEdge.asInstanceOf[_Resource[Edge[S, E]]],
-                                                        Property.default.`@createdon`,
-                                                        time)
+      _ <- super.createEdge[Edge[S, E], Instant](id,
+                                                 createdEdge.asInstanceOf[_Resource[Edge[S, E]]],
+                                                 Property.default.`@createdon`,
+                                                 time)
     } yield createdEdge
-  }
 
-  abstract override protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] = {
+  abstract override protected[lspace] def createValue[T](id: Long, value: T, dt: DataType[T]): Task[GValue[T]] =
     for {
       createdValue <- super.createValue(id, value, dt)
       id           <- idProvider.next
       time         <- createValue(id, Instant.now(), DateTimeType.datatype)
-      timeEdge     <- edges.create(createdValue, Property.default.`@createdon`, time)
+      _            <- edges.create(createdValue, Property.default.`@createdon`, time)
     } yield createdValue
-  }
 
   override protected[lspace] def deleteNode(node: _Node): Task[Unit] =
     for {
-      deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
-      deleteTimeEdge <- edges.create(node, Property.default.`@deletedon`, deleteTime)
+      deleteTime <- values.create(Instant.now(), DateTimeType.datatype)
+      _          <- edges.create(node, Property.default.`@deletedon`, deleteTime)
     } yield ()
 
   override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =
     for {
-      deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
-      deleteTimeEdge <- edges.create(edge, Property.default.`@deletedon`, deleteTime)
+      deleteTime <- values.create(Instant.now(), DateTimeType.datatype)
+      _          <- edges.create(edge, Property.default.`@deletedon`, deleteTime)
     } yield ()
 
   override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] =
     for {
-      deleteTime     <- values.create(Instant.now(), DateTimeType.datatype)
-      deleteTimeEdge <- edges.create(value, Property.default.`@deletedon`, deleteTime)
+      deleteTime <- values.create(Instant.now(), DateTimeType.datatype)
+      _          <- edges.create(value, Property.default.`@deletedon`, deleteTime)
     } yield ()
 }

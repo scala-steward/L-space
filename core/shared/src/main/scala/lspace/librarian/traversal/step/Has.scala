@@ -1,7 +1,6 @@
 package lspace.librarian.traversal.step
 
 import lspace.librarian.logic.predicate.P
-import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task

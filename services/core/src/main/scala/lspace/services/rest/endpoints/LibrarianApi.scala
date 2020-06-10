@@ -1,17 +1,26 @@
 package lspace.services.rest.endpoints
 
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 
 import cats.effect.IO
-import io.finch.{Endpoint, Ok}
 import lspace._
 import lspace.codec.json.jsonld.JsonLDDecoder
 import lspace.codec.{ActiveContext, ContextedT}
+import lspace.decode.DecodeJsonLD
+import lspace.encode.EncodeJsonLD
 import lspace.librarian.task.AsyncGuide
 import lspace.librarian.traversal.Collection
+import lspace.services.codecs.Application
+import lspace.services.codecs.Application.{GraphQLCodec, JsonLDCodec}
 import monix.eval.Task
 import monix.execution.Scheduler
 import shapeless.HList
+import sttp.client._
+import sttp.model.MediaType
+import sttp.tapir.Codec.fromDecodeAndMeta
+import sttp.tapir.CodecFormat.TextPlain
+import sttp.tapir._
 
 object LibrarianApi {
   def apply[JSON](graph: Graph)(implicit activeContext: ActiveContext = ActiveContext(),
@@ -27,6 +36,32 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
 
   import lspace.services.codecs.Decode._
   import lspace.decode.DecodeJsonLD.jsonldToTraversal
+
+  lspace.client.io.HttpClientAsyncHttp.backend
+  implicit val jsonLDCodec: JsonLDCodec[String] =
+    Codec.id[String, Application.JsonLD](Application.JsonLD(), Some(Schema(SchemaType.SString)))
+  implicit val graphQLCodec: GraphQLCodec[String] =
+    Codec.id[String, Application.GraphQL](Application.GraphQL(), Some(Schema(SchemaType.SString)))
+
+  def traverse =
+    endpoint
+      .errorOut(stringBody)
+      .in(anyFromUtf8StringBody(implicitly[Codec[String, String, Application.JsonLD]])
+        .description("The Librarian traversal to execute"))
+      .in(anyFromUtf8StringBody(implicitly[Codec[String, String, Application.GraphQL]])
+        .description("The GraphQL traversal to execute"))
+      .out(stringBody)
+      .out(stringBody)
+  traverse
+
+  def openapiYamlDocumentation: String = {
+    import sttp.tapir.docs.openapi._
+    import sttp.tapir.openapi.circe.yaml._
+
+    // interpreting the endpoint description to generate yaml openapi documentation
+    val docs = List(traverse).toOpenAPI("The Tapir Library", "1.0")
+    docs.toYaml
+  }
 
   def stream: Endpoint[IO, _root_.fs2.Stream[IO, ContextedT[Collection[Any, ClassType[Any]]]]] = {
     import io.finch.internal.HttpContent
@@ -64,7 +99,7 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
     * GET /
     * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
     */
-  def list: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] = {
+  def list: Endpoint[IO, ContextedT[Collection[Any, ClassType[Any]]]] =
     post(
       path("@graph") :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                              lspace.services.codecs.Application.JsonLD]) {
@@ -84,7 +119,6 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
           }
           .to[IO]
     }
-  }
 
   object filtered {
 
@@ -121,7 +155,7 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
       * GET /
       * BODY ld+json: https://ns.l-space.eu/librarian/Traversal
       */
-    def list(ontology: Ontology): Endpoint[IO, ContextedT[List[Node]]] = {
+    def list(ontology: Ontology): Endpoint[IO, ContextedT[List[Node]]] =
       post(
         "@graph" :: body[Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]],
                          lspace.services.codecs.Application.JsonLD]) {
@@ -138,6 +172,5 @@ class LibrarianApi[JSON](graph: Graph)(implicit val activeContext: ActiveContext
             }
             .to[IO]
       }
-    }
   }
 }

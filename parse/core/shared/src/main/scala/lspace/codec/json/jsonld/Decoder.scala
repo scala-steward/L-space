@@ -222,7 +222,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     * @return
     */
   def toResource(expandedJson: ExpandedMap[Json], expectedType: Option[ClassType[_]])(
-      implicit activeContext: ActiveContext): Task[Resource[Any]] =
+    implicit activeContext: ActiveContext): Task[Resource[Any]] =
 //    extractContext(obj).flatMap { implicit activeContext =>
 //      val expandedJson = activeContext.expandKeys(obj)
     expandedJson.extractType.flatMap { expectedTypes =>
@@ -242,7 +242,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def toResource(json: Json, expectedType: Option[ClassType[_]])(
-      implicit activeContext: ActiveContext): Task[Resource[Any]] =
+    implicit activeContext: ActiveContext): Task[Resource[Any]] =
     (for {
       iri <- json.string
       et  <- expectedType.collect { case ontology: Ontology => ontology }
@@ -283,7 +283,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     * @return
     */
   def withEdges[T <: Resource[_]](resource: T, otherJson: ExpandedMap[Json])(
-      implicit activeContext: ActiveContext): Task[T] = {
+    implicit activeContext: ActiveContext): Task[T] = {
     Task
       .parSequenceUnordered(otherJson.obj.map {
         case (key, value) =>
@@ -459,7 +459,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
   //        .getOrElse(Task.raiseError(FromJsonException("object expected when parsing to node")))
 
   def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
-      implicit activeContext: ActiveContext): Task[Node] = {
+    implicit activeContext: ActiveContext): Task[Node] = {
     val iri = expandedJson.extractId
     if (iri.isDefined && expandedJson.size == 1) {
       //node-ref
@@ -487,7 +487,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
   }
   def toScopedNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
-      implicit activeContext: ActiveContext): Task[Node] = {
+    implicit activeContext: ActiveContext): Task[Node] = {
     val iri = expandedJson.extractId
     if (iri.isDefined && expandedJson.size == 1) {
       //node-ref
@@ -523,9 +523,9 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       }
 //      .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
   def toEdge(expandedJson: ExpandedMap[Json], expectedType: Option[Property])(
-      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = toEdge(expandedJson, expectedType.toList)
+    implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = toEdge(expandedJson, expectedType.toList)
   def toEdge(expandedJson: ExpandedMap[Json], expectedTypes: List[Property])(
-      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
+    implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
     (expandedJson.extractFrom, expandedJson.extractTo) match {
       case (Some(source), Some(destination)) =>
         Some((for {
@@ -552,13 +552,13 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       case _ => None
     }
   def toScopedEdge(expandedJson: ExpandedMap[Json], expectedType: Property)(
-      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
+    implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
     toScopedEdge(expandedJson, expectedType :: Nil)
   def toScopedEdge(expandedJson: ExpandedMap[Json], expectedType: Option[Property])(
-      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
+    implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
     toScopedEdge(expandedJson, expectedType.toList)
   def toScopedEdge(expandedJson: ExpandedMap[Json], expectedTypes: List[Property])(
-      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
+    implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] =
     (expandedJson.extractFrom, expandedJson.extractTo) match {
       case (Some(source), Some(destination)) =>
         Some((for {
@@ -588,7 +588,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def toLiteral[T](json: Json, label: LiteralType[T])(
-      implicit activeContext: ActiveContext): Task[(LiteralType[T], T)] =
+    implicit activeContext: ActiveContext): Task[(LiteralType[T], T)] =
     Task {
       (label match {
         case `@string` =>
@@ -615,7 +615,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }.map(_.getOrElse(throw UnexpectedJsonException(s"unknown LiteralType ${label.iri} for $json")))
 
   def toStructured[T](json: Json, label: StructuredType[T])(
-      implicit activeContext: ActiveContext): Task[(StructuredType[T], T)] =
+    implicit activeContext: ActiveContext): Task[(StructuredType[T], T)] =
     label match {
       case label: GeometricType[T] =>
         toGeometric(json, label) //label can be generic, return resulting type
@@ -627,7 +627,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def toGeometric[T](json: Json, label: GeometricType[T])(
-      implicit activeContext: ActiveContext): Task[(GeometricType[T], T)] =
+    implicit activeContext: ActiveContext): Task[(GeometricType[T], T)] =
     Task {
       (label match { //TODO: create specific parsers
         case `@geopoint`        => json.list.map(geoJsonDecoder.decodePoint).map(`@geopoint`               -> _)
@@ -643,7 +643,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }.map(_.getOrElse(throw UnexpectedJsonException(s"unknown GeometricType ${label.iri}")))
 
   def toCollection[T](json: List[Json], label: CollectionType[T])(
-      implicit activeContext: ActiveContext): Task[(CollectionType[T], T)] =
+    implicit activeContext: ActiveContext): Task[(CollectionType[T], T)] =
     label match {
       case label: ListType[_]    => toList(json, label.valueRange).map(_.asInstanceOf[T]).map(label -> _)
       case label: VectorType[_]  => toVector(json, label.valueRange).map(_.asInstanceOf[T]).map(label -> _)
@@ -654,7 +654,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def toTuple[T](json: List[Json], label: TupleType[T])(
-      implicit activeContext: ActiveContext): Task[(TupleType[T], T)] =
+    implicit activeContext: ActiveContext): Task[(TupleType[T], T)] =
 //    label match {
 //      case dt: TupleType[_] =>
     if (json.size != label.rangeTypes.size)
@@ -681,7 +681,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
 //    }
 
   def toObject(json: Json, label: Option[ClassType[_]] = None)(
-      implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
+    implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
     json.obj
       .map { obj =>
         obj.extractContext.flatMap { implicit activeContext =>
@@ -718,7 +718,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       .getOrElse(Task.raiseError(UnexpectedJsonException("cannot decode to value")))
 
   def toScopedObject(json: Json, upperbound: Option[ClassType[_]] = None)(
-      implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
+    implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
     json.obj
       .map { obj =>
         obj.extractContext.flatMap { implicit activeContext =>
@@ -778,7 +778,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       }
 
   def tryRaw(json: Json, expectedType: Option[ClassType[Any]] = None)(
-      implicit activeContext: ActiveContext): Option[Task[(ClassType[Any], Any)]] =
+    implicit activeContext: ActiveContext): Option[Task[(ClassType[Any], Any)]] =
     //is primitive
     toPrimitive(json)
       .map(v => ClassType.detect(v) -> v)
@@ -795,7 +795,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       })
 
   def toObject(expandedJson: ExpandedMap[Json], expectedType: Option[ClassType[_]])(
-      implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
+    implicit activeContext: ActiveContext): Task[(ClassType[Any], Any)] =
     expandedJson.extractValue
       .map { json =>
         expandedJson.extractDatatype
@@ -819,7 +819,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       }
 
   def tryData(expandedJson: ExpandedMap[Json], expectedType: Option[DataType[_]])(
-      implicit activeContext: ActiveContext): Option[Task[(ClassType[Any], Any)]] =
+    implicit activeContext: ActiveContext): Option[Task[(ClassType[Any], Any)]] =
     expandedJson.extractValue.map { json =>
       expandedJson.extractDatatype.map(_.orElse(expectedType)).flatMap {
         _.map { label =>
@@ -846,7 +846,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def tryValue(expandedJson: ExpandedMap[Json], expectedType: Option[DataType[_]])(
-      implicit activeContext: ActiveContext): Option[Task[Value[Any]]] =
+    implicit activeContext: ActiveContext): Option[Task[Value[Any]]] =
     expandedJson.extractValue.map { json =>
       expandedJson.extractDatatype
         .map(_.orElse(expectedType))
@@ -1385,7 +1385,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def toListSet(list: List[Json], label: Option[ClassType[_]])(
-      implicit activeContext: ActiveContext): Task[ListSet[Any]] =
+    implicit activeContext: ActiveContext): Task[ListSet[Any]] =
     Task
       .parSequence {
         list.map { json =>
@@ -1395,7 +1395,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       .map(ListSet(_: _*)) //scala 2.13 to(ListSet)
 
   def toVector(list: List[Json], label: Option[ClassType[_]])(
-      implicit activeContext: ActiveContext): Task[Vector[Any]] =
+    implicit activeContext: ActiveContext): Task[Vector[Any]] =
     Task.parSequence {
       list.toVector.map { json =>
         toScopedObject(json, label).map(_._2)
@@ -1403,7 +1403,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
     }
 
   def toMap(list: List[Json], keyLabel: Option[ClassType[_]], valueLabel: Option[ClassType[_]])(
-      implicit activeContext: ActiveContext): Task[Map[Any, Any]] =
+    implicit activeContext: ActiveContext): Task[Map[Any, Any]] =
     Task
       .parSequence {
         list.map { json =>
@@ -1419,6 +1419,50 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       }
       .map(_.toMap)
 
+  def parseOntology(jsons: List[Json], iri: String)(implicit activeContext: ActiveContext): Task[Ontology] =
+    Task
+      .parSequenceUnordered(
+        jsons
+          .map(_.obj)
+          .filter(_.exists(_.size > 2))
+          .map {
+            _.map(obj => obj.extractContext.map(_ -> obj))
+              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
+          })
+      .flatMap { list =>
+        Task
+          .parSequenceUnordered { //gatherUnordered seems to deadlock?
+            list.map {
+              case (ac, obj) =>
+                val expandedJson = obj.expand(ac)
+                expandedJson
+                  .extractId(ac)
+                  .map(_.iri)
+                  .map { iri =>
+                    prepareClassType(expandedJson - types.`@context`)
+                      .timeout(45000.millis)
+                      .onErrorHandleWith {
+                        case e: NotAClassNorProperty =>
+                          //                                            println(s"notaclass $iri")
+                          Task.unit
+                        case e =>
+                          //                                            println(s"error $iri")
+                          Task.raiseError(e)
+                      }
+                      .memoizeOnSuccess
+                  }
+                  .getOrElse(Task.raiseError(FromJsonException("classtype without iri")))
+            }
+          }
+      }
+      .flatMap { f =>
+        graph.ns.nodes
+          .hasIri(iri)
+          .headOptionL
+          .flatMap(_.map(n => Task(Ontology.ontologies.getAndUpdate(n)))
+            .getOrElse(Task.raiseError(throw FromJsonException(s"could not find $iri after fetching and preparing"))))
+      }
+
   def fetchOntology(iri: String)(implicit activeContext: ActiveContext): Task[Ontology] =
     fetch(iri).flatMap { json =>
       json.obj
@@ -1430,53 +1474,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
             } else if (expandedJson.contains(types.`@graph`)) {
               expandedJson
                 .get(types.`@graph`)
-                .flatMap(json =>
-                  json.list.map { jsons =>
-                    Task
-                      .parSequenceUnordered(
-                        jsons
-                          .map(_.obj)
-                          .filter(_.exists(_.size > 2))
-                          .map {
-                            _.map(obj => obj.extractContext.map(_ -> obj))
-                              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
-                          })
-                      .flatMap {
-                        list =>
-                          Task
-                            .parSequenceUnordered { //gatherUnordered seems to deadlock?
-                              list.map {
-                                case (ac, obj) =>
-                                  val expandedJson = obj.expand(ac)
-                                  expandedJson
-                                    .extractId(ac)
-                                    .map(_.iri)
-                                    .map { iri =>
-                                      prepareClassType(expandedJson - types.`@context`)
-                                        .timeout(45000.millis)
-                                        .onErrorHandleWith {
-                                          case e: NotAClassNorProperty =>
-//                                            println(s"notaclass $iri")
-                                            Task.unit
-                                          case e =>
-//                                            println(s"error $iri")
-                                            Task.raiseError(e)
-                                        }
-                                        .memoizeOnSuccess
-                                    }
-                                    .getOrElse(Task.raiseError(FromJsonException("classtype without iri")))
-                              }
-                            }
-                      }
-                      .flatMap { f =>
-                        graph.ns.nodes
-                          .hasIri(iri)
-                          .headOptionL
-                          .flatMap(_.map(n => Task(Ontology.ontologies.getAndUpdate(n)))
-                            .getOrElse(Task.raiseError(
-                              throw FromJsonException(s"could not find $iri after fetching and preparing"))))
-                      }
-                })
+                .flatMap(json => json.list.map(parseOntology(_, iri)))
                 .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
             } else {
               scribe.warn(
@@ -1486,8 +1484,54 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
             }
           }
         }
+        .orElse {
+          json.list.map(parseOntology(_, iri))
+        }
         .getOrElse(Task.raiseError(FromJsonException("Ontology resource is not an object")))
     }
+
+  def parseProperty(jsons: List[Json], iri: String)(implicit activeContext: ActiveContext): Task[Property] =
+    Task
+      .parSequenceUnordered(
+        jsons
+          .map(_.obj)
+          .filter(_.exists(_.size > 2))
+          .map {
+            _.map(obj => obj.extractContext.map(_ -> obj))
+              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
+          })
+      .flatMap { list =>
+        Task.parSequenceUnordered {
+          list.map {
+            case (ac, obj) =>
+              val expandedJson = obj.expand(ac)
+              expandedJson
+                .extractId(ac)
+                .map(_.iri)
+                .map { iri =>
+                  prepareClassType(expandedJson - types.`@context`)
+                    .timeout(15000.millis)
+                    .onErrorHandleWith {
+                      case e: NotAClassNorProperty => Task.unit
+                      case e                       => Task.raiseError(e)
+                    }
+                    .memoizeOnSuccess
+                }
+                .get
+          }
+        }
+      }
+      .flatMap { f =>
+        graph.ns.nodes
+          .hasIri(iri)
+          .headOptionL
+          .flatMap(_.map(n => Task(Property.properties.getAndUpdate(n)))
+            .getOrElse(Task.raiseError(
+              throw FromJsonException(s"could not find $iri after fetching and preparing"))))
+      }
+  //                      .map(_.collectFirst {
+  //                        case property: Property if property.iris.contains(iri) => property
+  //                      }.getOrElse(throw FromJsonException(s"could not find $iri after fetching and preparing")))
 
   def fetchProperty(iri: String)(implicit activeContext: ActiveContext): Task[Property] =
     fetch(iri).flatMap { json =>
@@ -1501,50 +1545,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
               expandedJson
                 .get(types.`@graph`)
                 .flatMap { json =>
-                  json.list.map { jsons =>
-                    Task
-                      .parSequenceUnordered(
-                        jsons
-                          .map(_.obj)
-                          .filter(_.exists(_.size > 2))
-                          .map {
-                            _.map(obj => obj.extractContext.map(_ -> obj))
-                              .getOrElse(Task.raiseError(FromJsonException("@graph should be a list of objects")))
-                          })
-                      .flatMap { list =>
-                        Task.parSequenceUnordered {
-                          list.map {
-                            case (ac, obj) =>
-                              val expandedJson = obj.expand(ac)
-                              expandedJson
-                                .extractId(ac)
-                                .map(_.iri)
-                                .map { iri =>
-                                  prepareClassType(expandedJson - types.`@context`)
-                                    .timeout(15000.millis)
-                                    .onErrorHandleWith {
-                                      case e: NotAClassNorProperty => Task.unit
-                                      case e                       => Task.raiseError(e)
-                                    }
-                                    .memoizeOnSuccess
-                                }
-                                .get
-                          }
-                        }
-                      }
-                      .flatMap { f =>
-                        graph.ns.nodes
-                          .hasIri(iri)
-                          .headOptionL
-                          .flatMap(_.map(n => Task(Property.properties.getAndUpdate(n)))
-                            .getOrElse(Task.raiseError(
-                              throw FromJsonException(s"could not find $iri after fetching and preparing"))))
-                      }
-
-//                      .map(_.collectFirst {
-//                        case property: Property if property.iris.contains(iri) => property
-//                      }.getOrElse(throw FromJsonException(s"could not find $iri after fetching and preparing")))
-                  }
+                  json.list.map(parseProperty(_, iri))
                 }
                 .getOrElse(Task.raiseError(FromJsonException("@graph is not an array")))
             } else {
@@ -1554,8 +1555,12 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
 //              Task.raiseError(FromJsonException(s"cannot parse property, not @type or @graph ${expandedJson.keys}"))
           }
         }
+        .orElse {
+          json.list.map(parseProperty(_, iri))
+        }
         .getOrElse(Task.raiseError(FromJsonException("Property resource is not an object")))
     }
+
   def fetchClassType(iri: String)(implicit activeContext: ActiveContext): Task[ClassType[_]] =
     fetch(iri).flatMap { json =>
       json.obj

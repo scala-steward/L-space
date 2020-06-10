@@ -15,6 +15,7 @@ case class Projection(name: String,
                       offset: Option[Int] = None,
                       parameters: ListMap[Property, Any] = ListMap(), //add direction to parameter property (in/out)
                       projections: List[Projection] = List()) {
+
   lazy val toTraversal: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = {
     val traversal =
       if (reverse) g.in(property)

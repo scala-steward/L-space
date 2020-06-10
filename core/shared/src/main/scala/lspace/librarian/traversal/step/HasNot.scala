@@ -1,10 +1,9 @@
 package lspace.librarian.traversal.step
 
-import lspace.librarian.traversal._
-import lspace.provider.detached.DetachedGraph
-import lspace.structure.{Node, Property, PropertyDef, TypedProperty}
 import lspace.NS.types
 import lspace.librarian.logic.predicate.P
+import lspace.provider.detached.DetachedGraph
+import lspace.structure.{Node, Property, PropertyDef, TypedProperty}
 import monix.eval.Task
 
 object HasNot

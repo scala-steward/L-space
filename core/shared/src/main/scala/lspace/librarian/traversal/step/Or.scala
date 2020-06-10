@@ -1,13 +1,11 @@
 package lspace.librarian.traversal.step
 
+import lspace.datatype.ListType
 import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
-import lspace.provider.wrapped.WrappedNode
 import lspace.structure._
-import lspace.NS.types
-import lspace.datatype.ListType
 import monix.eval.Task
-import shapeless.{HList, HNil}
+import shapeless.HList
 
 object Or
     extends StepDef("Or",

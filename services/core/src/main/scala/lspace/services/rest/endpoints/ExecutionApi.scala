@@ -1,7 +1,6 @@
 package lspace.services.rest.endpoints
 
 import cats.effect.IO
-import io.finch.Endpoint
 import lspace._
 import lspace.codec.ContextedT
 import lspace.librarian.traversal.Collection

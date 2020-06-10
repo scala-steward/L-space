@@ -2,14 +2,12 @@ package lspace.structure.util
 
 import java.util.concurrent.ConcurrentHashMap
 
-import lspace.structure.{Graph, Node, Ontology, Value}
 import lspace.Label
+import lspace.structure.{Graph, Node, Ontology, Value}
 import monix.eval.Task
 
-import scala.collection.concurrent
-import scala.collection.mutable
 import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
+import scala.collection.{concurrent, mutable}
 
 trait GraphUtils {
 
@@ -173,7 +171,7 @@ trait GraphUtils {
           .onErrorHandle { f =>
             f.printStackTrace(); throw f
           }
-          .doOnFinish(f => Task(valueMergeTasks.remove(values.head.value)))
+          .doOnFinish(_ => Task(valueMergeTasks.remove(values.head.value)))
           .memoizeOnSuccess
       )
     }

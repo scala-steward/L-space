@@ -1,8 +1,6 @@
 package lspace.librarian.traversal.step
 
-import lspace.librarian.traversal.{FilterStep, MoveStep, StepDef, StepWrapper, TraverseStep}
 import lspace.provider.detached.DetachedGraph
-import lspace.structure.util.ClassTypeable
 import lspace.structure.{ClassType, Node, Property, PropertyDef}
 import monix.eval.Task
 

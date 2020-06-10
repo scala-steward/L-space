@@ -2,6 +2,7 @@ package lspace.librarian.traversal
 
 import lspace.datatype.ListType
 import lspace.librarian.task.Guide
+import lspace.librarian.traversal.step.Step
 import lspace.librarian.traversal.util.ResultMapper
 import lspace.provider.detached.DetachedGraph
 import lspace.structure.{ClassType, Graph, Node}
@@ -56,9 +57,12 @@ object UntypedTraversal {
 //      }
 //    }
 //  }
+
+  def apply[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList](
+    traversal: Traversal[ST, ET, Steps]): UntypedTraversal = new UntypedTraversal(traversal.stepsList.toVector)
 }
 
-case class UntypedTraversal(steps: Vector[Step] = Vector()) {
+case class UntypedTraversal private (steps: Vector[Step] = Vector()) {
 
 //  def steps: List[Step]                                         = segments.flatMap(_.steps).toList
   def toTyped: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = Traversal(steps)
@@ -69,15 +73,6 @@ case class UntypedTraversal(steps: Vector[Step] = Vector()) {
 
   def ++(traversal: UntypedTraversal): UntypedTraversal =
     this.copy(steps ++ traversal.steps)
-//    traversal.steps.headOption match {
-//      case Some(step: MoveStep) =>
-//        this.copy(segments ++ traversal.segments)
-//      case Some(step) =>
-//        this.copy(
-//          segments.dropRight(1) ++ segments.lastOption.map(
-//            _ ++ traversal.segments.headOption.getOrElse(UntypedSegment())) ++ traversal.segments.tail)
-//      case None => this
-//    }
 
 //  lazy val toNode: Task[Node] = {
 //    for {

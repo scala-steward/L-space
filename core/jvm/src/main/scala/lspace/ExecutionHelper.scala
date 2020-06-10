@@ -1,37 +1,11 @@
 package lspace
 
-import java.util.concurrent.Executors
-
-import monix.execution.ExecutionModel.{AlwaysAsyncExecution, SynchronousExecution}
-import monix.execution.{Scheduler, UncaughtExceptionReporter}
+import monix.execution.ExecutionModel.SynchronousExecution
+import monix.execution.Scheduler
 
 object ExecutionHelper {
 
-  lazy val scheduledExecutor =
-//    Executors.newSingleThreadExecutor()
-    Executors.newSingleThreadScheduledExecutor()
-//    Executors.newScheduledThreadPool(8)
+  lazy val scheduler = Scheduler.computation(name = "lspace-librarian")
 
-  // For actual execution of tasks
-  lazy val executorService =
-//    Executors.newFixedThreadPool(8)
-//    scala.concurrent.ExecutionContext.fromExecutor(scheduledExecutor)
-    scala.concurrent.ExecutionContext.Implicits.global
-
-  // Logs errors to stderr or something
-  lazy val uncaughtExceptionReporter =
-    UncaughtExceptionReporter(executorService.reportFailure)
-
-  lazy val scheduler = Scheduler(
-    scheduledExecutor,
-    executorService,
-    uncaughtExceptionReporter,
-    AlwaysAsyncExecution
-  )
-  lazy val syncscheduler = Scheduler(
-    scheduledExecutor,
-    executorService,
-    uncaughtExceptionReporter,
-    SynchronousExecution
-  )
+  lazy val syncscheduler = Scheduler.computation(name = "lspace-librarian-sync", executionModel = SynchronousExecution)
 }

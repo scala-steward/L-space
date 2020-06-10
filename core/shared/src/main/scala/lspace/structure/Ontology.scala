@@ -3,12 +3,12 @@ package lspace.structure
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.NS
-import lspace.datatype.{DataType, IriType, NodeURLType}
+import lspace.datatype.{DataType, IriType}
 import lspace.structure.util.ClassTypeable
-import monix.eval.{Coeval, Task}
+import monix.eval.Coeval
 
-import scala.collection.concurrent
 import scala.collection.JavaConverters._
+import scala.collection.concurrent
 
 object Ontology {
   lazy val ontology: Ontology = {

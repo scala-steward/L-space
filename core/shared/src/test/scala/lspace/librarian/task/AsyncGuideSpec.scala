@@ -6,7 +6,6 @@ import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
 import lspace.datatype.{ListType, NodeURLType}
-import lspace.librarian.traversal.Step
 import lspace.librarian.traversal.step.{Path, Union}
 import lspace.librarian.traversal.util.EndMapper
 import lspace.structure.{GraphFixtures, SampledGraph}
