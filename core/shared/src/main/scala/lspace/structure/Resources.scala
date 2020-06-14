@@ -1,6 +1,7 @@
 package lspace.structure
 
 import lspace.provider.wrapped.WrappedResource
+import lspace.structure.util.UpsertHelper
 import monix.eval.Task
 import monix.reactive.Observable
 
@@ -25,13 +26,13 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
     } else Observable[Resource[_]]()
   }
 
-  def upsert[V](resource: Resource[V]): Task[Resource[V]] =
+  def upsert[V](resource: Resource[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Resource[V]] =
     upsertR(resource)
   //      value match {
   //        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
   //        case value                 => values.create(value).asInstanceOf[Resource[V]]
   //      }
-  private def upsertR[V](value: Resource[V]): Task[Resource[V]] =
+  private def upsertR[V](value: Resource[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Resource[V]] =
     value match {
       //        case resource: _Resource[V]       => resource
       case resource: WrappedResource[V] => upsertR(resource.self)

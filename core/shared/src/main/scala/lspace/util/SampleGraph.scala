@@ -8,6 +8,7 @@ import lspace.types.geo.Point
 
 object SampleGraph {
 
+  object Address extends OntologyDef("https://example.org/Address", label = "Address") {}
   object Place extends OntologyDef("https://example.org/Place", label = "Place") {
     object keys {
       lazy val name                              = SampleGraph.properties.name
@@ -50,34 +51,35 @@ object SampleGraph {
     }
   }
   object ontologies {
-    val place  = Place.ontology
-    val person = Person.ontology
+    val place   = Place.ontology
+    val person  = Person.ontology
+    val address = Address.ontology
   }
   object properties {
     object name extends PropertyDef("name", label = "name", `@range` = TextType.datatype :: Nil)
-    lazy val nameString: TypedProperty[String] = name as TextType.datatype
+    lazy val nameString: TypedProperty[String] = name.as(TextType.datatype)
     object givenname
         extends PropertyDef("givenname",
                             label = "givenname",
                             `@range` = TextType.datatype :: Nil,
                             `@extends` = name :: Nil)
-    lazy val givennameString: TypedProperty[String] = givenname as TextType.datatype
+    lazy val givennameString: TypedProperty[String] = givenname.as(TextType.datatype)
     object geo extends PropertyDef("https://example.org/geo", label = "geo", `@range` = GeopointType.datatype :: Nil)
-    lazy val geoPoint: TypedProperty[Point] = geo as GeopointType.datatype
+    lazy val geoPoint: TypedProperty[Point] = geo.as(GeopointType.datatype)
     object birthDate
         extends PropertyDef("https://example.org/birthDate",
                             label = "birthDate",
                             `@range` = LocalDateType.datatype :: Nil)
-    lazy val birthDateLocalDate: TypedProperty[LocalDate] = birthDate as LocalDateType.datatype
+    lazy val birthDateLocalDate: TypedProperty[LocalDate] = birthDate.as(LocalDateType.datatype)
     object birthPlace
         extends PropertyDef("https://example.org/birthPlace", label = "birthPlace", `@range` = Place.ontology :: Nil)
-    lazy val birthPlacePlace: TypedProperty[Node] = birthPlace as Place.ontology
+    lazy val birthPlacePlace: TypedProperty[Node] = birthPlace.as(Place.ontology)
     object balance extends PropertyDef("balance", label = "balance", `@range` = DoubleType.datatype :: Nil)
-    lazy val balanceDouble: TypedProperty[Double] = balance as DoubleType.datatype
+    lazy val balanceDouble: TypedProperty[Double] = balance.as(DoubleType.datatype)
     object rate extends PropertyDef("rate", label = "rate", `@range` = IntType.datatype :: Nil)
-    lazy val rateInt: TypedProperty[Int] = rate as IntType.datatype
+    lazy val rateInt: TypedProperty[Int] = rate.as(IntType.datatype)
     object knows extends PropertyDef("https://example.org/knows", label = "knows", `@range` = Person.ontology :: Nil)
-    lazy val knowsPerson: TypedProperty[Node] = knows as Person.ontology
+    lazy val knowsPerson: TypedProperty[Node] = knows.as(Person.ontology)
   }
   object namespaces {
     case class NS(iri: String) {
@@ -94,6 +96,18 @@ object SampleGraph {
   def loadSocial(graph: Graph) = {
 
     for {
+      _addresses <- for {
+        _undertheappletree <- graph + ontologies.address
+        _postalcode        <- _undertheappletree --- "postalcode" --> "888"
+        _street            <- _undertheappletree --- "street" --> "apples"
+        _housenumber       <- _undertheappletree --- "housenumber" --> 1
+      } yield
+        new {
+          val undertheappletree = _undertheappletree
+          val postalcode        = _postalcode
+          val street            = _street
+          val housenumber       = _housenumber
+        }
       _places <- for {
         _SanJosédeMaipo <- for {
           _place <- graph + ontologies.place
@@ -161,6 +175,7 @@ object SampleGraph {
           _birthPlace <- _person --- properties.birthPlace --> _places.CrystalSprings.place
           _balance    <- _person --- properties.balance --> 10.34
           _rate       <- _person --- properties.rate --> 4
+          _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
           new {
             val person     = _person
@@ -170,6 +185,7 @@ object SampleGraph {
             val birthPlace = _birthPlace
             val balance    = _balance
             val rate       = _rate
+            val address    = _address
           }
         _Levi <- for {
           _person     <- graph + ontologies.person
@@ -179,6 +195,7 @@ object SampleGraph {
           _birthPlace <- _person --- properties.birthPlace --> _places.CrystalSprings.place
           _balance    <- _person --- properties.balance --> -245.05
           _rate       <- _person --- properties.rate --> 2
+          _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
           new {
             val person     = _person
@@ -188,6 +205,7 @@ object SampleGraph {
             val birthPlace = _birthPlace
             val balance    = _balance
             val rate       = _rate
+            val address    = _address
           }
         _Gray <- for {
           _person     <- graph + ontologies.person
@@ -197,6 +215,7 @@ object SampleGraph {
           _birthPlace <- _person --- properties.birthPlace --> _places.Haridwar.place
           _balance    <- _person --- properties.balance --> 2230.30
           _rate       <- _person --- properties.rate --> 1
+          _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
           new {
             val person     = _person
@@ -206,6 +225,7 @@ object SampleGraph {
             val birthPlace = _birthPlace
             val balance    = _balance
             val rate       = _rate
+            val address    = _address
           }
         _Kevin <- for {
           _person     <- graph + ontologies.person
@@ -215,6 +235,7 @@ object SampleGraph {
           _birthPlace <- _person --- properties.birthPlace --> _places.SanJosédeMaipo.place
           _balance    <- _person --- properties.balance --> 500.50
           _rate       <- _person --- properties.rate --> 2
+          _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
           new {
             val person     = _person
@@ -224,6 +245,7 @@ object SampleGraph {
             val birthPlace = _birthPlace
             val balance    = _balance
             val rate       = _rate
+            val address    = _address
           }
         _Stan <- for {
           _person     <- graph + ontologies.person
@@ -233,6 +255,7 @@ object SampleGraph {
           _birthPlace <- _person --- properties.birthPlace --> _places.SanJosédeMaipo.place
           _balance    <- _person --- properties.balance --> 300
           _rate       <- _person --- properties.rate --> 4
+          _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
           new {
             val person     = _person
@@ -242,6 +265,7 @@ object SampleGraph {
             val birthPlace = _birthPlace
             val balance    = _balance
             val rate       = _rate
+            val address    = _address
           }
         _Garrison <- for {
           _person     <- graph + ontologies.person
@@ -249,6 +273,7 @@ object SampleGraph {
           _name       <- _person --- properties.name --> "Garrison" //relation can be a string
           _birthdate  <- _person --- properties.birthDate --> LocalDate.parse("1994-06-18")
           _birthPlace <- _person --- properties.birthPlace --> _places.Talca.place
+          _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
           new {
             val person     = _person
@@ -256,6 +281,7 @@ object SampleGraph {
             val name       = _name
             val birthdate  = _birthdate
             val birthPlace = _birthPlace
+            val address    = _address
           }
       } yield
         new {

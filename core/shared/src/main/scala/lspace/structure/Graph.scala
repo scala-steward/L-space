@@ -11,7 +11,7 @@ import lspace.librarian.traversal.util.{EndMapper, ResultMapper}
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
-import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider}
+import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider, UpsertHelper}
 import monix.reactive.Observable
 import shapeless.{::, HList, HNil}
 
@@ -133,7 +133,6 @@ trait Graph extends IriResource with GraphUtils { self =>
   def edges: Edges               = _edges
   private lazy val _edges: Edges = new Edges(this) {}
 
-
   /**
     * Nodes Aka Vertices
     */
@@ -231,113 +230,58 @@ trait Graph extends IriResource with GraphUtils { self =>
   protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit]
 
   //TODO: break graph cycles
-  protected[lspace] def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T): Task[Unit] =
+  protected[lspace] def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T)(implicit helper: UpsertHelper = UpsertHelper()): Task[Unit] =
     Observable
       .fromIterable(source.outE().filterNot(p => Graph.baseKeys.contains(p.key)))
       .mapEval { edge =>
         for {
-          t <- edges.create[Any, Any](target, edge.key, edge.to)
+          t <- helper.createEdge(edge.id, edges.create[Any, Any](target, edge.key, edge.to))
           u <- addMeta(edge, t)
         } yield u
       }
       .completedL
 
   def add: Graph => Task[Graph] = ++
+
   val ++ : Graph => Task[Graph] = (graph: Graph) => {
+    implicit val helper = new UpsertHelper()
     if (graph != this) {
       if (graph == DetachedGraph)
         scribe.warn(
           s"adding the contents of DetachedGraph to ${this.iri} has zero effect as DetachedGraph does not store any objects, they float")
       for {
-        oldIdNewNodeMap <- graph
+        _ <- graph
           .nodes()
-          .mapEval { node =>
+          .mapParallelUnordered(8) { node =>
 //            nodes.create(node.labels: _*).map(node.id -> _)
 //            (if (node.iri.nonEmpty) nodes.upsert(node.iri, node.labels: _*)
 //             else nodes.create(node.labels: _*)).map(node.id -> _)
-            nodes.upsert(node.iri, node.iris, node.labels: _*).map(node.id -> _)
-          }
-          .toListL
-          .map(_.toMap)
-        oldIdNewValueMap <- graph
+            nodes.upsert(node)
+          }.completedL
+        _ <- graph
           .values()
-          .mapEval { value =>
-            values.upsert(value).map(value.id -> _)
-          }
-          .toListL
-          .map(_.toMap)
+          .mapParallelUnordered(8) { value =>
+          values.upsert(value)
+          }.completedL
         r <- {
-          import scala.collection.JavaConverters._
-          val oldIdNewEdgeMap: scala.collection.concurrent.Map[Long, Edge[_, _]] =
-            new ConcurrentHashMap[Long, Edge[_, _]]().asScala
-          val edgesToRetry: scala.collection.concurrent.Map[Long, Edge[_, _]] =
-            new ConcurrentHashMap[Long, Edge[_, _]]().asScala
-          def retryEdges(): Task[Boolean] =
-            Observable
-              .fromIterable(edgesToRetry.values)
-              .mapEval { edge =>
-                mergeEdge(edge)
-                  .doOnFinish {
-                    case None => Task(edgesToRetry -= edge.id)
-                    case _    => Task.unit
-                  }
-                  .onErrorHandle(f => ())
-              }
-              .completedL
-              .map { f =>
-                edgesToRetry.isEmpty
-              }
-          def mergeEdge(edge: Edge[_, _]): Task[Unit] =
-            (for {
-              from <- Try(edge.from match {
-                case (resource: Node) =>
-                  oldIdNewNodeMap(resource.id)
-                case (resource: Edge[_, _]) =>
-                  oldIdNewEdgeMap(resource.id)
-                case (resource: Value[_]) =>
-                  oldIdNewValueMap(resource.id)
-              }).toOption
-              to <- Try(edge.to match {
-                case (resource: Node) =>
-                  oldIdNewNodeMap(resource.id)
-                case (resource: Edge[_, _]) =>
-                  oldIdNewEdgeMap(resource.id)
-                case (resource: Value[_]) =>
-                  oldIdNewValueMap(resource.id)
-              }).toOption
-            } yield {
-              edges.create(
-                from,
-                edge.key,
-                to
-              )
-            }).map(_.map { newEdge =>
-                oldIdNewEdgeMap += (edge.id -> newEdge)
-              }.void)
-              .getOrElse {
-                Task.raiseError {
-                  edgesToRetry += (edge.id -> edge)
-                  new Exception("could not merge yet")
-                }
-              }
           for {
             _ <- graph
               .edges()
               .filter(e =>
                 !((e.key == Property.default.`@id` || e.key == Property.default.`@ids`) && e.from
                   .isInstanceOf[Node] && e.to.hasLabel(TextType.datatype).isDefined))
-              .mapEval { edge =>
+              .mapParallelUnordered(8) { edge =>
                 //            if (edge.iri.nonEmpty) //TODO: find edge width
-                mergeEdge(edge).onErrorHandle { e: Throwable =>
+                helper.mergeEdge(edge)(self).onErrorHandle { e: Throwable =>
                   scribe.error(e.getMessage)
                 }
               }
               .toListL
-            _ <- retryEdges() //TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
-            _ <- retryEdges() //Possible strategy: only recurse when the number of edges-to-retry declines after an iteration
-            _ <- retryEdges()
-            _ <- retryEdges()
-            _ <- retryEdges()
+            _ <- helper.retryEdges(self) //TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
+            _ <- helper.retryEdges(self) //Possible strategy: only recurse when the number of edges-to-retry declines after an iteration
+            _ <- helper.retryEdges(self)
+            _ <- helper.retryEdges(self)
+            _ <- helper.retryEdges(self)
           } yield this
         }
       } yield r
@@ -346,10 +290,10 @@ trait Graph extends IriResource with GraphUtils { self =>
 
   import lspace.Traversal
   def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, Out, OutCT <: ClassType[_], F[_]](
-      traversal: Traversal[ST, ET[End], Steps])(implicit
-                                                tweaker: EndMapper.Aux[ET[End], Steps, Out, OutCT],
-                                                guide: Guide[F],
-                                                mapper: ResultMapper[F, ET[End], OutCT]): mapper.FT =
+    traversal: Traversal[ST, ET[End], Steps])(implicit
+                                              tweaker: EndMapper.Aux[ET[End], Steps, Out, OutCT],
+                                              guide: Guide[F],
+                                              mapper: ResultMapper[F, ET[End], OutCT]): mapper.FT =
     mapper.apply(traversal, this).asInstanceOf[mapper.FT]
 
   protected[lspace] def traverse[F[_]](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],

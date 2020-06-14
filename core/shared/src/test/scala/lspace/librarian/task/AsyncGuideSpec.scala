@@ -5,18 +5,13 @@ import java.time.LocalDate
 import lspace._
 import lspace.Label.D._
 import lspace.Label.P._
-import lspace.datatype.{ListType, NodeURLType}
-import lspace.librarian.traversal.step.{Path, Union}
-import lspace.librarian.traversal.util.EndMapper
 import lspace.structure.{GraphFixtures, SampledGraph}
 import org.scalatest.BeforeAndAfterAll
 import lspace.types.geo.Point
 import lspace.util.SampleGraph
-import monix.eval.Task
 import monix.reactive.Observable
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
-import shapeless.{HList, HNil}
 
 import scala.concurrent.duration._
 import scala.language._
@@ -100,7 +95,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .outMap()
           .withGraph(sampleGraph)
           .headF
-          .map(_.size shouldBe 5)
+          .map(_.keySet should contain (Property("address")))
           .timeout(4000.millis)
           .runToFuture
       }
@@ -631,7 +626,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toListF
           .map { groupedNodes =>
-            groupedNodes.size shouldBe 2
+            groupedNodes.size shouldBe 3
             groupedNodes.head._1.size shouldBe 1
             groupedNodes.head._2.size should be > 1
           }
@@ -657,7 +652,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toMapF
           .map { groupedNodes =>
-            groupedNodes.values.toSet shouldBe Set(4l, 6l)
+            groupedNodes.values.toSet shouldBe Set(4l, 6l, 1l)
           }
 //          .timeout(4000.millis)
           .runToFuture

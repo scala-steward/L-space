@@ -328,8 +328,26 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           _           <- Task.parZip2(newGraph.nodes.count, sampleGraph.nodes.count).map { case (a, b) => a shouldBe b }
           _           <- Task.parZip2(newGraph.edges.count, sampleGraph.edges.count).map { case (a, b) => a shouldBe b }
           _           <- Task.parZip2(newGraph.values.count, sampleGraph.values.count).map { case (a, b) => a shouldBe b }
+          _ <- newGraph.close()
         } yield {
-          newGraph.close()
+          succeed
+        }).timeout(40000.millis).runToFuture
+      }
+      "upsert nodes with edges to iriless nodes 1:1, not duplicating iriless nodes" in {
+        val newGraph = MemGraph("graphspec2irilessnode")
+        val newGraph2 = MemGraph("graphspec2irilessnode2")
+
+        (for {
+        irilessNode <- newGraph.nodes.create()
+        irilessNode2 <- newGraph.nodes.create()
+        _ <- irilessNode2 --- "value" --> 123
+        _ <- irilessNode --- "a" --> irilessNode2
+        _ <- irilessNode --- "b" --> irilessNode2
+        _ <- newGraph.nodes.count().map(_ shouldBe 2L)
+        _ <- newGraph2.nodes.upsert(irilessNode)
+        _ <- newGraph2.nodes.count().map(_ shouldBe 2L)
+        _ <- newGraph.close()
+        } yield {
           succeed
         }).timeout(40000.millis).runToFuture
       }

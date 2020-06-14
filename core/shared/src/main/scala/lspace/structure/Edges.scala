@@ -1,5 +1,6 @@
 package lspace.structure
 
+import lspace.structure.util.UpsertHelper
 import monix.eval.Task
 import monix.reactive.Observable
 
@@ -39,7 +40,7 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
     * @tparam E
     * @return
     */
-  final def create[S, E](from: Resource[S], key: Property, to: Resource[E]): Task[Edge[S, E]] = {
+  final def create[S, E](from: Resource[S], key: Property, to: Resource[E])(implicit helper: UpsertHelper = UpsertHelper()): Task[Edge[S, E]] = {
     val _from = from match {
       case from: _Node       => Task.now(from.asInstanceOf[_Resource[S]])
       case from: _Edge[_, _] => Task.now(from.asInstanceOf[_Resource[S]])
@@ -76,13 +77,14 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
     } yield edge
   }
 
-  def upsert[S, E](edge: Edge[S, E]): Task[Edge[S, E]] = {
+  def upsert[S, E](edge: Edge[S, E])(implicit helper: UpsertHelper = UpsertHelper()): Task[Edge[S, E]] = {
     if (edge.graph != this) {
+      helper.createEdge(edge.id,
       for {
         from    <- resources.upsert(edge.from)
         to      <- resources.upsert(edge.to)
         newEdge <- from.addOut(edge.key, to)
-      } yield newEdge
+      } yield newEdge)
     } else Task.now(edge)
   }
 
@@ -93,7 +95,7 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
     * @tparam E
     * @return
     */
-  def post[S, E](edge: Edge[S, E]): Task[Edge[S, E]] = {
+  def post[S, E](edge: Edge[S, E])(implicit helper: UpsertHelper = UpsertHelper()): Task[Edge[S, E]] = {
     if (edge.graph != this) {
       for {
         from    <- resources.upsert(edge.from)

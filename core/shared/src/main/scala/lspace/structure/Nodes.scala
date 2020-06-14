@@ -3,6 +3,7 @@ package lspace.structure
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.Label
+import lspace.structure.util.UpsertHelper
 import monix.eval.Task
 import monix.reactive.Observable
 
@@ -64,29 +65,30 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     * @param iris a set of iri's which should all resolve to the same resource
     * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
     */
-  def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] =
-    upsertingTasks
-      .getOrElseUpdate(
-        iri,
-        hasIri(iri :: iris.toList).toListL
-          .flatMap {
-            case Nil =>
-              for {
-                node <- create()
-                _ <- if (iri.nonEmpty) node.addOut(Label.P.typed.iriUrlString, iri)
-                else if (iris.headOption.exists(_.nonEmpty))
-                  node.addOut(Label.P.typed.iriUrlString, iris.head)
-                else Task.unit
-              } yield {
-                node
-              }
-            case List(node) => Task.now(node)
-            case nodes =>
-              mergeNodes(nodes.toSet)
+  def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] = {
+    val upsertTask = hasIri(iri :: iris.toList).toListL
+      .flatMap {
+        case Nil =>
+          for {
+            node <- create()
+            _ <- if (iri.nonEmpty) node.addOut(Label.P.typed.iriUrlString, iri)
+            else if (iris.headOption.exists(_.nonEmpty))
+              node.addOut(Label.P.typed.iriUrlString, iris.head)
+            else Task.unit
+          } yield {
+            node
           }
-          .doOnFinish(f => Task(upsertingTasks.remove(iri)))
-          .memoize
-      )
+        case List(node) => Task.now(node)
+        case nodes =>
+          mergeNodes(nodes.toSet)
+      }
+      .doOnFinish(f => Task(upsertingTasks.remove(iri)))
+      .memoize
+    Some(iri)
+      .filter(_.nonEmpty)
+      .map(upsertingTasks
+        .getOrElseUpdate(_, upsertTask))
+      .getOrElse(upsertTask)
       .flatMap { node =>
         val newIris = (iris + iri).diff(node.iris).toList.filter(_.nonEmpty) //only add new iris
         for {
@@ -94,13 +96,14 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
           _ <- Task.sequence(ontologies.map(node.addLabel))
         } yield node
       }
+  }
 
-  def upsert(node: Node): Task[Node] =
+  def upsert(node: Node)(implicit helper: UpsertHelper = UpsertHelper()): Task[Node] =
     if (node.graph != thisgraph) { //
       for {
 //        edges <- node.outE()//node.g.outE().withGraph(node.graph).toListF
         newNode <- if (node.iri.nonEmpty)
-          for {
+          helper.createNode(node.id, for {
             newNode <- upsert(node.iri)
             _ <- {
               val newIris = (node.iris).diff(newNode.iris).toList.filter(_.nonEmpty) //only add new iris
@@ -109,10 +112,10 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
                 _ <- Task.sequence(node.labels.map(newNode.addLabel))
               } yield ()
             }
-          } yield newNode
+          } yield newNode)
         else {
           for {
-            newNode <- create()
+            newNode <- helper.createNode(node.id, create())
             _       <- Task.parSequence(node.labels.map(newNode.addLabel))
             _       <- addMeta(node, newNode)
           } yield newNode
@@ -127,7 +130,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     * @param node
     * @return
     */
-  def post(node: Node): Task[Node] = node match {
+  def post(node: Node)(implicit helper: UpsertHelper = UpsertHelper()): Task[Node] = node match {
     case node: _Node => //match on GNode does also accept _Node instances from other Graphs???? Why?
       Task.now(node)
     case _ =>

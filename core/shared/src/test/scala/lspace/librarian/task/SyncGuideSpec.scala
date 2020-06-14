@@ -64,7 +64,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .outMap()
         .withGraph(sampleGraph)
         .headF
-        .map(_.size shouldBe 5)
+        .map(_.keySet should contain (Property("address")))
         .to[Task]
         .runToFuture
     }
@@ -379,7 +379,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .withGraph(sampleGraph)
         .toListF
         .map { groupedNodes =>
-          groupedNodes.size shouldBe 2
+          groupedNodes.size shouldBe 3
           groupedNodes.head._1.size shouldBe 1
           groupedNodes.head._2.size should be > 1
         }
@@ -393,7 +393,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .withGraph(sampleGraph)
         .toMapF
         .map { groupedNodes =>
-          groupedNodes.values.toSet shouldBe Set(4L, 6L)
+          groupedNodes.values.toSet shouldBe Set(4L, 6L, 1L)
         }
         .to[Task]
         .runToFuture

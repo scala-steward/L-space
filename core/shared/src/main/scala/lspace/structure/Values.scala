@@ -3,7 +3,7 @@ package lspace.structure
 import java.util.concurrent.ConcurrentHashMap
 
 import lspace.datatype.DataType
-import lspace.structure.util.ClassTypeable
+import lspace.structure.util.{ClassTypeable, UpsertHelper}
 import monix.eval.Task
 import monix.reactive.Observable
 
@@ -164,7 +164,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             case values =>
               mergeValues(values.toSet)
           }
-          .doOnFinish(f => Task(upsertingTasks.remove(value)))
+          .doOnFinish(_ => Task(upsertingTasks.remove(value)))
           .memoize
       )
       .asInstanceOf[Task[Value[V]]]
@@ -174,9 +174,10 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   ////        GraphUtils.mergeValues(values.toSet)
   //      } else values.head
   //      _value
-  final def upsert[V](value: Value[V]): Task[Value[V]] =
+  final def upsert[V](value: Value[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Value[V]] =
     if (value.graph != this) {
-      upsert(value.value, value.label)
+      helper.createValue(value.id,
+      upsert(value.value, value.label))
     } else Task.now(value)
 
   /**

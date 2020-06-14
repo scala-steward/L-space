@@ -62,7 +62,7 @@ trait GraphUtils {
                           .filterNot(tpe => typesToAdd.exists(_.`extends`(tpe)))
                           .map(tpe => unmerged.head.addLabel(tpe)))
                       _ <- Task.parSequenceUnordered(linksIn.map {
-                        case (key, properties) =>
+                        case (_, properties) =>
                           Task.parSequenceUnordered(properties.map { property =>
                             for {
                               _ <- property.from.addOut(property.key, unmerged.head)
@@ -71,7 +71,7 @@ trait GraphUtils {
                           })
                       })
                       _ <- Task.parSequenceUnordered(linksOut.map {
-                        case (key, properties) =>
+                        case (_, properties) =>
                           Task.parSequenceUnordered(properties.map { property =>
                             for {
                               _ <- unmerged.head.addOut(property.key, property.to)
@@ -88,7 +88,7 @@ trait GraphUtils {
                 unmerged.head
               }
             }
-            .doOnFinish(f =>
+            .doOnFinish(_ =>
               Task {
                 nodeMergeTasks.remove(iri)
             })
@@ -138,13 +138,13 @@ trait GraphUtils {
                   val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
                   for {
                     _ <- Task.parSequenceUnordered(linksIn.map {
-                      case (key, properties) =>
+                      case (_, properties) =>
                         Task.parSequenceUnordered(properties.map { property =>
                           property.from.addOut(property.key, unmerged.head)
                         })
                     })
                     _ <- Task.parSequenceUnordered(linksOut.map {
-                      case (key, properties) =>
+                      case (_, properties) =>
                         Task.parSequenceUnordered(properties.map { property =>
                           unmerged.head.addOut(property.key, property.to)
                         })
