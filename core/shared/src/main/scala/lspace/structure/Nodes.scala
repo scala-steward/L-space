@@ -135,7 +135,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
       Task.now(node)
     case _ =>
       for {
-        newNode <- if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create() //FIX: ignores node.iris for empty node.iri
+        newNode <- helper.createNode(node.id, if (node.iri.nonEmpty) upsert(node.iri, node.iris) else create()) //FIX: ignores node.iris for empty node.iri
         _       <- Task.parSequence(node.labels.map(newNode.addLabel))
         _       <- addMeta(node, newNode)
       } yield newNode
