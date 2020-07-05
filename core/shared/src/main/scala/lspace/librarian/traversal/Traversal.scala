@@ -75,7 +75,7 @@ object Traversal
       Traversal[ST[Start], GraphType[Graph], G :: Steps](step.G(graph.toList) :: _traversal.steps)(st,
                                                                                                    GraphType.datatype)
 
-    def N(): Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] =
+    def N: Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] =
       add(step.N(), st, NodeURLType.datatype)
 
     def N(resource: Node, resources: Node*): Traversal[ST[Start], NodeURLType[Node], step.N :: Steps] =
@@ -88,7 +88,7 @@ object Traversal
       resource: Edge[S, E]*): Traversal[ST[Start], EdgeURLType[Edge[S, E]], step.E :: Steps] =
       add(step.E(resource.toList.asInstanceOf[List[Edge[Any, Any]]]), st, EdgeURLType.apply[Edge[S, E]])
 
-    def V(): Traversal[ST[Start], DataType[Any], step.V :: Steps] =
+    def V: Traversal[ST[Start], DataType[Any], step.V :: Steps] =
       add(step.V(), st, DataType.datatype)
 
     def V[T, OutC, Out <: ClassType[OutC]](value: T, values: T*)(

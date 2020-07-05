@@ -88,9 +88,9 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       }
     }
     "start with any step extending TraversalStep".ignore {
-      lspace.g.N().in().stepsList.size shouldBe 2
-      lspace.g.N().out().stepsList.size shouldBe 2
-      lspace.g.N().out().hasIri("abc").stepsList.size shouldBe 3
+      lspace.g.N.in().stepsList.size shouldBe 2
+      lspace.g.N.out().stepsList.size shouldBe 2
+      lspace.g.N.out().hasIri("abc").stepsList.size shouldBe 3
       val pDouble =
         Property("schema/x")
       pDouble.range + DataType.default.`@double`
@@ -98,26 +98,26 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       graph.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
 
-      //      println(Traversal.g("biggraph").V().has(pDouble, 0.5).toString)
-      //      println(Traversal.g("biggraph").V().has(pDouble, P.eq(0.5).gt(0.4)).toString)
-      lspace.g.N().has(pDouble).stepsList.size shouldBe 2
+      //      println(Traversal.g("biggraph").V.has(pDouble, 0.5).toString)
+      //      println(Traversal.g("biggraph").V.has(pDouble, P.eq(0.5).gt(0.4)).toString)
+      lspace.g.N.has(pDouble).stepsList.size shouldBe 2
       val testNode = graph.nodes.create()
 //      List(1.1, 0.9, 1, 3l).foreach(testNode --- pDouble --> _)
 //      testNode.addOut(pDouble, 0.5)
 //      testNode.out(pDouble).size shouldBe 5
       //      testNode.property(pDouble, 1, 1.1, 0.5, 3l)
       //      Traversal[VStep, VStep]().has(NumericPropertyKey("", "")(TraversalSpec.DoubleType), 0L).steps.size shouldBe 1
-      lspace.g.N().has(pDouble, P.eqv(1.0)).stepsList.size shouldBe 2
-      lspace.g.N().has(pDouble, P.gte(1.0) && P.lt(1.0)).stepsList.size shouldBe 2
-      //      DetachedGraph.g.N().has(pDouble, P.gte(1.0) lt (1.0)).steps.size shouldBe 3
+      lspace.g.N.has(pDouble, P.eqv(1.0)).stepsList.size shouldBe 2
+      lspace.g.N.has(pDouble, P.gte(1.0) && P.lt(1.0)).stepsList.size shouldBe 2
+      //      DetachedGraph.g.N.has(pDouble, P.gte(1.0) lt (1.0)).steps.size shouldBe 3
       lspace.g
-        .N()
+        .N
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
         .stepsList
         .last
         .isInstanceOf[step.Has] shouldBe true
       lspace.g
-        .N()
+        .N
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
         .stepsList
         .last
@@ -127,7 +127,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
           case p: p.And => p.predicate.size == 2
         } shouldBe true
       lspace.g
-        .N()
+        .N
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
         .stepsList
         .last
@@ -137,7 +137,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
           case p: p.And => p.predicate.head == P.gte(1.2)
         } shouldBe true
       lspace.g
-        .N()
+        .N
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
         .stepsList
         .last
@@ -152,17 +152,17 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
 
       val typedPString: TypedProperty[String] = pString.as(DataType.default.`@string`)
       graph.ns.properties.store(pString)
-      lspace.g.N().has(pDouble, P.startsWith("a")).stepsList.size shouldBe 2
+      lspace.g.N.has(pDouble, P.startsWith("a")).stepsList.size shouldBe 2
     }
     "consist of multiple steps" in Future {
-      val traversal = lspace.g.N().out().out().in()
+      val traversal = lspace.g.N.out().out().in()
       traversal.stepsList.size shouldBe 4
 //      val pDouble = Property("schema/x")
 //      pDouble.range + DataType.default.`@double`
 //      val typedPDouble: TypedProperty[Double] = pDouble + DataType.default.`@double`
-//      val test                                = lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`)
+//      val test                                = lspace.g.N.out(pDouble).hasLabel(DataType.default.`@double`)
 //      test.sum
-//      lspace.g.N().out(pDouble).hasLabel(DataType.default.`@double`).sum
+//      lspace.g.N.out(pDouble).hasLabel(DataType.default.`@double`).sum
     }
     "contains labels (as-steps)".can {
       "be selected by valid name".ignore(Future {
@@ -330,9 +330,9 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
   }
   "Traversals".can {
     "be compared" in Future {
-      g.N().count shouldBe g.N().count
-      g.N().hasId(1) shouldBe g.N().hasId(1)
-      g.N().hasId(1) should not be g.N().hasId(2)
+      g.N.count shouldBe g.N.count
+      g.N.hasId(1) shouldBe g.N.hasId(1)
+      g.N.hasId(1) should not be g.N.hasId(2)
       g.N.has("abc") shouldBe g.N.has("abc")
       g.N.has("abc", P.gt(1)) should not be g.N.has("abc")
       g.N.has("abc") should not be g.N.has("abcd")

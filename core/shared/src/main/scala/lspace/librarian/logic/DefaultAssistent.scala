@@ -675,9 +675,9 @@ class DefaultAssistent extends Assistent {
 
   override def intersect[T](p: Intersect[T]): Helper[Intersect[T]] =
     (p.pvalue match {
-      case v: String   => intersectStringHelper(p.asInstanceOf[Intersect[String]])
-      case v: Geometry => intersectGeoHelper(p.asInstanceOf[Intersect[Geometry]])
-      case v           => intersectHelper(p)
+      case _: String   => intersectStringHelper(p.asInstanceOf[Intersect[String]])
+      case _: Geometry => intersectGeoHelper(p.asInstanceOf[Intersect[Geometry]])
+      case _           => intersectHelper(p)
     }).asInstanceOf[Helper[Intersect[T]]]
 
   def containsHelper[T](p: Contains[T]) = new Helper[Contains[T]](p) {
@@ -732,10 +732,10 @@ class DefaultAssistent extends Assistent {
   }
   override def contains[T](p: Contains[T]): Helper[Contains[T]] =
     (p.pvalue match {
-      case v: P[_]     => containsPHelper(p.asInstanceOf[Contains[P[_]]])
-      case v: String   => containsStringHelper(p.asInstanceOf[Contains[String]])
-      case v: Geometry => containsGeoHelper(p.asInstanceOf[Contains[Geometry]])
-      case v           => containsHelper(p)
+      case _: P[_]     => containsPHelper(p.asInstanceOf[Contains[P[_]]])
+      case _: String   => containsStringHelper(p.asInstanceOf[Contains[String]])
+      case _: Geometry => containsGeoHelper(p.asInstanceOf[Contains[Geometry]])
+      case _           => containsHelper(p)
     }).asInstanceOf[Helper[Contains[T]]]
 
   def disjointHelper[T](p: Disjoint[T]) = new Helper[Disjoint[T]](p) {
@@ -772,9 +772,9 @@ class DefaultAssistent extends Assistent {
   }
   override def disjoint[T](p: Disjoint[T]): Helper[Disjoint[T]] =
     (p.pvalue match {
-      case v: String   => disjointStringHelper(p.asInstanceOf[Disjoint[String]])
-      case v: Geometry => disjointGeoHelper(p.asInstanceOf[Disjoint[Geometry]])
-      case v           => disjointHelper(p)
+      case _: String   => disjointStringHelper(p.asInstanceOf[Disjoint[String]])
+      case _: Geometry => disjointGeoHelper(p.asInstanceOf[Disjoint[Geometry]])
+      case _           => disjointHelper(p)
     }).asInstanceOf[Helper[Disjoint[T]]]
 
   def withinHelper[T](p: Within[T]) = new Helper[Within[T]](p) {
@@ -792,7 +792,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => pvalueList.containsSlice(v.productIterator.toList)
 //      case v: (_, _, _, _) => pvalueList.containsSlice(v.productIterator.toList)
       case v: Product => pvalueList.containsSlice(v.productIterator.toList)
-      case v          => false
+      case _          => false
     }
   }
   def withinStringHelper[T <: String](p: Within[T]) = new Helper[Within[T]](p) {
@@ -811,9 +811,9 @@ class DefaultAssistent extends Assistent {
   }
   override def within[T](p: Within[T]): Helper[Within[T]] =
     (p.pvalue match {
-      case v: String   => withinStringHelper(p.asInstanceOf[Within[String]])
-      case v: Geometry => withinGeoHelper(p.asInstanceOf[Within[Geometry]])
-      case v           => withinHelper(p)
+      case _: String   => withinStringHelper(p.asInstanceOf[Within[String]])
+      case _: Geometry => withinGeoHelper(p.asInstanceOf[Within[Geometry]])
+      case _           => withinHelper(p)
     }).asInstanceOf[Helper[Within[T]]]
 
   def startsWithHelper[T](p: Prefix[T]) = new Helper[Prefix[T]](p) {
@@ -855,8 +855,8 @@ class DefaultAssistent extends Assistent {
   }
   override def startsWith[T](p: Prefix[T]): Helper[Prefix[T]] =
     (p.pvalue match {
-      case v: String => startsWithStringHelper(p.asInstanceOf[Prefix[String]])
-      case v         => startsWithHelper(p)
+      case _: String => startsWithStringHelper(p.asInstanceOf[Prefix[String]])
+      case _         => startsWithHelper(p)
     }).asInstanceOf[Helper[Prefix[T]]]
 
   def endsWithHelper[T](p: Suffix[T]) = new Helper[Suffix[T]](p) {
@@ -920,7 +920,7 @@ class DefaultAssistent extends Assistent {
   }
 
   def fuzzy[T](p: Fuzzy[T]): Helper[Fuzzy[T]] = p.pvalue match {
-    case v: String =>
+    case _: String =>
       throw AssertionNotSupported("fuzzy string match not supported") //TODO, how to support? e.g. lowercase all strings on each search or keep a lazy lowercased cache value
   }
 

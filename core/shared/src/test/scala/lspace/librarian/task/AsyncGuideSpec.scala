@@ -652,7 +652,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toMapF
           .map { groupedNodes =>
-            groupedNodes.values.toSet shouldBe Set(4l, 6l, 1l)
+            groupedNodes.values.toSet shouldBe Set(4L, 6L, 1L)
           }
 //          .timeout(4000.millis)
           .runToFuture

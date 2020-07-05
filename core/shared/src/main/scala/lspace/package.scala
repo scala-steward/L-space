@@ -12,7 +12,7 @@ import shapeless.HList
 package object lspace {
 
   type Graph = structure.Graph
-  val Graph = structure.Graph
+  val Graph: structure.Graph.type = structure.Graph
   type Node = structure.Node
   val Node = structure.Node
   type Edge[+S, +E] = structure.Edge[S, E]
