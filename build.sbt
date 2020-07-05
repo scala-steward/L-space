@@ -1,6 +1,6 @@
 import Dependencies._
 
-ThisBuild / scalaVersion := "2.12.11"
+ThisBuild / scalaVersion := "2.13.3"
 
 lazy val settings = commonSettings
 
@@ -13,6 +13,7 @@ lazy val compilerOptions = Seq(
 //  "-language:postfixOps",
   "-language:reflectiveCalls",
 //  "-language:experimental.macros",
+  "-Xasync",
   "-Ypatmat-exhaust-depth", "off",
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
@@ -52,8 +53,8 @@ lazy val commonSettings = projectSettings ++ Seq(
     case Some((2, scalaMajor)) if scalaMajor > 12 => Nil
     case _ => Seq("-Ypartial-unification")
   }),
-  scalaVersion := "2.12.11",
-  crossScalaVersions := Seq("2.12.11", "2.13.1"),
+  scalaVersion := "2.13.3",
+  crossScalaVersions := Seq("2.12.12", "2.13.3"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
@@ -258,7 +259,6 @@ lazy val crossVersionSharedSources: Seq[Setting[_]] =
       (unmanagedSourceDirectories in sc).value.flatMap { dir =>
         Seq(
           scalaPartV.value match {
-            case Some((2, y)) if y == 11 => new File(dir.getPath + "_2.11")
             case Some((2, y)) if y == 12 => new File(dir.getPath + "_2.12")
             case Some((2, y)) if y >= 13 => new File(dir.getPath + "_2.13")
           },

@@ -3,13 +3,12 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Version {
   val finch      = "0.32.1"
-  val monix      = "3.2.1"
-  val sttpClient = "2.1.4"
-  val sttpCore   = "2.1.4"
-  val sttpTapir  = "0.15.2"
-  val elastic4s  = "7.3.1"
+  val monix      = "3.2.2"
+  val sttp   = "2.2.1"
+  val tapir  = "0.16.1"
+  val elastic4s  = "7.8.0"
   val phantom    = "2.42.0"
-  val scalatest  = "3.1.2"
+  val scalatest  = "3.2.0"
   val minitest   = "2.8.2"
 }
 
@@ -38,17 +37,17 @@ object Dependencies {
 
   val parseDeps = Def.setting(
     Seq(
-      "com.softwaremill.sttp.client" %%% "core"  % Version.sttpCore,
-      "com.softwaremill.sttp.client" %%% "monix" % Version.sttpCore
+      "com.softwaremill.sttp.client" %%% "core"  % Version.sttp,
+      "com.softwaremill.sttp.client" %%% "monix" % Version.sttp
     ))
 
   val parseJsDeps = Def.setting(Seq())
 
   val parseJvmDeps = Seq(
-    "com.softwaremill.sttp.client" %% "async-http-client-backend-monix" % Version.sttpCore
+    "com.softwaremill.sttp.client" %% "async-http-client-backend-monix" % Version.sttp
   )
 
-  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.2.5"))
+  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.0"))
 
   val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.13.0"))
 
@@ -79,15 +78,15 @@ object Dependencies {
   val indexElasticsearchDeps = Seq(
 //    "com.sksamuel.elastic4s"   %% "elastic4s-core"                      % Version.elastic4s,
 //    "com.sksamuel.elastic4s"   %% "elastic4s-http-streams"              % Version.elastic4s,
-    "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % "7.6.2"
+    "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % "7.8.0"
 //    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
   val servicesDeps = Seq(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"               % Version.sttpTapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server"   % Version.sttpTapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"       % Version.sttpTapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-core"               % Version.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server"   % Version.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"       % Version.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.tapir,
     "com.vmunier"                 %% "scalajs-scripts"          % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi" %% "scalatags" % "0.9.0" //TODO: replace with Laminar
