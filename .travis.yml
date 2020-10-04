@@ -1,9 +1,7 @@
-dist: xenial
+dist: focal
 language: scala
-#scala_211: &scala_211 2.11.12
-scala_212: &scala_212 2.12.10
-scala_213: &scala_213 2.13.1
-#java_8: &java_8 openjdk8
+scala_212: &scala_212 2.12.12
+scala_213: &scala_213 2.13.3
 java_11: &java_11 openjdk11
 tests: &tests
   env: TEST="test"
@@ -31,18 +29,6 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
-#    - <<: *tests
-#      scala: *scala_211
-#      jdk: *java_8
-#    - <<: *tests
-#      scala: *scala_212
-#      jdk: *java_8
-#    - <<: *tests
-#      scala: *scala_213
-#      jdk: *java_8
-#    - <<: *tests
-#      scala: *scala_211
-#      jdk: *java_11
     - <<: *tests
       scala: *scala_212
       jdk: *java_11
@@ -72,7 +58,7 @@ jobs:
 #          - $HOME/.sbt
     - stage: publish pages
       name: "Publish to GitHub"
-      scala: *scala_212
+      scala: *scala_213
       jdk: *java_11
       before_install:
         - export PATH=${PATH}:./vendor/bundle
