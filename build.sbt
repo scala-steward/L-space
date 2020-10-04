@@ -14,7 +14,8 @@ lazy val compilerOptions = Seq(
   "-language:reflectiveCalls",
 //  "-language:experimental.macros",
   "-Xasync",
-  "-Ypatmat-exhaust-depth", "off",
+  "-Ypatmat-exhaust-depth",
+  "off",
 //  "-Yliteral-types",
 //  "-Xlog-implicits",
 //  "-Ytyper-debug",
@@ -51,7 +52,7 @@ lazy val projectSettings = Seq(
 lazy val commonSettings = projectSettings ++ Seq(
   scalacOptions ++= compilerOptions ++ (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, scalaMajor)) if scalaMajor > 12 => Nil
-    case _ => Seq("-Ypartial-unification")
+    case _                                        => Seq("-Ypartial-unification")
   }),
   scalaVersion := "2.13.3",
   crossScalaVersions := Seq("2.12.12", "2.13.3"),
@@ -60,8 +61,11 @@ lazy val commonSettings = projectSettings ++ Seq(
 )
 
 dynverSonatypeSnapshots in ThisBuild := true
-ThisBuild / version ~= (version => """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
-  .findFirstIn(version).fold(version)(version.stripSuffix(_) + "-SNAPSHOT"))
+ThisBuild / version ~= (version =>
+  """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
+    .findFirstIn(version)
+    .fold(version)(version.stripSuffix(_) + "-SNAPSHOT")
+)
 
 //ThisBuild / testFrameworks += new TestFramework("minitest.runner.Framework")
 
@@ -69,7 +73,19 @@ lazy val lspace = project
   .in(file("."))
   .settings(settings)
   .settings(skip in publish := true)
-  .aggregate(core.jvm, core.js, parse.jvm, parse.js, parseArgonaut.jvm, parseArgonaut.js, parseCirce.jvm, parseCirce.js, client.jvm, client.js, graph)//, services)
+  .aggregate(
+    core.jvm,
+    core.js,
+    parse.jvm,
+    parse.js,
+    parseArgonaut.jvm,
+    parseArgonaut.js,
+    parseCirce.jvm,
+    parseCirce.js,
+    client.jvm,
+    client.js,
+    graph
+  ) //, services)
 
 lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -191,7 +207,11 @@ lazy val graph = (project in file("graph"))
 //  )
 
 lazy val services = (project in file("services/core"))
-  .dependsOn(client.jvm % "compile->compile;test->test", parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test")
+  .dependsOn(
+    client.jvm        % "compile->compile;test->test",
+    parse.jvm         % "compile->compile;test->test",
+    parseArgonaut.jvm % "test"
+  )
   .settings(settings)
   .settings(
     name := "lspace-services",
@@ -208,51 +228,43 @@ lazy val services = (project in file("services/core"))
 //    libraryDependencies ++= servicesFinchDeps
 //  )
 
-val makeSettingsYml = Def.task {
-  val file     = (resourceManaged in Compile).value / "site" / "data" / "settings.yml"
-  val contents = s"version: ${version.value}"
-  IO.write(file, contents)
-  Seq(file)
-}
-
 lazy val site = (project in file("site"))
   .enablePlugins(MicrositesPlugin)
+  .enablePlugins(MdocPlugin)
   .dependsOn(parse.jvm % "compile->compile;compile->test")
   .settings(name := "lspace-site")
   .settings(skip in publish := true)
   .settings(projectSettings)
   .settings(
-    resourceGenerators in Compile += makeSettingsYml.taskValue,
-    makeMicrosite := (makeMicrosite dependsOn makeSettingsYml).value,
-    micrositeCompilingDocsTool := WithMdoc,
-    mdocIn := tutSourceDirectory.value
-//    scalacOptions in Tut := compilerOptions
+//    micrositeCompilingDocsTool := WithMdoc,
+    mdocVariables := Map("VERSION" -> version.value)
   )
   .settings(
     micrositeName := "L-space",
     micrositeDescription := "L-space, a graph computing framework for Scala",
-    micrositeDataDirectory := (resourceManaged in Compile).value / "site" / "data",
-    //    unmanagedResources ++= Seq(
-    //
-    //    ),
+    micrositeDataDirectory := (resourceDirectory in Compile).value / "data",
     //    micrositeDocumentationUrl := "/yoursite/docs",
     //    micrositeDocumentationLabelDescription := "Documentation",
+    micrositeUrl := "https://docs.l-space.eu",
+//    micrositeBaseUrl := "/l-space",
     micrositeAuthor := "Thijs Broersen",
     micrositeHomepage := "https://docs.l-space.eu",
     micrositeOrganizationHomepage := "https://l-space.eu",
-    //    micrositeOrganizationHomepage := "",
+    micrositeDocumentationUrl := "/docs",
+    includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.md" | "*.svg",
     excludeFilter in ghpagesCleanSite := //preserves github-settings for custom domain, each time CNAME is written custom domain is reset?
-      new FileFilter{
+      new FileFilter {
         def accept(f: File) = (ghpagesRepository.value / "CNAME").getCanonicalPath == f.getCanonicalPath
       } || "versions.html",
     micrositeGithubOwner := "L-space",
     micrositeGithubRepo := "L-space",
     micrositeGitterChannelUrl := "L-space/L-space",
     micrositeFooterText := Some(
-      "<b>Knowledge is Power</b> <- <i>BOOKS = KNOWLEDGE = POWER = (FORCE X DISTANCE ÷ TIME)</i>")
+      "<b>Knowledge is Power</b> <- <i>BOOKS = KNOWLEDGE = POWER = (FORCE X DISTANCE ÷ TIME)</i>"
+    )
   )
 
-def scalaPartV = Def setting (CrossVersion partialVersion scalaVersion.value)
+def scalaPartV = Def.setting(CrossVersion.partialVersion(scalaVersion.value))
 lazy val crossVersionSharedSources: Seq[Setting[_]] =
   Seq(Compile, Test).map { sc =>
     (unmanagedSourceDirectories in sc) ++= {
@@ -262,16 +274,14 @@ lazy val crossVersionSharedSources: Seq[Setting[_]] =
             case Some((2, y)) if y == 12 => new File(dir.getPath + "_2.12")
             case Some((2, y)) if y >= 13 => new File(dir.getPath + "_2.13")
           },
-
           scalaPartV.value match {
             case Some((2, n)) if n >= 12 => new File(dir.getPath + "_2.12+")
             case _                       => new File(dir.getPath + "_2.12-")
           },
-
           scalaPartV.value match {
             case Some((2, n)) if n >= 13 => new File(dir.getPath + "_2.13+")
             case _                       => new File(dir.getPath + "_2.13-")
-          },
+          }
         )
       }
     }
