@@ -63,7 +63,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
     *
     * @param iri an iri which should all resolve to the same resource as param uris
     * @param iris a set of iri's which should all resolve to the same resource
-    * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex due to eventual consistency
+    * @return all vertices which identify by the uri's, expected to return (in time) only a single vertex (deduplication to eventual consistency)
     */
   def upsert(iri: String, iris: Set[String], ontologies: Ontology*): Task[Node] = {
     val upsertTask = hasIri(iri :: iris.toList).toListL

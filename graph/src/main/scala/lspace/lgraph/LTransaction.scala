@@ -1,6 +1,6 @@
 package lspace.lgraph
 
-import lspace.datatype.{CollectionType, DataType}
+import lspace.datatype.CollectionType
 import lspace.provider.mem.{MemGraph, MemIndexGraph}
 import lspace.provider.transaction.Transaction
 import lspace.structure._
@@ -8,8 +8,6 @@ import monix.eval.Task
 
 import scala.collection.immutable.ListSet
 import scala.concurrent.TimeoutException
-import scala.concurrent.duration._
-import scribe._
 
 object LTransaction {
   def apply(parent: LGraph): LTransaction = new LTransaction(parent)
@@ -23,8 +21,8 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
   val index: MemIndexGraph = new MemIndexGraph {
     def iri: String = _iri + ".index"
 
-    val graph: MemGraph      = self
-    val index: MemIndexGraph = this
+    def graph: MemGraph      = self
+    def index: MemIndexGraph = this
   }
 
   override def commit(): Task[Unit] = {

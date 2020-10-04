@@ -126,7 +126,7 @@ trait LGraph extends Graph {
     }
   }
 
-  override protected[lgraph] def storeNode(node: _Node): Task[Unit] = super.storeNode(node)
+  override protected[lgraph] def storeNode(node: GNode): Task[Unit] = super.storeNode(node)
 
   object writeedge
   protected[lspace] def newEdge[S, E](id: Long, from: _Resource[S], key: Property, to: _Resource[E]): GEdge[S, E] =

@@ -39,7 +39,7 @@ trait LNode extends LResource[Node] with Node {
       for {
         _ <- super._addLabel(ontology)
         _ = _cacheLabel(ontology)
-        _ <- graph.storeNode(this.asInstanceOf[graph._Node])
+        _ <- graph.storeNode(this.asInstanceOf[graph.GNode])
       } yield ()
     //TODO: index
     else Task.unit
