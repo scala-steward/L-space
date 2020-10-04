@@ -1,0 +1,15 @@
+options:
+  - title: Design
+    url: docs/
+
+  - title: Graph guide
+    url: docs/graph-guide
+
+  - title: Traversal guide
+    url: docs/traversal-guide
+
+  - title: Codec guide
+    url: docs/codec-guide
+
+  - title: Changelog
+    url: docs/changelog

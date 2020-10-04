@@ -1,6 +1,6 @@
 ---
-layout: page
-section: home
+layout: home
+section: "home"
 title: "Home"
 ---
 **Welcome to L-space**
@@ -26,7 +26,7 @@ L-space is available for Scala 2.11.x and 2.12.x.
 To include `lspace-core` (all core structures and basic implementations (in-memory) of the graph, 
 data-models and traversal-engines) add the following to your `build.sbt`:
 ```
-libraryDependencies += "eu.l-space" %% "lspace-core" % "{{ site.data.settings.version }}"
+libraryDependencies += "eu.l-space" %% "lspace-core" % "@VERSION@"
 ```
 Basic minimal import:
 ```
@@ -44,8 +44,8 @@ L-space provides additional modules for remote traversals, parsing io, rest-api 
 - `lspace-services`: basic implementation for a rest service which accepts Librarian queries in Json-LD and returns results in Json-LD
 
 ```
-libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "{{ site.data.settings.version }}"
-libraryDependencies += "eu.l-space" %% "{lspace-xxx-tests}" % "{{ site.data.settings.version }}"
+libraryDependencies += "eu.l-space" %% "{lspace-xxx}" % "@VERSION@"
+libraryDependencies += "eu.l-space" %% "{lspace-xxx-tests}" % "@VERSION@"
 ```
 
 ## Examples

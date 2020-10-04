@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Traversal guide
-position: 3
+permalink: docs/traversal-guide
 ---
 
 # Traversal Guide
@@ -292,6 +292,36 @@ Choose-step takes a right or left traversal, right if the by-traversal is non-em
 g.N.choose(_.has(keys.rate, P.gte(4)), _.constant(true), _.constant(false)).withGraph(graph).toList 
 g.N.hasIri(graph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false)).withGraph(graph).head
 ```
+
+### Traverse steps
+#### Id
+Id-step returns the resource-id (long)
+```scala mdoc
+g.N.id.withGraph(graph).toList
+```
+#### Constant
+Constant-step returns a traverser with the provided constant-value
+```scala mdoc
+g.N.constant(42).withGraph(graph).head
+```
+#### From
+From-step ...
+```scala mdoc
+g.E.from.withGraph(graph).toList
+```
+#### To
+To-step ...
+```scala mdoc
+g.E.to.withGraph(graph).toList
+```
+### Projection steps
+
+#### Project
+
+#### Path
+
+#### Select
+
 #### Map steps
 Map steps ...
 ##### OutMap
@@ -315,27 +345,7 @@ g.N.has("name", P.eqv("Garrison")).inMap().withGraph(graph).head //returns a pro
 ```scala mdoc
 g.N.has("name", P.eqv("Garrison")).inEMap().withGraph(graph).head //should return all in-coming edges grouped by key
 ```
-### Traverse steps
-#### Id
-Id-step returns the resource-id (long)
-```scala mdoc
-g.N.id.withGraph(graph).toList
-```
-#### Constant
-Constant-step returns a traverser with the provided constant-value
-```scala mdoc
-g.N.constant(42).withGraph(graph).head
-```
-#### From
-From-step ...
-```scala mdoc
-g.E.from.withGraph(graph).toList
-```
-#### To
-To-step ...
-```scala mdoc
-g.E.to.withGraph(graph).toList
-```
+
 ### Barrier steps
 Barrier steps can operate on the entire resultset of a traversal
 #### Collecting barrier steps

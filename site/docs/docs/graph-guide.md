@@ -1,13 +1,13 @@
 ---
 layout: docs
 title: Graph guide
-position: 2
+permalink: docs/graph-guide
 ---
 
 # Graph Guide
 * [What is a graph](#what-is-a-graph)
 * [How to use](#how-to-use)
-* [Resource API's](#resource-api's)
+* [Resource API's](#resource-apis)
   * [Resources API](#resources-api)
     * [Resource](#resource)
   * [Nodes API](#nodes-api)

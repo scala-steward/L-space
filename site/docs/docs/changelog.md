@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Changelog
-position: 5
+permalink: docs/changelog
 ---
 
 # Changelog

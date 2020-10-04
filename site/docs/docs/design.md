@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Design
-position: 1
+permalink: docs/
 ---
 
 # Design

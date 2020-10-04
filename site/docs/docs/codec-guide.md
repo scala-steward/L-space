@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Codec guide
-position: 4
+permalink: docs/codec-guide
 ---
 
 # Codec Guide
@@ -9,7 +9,7 @@ position: 4
 * [Supported formats](#supported-formats)
   * [Json-ld](#json-ld)
   * [GraphQL](#graphql)
-* [Encoding/Decoding](#encoding/decoding)
+* [Encoding/Decoding](#encodingdecoding)
 
 ## The Context
 Communication between entities requires coordination in order to understand eachother. To disseminate information there 
