@@ -1,39 +1,6 @@
-import Dependencies._
-
-ThisBuild / scalaVersion := "2.13.3"
+ThisBuild / scalaVersion := "2.13.5"
 
 lazy val settings = commonSettings
-
-lazy val compilerOptions = Seq(
-  "-unchecked",
-  "-feature",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-language:implicitConversions",
-//  "-language:postfixOps",
-  "-language:reflectiveCalls",
-//  "-language:experimental.macros",
-  "-Xasync",
-  "-Ypatmat-exhaust-depth",
-  "off",
-//  "-Yliteral-types",
-//  "-Xlog-implicits",
-//  "-Ytyper-debug",
-//  "-Ybreak-cycles",
-//  "-Ylog:all",
-  "-Ywarn-unused:imports,",
-  "-Ywarn-unused:patvars,",
-  "-Ywarn-unused:privates,",
-  "-Ywarn-unused:locals,",
-  "-Ywarn-unused:params,",
-//  "-verbose",
-//  "-Xdev",
-//  "-Ydebug",
-//  "-Ystatistics",
-  "-deprecation",
-  "-encoding",
-  "utf8"
-)
 
 lazy val projectSettings = Seq(
   organization := "eu.l-space",
@@ -50,12 +17,12 @@ lazy val projectSettings = Seq(
 )
 
 lazy val commonSettings = projectSettings ++ Seq(
-  scalacOptions ++= compilerOptions ++ (CrossVersion.partialVersion(scalaVersion.value) match {
+  scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, scalaMajor)) if scalaMajor > 12 => Nil
     case _                                        => Seq("-Ypartial-unification")
   }),
-  scalaVersion := "2.13.3",
-  crossScalaVersions := Seq("2.12.12", "2.13.3"),
+  scalaVersion := "2.13.5",
+  crossScalaVersions := Seq("2.13.5"),
   publishArtifact in (Test, packageBin) := true,
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
@@ -94,14 +61,14 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .settings(crossVersionSharedSources)
   .settings(
     name := "lspace-core",
-    libraryDependencies ++= coreDeps.value
+    libraryDependencies ++= Dependencies.coreDeps.value
   )
   .jvmSettings(
-    libraryDependencies ++= coreJvmDeps
+    libraryDependencies ++= Dependencies.coreJvmDeps
   )
   .jsSettings(
 //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-    libraryDependencies ++= coreJsDeps.value
+    libraryDependencies ++= Dependencies.coreJsDeps.value
   )
 
 lazy val parse = (crossProject(JSPlatform, JVMPlatform)
@@ -111,14 +78,14 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse",
-    libraryDependencies ++= parseDeps.value
+    libraryDependencies ++= Dependencies.parseDeps.value
   )
   .jvmSettings(
-    libraryDependencies ++= parseJvmDeps
+    libraryDependencies ++= Dependencies.parseJvmDeps
   )
   .jsSettings(
 //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-    libraryDependencies ++= parseJsDeps.value
+    libraryDependencies ++= Dependencies.parseJsDeps.value
   )
 
 lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
@@ -128,7 +95,7 @@ lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse-argonaut",
-    libraryDependencies ++= parseArgonautDeps.value
+    libraryDependencies ++= Dependencies.parseArgonautDeps.value
   )
   .jvmSettings(
   )
@@ -143,7 +110,7 @@ lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .settings(settings)
   .settings(
     name := "lspace-parse-circe",
-    libraryDependencies ++= parseCirceDeps.value
+    libraryDependencies ++= Dependencies.parseCirceDeps.value
   )
   .jvmSettings(
   )
@@ -159,14 +126,14 @@ lazy val client =
     .settings(settings)
     .settings(
       name := "lspace-client",
-      libraryDependencies ++= clientDeps.value
+      libraryDependencies ++= Dependencies.clientDeps.value
     )
     .jvmSettings(
-      libraryDependencies ++= clientJvmDeps
+      libraryDependencies ++= Dependencies.clientJvmDeps
     )
     .jsSettings(
 //      scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-      libraryDependencies ++= clientJsDeps.value
+      libraryDependencies ++= Dependencies.clientJsDeps.value
     )
 
 lazy val graph = (project in file("graph"))
@@ -174,20 +141,18 @@ lazy val graph = (project in file("graph"))
   .settings(settings)
   .settings(
     name := "lspace-graph",
-    libraryDependencies ++= graphDeps
+    libraryDependencies ++= Dependencies.graphDeps
   )
 
-//lazy val cassandra = (project in file("store/cassandra"))
-//  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
-//  .settings(settings)
-//  .settings(
-//    name := "lspace-store-cassandra",
-//    scalaVersion := "2.12.11",
-//    crossScalaVersions := Seq("2.12.11"),
-//    libraryDependencies ++= storeCassandraDeps,
-//    Test / parallelExecution := true
-//  )
-//
+lazy val cassandra = (project in file("store/cassandra"))
+  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
+  .settings(settings)
+  .settings(
+    name := "lspace-store-cassandra",
+    libraryDependencies ++= Dependencies.storeCassandraDeps,
+    Test / parallelExecution := true
+  )
+
 //lazy val kafka = (project in file("store/kafka"))
 //  .dependsOn(graph % "compile->compile;test->test")
 //  .settings(settings)
@@ -215,7 +180,7 @@ lazy val services = (project in file("services/core"))
   .settings(settings)
   .settings(
     name := "lspace-services",
-    libraryDependencies ++= servicesDeps
+    libraryDependencies ++= Dependencies.servicesDeps
   )
 
 //lazy val servicesFinch = (project in file("services/finch"))

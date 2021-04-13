@@ -1,30 +1,20 @@
 import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
-object Version {
-  val finch     = "0.32.1"
-  val monix     = "3.3.0"
-  val sttp      = "2.2.9"
-  val tapir     = "0.16.1"
-  val elastic4s = "7.9.1"
-  val phantom   = "2.59.0"
-  val scalatest = "3.2.3"
-  val minitest  = "2.9.1"
-}
-
 object Dependencies {
 
   val coreDeps = Def.setting(
     Seq(
-      "eu.l-space"  %%% "types"          % "0.0.4.6",
+      "eu.l-space"  %%% "types"          % "0.0.12",
       "io.monix"    %%% "monix-reactive" % Version.monix,
-      "com.chuusai" %%% "shapeless"      % "2.3.3",
+      "com.chuusai" %%% "shapeless"      % Version.shapeless,
+      "eu.timepit"   %% "refined"        % Version.refined,
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
-      "com.outr"          %%% "scribe"          % "3.1.8",
-      "org.scalatest"     %%% "scalatest"       % Version.scalatest % "test",
-      "io.monix"          %%% "minitest"        % Version.minitest  % "test",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.1.0"
+      "com.outr"      %%% "scribe"    % Version.scribe,
+      "org.scalatest" %%% "scalatest" % Version.scalaTest % "test",
+//      "io.monix"          %%% "minitest"        % Version.minitest  % "test",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.2.1"
     )
   )
 
@@ -38,15 +28,14 @@ object Dependencies {
 
   val parseDeps = Def.setting(
     Seq(
-      "com.softwaremill.sttp.client" %%% "core"  % Version.sttp,
-      "com.softwaremill.sttp.client" %%% "monix" % Version.sttp
+      "com.softwaremill.sttp.shared" %%% "monix" % Version.sttpShared
     )
   )
 
   val parseJsDeps = Def.setting(Seq())
 
   val parseJvmDeps = Seq(
-    "com.softwaremill.sttp.client" %% "async-http-client-backend-monix" % Version.sttp
+//    "com.softwaremill.sttp.client" %% "async-http-client-backend-monix" % Version.sttp
   )
 
   val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.3"))
@@ -61,14 +50,17 @@ object Dependencies {
 
   val graphDeps = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.github.pureconfig" %% "pureconfig"         % "0.14.0",
-    "com.github.pureconfig" %% "pureconfig-generic" % "0.14.0"
+    "com.github.pureconfig" %% "pureconfig"         % "0.14.1",
+    "com.github.pureconfig" %% "pureconfig-generic" % "0.14.1"
   )
 
   val storeCassandraDeps = Seq(
-    "com.outworkers" %% "phantom-dsl" % Version.phantom
+//    "com.outworkers" %% "phantom-dsl" % Version.phantom
 //    "ch.qos.logback"             % "logback-classic" % "1.2.3",
 //    "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
+  ) ++ Seq(
+    "com.dimafeng" %% "testcontainers-scala-scalatest" % Version.testContainers % "test",
+    "com.dimafeng" %% "testcontainers-scala-cassandra" % Version.testContainers % "test"
   )
 
   val storeKafkaDeps = Seq(
@@ -80,7 +72,7 @@ object Dependencies {
   val indexElasticsearchDeps = Seq(
 //    "com.sksamuel.elastic4s"   %% "elastic4s-core"                      % Version.elastic4s,
 //    "com.sksamuel.elastic4s"   %% "elastic4s-http-streams"              % Version.elastic4s,
-    "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % "7.9.2"
+    "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % Version.elastic4s
 //    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
@@ -91,16 +83,22 @@ object Dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.tapir,
     "com.vmunier"                 %% "scalajs-scripts"          % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
-    "com.lihaoyi" %% "scalatags" % "0.9.2" //TODO: replace with Laminar
+    "com.lihaoyi" %% "scalatags" % "0.9.4" //TODO: replace with Laminar
 //    "com.raquo" %% "domtypes"   % "0.9.5",
 //    "com.raquo" %% "dombuilder" % "0.9.2"
   )
   val servicesFinchDeps = Seq(
-    "com.github.finagle" %% "finchx-core"          % Version.finch,
-    "com.github.finagle" %% "finchx-generic"       % Version.finch,
-    "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
-    "com.github.finagle" %% "finchx-fs2"           % Version.finch,
-    "com.github.finagle" %% "finchx-refined"       % Version.finch,
-    "co.fs2"             %% "fs2-reactive-streams" % "2.4.4"
+//    "com.github.finagle" %% "finchx-core"          % Version.finch,
+//    "com.github.finagle" %% "finchx-generic"       % Version.finch,
+//    "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
+//    "com.github.finagle" %% "finchx-fs2"           % Version.finch,
+//    "com.github.finagle" %% "finchx-refined"       % Version.finch,
+//    "co.fs2" %% "fs2-reactive-streams" % "2.4.4"
+  )
+
+  lazy val test = Seq(
+    "org.scalatest" %% "scalatest"                      % Version.scalaTest      % "it,test",
+    "org.scalamock" %% "scalamock"                      % Version.scalaMock      % "test",
+    "com.dimafeng"  %% "testcontainers-scala-scalatest" % Version.testContainers % "it"
   )
 }

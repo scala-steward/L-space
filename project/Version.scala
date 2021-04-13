@@ -1,0 +1,15 @@
+object Version {
+  val elastic4s = "7.12.0"
+//  val finch          = "0.32.1"
+//  val minitest       = "2.9.1"
+  val monix          = "3.3.0"
+  val refined        = "0.9.23"
+  val scalaMock      = "5.1.0"
+  val scalaTest      = "3.2.7"
+  val scribe         = "3.1.8"
+  val shapeless      = "2.3.3"
+  val sttp           = "3.4.0"
+  val sttpShared     = "1.2.0"
+  val testContainers = "0.39.3"
+  val tapir          = "0.17.19"
+}
