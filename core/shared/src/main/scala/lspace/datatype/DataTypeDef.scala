@@ -4,6 +4,7 @@ import lspace.structure.Property
 
 object DataTypeDef {
   implicit def dDefToDataType[T <: DataType[_]](df: DataTypeDef[T]): T = df.datatype
+  trait Properties {}
 }
 
 trait DataTypeDef[T <: DataType[_]] {
@@ -15,5 +16,4 @@ trait DataTypeDef[T <: DataType[_]] {
 
   def keys: Object
   def properties: List[Property] = List()
-  trait Properties {}
 }

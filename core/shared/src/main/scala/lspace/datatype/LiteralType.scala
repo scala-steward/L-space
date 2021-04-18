@@ -17,7 +17,7 @@ object LiteralType extends DataTypeDef[LiteralType[Any]] {
 
   object keys
   override lazy val properties: List[Property] = List()
-  trait Properties
+  trait Properties extends DataTypeDef.Properties
 
   implicit def clsLiteral[T]: ClassTypeable.Aux[LiteralType[T], T, LiteralType[T]] = new ClassTypeable[LiteralType[T]] {
     type C  = T

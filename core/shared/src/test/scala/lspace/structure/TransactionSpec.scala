@@ -47,9 +47,9 @@ trait TransactionSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll
           _ <- newGraph.edges().toListL.map(_.size shouldBe 0)
           _ <- newGraph.values().toListL.map(_.size shouldBe 0)
           _ <- transaction.commit()
-          _ <- Task.parZip2(newGraph.nodes.count, graph.nodes.count).map { case (a, b) => a shouldBe b }
-          _ <- Task.parZip2(newGraph.edges.count, graph.edges.count).map { case (a, b) => a shouldBe b }
-          _ <- Task.parZip2(newGraph.values.count, graph.values.count).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.nodes.count(), graph.nodes.count()).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.edges.count(), graph.edges.count()).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.values.count(), graph.values.count()).map { case (a, b) => a shouldBe b }
         } yield {
           graph.close()
           succeed

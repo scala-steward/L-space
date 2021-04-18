@@ -1,7 +1,7 @@
 package lspace.datatype
 
 import lspace.Label.D._
-import lspace.structure.{Ontology, Property}
+import lspace.structure.Ontology
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

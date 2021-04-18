@@ -3,17 +3,12 @@ package lspace.provider.mem
 import lspace.NS
 import lspace.datatype.DataType
 import monix.eval.Task
-import lspace.librarian.traversal._
-import lspace.Label.P
-import lspace.Label.D
 import lspace.provider.mem.store.{MemEdgeStore, MemNodeStore, MemValueStore}
 import lspace.provider.transaction.Transaction
 import lspace.structure._
-import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.IdProvider
 import monix.execution.atomic.Atomic
 import monix.reactive.Observable
-import shapeless.{::, HList}
 
 object MemGraph {
 
@@ -41,20 +36,20 @@ object MemGraph {
           def iri: String = _iri + ".ns" + ".index"
 
           lazy val graph: MemGraph      = _thisgraph
-          lazy val index: MemIndexGraph = this
+//          lazy val index: MemIndexGraph = this
         }
       }
       lazy val index: MemIndexGraph = new MemIndexGraph {
         def iri: String = _iri + ".index"
 
         lazy val graph: MemGraph    = self
-        private lazy val _thisgraph = thisgraph
-        lazy val index: MemIndexGraph = new MemIndexGraph {
-          def iri: String = _iri + ".index" + ".index"
-
-          lazy val graph: MemGraph      = _thisgraph
-          lazy val index: MemIndexGraph = this
-        }
+//        private lazy val _thisgraph = thisgraph
+//        lazy val index: MemIndexGraph = new MemIndexGraph {
+//          def iri: String = _iri + ".index" + ".index"
+//
+//          lazy val graph: MemGraph      = _thisgraph
+//          lazy val index: MemIndexGraph = this
+//        }
       }
       init.runToFuture(lspace.Implicits.Scheduler.global)
     }

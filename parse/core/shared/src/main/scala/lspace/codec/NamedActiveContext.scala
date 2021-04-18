@@ -1,6 +1,6 @@
 package lspace.codec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class NamedActiveContext(val iri: String, private val activeContext: ActiveContext)
     extends ActiveContext(

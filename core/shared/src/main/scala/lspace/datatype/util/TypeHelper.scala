@@ -11,33 +11,33 @@ import scala.annotation.tailrec
 
 object TypeHelper {
   def isLiteral(value: Any): Boolean = value match {
-    case v: IriResource => false
-    case v: String      => true
-    case v: Boolean     => true
-    case v: Int         => true
-    case v: Double      => true
-    case v: Long        => true
-    case v: Instant     => true
-    case v: LocalDate   => true
-    case v: LocalTime   => true
-    case v: Geometry    => true
+    case _: IriResource => false
+    case _: String      => true
+    case _: Boolean     => true
+    case _: Int         => true
+    case _: Double      => true
+    case _: Long        => true
+    case _: Instant     => true
+    case _: LocalDate   => true
+    case _: LocalTime   => true
+    case _: Geometry    => true
   }
   def literalTypeIri(value: Any): Option[List[String]] =
     Option(value match {
-      case v: IriResource => null
-      case v: String      => NS.types.`@string` :: List()
-      case v: Boolean     => NS.types.`@boolean` :: List()
-      case v: Int         => NS.types.`@int` :: NS.types.`@double` :: NS.types.`@long` :: List()
-      case v: Double =>
+      case _: IriResource => null
+      case _: String      => NS.types.`@string` :: List()
+      case _: Boolean     => NS.types.`@boolean` :: List()
+      case _: Int         => NS.types.`@int` :: NS.types.`@double` :: NS.types.`@long` :: List()
+      case _: Double =>
         NS.types.`@double` :: NS.types.`@int` :: NS.types.`@long` :: List()
-      case v: Long => NS.types.`@long` :: NS.types.`@int` :: NS.types.`@double` :: List()
-      case v: Instant =>
+      case _: Long => NS.types.`@long` :: NS.types.`@int` :: NS.types.`@double` :: List()
+      case _: Instant =>
         NS.types.`@datetime` :: /*ldcontext.types.date :: ldcontext.types.time :: */ List()
-      case v: LocalDate =>
+      case _: LocalDate =>
         NS.types.`@date` :: /*ldcontext.types.datetime :: ldcontext.types.time :: */ List()
-      case v: LocalTime =>
+      case _: LocalTime =>
         NS.types.`@time` :: /*ldcontext.types.datetime :: ldcontext.types.date :: */ List()
-      case v: Geometry => NS.types.`@geo` :: List()
+      case _: Geometry => NS.types.`@geo` :: List()
     })
 
   private val separators = Set('(', ')', '+')

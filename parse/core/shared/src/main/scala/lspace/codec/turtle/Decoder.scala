@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 import scala.collection.concurrent
 import scala.collection.immutable.Map
 import scala.util.matching.Regex
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 case class Turtle(context: ActiveContext = ActiveContext(), statements: List[Statement] = List())
@@ -126,7 +126,9 @@ trait Decoder {
           prefix.split("\n", 1).toList match {
             case List(prefix, tail) => spanPrefix(tail, prefixes :+ prefix)
             case List(tail)         => prefixes -> tail
+            case _ => throw new Exception("invalid")
           }
+        case _ => throw new Exception("invalid")
       }
     val (prefixes, tail) = spanPrefix(string)
 

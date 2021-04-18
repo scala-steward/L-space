@@ -24,7 +24,7 @@ object DetachedGraph extends MemDataGraph {
       def iri: String = "detachedmemgraph.ns" + ".index"
 
       lazy val graph: MemGraph      = _thisgraph
-      lazy val index: MemIndexGraph = this
+//      lazy val index: MemIndexGraph = this
     }
   }
   val index: MemIndexGraph = {

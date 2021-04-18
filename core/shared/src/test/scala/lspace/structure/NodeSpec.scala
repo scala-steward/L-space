@@ -5,12 +5,10 @@ import lspace.datatype.{DataType, VectorType}
 import org.scalatest.BeforeAndAfterAll
 import lspace.util.SampleGraph
 import monix.eval.Task
-import monix.execution.Scheduler
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
 trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
-  import SampleGraph.ontologies._
   import SampleGraph.properties._
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global

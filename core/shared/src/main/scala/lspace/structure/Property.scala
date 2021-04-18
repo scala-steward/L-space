@@ -1,22 +1,20 @@
 package lspace.structure
 
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
-
 import lspace.NS
 import lspace.datatype._
 import lspace.structure.util.ClassTypeable
-import monix.eval.{Coeval, Task}
 
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
-import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 object Property {
   lazy val ontology: Ontology = {
     val ontology = new Ontology(
       NS.types.`@property`,
-      Set(NS.types.`@property`, NS.types.rdfProperty, "https://schema.org/Property", "http://schema.org/Property"))
+      Set(NS.types.`@property`, NS.types.rdfProperty, "https://schema.org/Property", "http://schema.org/Property")
+    )
     ontology.iris.foreach(Ontology.ontologies.byIri.update(_, ontology))
     ontology
   }
@@ -70,7 +68,7 @@ object Property {
 
       if (properties.size > 99) throw new Exception("extend default-property-id range!")
       val byId    = (100L to 100L + properties.size - 1).toList.zip(properties).toMap
-      val byIri   = byId.toList.flatMap { case (id, p) => (p.iri :: p.iris.toList).map(_ -> p) }.toMap
+      val byIri   = byId.toList.flatMap { case (_, p) => (p.iri :: p.iris.toList).map(_ -> p) }.toMap
       val idByIri = byId.toList.flatMap { case (id, p) => (p.iri :: p.iris.toList).map(_ -> id) }.toMap
     }
     private[lspace] val byIri: concurrent.Map[String, Property] =
@@ -78,19 +76,19 @@ object Property {
 
     def all: List[Property] = byIri.values.toList.distinct
     def get(iri: String, iris: Set[String] = Set()): Option[Property] = {
-      val allIris = (iris + iri)
+      val allIris = iris + iri
       allIris.flatMap(iri => default.byIri.get(iri).orElse(byIri.get(iri))).toList match {
         case List(property) => Some(property)
         case Nil            => None
         case properties =>
           scribe.warn(
-            "It looks like multiple properties which have some @id's in common are found, this should not happen...")
+            "It looks like multiple properties which have some @id's in common are found, this should not happen..."
+          )
           properties.headOption
       }
     }
 
-    /**
-      * This method is thread-safe and guarantees to return any existing property (if any) or it creates one.
+    /** This method is thread-safe and guarantees to return any existing property (if any) or it creates one.
       * TODO: add implicit resolver, default to offline resolver (not downloading linked data definition, no benefits of inheritance)
       * @param iri
       * @param iris
@@ -234,77 +232,77 @@ object Property {
   object default {
     import DataType.default._
 
-    val `@id`: Property = new Property(NS.types.`@id`) { rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess }
-    val `@ids`: Property =
+    lazy val `@id`: Property = new Property(NS.types.`@id`) { rangeList = `@string` :: Nil }
+    lazy val `@ids`: Property =
       new Property(NS.types.`@ids`, Set(NS.types.`@ids`, NS.types.schemaSameAs)) {
-        rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess
+        rangeList = `@string` :: Nil
       }
-    val `@container`: Property =
-      new Property(NS.types.`@container`) { rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess }
-    val `@range`: Property = new Property(
+    lazy val `@container`: Property =
+      new Property(NS.types.`@container`) { rangeList = `@string` :: Nil }
+    lazy val `@range`: Property = new Property(
       NS.types.`@range`,
-      iris = Set(NS.types.`@range`, NS.types.schemaRange, "http://schema.org/rangeIncludes")) {
-      rangeList = Coeval.delay(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil).memoizeOnSuccess
+      iris = Set(NS.types.`@range`, NS.types.schemaRange, "http://schema.org/rangeIncludes")
+    ) {
+      rangeList = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
     }
 //      range = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-    val `@type`: Property = new Property(NS.types.`@type`, iris = Set(NS.types.`@type`, NS.types.rdfType)) {
-      rangeList = Coeval.delay(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil).memoizeOnSuccess
+    lazy val `@type`: Property = new Property(NS.types.`@type`, iris = Set(NS.types.`@type`, NS.types.rdfType)) {
+      rangeList = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
     }
 //      range = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
-    val `@extends`: Property = new Property(
+    lazy val `@extends`: Property = new Property(
       NS.types.`@extends`,
-      iris = Set(NS.types.`@extends`, NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf)) {
-      rangeList = Coeval
-        .delay(ListType() :: Nil)
-        .memoizeOnSuccess
+      iris = Set(NS.types.`@extends`, NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf)
+    ) {
+      rangeList = ListType() :: Nil
     }
-    val inverseOf: Property =
+    lazy val inverseOf: Property =
       new Property(NS.types.schemaInverseOf, Set(NS.types.schemaInverseOf, "http://schema.org/inverseOf"))
 //      range = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-    val `@properties`: Property = new Property(NS.types.`@properties`) {
-      rangeList = Coeval.delay(Property.ontology :: Nil).memoizeOnSuccess
+    lazy val `@properties`: Property = new Property(NS.types.`@properties`) {
+      rangeList = Property.ontology :: Nil
     }
 //    val `schema:domainIncludes`: Property =
 //      new Property(NS.types.schemaDomainIncludes, iris = Set(NS.types.schemaDomainIncludes)) {
-//        rangeList = Coeval.delay(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil).memoizeOnSuccess
+//        rangeList = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
 //        labelMap ++= Map("en" -> "domainIncludes")
 //      }
-    val `@language`: Property =
+    lazy val `@language`: Property =
       new Property(NS.types.`@language`, iris = Set(NS.types.`@language`, NS.types.xsdLanguage)) {
-        rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess
+        rangeList = `@string` :: Nil
       }
-    val `@index`: Property =
-      new Property(NS.types.`@index`) { rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess }
-    val `@label`: Property =
+    lazy val `@index`: Property =
+      new Property(NS.types.`@index`) { rangeList = `@string` :: Nil }
+    lazy val `@label`: Property =
       new Property(NS.types.`@label`, iris = Set(NS.types.`@label`, NS.types.rdfsLabel)) {
-        rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess
+        rangeList = `@string` :: Nil
       }
-    val `@comment`: Property =
+    lazy val `@comment`: Property =
       new Property(NS.types.`@comment`, iris = Set(NS.types.`@comment`, NS.types.rdfsComment)) {
-        rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess
+        rangeList = `@string` :: Nil
       }
-    val `@base`: Property = new Property(NS.types.`@base`) {
-      rangeList = Coeval.delay(`@string` :: Nil).memoizeOnSuccess
+    lazy val `@base`: Property = new Property(NS.types.`@base`) {
+      rangeList = `@string` :: Nil
     }
-    val `@value`: Property  = new Property(NS.types.`@value`)
-    val `@pvalue`: Property = new Property(NS.types.`@pvalue`)
-    val `@graph`: Property  = new Property(NS.types.`@graph`)
-    val `@start`: Property = new Property(NS.types.`@start`) {
-      rangeList = Coeval.delay(`@datetime` :: Nil).memoizeOnSuccess
+    lazy val `@value`: Property  = new Property(NS.types.`@value`)
+    lazy val `@pvalue`: Property = new Property(NS.types.`@pvalue`)
+    lazy val `@graph`: Property  = new Property(NS.types.`@graph`)
+    lazy val `@start`: Property = new Property(NS.types.`@start`) {
+      rangeList = `@datetime` :: Nil
     }
-    val `@end`: Property = new Property(NS.types.`@end`) {
-      rangeList = Coeval.delay(`@datetime` :: Nil).memoizeOnSuccess
+    lazy val `@end`: Property = new Property(NS.types.`@end`) {
+      rangeList = `@datetime` :: Nil
     }
-    val `@createdon`: Property = new Property(NS.types.`@createdon`) {
-      rangeList = Coeval.delay(`@datetime` :: Nil).memoizeOnSuccess
+    lazy val `@createdon`: Property = new Property(NS.types.`@createdon`) {
+      rangeList = `@datetime` :: Nil
     }
-    val `@modifiedon`: Property =
-      new Property(NS.types.`@modifiedon`) { rangeList = Coeval.delay(`@datetime` :: Nil).memoizeOnSuccess }
-    val `@deletedon`: Property = new Property(NS.types.`@deletedon`) {
-      rangeList = Coeval.delay(`@datetime` :: Nil).memoizeOnSuccess
+    lazy val `@modifiedon`: Property =
+      new Property(NS.types.`@modifiedon`) { rangeList = `@datetime` :: Nil }
+    lazy val `@deletedon`: Property = new Property(NS.types.`@deletedon`) {
+      rangeList = `@datetime` :: Nil
     }
-    val `@transcendedon`: Property =
-      new Property(NS.types.`@transcendedon`) { rangeList = Coeval.delay(`@datetime` :: Nil).memoizeOnSuccess }
+    lazy val `@transcendedon`: Property =
+      new Property(NS.types.`@transcendedon`) { rangeList = `@datetime` :: Nil }
 //    lazy val `@valueRange`: Property = CollectionType.keys.valueRange
 //    lazy val `@keyRange`: Property   = MapType.keys.keyRange
 //    lazy val `@ranges`: Property     = TupleType.keys.range
@@ -325,12 +323,12 @@ object Property {
       //  TYPE.addRange(property)
       lazy val typeDatatype: TypedProperty[Node] = `@type`.as(DataType.ontology) //as DataType.classType
       //  TYPE.addRange(datatype)
-      lazy val extendsOntology
-        : TypedProperty[List[Node]] = `@extends`.as(ListType(Ontology.ontology)) //as Ontology.classType
-      lazy val extendsProperty
-        : TypedProperty[List[Node]] = `@extends`.as(ListType(Property.ontology)) //as Property.classType
-      lazy val extendsDataType
-        : TypedProperty[List[Node]]                  = `@extends`.as(ListType(DataType.ontology)) //as DataType.classType
+      lazy val extendsOntology: TypedProperty[List[Node]] =
+        `@extends`.as(ListType(Ontology.ontology)) //as Ontology.classType
+      lazy val extendsProperty: TypedProperty[List[Node]] =
+        `@extends`.as(ListType(Property.ontology)) //as Property.classType
+      lazy val extendsDataType: TypedProperty[List[Node]] =
+        `@extends`.as(ListType(DataType.ontology)) //as DataType.classType
       lazy val propertyProperty: TypedProperty[Node] = `@properties`.as(Property.ontology) //as Property.classType
       lazy val languageString: TypedProperty[String] = `@language`.as(`@string`)
       lazy val indexString: TypedProperty[String]    = `@index`.as(`@string`)
@@ -402,9 +400,9 @@ object Property {
 //    new Property(iri, iris + iri) {
 //      labelMap ++= label0
 //      commentMap = comment0
-//      rangeList = Coeval.delay(range0()).memoizeOnSuccess
-//      extendedClassesList = Coeval.delay(extendedClasses0()).memoizeOnSuccess
-//      propertiesList = Coeval.delay(properties0().toSet).memoizeOnSuccess
+//      rangeList = range0()
+//      extendedClassesList = extendedClasses0()
+//      propertiesList = properties0().toSet
 //    }
 //  }
 
@@ -412,92 +410,81 @@ object Property {
   def apply(iri: String, iris: Set[String]): Property = Property.properties.getOrCreate(iri, iris)
 }
 
-/**
-  * //TODO: create inverse-link if any
+/** //TODO: create inverse-link if any
   * @param iri
   * @param iris
   */
-class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updateable
+class Property(
+  val iri: String,
+  val iris: Set[String] = Set() //TODO: make updateable
 ) extends ClassType[Edge[Any, Any]] { self =>
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
 //  def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
 
-  protected var rangeList
-    : Coeval[List[ClassType[Any]]] = Coeval(List()).memoizeOnSuccess //_range() ++ extendedClasses.flatMap(_.range) distinct
+  protected var rangeList: List[ClassType[Any]] = List() //_range() ++ extendedClasses.flatMap(_.range) distinct
 
   object range {
-    def apply(): List[ClassType[Any]]              = rangeList()
+    def apply(): List[ClassType[Any]]              = rangeList
     def apply(iri: String): Option[ClassType[Any]] =
 //      println(s"range find ${iri}")
-      rangeList().find(_.iris.contains(iri)).orElse {
+      rangeList.find(_.iris.contains(iri)).orElse {
 //        println(s"not found range ${iri} in ${apply().map(_.iris)}")
         var result: Option[ClassType[Any]] = None
         val oIt                            = extendedClasses().reverseIterator
-        while (oIt.hasNext && result.isEmpty) {
+        while (oIt.hasNext && result.isEmpty)
           result = oIt.next().range(iri)
-        }
         result
       }
     def +(range: => ClassType[Any]): this.type = this.synchronized {
-      rangeList = rangeList.map { current =>
-        val _range = range
-        (current :+ _range).distinct
-      }.memoizeOnSuccess
+      rangeList = (rangeList :+ range).distinct
       this
     }
     def ++(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = rangeList.map { current =>
-        (current ++ range).distinct
-      }.memoizeOnSuccess
+      rangeList = (rangeList ++ range).distinct
       this
     }
     def :=(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = Coeval(range.toList).memoizeOnSuccess
+      rangeList = range.toList
       this
     }
     def -(range: => ClassType[Any]): this.type = this.synchronized {
-      rangeList = rangeList.map(_.filterNot(_ == range)).memoizeOnSuccess
+      rangeList = rangeList.filterNot(_ == range)
       this
     }
     def --(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = rangeList.map(_.filterNot(range.toList.contains)).memoizeOnSuccess
+      rangeList = rangeList.filterNot(range.toList.contains)
       this
     }
   }
   def `@range` = range
 
-  protected var extendedByClassesList: Coeval[List[Property]] = Coeval(List()).memoizeOnSuccess
+  protected var extendedByClassesList: List[Property] = List()
 
   object extendedBy {
-    def apply(): List[Property] = extendedByClassesList()
+    def apply(): List[Property] = extendedByClassesList
     def all(exclude: Set[Property] = Set()): Set[Property] = {
-      val _extends = extendedByClassesList().toSet -- exclude
+      val _extends = extendedByClassesList.toSet -- exclude
       _extends ++ (_extends - self).flatMap(_.extendedBy.all(_extends ++ exclude))
     }
 
     def +(child: => Property): this.type = this.synchronized {
-      extendedByClassesList = extendedByClassesList.map { current =>
-        val _child = child
-        if (!current.contains(_child))
-          (current :+ _child).distinct
+      extendedByClassesList =
+        if (!extendedByClassesList.contains(child))
+          (extendedByClassesList :+ child).distinct
         else {
-          current
+          extendedByClassesList
         }
-      }.memoizeOnSuccess
       this
     }
   }
-  protected var extendedClassesList
-    : Coeval[List[Property]] = Coeval(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
+  protected var extendedClassesList: List[Property] = List() //_extendedClasses().filterNot(_.`extends`(this))
 
   object extendedClasses {
     type T = Property
-    def apply(): List[Property] = extendedClassesList()
+    def apply(): List[Property] = extendedClassesList
 
-    /**
-      *
-      * @param exclude a property set to prevent circular recursion
+    /** @param exclude a property set to prevent circular recursion
       * recursively fetches all extended classes (parent of parents)
       * @return
       */
@@ -513,43 +500,37 @@ class Property(val iri: String, val iris: Set[String] = Set() //TODO: make updat
     }
 
     def +(parent: => Property): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        val _parent = parent
-        if (!current.contains(_parent)) {
-          _parent.extendedBy.+(self)
-          (current :+ _parent).distinct
-        } else {
-          current
-        }
-      }.memoizeOnSuccess
+      extendedClassesList = if (!extendedClassesList.contains(parent)) {
+        parent.extendedBy.+(self)
+        (extendedClassesList :+ parent).distinct
+      } else {
+        extendedClassesList
+      }
       this
     }
     def ++(parent: => Iterable[Property]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        parent.foreach(_.extendedBy.+(self))
-        (current ++ parent).distinct
-      }.memoizeOnSuccess
+      parent.foreach(_.extendedBy.+(self))
+      extendedClassesList = (extendedClassesList ++ parent).distinct
       this
     }
     def -(parent: => Property): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
+      extendedClassesList = extendedClassesList.filterNot(_ == parent)
       this
     }
     def --(parent: => Iterable[Property]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
+      extendedClassesList = extendedClassesList.filterNot(parent.toList.contains)
       this
     }
   }
 
-  protected var inverseOfOption
-    : Coeval[Option[Property]] = Coeval(None).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
+  protected var inverseOfOption: Option[Property] = None //_extendedClasses().filterNot(_.`extends`(this))
 
   object inverseOf {
-    def apply(): Option[Property] = inverseOfOption()
+    def apply(): Option[Property] = inverseOfOption
 
-    def get: Option[Property] = inverseOfOption.value()
+    def get: Option[Property] = inverseOfOption
     def set(inverse: => Property): this.type = this.synchronized {
-      inverseOfOption = Coeval.now(Some(inverse)).memoizeOnSuccess
+      inverseOfOption = Some(inverse)
       this
     }
   }

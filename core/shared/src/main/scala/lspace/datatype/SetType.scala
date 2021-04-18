@@ -3,7 +3,6 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.util.types.DefaultsToAny
 
 object SetType extends DataTypeDef[SetType[Any]] {
 
@@ -39,8 +38,9 @@ object SetType extends DataTypeDef[SetType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): SetType[TOut] =
 //    new SetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[SetType[TOut]]
 
-  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[SetType[Set[T]], Set[TOut], SetType[Set[TOut]]] =
+  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[SetType[Set[T]], Set[TOut], SetType[Set[TOut]]] =
     new ClassTypeable[SetType[Set[T]]] {
       type C  = Set[TOut]
       type CT = SetType[Set[TOut]]
@@ -50,7 +50,7 @@ object SetType extends DataTypeDef[SetType[Any]] {
     }
 
   def apply(): SetType[Set[Any]] = datatype
-  def apply[V](valueRange: ClassType[V]): SetType[Set[V]] = {
+  def apply[V](valueRange: ClassType[V]): SetType[Set[V]] =
     new SetType[Set[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@set`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
@@ -59,7 +59,6 @@ object SetType extends DataTypeDef[SetType[Any]] {
 
       override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
-  }
 }
 
 abstract class SetType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T] {
@@ -70,8 +69,8 @@ abstract class SetType[+T](val valueRange: Option[ClassType[Any]]) extends Colle
         case tpe: SetType[_] =>
           (valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           }
         case _ => super.`extends`(classType)

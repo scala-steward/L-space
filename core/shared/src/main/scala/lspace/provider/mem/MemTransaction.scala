@@ -1,6 +1,6 @@
 package lspace.provider.mem
 
-import lspace.datatype.{CollectionType, DataType}
+import lspace.datatype.CollectionType
 import lspace.provider.transaction.Transaction
 import lspace.structure._
 import monix.eval.Task
@@ -20,7 +20,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
     def iri: String = _iri + ".index"
 
     val graph: MemGraph      = self
-    val index: MemIndexGraph = this
+//    val index: MemIndexGraph = this
   }
   override def commit(): Task[Unit] =
     if (isOpen) {
@@ -70,7 +70,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
             case v: _TNode       => v.self
             case v: Node         => newNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
             case v: _TEdge[_, _] => v.self
-            case v: Edge[_, _]   => throw new Exception("dereferencing edge failed")
+            case _: Edge[_, _]   => throw new Exception("dereferencing edge failed")
             case v: _TValue[_]   => v.self
             case v: Value[_] =>
               newOtherValues.find(_.id == v.id).getOrElse(throw new Exception("dereferencing value failed"))

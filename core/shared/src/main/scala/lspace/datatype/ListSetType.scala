@@ -3,7 +3,6 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.util.types.DefaultsToAny
 
 import scala.collection.immutable.ListSet
 
@@ -42,8 +41,9 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListSetType[TOut] =
 //    new ListSetType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListSetType[TOut]]
 
-  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListSetType[ListSet[T]], ListSet[TOut], ListSetType[ListSet[TOut]]] =
+  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[ListSetType[ListSet[T]], ListSet[TOut], ListSetType[ListSet[TOut]]] =
     new ClassTypeable[ListSetType[ListSet[T]]] {
       type C  = ListSet[TOut]
       type CT = ListSetType[ListSet[TOut]]
@@ -54,7 +54,7 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
     }
 
   def apply(): ListSetType[ListSet[Any]] = datatype
-  def apply[V](valueRange: ClassType[V]): ListSetType[ListSet[V]] = {
+  def apply[V](valueRange: ClassType[V]): ListSetType[ListSet[V]] =
     new ListSetType[ListSet[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
@@ -62,7 +62,6 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
           .reduceLeft(_ + _)
       override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
-  }
 }
 
 abstract class ListSetType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V] {
@@ -73,8 +72,8 @@ abstract class ListSetType[+V](val valueRange: Option[ClassType[Any]]) extends C
         case tpe: ListSetType[_] =>
           (valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           }
         case _ => super.`extends`(classType)

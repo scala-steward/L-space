@@ -32,7 +32,7 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
   //        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
   //        case value                 => values.create(value).asInstanceOf[Resource[V]]
   //      }
-  private def upsertR[V](value: Resource[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Resource[V]] =
+  private def upsertR[V](value: Resource[V])(implicit helper: UpsertHelper): Task[Resource[V]] =
     value match {
       //        case resource: _Resource[V]       => resource
       case resource: WrappedResource[V] => upsertR(resource.self)

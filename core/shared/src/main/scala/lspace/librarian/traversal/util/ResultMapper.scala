@@ -8,6 +8,8 @@ import monix.eval.{Coeval, Task}
 import monix.reactive.Observable
 import shapeless.{<:!<, HList}
 
+import scala.annotation.unused
+
 sealed trait ResultMapper[G[_], -ET <: ClassType[_], nET <: ClassType[_]] {
   type F[_]
   type Out
@@ -17,9 +19,14 @@ sealed trait ResultMapper[G[_], -ET <: ClassType[_], nET <: ClassType[_]] {
 }
 
 object ResultMapper {
-//  type Aux[G[_], Out, F0] = Mapper[G, Out] { type F = F0 }
-  implicit def groupedStream[K, V](implicit guide: Guide[Stream]) =
-    new ResultMapper[Stream, TupleType[(K, V)], MapType[Map[K, V]]] {
+  type Aux[G[_], -ET <: ClassType[_], nET <: ClassType[_], /*Out0, */ FT0] = ResultMapper[G, ET, nET] {
+//    type Out = Out0
+    type FT = FT0
+  }
+  implicit def groupedLazyList[K, V](implicit
+    guide: Guide[LazyList]
+  ): ResultMapper.Aux[LazyList, TupleType[(K, V)], MapType[Map[K, V]], SyncGroupedResult[K, V]] =
+    new ResultMapper[LazyList, TupleType[(K, V)], MapType[Map[K, V]]] {
       type F[_] = Coeval[_]
       type Out  = (K, V)
       type FT   = SyncGroupedResult[K, V]
@@ -28,8 +35,10 @@ object ResultMapper {
         SyncGroupedResult[K, V](traversal, graph)
     }
 
-  implicit def streamh[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Stream]) =
-    new ResultMapper[Stream, ET[T], ListType[List[T]]] {
+  implicit def lazylisth[T, ET[+Z] <: ClassType[Z]](implicit
+    guide: Guide[LazyList]
+  ): ResultMapper.Aux[LazyList, ET[T], ListType[List[T]], SyncListResult[T]] =
+    new ResultMapper[LazyList, ET[T], ListType[List[T]]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncListResult[T]
@@ -37,8 +46,10 @@ object ResultMapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         SyncListResult[T](traversal, graph)
     }
-  implicit def streamhs[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Stream]) =
-    new ResultMapper[Stream, ET[T], SetType[Set[T]]] {
+  implicit def lazylisths[T, ET[+Z] <: ClassType[Z]](implicit
+    guide: Guide[LazyList]
+  ): ResultMapper.Aux[LazyList, ET[T], SetType[Set[T]], SyncListResult[T]] =
+    new ResultMapper[LazyList, ET[T], SetType[Set[T]]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncListResult[T]
@@ -46,8 +57,8 @@ object ResultMapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         SyncListResult[T](traversal, graph)
     }
-//  implicit def streamhg[K, V](implicit guide: Guide[Stream]) =
-//    new Mapper[Stream, MapType[Map[K, V]], ListType[List[Map[K, V]]]] {
+//  implicit def lazylisthg[K, V](implicit guide: Guide[LazyList]) =
+//    new Mapper[LazyList, MapType[Map[K, V]], ListType[List[Map[K, V]]]] {
 //      type F[_] = Coeval[_]
 //      type Out  = Map[K, V]
 //      type FT   = SyncListResult[Map[K, V]]
@@ -55,12 +66,14 @@ object ResultMapper {
 //      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
 //        SyncListResult[Map[K, V]](traversal, graph)
 //    }
-  implicit def streamone[T, ET1[+Z] <: ClassType[Z], ET2[+Z] <: ClassType[Z]](implicit guide: Guide[Stream],
-                                                                              ev0: ET2[_] <:!< MapType[_],
-                                                                              ev1: ET2[_] <:!< ListType[_],
-                                                                              ev2: ET2[_] <:!< SetType[_],
-                                                                              ev3: ET2[_] <:!< OptionType[_]) =
-    new ResultMapper[Stream, ET1[T], ET2[T]] {
+  implicit def lazylistone[T, ET1[+Z] <: ClassType[Z], ET2[+Z] <: ClassType[Z]](implicit
+    guide: Guide[LazyList],
+    ev0: ET2[_] <:!< MapType[_],
+    ev1: ET2[_] <:!< ListType[_],
+    ev2: ET2[_] <:!< SetType[_],
+    ev3: ET2[_] <:!< OptionType[_]
+  ): ResultMapper.Aux[LazyList, ET1[T], ET2[T], SyncOneResult[T]] =
+    new ResultMapper[LazyList, ET1[T], ET2[T]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncOneResult[T]
@@ -68,8 +81,10 @@ object ResultMapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         SyncOneResult[T](traversal, graph)
     }
-  implicit def streamzeroorone[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Stream]) =
-    new ResultMapper[Stream, ET[T], OptionType[Option[T]]] {
+  implicit def lazylistzeroorone[T, ET[+Z] <: ClassType[Z]](implicit
+    guide: Guide[LazyList]
+  ): ResultMapper.Aux[LazyList, ET[T], OptionType[Option[T]], SyncZeroOrOneResult[T]] =
+    new ResultMapper[LazyList, ET[T], OptionType[Option[T]]] {
       type F[_] = Coeval[_]
       type Out  = T
       type FT   = SyncZeroOrOneResult[T]
@@ -78,7 +93,9 @@ object ResultMapper {
         SyncZeroOrOneResult[T](traversal, graph)
     }
 
-  implicit def groupedObservable[K, V](implicit guide: Guide[Observable]) =
+  implicit def groupedObservable[K, V](implicit
+    guide: Guide[Observable]
+  ): ResultMapper.Aux[Observable, TupleType[(K, V)], MapType[Map[K, V]], AsyncGroupedResult[K, V]] =
     new ResultMapper[Observable, TupleType[(K, V)], MapType[Map[K, V]]] {
       type F[_] = Task[_]
       type Out  = (K, V)
@@ -87,7 +104,9 @@ object ResultMapper {
         AsyncGroupedResult[K, V](traversal, graph)
     }
 
-  implicit def observableh[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+  implicit def observableh[T, ET[+Z] <: ClassType[Z]](implicit
+    guide: Guide[Observable]
+  ): ResultMapper.Aux[Observable, ET[T], ListType[List[T]], AsyncListResult[T]] =
     new ResultMapper[Observable, ET[T], ListType[List[T]]] {
       type F[_] = Task[_]
       type Out  = T
@@ -103,7 +122,9 @@ object ResultMapper {
 //      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
 //        AsyncListResult[List[T]](traversal, graph)
 //    }
-  implicit def observablehs[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+  implicit def observablehs[T, ET[+Z] <: ClassType[Z]](implicit
+    guide: Guide[Observable]
+  ): ResultMapper.Aux[Observable, ET[T], SetType[Set[T]], AsyncListResult[T]] =
     new ResultMapper[Observable, ET[T], SetType[Set[T]]] {
       type F[_] = Task[_]
       type Out  = T
@@ -119,11 +140,13 @@ object ResultMapper {
 //      def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
 //        AsyncListResult[T](traversal, graph)
 //    }
-  implicit def observableone[T, ET1[+Z] <: ClassType[Z], ET2[+Z] <: ClassType[Z]](implicit guide: Guide[Observable],
-                                                                                  ev0: ET2[_] <:!< MapType[_],
-                                                                                  ev1: ET2[_] <:!< ListType[_],
-                                                                                  ev2: ET2[_] <:!< SetType[_],
-                                                                                  ev3: ET2[_] <:!< OptionType[_]) =
+  implicit def observableone[T, ET1[+Z] <: ClassType[Z], ET2[+Z] <: ClassType[Z]](implicit
+    guide: Guide[Observable],
+    @unused ev0: ET2[_] <:!< MapType[_],
+    @unused ev1: ET2[_] <:!< ListType[_],
+    @unused ev2: ET2[_] <:!< SetType[_],
+    @unused ev3: ET2[_] <:!< OptionType[_]
+  ): ResultMapper.Aux[Observable, ET1[T], ET2[T], AsyncOneResult[T]] =
     new ResultMapper[Observable, ET1[T], ET2[T]] {
       type F[_] = Task[_]
       type Out  = T
@@ -132,7 +155,9 @@ object ResultMapper {
       def apply(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph): FT =
         AsyncOneResult[T](traversal, graph)
     }
-  implicit def observablezeroorone[T, ET[+Z] <: ClassType[Z]](implicit guide: Guide[Observable]) =
+  implicit def observablezeroorone[T, ET[+Z] <: ClassType[Z]](implicit
+    guide: Guide[Observable]
+  ): ResultMapper.Aux[Observable, ET[T], OptionType[Option[T]], AsyncZeroOrOneResult[T]] =
     new ResultMapper[Observable, ET[T], OptionType[Option[T]]] {
       type F[_] = Task[_]
       type Out  = T

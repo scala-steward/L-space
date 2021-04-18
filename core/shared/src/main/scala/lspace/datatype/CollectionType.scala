@@ -29,7 +29,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
     lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange as ListType(NodeURLType.datatype)
   }
   override lazy val properties: List[Property] = keys.valueRange :: Nil //StructuredValue.properties
-  trait Properties { //extends StructuredValue.Properties {
+  trait Properties extends StructuredType.Properties {
     lazy val valueRange: Property                           = keys.valueRange
     lazy val valueRangeClassType: TypedProperty[List[Node]] = keys.valueRangeClassType
   }

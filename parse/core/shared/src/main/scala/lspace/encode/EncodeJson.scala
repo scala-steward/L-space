@@ -141,6 +141,7 @@ object EncodeJson {
                 .flatMap {
                   case (projection, result: List[_]) =>
                     namedProjection(projection, result).map(v => projection.alias -> v)
+                  case _ => throw new Exception("invalid")
                 }
                 .toMap).map(_.asJson)
         }
@@ -161,6 +162,7 @@ object EncodeJson {
               .flatMap {
                 case (projection, result: List[_]) =>
                   namedProjection(projection, result).map(projection.alias -> _)
+                case _ => throw new Exception("invalid")
               }
               .toMap)
               .asJson
@@ -170,6 +172,7 @@ object EncodeJson {
               .flatMap {
                 case (projection, result: List[_]) =>
                   namedProjection(projection, result).map(projection.alias -> _)
+                case _ => throw new Exception("invalid")
               }
               .toMap)
               .asJson

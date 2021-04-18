@@ -1,21 +1,20 @@
 package lspace.client.io
 
-import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
-
 import monix.eval.Task
-import monix.reactive.Observable
-import sttp.client._
-import sttp.client.SttpBackend
+import sttp.capabilities.WebSockets
+import sttp.capabilities.monix.MonixStreams
+import sttp.client3._
+import sttp.client3.SttpBackend
 import sttp.model.Header
 
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 
 trait HttpClient {
   type WS[_]
-  def backend: Task[SttpBackend[Task, Observable[ByteBuffer], WS]]
+  def backend: Task[SttpBackend[Task, MonixStreams with WebSockets]]
 
   protected lazy val wip: concurrent.Map[String, Task[String]] =
     new ConcurrentHashMap[String, Task[String]](16, 0.9f, 32).asScala

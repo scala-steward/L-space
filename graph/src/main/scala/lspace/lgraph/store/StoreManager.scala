@@ -26,7 +26,7 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
   def edgesByToIdAndKey(toId: Long, key: Property): Observable[graph.GEdge[Any, Any]]
   def edgesByFromIdAndToId(fromId: Long, toId: Long): Observable[graph.GEdge[Any, Any]]
   def edgesByFromIdAndKeyAndToId(fromId: Long, key: Property, toId: Long): Observable[graph.GEdge[Any, Any]]
-//  def edgesByKey(key: Property): Stream[graph.GEdge[_, _]]
+//  def edgesByKey(key: Property): LazyList[graph.GEdge[_, _]]
 //  def edgeByIri(iri: String): Observable[graph.GEdge[Any, Any]]
 //  def edgesByIri(iri: List[String]): Observable[graph.GEdge[Any, Any]]
   def valueById(id: Long): Task[Option[graph.GValue[Any]]]

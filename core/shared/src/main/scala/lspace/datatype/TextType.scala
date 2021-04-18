@@ -3,7 +3,6 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.types.string.Iri
 
 object TextType extends DataTypeDef[TextType[String]] {
 

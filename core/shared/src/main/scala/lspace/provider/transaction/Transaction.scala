@@ -1,17 +1,12 @@
 package lspace.provider.transaction
 
-import java.util.concurrent.ConcurrentHashMap
-
 import lspace.datatype.DataType
 import lspace.provider.mem._
 import lspace.structure._
-import lspace.structure.util.{ClassTypeable, IdProvider}
+import lspace.structure.util.IdProvider
 import monix.eval.{Coeval, Task}
-import monix.reactive.Observable
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.ListSet
-import scala.collection.mutable
 
 object Transaction {}
 
@@ -99,13 +94,13 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
   def wrapTR[T <: parent._Resource[_]](resource: T): Coeval[GResource[_]] = resource match {
     case n: parent._Node =>
       nodeStore.cached.hasId(n.id) match {
-        case Some(node) => Coeval.now(node /*.asInstanceOf[GNode]*/ )
+        case Some(node) => Coeval.now(node.asInstanceOf[GResource[_]] )
         case None       => _TNode(n).asInstanceOf[Coeval[GResource[_]]]
       }
     case e: parent._Edge[_, _] =>
       edgeStore.cached
         .hasId(e.id) match {
-        case Some(edge) => Coeval.now(edge /*.asInstanceOf[GEdge[_, _]]*/ )
+        case Some(edge) => Coeval.now(edge.asInstanceOf[GResource[_]] )
         case None       => _TEdge[Any, Any](e.asInstanceOf[parent._Edge[Any, Any]]).asInstanceOf[Coeval[GResource[_]]]
       }
 //      super.edgeStore.cached //compiler-error <refinement>.type (of class scala.reflect.internal.Types$UniqueSuperType)
@@ -116,7 +111,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
     case v: parent._Value[_] =>
       valueStore.cached
         .hasId(v.id) match {
-        case Some(value) => Coeval.now(value /*.asInstanceOf[GValue[Any]]*/ )
+        case Some(value) => Coeval.now(value.asInstanceOf[GResource[_]] )
         case None        => _TValue[Any](v.asInstanceOf[parent.GValue[Any]]).asInstanceOf[Coeval[GResource[_]]]
       }
 //        .map(_.asInstanceOf[_Value[Any]])

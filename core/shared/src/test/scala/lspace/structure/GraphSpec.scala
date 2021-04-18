@@ -29,7 +29,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
       "have an id provider".which {
         "provides unique a unique id, even when dealing with concurrency" in {
           Task
-            .parSequence((1 to 100).map(i => graph.idProvider.next))
+            .parSequence((1 to 100).map(_ => graph.idProvider.next))
             .map { ids =>
               ids.toSet.size shouldBe 100
             }
@@ -115,9 +115,9 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
               _ <- graph.nodes.create().flatMap(_ --- `@id` --> "dup-existing-node-123")
               _ <- graph.nodes.upsert("dup-existing-node-123")
               _ <- //merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
-              graph.nodes.hasIri("dup-existing-node-123").toListL.map(_.size shouldBe 1) //.delayExecution(200.millis)
-            } yield ()) //.delayExecution(200.millis)
-          } yield { succeed }).timeout(4000.millis).runToFuture
+                graph.nodes.hasIri("dup-existing-node-123").toListL.map(_.size shouldBe 1) //.delayExecution(200.millis)
+            } yield ())                                                                    //.delayExecution(200.millis)
+          } yield succeed).timeout(4000.millis).runToFuture
         }
       }
 //      "have an edges API" which {}
@@ -153,14 +153,14 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
       "merge nodes to a single node when upserting an existing iri and multiple nodes are found" in {
         val transaction = graph.transaction
         (for {
-          nodes <- Task.sequence {
-            1.to(100).map { i =>
+          _ <- Task.sequence {
+            1.to(100).map { _ =>
               for {
                 node <- transaction.nodes.create().onErrorHandle { f =>
                   println(f.getMessage); throw f
                 }
 //                _    <- node.addOut(Label.P.typed.createdonDateTime, Instant.now())
-                edge <- node.addOut(Label.P.typed.iriUrlString, "someuniqueurl").onErrorHandle { f =>
+                _ <- node.addOut(Label.P.typed.iriUrlString, "someuniqueurl").onErrorHandle { f =>
                   println(f.getMessage); throw f
                 }
               } yield node
@@ -170,7 +170,7 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
           _ <- transaction.nodes.upsert("someuniqueurl")
           _ <- transaction.nodes.hasIri("someuniqueurl").toListL.map(_.size shouldBe 1)
           _ <- graph.nodes.hasIri("someuniqueurl").toListL.map(_.size shouldBe 0)
-          c <- transaction.commit()
+          _ <- transaction.commit()
           _ <- graph.nodes.hasIri("someuniqueurl").toListL.map(_.size shouldBe 1)
         } yield succeed).timeout(4000.millis).runToFuture
       }
@@ -185,39 +185,43 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             _ <- node.addOut(Label.P.`@ids`, "def")
             _ <- node.addOut(Label.P.`@ids`, "gef")
             _ <- for {
-              a1 <- g.N
+              _ <- g.N
                 .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 100)))
-                .count
+                .count()
                 .withGraph(graph)
                 .headF
                 .map(_ shouldBe 1)
-              a2 <- g.N
+              _ <- g.N
                 .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000)))
-                .count
+                .count()
                 .withGraph(graph)
                 .headF
                 .map(_ shouldBe 1)
-              a3 <- g.N
+              _ <- g.N
                 .has(Label.P.`@modifiedon`, P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 100)))
-                .count
+                .count()
                 .withGraph(graph)
                 .headF
                 .map(_ shouldBe 0)
-              a4 <- g.N
+              _ <- g.N
                 .has(
                   Label.P.`@modifiedon`,
                   P.gt(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000)) &&
                     P.lt(Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000))
                 )
-                .count
+                .count()
                 .withGraph(graph)
                 .headF
                 .map(_ shouldBe 1)
-              a5 <- g.N
-                .has(Label.P.`@modifiedon`,
-                     P.between(Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000),
-                               Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000)))
-                .count
+              _ <- g.N
+                .has(
+                  Label.P.`@modifiedon`,
+                  P.between(
+                    Instant.ofEpochSecond(modifiedOn.getEpochSecond - 1000),
+                    Instant.ofEpochSecond(modifiedOn.getEpochSecond + 1000)
+                  )
+                )
+                .count()
                 .withGraph(graph)
                 .headF
                 .map(_ shouldBe 1)
@@ -277,35 +281,31 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
         }
         "contains the name-property in cache" in {
           sampleGraph.ns.properties.cached(SampleGraph.properties.name.property.iri) shouldBe Some(
-            SampleGraph.properties.name.property)
+            SampleGraph.properties.name.property
+          )
         }
         "contains the name-property in the global cache" in {
           Property.properties.get(SampleGraph.properties.name.property.iri) shouldBe Some(
-            SampleGraph.properties.name.property)
+            SampleGraph.properties.name.property
+          )
         }
       }
       "have sample data".which {
         "contains certain nodes" in {
           (for {
             garrison <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/56789").headL
-          } yield {
-            garrison.labels shouldBe List(person)
-          }).timeout(4000.millis).runToFuture
+          } yield garrison.labels shouldBe List(person)).timeout(4000.millis).runToFuture
         }
         "contains certain edges" in {
           (for {
             yoshio <- sampleGraph.nodes.hasIri(sampleGraph.iri + "/person/123").headOptionL
             _      <- sampleGraph.edges().find(e => e.key == name.property).headL.map(_.key shouldBe name.property)
-          } yield {
-            yoshio.map(_.iri) shouldBe Some(sampleGraph.iri + "/person/123")
-          }).timeout(4000.millis).runToFuture
+          } yield yoshio.map(_.iri) shouldBe Some(sampleGraph.iri + "/person/123")).timeout(4000.millis).runToFuture
         }
         "contains certain values" in {
           (for {
             yoshio <- sampleGraph.values.byValue("Yoshio").map(_.value).headOptionL
-          } yield {
-            yoshio shouldBe Some("Yoshio")
-          }).timeout(4000.millis).runToFuture
+          } yield yoshio shouldBe Some("Yoshio")).timeout(4000.millis).runToFuture
         }
       }
       "support inserting structures from other graphs (object + edges)" in {
@@ -321,35 +321,31 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
         val newGraph = MemGraph("graphspec2merge")
 
         (for {
-          _           <- newGraph.nodes().toListL.map(_.size shouldBe 0)
-          _           <- newGraph.edges().toListL.map(_.size shouldBe 0)
-          _           <- newGraph.values().toListL.map(_.size shouldBe 0)
-          mergedGraph <- newGraph ++ sampleGraph
-          _           <- Task.parZip2(newGraph.nodes.count, sampleGraph.nodes.count).map { case (a, b) => a shouldBe b }
-          _           <- Task.parZip2(newGraph.edges.count, sampleGraph.edges.count).map { case (a, b) => a shouldBe b }
-          _           <- Task.parZip2(newGraph.values.count, sampleGraph.values.count).map { case (a, b) => a shouldBe b }
+          _ <- newGraph.nodes().toListL.map(_.size shouldBe 0)
+          _ <- newGraph.edges().toListL.map(_.size shouldBe 0)
+          _ <- newGraph.values().toListL.map(_.size shouldBe 0)
+          _ <- newGraph ++ sampleGraph
+          _ <- Task.parZip2(newGraph.nodes.count(), sampleGraph.nodes.count()).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.edges.count(), sampleGraph.edges.count()).map { case (a, b) => a shouldBe b }
+          _ <- Task.parZip2(newGraph.values.count(), sampleGraph.values.count()).map { case (a, b) => a shouldBe b }
           _ <- newGraph.close()
-        } yield {
-          succeed
-        }).timeout(40000.millis).runToFuture
+        } yield succeed).timeout(40000.millis).runToFuture
       }
       "upsert nodes with edges to iriless nodes 1:1, not duplicating iriless nodes" in {
-        val newGraph = MemGraph("graphspec2irilessnode")
+        val newGraph  = MemGraph("graphspec2irilessnode")
         val newGraph2 = MemGraph("graphspec2irilessnode2")
 
         (for {
-        irilessNode <- newGraph.nodes.create()
-        irilessNode2 <- newGraph.nodes.create()
-        _ <- irilessNode2 --- "value" --> 123
-        _ <- irilessNode --- "a" --> irilessNode2
-        _ <- irilessNode --- "b" --> irilessNode2
-        _ <- newGraph.nodes.count().map(_ shouldBe 2L)
-        _ <- newGraph2.nodes.upsert(irilessNode)
-        _ <- newGraph2.nodes.count().map(_ shouldBe 2L)
-        _ <- newGraph.close()
-        } yield {
-          succeed
-        }).timeout(40000.millis).runToFuture
+          irilessNode  <- newGraph.nodes.create()
+          irilessNode2 <- newGraph.nodes.create()
+          _            <- irilessNode2 --- "value" --> 123
+          _            <- irilessNode --- "a" --> irilessNode2
+          _            <- irilessNode --- "b" --> irilessNode2
+          _            <- newGraph.nodes.count().map(_ shouldBe 2L)
+          _            <- newGraph2.nodes.upsert(irilessNode)
+          _            <- newGraph2.nodes.count().map(_ shouldBe 2L)
+          _            <- newGraph.close()
+        } yield succeed).timeout(40000.millis).runToFuture
       }
     }
   }

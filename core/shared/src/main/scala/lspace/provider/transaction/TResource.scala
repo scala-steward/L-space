@@ -29,12 +29,14 @@ trait TResource[T] extends MemResource[T] {
         .outE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .groupBy(_.key)
-        .mapValues(_.map(_.to.asInstanceOf[graph.parent._Resource[Any]]).map(graph.wrapTR(_).map(_.value).value())) //wrapTR brings nested resources (aka within collections) in transaction context
+        .view.mapValues(
+          _.map(_.to.asInstanceOf[graph.parent._Resource[Any]]).map(graph.wrapTR(_).map(_.value).value())
+        ).toMap //wrapTR brings nested resources (aka within collections) in transaction context
     ).reduceLeft((r, m) =>
-        m.toMap.foldLeft(r) {
-          case (dict, (k, v)) => dict.+(k -> (v ++ dict.getOrElse(k, List()))).toMap
-      })
-      .toMap
+      m.foldLeft(r) { case (dict, (k, v)) =>
+        dict.+(k -> (v ++ dict.getOrElse(k, List())))
+      }
+    )
   override def outE(key: Property*): List[Edge[T, Any]] =
     super.outE(key: _*) ++ self
       .outE(key: _*)
@@ -52,9 +54,10 @@ trait TResource[T] extends MemResource[T] {
         .map(graph.wrapTR(_).value().asInstanceOf[Edge[T, Any]])
         .groupBy(_.key)
     ).reduceLeft((r, m) =>
-      m.foldLeft(r) {
-        case (dict, (k, v)) => dict + (k -> (v ++ dict.getOrElse(k, List())))
-    })
+      m.foldLeft(r) { case (dict, (k, v)) =>
+        dict + (k -> (v ++ dict.getOrElse(k, List())))
+      }
+    )
   override def in(key: Property*): List[Any] =
     super.in(key: _*) ++ self
       .inE(key: _*)
@@ -68,12 +71,14 @@ trait TResource[T] extends MemResource[T] {
         .inE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .groupBy(_.key)
+        .view
         .mapValues(_.map(_.from.asInstanceOf[graph.parent._Resource[Any]]).map(graph.wrapTR(_).map(_.value).value()))
+        .toMap
     ).reduceLeft((r, m) =>
-        m.toMap.foldLeft(r) {
-          case (dict, (k, v)) => dict.+(k -> (v ++ dict.getOrElse(k, List()))).toMap
-      })
-      .toMap
+      m.foldLeft(r) { case (dict, (k, v)) =>
+        dict + (k -> (v ++ dict.getOrElse(k, List())))
+      }
+    )
   override def inE(key: Property*): List[Edge[Any, T]] =
     super.inE(key: _*) ++ self
       .inE(key: _*)
@@ -91,7 +96,8 @@ trait TResource[T] extends MemResource[T] {
         .map(graph.wrapTR(_).value().asInstanceOf[Edge[Any, T]])
         .groupBy(_.key)
     ).reduceLeft((r, m) =>
-      m.foldLeft(r) {
-        case (dict, (k, v)) => dict + (k -> (v ++ dict.getOrElse(k, List())))
-    })
+      m.foldLeft(r) { case (dict, (k, v)) =>
+        dict + (k -> (v ++ dict.getOrElse(k, List())))
+      }
+    )
 }

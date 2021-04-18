@@ -104,6 +104,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
                       Task.parSequenceUnordered(array.map(toResource(_, expectedType)
                         .onErrorHandleWith { case t => autodiscoverValue(json) }
                         .flatMap(addEdgeF(_))))
+                    case _ => throw new Exception("invalid")
                   }
                 edgesTask
             })

@@ -15,7 +15,7 @@ import monix.reactive.Observable
 
 import scala.collection.immutable.ListSet
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 
 object LValueStore {
@@ -36,10 +36,10 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
     }
     def all: Observable[T2] = Observable.fromIterable(cache.flatMap(_._2)).asInstanceOf[Observable[T2]]
     def byValue[V](value: V): Observable[graph.GValue[V]] =
-      Observable.fromIterable(cache.get(value).toStream.flatMap(_.toList).map(_.asInstanceOf[graph.GValue[V]]))
+      Observable.fromIterable(cache.get(value).to(LazyList).flatMap(_.toList).map(_.asInstanceOf[graph.GValue[V]]))
     def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] =
       Observable.fromIterable(
-        cache.get(value).toStream.flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]]))
+        cache.get(value).to(LazyList).flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]]))
     def delete(value: T): Unit = cacheLock.synchronized {
       val values = cache.getOrElse(value.value, Set())
       if (values.exists(_ == value)) cache -= value.value

@@ -7,7 +7,7 @@ addSbtPlugin("com.47deg"        % "sbt-microsites" % "1.3.3")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.4.8")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.8.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.8.1")
 
 addSbtPlugin("com.lightbend.sbt" % "sbt-proguard" % "0.4.0")
 

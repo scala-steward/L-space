@@ -21,7 +21,7 @@ trait History extends Graph {
     for {
       createdNode <- super.getOrCreateNode(id)
       value       <- createValue(id, Instant.now(), DateTimeType.datatype)
-      id          <- idProvider.next
+      _          <- idProvider.next
       //TODO: make time configurable
       _ <- edges.create(createdNode, Property.default.`@createdon`, value)
     } yield createdNode

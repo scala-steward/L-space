@@ -51,9 +51,9 @@ object SampleGraph {
     }
   }
   object ontologies {
-    val place   = Place.ontology
-    val person  = Person.ontology
-    val address = Address.ontology
+    lazy val place   = Place.ontology
+    lazy val person  = Person.ontology
+    lazy val address = Address.ontology
   }
   object properties {
     object name extends PropertyDef("name", label = "name", `@range` = TextType.datatype :: Nil)

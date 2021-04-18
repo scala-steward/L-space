@@ -8,7 +8,7 @@ import lspace.structure.{Edge, Property, Resource}
 import monix.eval.Task
 import monix.execution.atomic.AtomicLong
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 import scala.collection.immutable.HashSet
 

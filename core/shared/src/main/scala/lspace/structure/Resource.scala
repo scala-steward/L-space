@@ -5,6 +5,8 @@ import lspace.structure.Property.default
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
 
+import scala.annotation.unused
+
 object Resource {
   implicit def default[T]: ClassTypeable.Aux[Resource[T], T, IriType[T]] = new ClassTypeable[Resource[T]] {
     type C  = T
@@ -235,7 +237,7 @@ trait Resource[+T] extends IriResource {
 
   import shapeless.<:!<
   def addOut[V, V0, VT0 <: ClassType[Any]](key: String, value: V)(
-      implicit ev1: V <:!< ClassType[Any],
+      implicit @unused ev1: V <:!< ClassType[Any],
       dt: ClassTypeable.Aux[V, V0, VT0]): Task[Edge[T, V0]] =
     addOut[V, V0, VT0](
       graph.ns.properties
@@ -251,7 +253,7 @@ trait Resource[+T] extends IriResource {
       value
     )
   def addOut[V, V0, VT0 <: ClassType[Any]](key: Property, value: V)(
-      implicit ev1: V <:!< ClassType[Any],
+      implicit @unused ev1: V <:!< ClassType[Any],
       ct: ClassTypeable.Aux[V, V0, VT0]): Task[Edge[T, V0]] = {
     for {
       toResource <- value match {
@@ -265,7 +267,7 @@ trait Resource[+T] extends IriResource {
 
   //TODO: cleanup types
   def addOut[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
-      implicit ev1: V <:!< ClassType[Any]): Task[Edge[T, V]] = {
+      implicit @unused ev1: V <:!< ClassType[Any]): Task[Edge[T, V]] = {
     for {
       toResource <- value match {
         case resource: Resource[_] => Task.now(resource.asInstanceOf[Resource[V]])
@@ -273,7 +275,7 @@ trait Resource[+T] extends IriResource {
           dt match {
             case dt: DataType[V] if dt.iri.nonEmpty =>
               graph.values.upsert(value, dt)
-            case ct: ClassType[V] =>
+            case _: ClassType[V] =>
               graph.values.upsert(value, DataType.detect(value))
           }
       }
@@ -323,7 +325,7 @@ trait Resource[+T] extends IriResource {
       value
     )
   def addIn[V, V0, VT0 <: ClassType[_]](key: Property, value: V)(
-      implicit ev1: V <:!< ClassType[_],
+      implicit @unused ev1: V <:!< ClassType[_],
       ct: ClassTypeable.Aux[V, V0, VT0]): Task[Edge[V0, T]] = {
     for {
       toResource <- value match {
@@ -335,7 +337,7 @@ trait Resource[+T] extends IriResource {
     } yield edge
   }
   def addIn[V, R[Z] <: ClassType[Z]](key: Property, dt: R[V], value: V)(
-      implicit ev1: V <:!< ClassType[_]): Task[Edge[V, T]] = {
+      implicit @unused ev1: V <:!< ClassType[_]): Task[Edge[V, T]] = {
     for {
       toResource <- value match {
         case resource: Resource[_] => graph.resources.upsert(resource)
@@ -343,7 +345,7 @@ trait Resource[+T] extends IriResource {
           dt match {
             case dt: DataType[V] if dt.iri.nonEmpty =>
               graph.values.upsert(value, dt)
-            case ct: ClassType[V] =>
+            case _: ClassType[V] =>
               graph.values.upsert(value, DataType.detect(value))
           }
       }

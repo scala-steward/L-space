@@ -10,7 +10,7 @@ import monix.eval.Task
 object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P", comment = "Predicate ontology") {
 
   object keys
-
+  trait Properties extends OntologyDef.Properties
 //  implicit def nodeToP(node: Node): P[_] = P.toP(node)
 
   //TODO: migrate to Task[P[_]], this way we can start building resolvers for remote nodes (reusing published predicates)
@@ -42,7 +42,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
         case types if types.contains(ContainsRegex.ontology)  => ContainsRegex.toP(node)
         case types if types.contains(ContainsFuzzy.ontology)  => ContainsFuzzy.toP(node)
         case types =>
-          throw new Exception(s"No valid P-ontology found for types ${types}")
+          throw new Exception(s"No valid P-ontology found for types $types")
       }
   }
 
@@ -84,58 +84,53 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
 
   def &&[T, PR[+Z] <: P[Z]](predicate: PR[T]*): And = new And(predicate.toList)
   def ||[T, PR[+Z] <: P[Z]](predicate: PR[T]*): Or  = Or(predicate.toList)
-  def eqv[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Eqv[T] =
+  def eqv[T: ClassTypeable](value: T): Eqv[T] =
     Eqv(value)
-  def neqv[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Neqv[T] =
+  def neqv[T: ClassTypeable](value: T): Neqv[T] =
     Neqv(value)
-  def gt[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Gt[T] =
+  def gt[T: OrderHelper: ClassTypeable](value: T): Gt[T] =
     Gt(value)
-  def gte[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Gte[T] =
+  def gte[T: OrderHelper: ClassTypeable](value: T): Gte[T] =
     Gte(value)
-  def lt[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Lt[T] =
+  def lt[T: OrderHelper: ClassTypeable](value: T): Lt[T] =
     Lt(value)
-  def lte[T: OrderHelper, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Lte[T] =
+  def lte[T: OrderHelper: ClassTypeable](value: T): Lte[T] =
     Lte(value)
   //  def between[T](range: QuantityRange[T]): P[T] =Between(range.lower, range.upper)
-  def between[T: OrderHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Between[T] = Between(lower, upper)
-  def outside[T: OrderHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Outside[T] = Outside(lower, upper)
-  def inside[T: OrderHelper, T0, TT0 <: ClassType[_]](lower: T, upper: T)(
-      implicit ct: ClassTypeable.Aux[T, T0, TT0]): Inside[T] = Inside(lower, upper)
+  def between[T: OrderHelper: ClassTypeable](lower: T, upper: T): Between[T] = Between(lower, upper)
+  def outside[T: OrderHelper: ClassTypeable](lower: T, upper: T): Outside[T] = Outside(lower, upper)
+  def inside[T: OrderHelper: ClassTypeable](lower: T, upper: T): Inside[T]   = Inside(lower, upper)
   //  def within(values: List[Any]): P[Any] = within(values.toSet)
-  def within[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Within[T] =
+  def within[T: ClassTypeable](value: T): Within[T] =
     Within(value)
   //  def within[T: ObjectHelper](value: T): GeoWithin[T] =GeoWithin(value)
   //  def without(values: List[Any]): P[Any] = without(values.toSet)
   //  def without[T: CollectionHelper](value: T, values: T*): Without[T] =Without(value :: values.toList)
-  def intersect[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Intersect[T] =
+  def intersect[T: ClassTypeable](value: T): Intersect[T] =
     Intersect(value)
-  def disjoint[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Disjoint[T] =
+  def disjoint[T: ClassTypeable](value: T): Disjoint[T] =
     Disjoint(value)
   //  def contains[T: ObjectHelper](value: T): GeoContains[T] =GeoContains(value)
   def contains[T](value: T): Contains[T] =
     Contains(value)
   def contains[T, PR[Z] <: P[T]](value: PR[T]): Contains[PR[T]] =
     Contains(value) //TODO ...
-  def prefix[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Prefix[T] =
+  def prefix[T: ClassTypeable](value: T): Prefix[T] =
     Prefix(value)
-  def startsWith[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Prefix[T] =
+  def startsWith[T: ClassTypeable](value: T): Prefix[T] =
     Prefix(value)
-  def suffix[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Suffix[T] =
+  def suffix[T: ClassTypeable](value: T): Suffix[T] =
     Suffix(value)
-  def endsWith[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Suffix[T] =
+  def endsWith[T: ClassTypeable](value: T): Suffix[T] =
     Suffix(value)
   def regex(value: scala.util.matching.Regex): Regex = Regex(value)
-  def fuzzy[T, T0, TT0 <: ClassType[_]](value: T)(implicit ct: ClassTypeable.Aux[T, T0, TT0]): Fuzzy[T] =
+  def fuzzy[T: ClassTypeable](value: T): Fuzzy[T] =
     Fuzzy(value)
 
   import shapeless.=:!=
   implicit class WithPredicate[T <: P[_]](_predicate: T)(implicit ev: T =:!= And, ev2: T =:!= Or) {
-    def &&[T0, PR0[Z] <: P[Z], T1, TT1 <: ClassType[_]](predicate: PR0[T0])(
-        implicit ct: ClassTypeable.Aux[T0, T1, TT1]): And = new And(_predicate :: predicate :: Nil)
-    def ||[T0, PR0[Z] <: P[Z], T1, TT1 <: ClassType[_]](predicate: PR0[T0])(
-        implicit ct: ClassTypeable.Aux[T0, T1, TT1]): Or = Or(_predicate :: predicate :: Nil)
+    def &&[T0: ClassTypeable, PR0[Z] <: P[Z]](predicate: PR0[T0]): And = new And(_predicate :: predicate :: Nil)
+    def ||[T0: ClassTypeable, PR0[Z] <: P[Z]](predicate: PR0[T0]): Or  = Or(_predicate :: predicate :: Nil)
   }
 
   implicit def clsP[T]: ClassTypeable.Aux[P[T], Node, ClassType[Node]] = new ClassTypeable[P[T]] {

@@ -2,7 +2,6 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.NS.types
-import lspace.structure.util.ClassTypeable
 import lspace.structure._
 
 //TODO: type construction without nested types should default to @tuple, @tuple2, @tuple3 or @tuple4 (example at @list)
@@ -71,8 +70,8 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
               result && ((thisType, thatType) match {
                 case (Some(thisRange), Some(thatRange)) =>
                   thisRange.iri == thatRange.iri || thisRange.`@extends`(thatRange)
-                case (None, Some(thatRange)) => false
-                case (Some(thisRange), None) => true
+                case (None, Some(_)) => false
+                case (Some(_), None) => true
                 case (None, None)            => true
               })
           }

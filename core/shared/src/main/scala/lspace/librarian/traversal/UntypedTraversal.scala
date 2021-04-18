@@ -1,12 +1,9 @@
 package lspace.librarian.traversal
 
 import lspace.datatype.ListType
-import lspace.librarian.task.Guide
 import lspace.librarian.traversal.step.Step
 import lspace.librarian.traversal.util.ResultMapper
-import lspace.provider.detached.DetachedGraph
-import lspace.structure.{ClassType, Graph, Node}
-import monix.eval.Task
+import lspace.structure.{ClassType, Graph}
 import shapeless.{HList, HNil}
 
 object UntypedTraversal {
@@ -59,7 +56,8 @@ object UntypedTraversal {
 //  }
 
   def apply[ST <: ClassType[Any], ET <: ClassType[Any], Steps <: HList](
-    traversal: Traversal[ST, ET, Steps]): UntypedTraversal = new UntypedTraversal(traversal.stepsList.toVector)
+    traversal: Traversal[ST, ET, Steps]
+  ): UntypedTraversal = new UntypedTraversal(traversal.stepsList.toVector)
 }
 
 case class UntypedTraversal private (steps: Vector[Step] = Vector()) {
@@ -67,8 +65,7 @@ case class UntypedTraversal private (steps: Vector[Step] = Vector()) {
 //  def steps: List[Step]                                         = segments.flatMap(_.steps).toList
   def toTyped: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = Traversal(steps)
 
-  def withGraph[F[_]](graph: Graph)(implicit guide: Guide[F],
-                                    mapper: ResultMapper[F, ClassType[Any], ListType[List[Any]]]): mapper.FT =
+  def withGraph[F[_]](graph: Graph)(implicit mapper: ResultMapper[F, ClassType[Any], ListType[List[Any]]]): mapper.FT =
     mapper(toTyped, graph).asInstanceOf[mapper.FT]
 
   def ++(traversal: UntypedTraversal): UntypedTraversal =

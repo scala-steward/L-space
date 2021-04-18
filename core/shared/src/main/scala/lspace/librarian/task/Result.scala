@@ -104,26 +104,26 @@ class AsyncOneResult[Out](val traversal: Traversal[_ <: ClassType[Any], _ <: Cla
 
 object SyncGroupedResult {
   def apply[OutK, OutV](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
-      implicit guide: Guide[Stream]): SyncGroupedResult[OutK, OutV] =
+      implicit guide: Guide[LazyList]): SyncGroupedResult[OutK, OutV] =
     new SyncGroupedResult[OutK, OutV](traversal, graph)
 }
 class SyncGroupedResult[OutK, OutV](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
-                                    graph: Graph)(implicit guide: Guide[Stream])
+                                    graph: Graph)(implicit guide: Guide[LazyList])
     extends SyncListResult[(OutK, OutV)](traversal, graph)(guide)
-    with GroupedResult[Coeval, Stream, OutK, OutV] {
+    with GroupedResult[Coeval, LazyList, OutK, OutV] {
 
   def toMapF: Coeval[Map[OutK, OutV]] = Coeval(guide.executeTraversal[(OutK, OutV)](traversal)(graph).toMap)
   def toMap: Map[OutK, OutV]          = toMapF.value()
 }
 object SyncListResult {
   def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
-      implicit guide: Guide[Stream]): SyncListResult[Out] =
+      implicit guide: Guide[LazyList]): SyncListResult[Out] =
     new SyncListResult(traversal, graph)
 }
 class SyncListResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
-    implicit guide: Guide[Stream])
+    implicit guide: Guide[LazyList])
     extends SyncZeroOrOneResult[Out](traversal, graph)(guide)
-    with ListResult[Coeval, Stream, Out] {
+    with ListResult[Coeval, LazyList, Out] {
 
   def lastF: Coeval[Out] =
     Coeval(guide.executeTraversal[Out](traversal)(graph).last)
@@ -142,14 +142,14 @@ class SyncListResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassTy
 
 object SyncZeroOrOneResult {
   def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
-      implicit guide: Guide[Stream]): SyncZeroOrOneResult[Out] =
+      implicit guide: Guide[LazyList]): SyncZeroOrOneResult[Out] =
     new SyncZeroOrOneResult(traversal, graph)
 }
-//case class TraversalSyncTask[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(implicit guide: Guide[Stream])
+//case class TraversalSyncTask[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(implicit guide: Guide[LazyList])
 class SyncZeroOrOneResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
-    implicit guide: Guide[Stream])
+    implicit guide: Guide[LazyList])
     extends SyncOneResult[Out](traversal, graph)(guide)
-    with ZeroOrOneResult[Coeval, Stream, Out] {
+    with ZeroOrOneResult[Coeval, LazyList, Out] {
 
   def headOptionF: Coeval[Option[Out]] =
     Coeval(guide.executeTraversal[Out](traversal)(graph).headOption)
@@ -158,20 +158,20 @@ class SyncZeroOrOneResult[Out](traversal: Traversal[_ <: ClassType[Any], _ <: Cl
 
 object SyncOneResult {
   def apply[Out](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList], graph: Graph)(
-      implicit guide: Guide[Stream]): SyncOneResult[Out] =
+      implicit guide: Guide[LazyList]): SyncOneResult[Out] =
     new SyncOneResult(traversal, graph)
 }
 class SyncOneResult[Out](val traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
-                         val graph: Graph)(implicit guide: Guide[Stream])
-    extends OneResult[Coeval, Stream, Out] {
+                         val graph: Graph)(implicit guide: Guide[LazyList])
+    extends OneResult[Coeval, LazyList, Out] {
 
-  def apply(): Stream[Out] =
+  def apply(): LazyList[Out] =
     guide.executeTraversal[Out](traversal)(graph)
 
   def headF: Coeval[Out] =
     Coeval(guide.executeTraversal[Out](traversal)(graph).head)
   def head: Out = headF.value()
 
-  def map[T](f: Out => T): Stream[T]             = guide.executeTraversal[Out](traversal)(graph).map(f)
-  def flatMap[T](f: Out => Stream[T]): Stream[T] = guide.executeTraversal[Out](traversal)(graph).flatMap(f)
+  def map[T](f: Out => T): LazyList[T]             = guide.executeTraversal[Out](traversal)(graph).map(f)
+  def flatMap[T](f: Out => LazyList[T]): LazyList[T] = guide.executeTraversal[Out](traversal)(graph).flatMap(f)
 }

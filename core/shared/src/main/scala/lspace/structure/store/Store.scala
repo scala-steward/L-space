@@ -24,7 +24,7 @@ trait Store[G <: Graph] {
   def hasIri(iri: Set[String]): Observable[T2]
 
   def cached: {
-    def all(): Stream[T2]
+    def all(): LazyList[T2]
     def hasId(id: Long): Option[T2]
     def count: Long
   }

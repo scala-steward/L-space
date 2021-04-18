@@ -1,63 +1,70 @@
 ThisBuild / scalaVersion := "2.13.5"
+ThisBuild / crossScalaVersions := Seq("2.13.5")
 
-lazy val settings = commonSettings
-
-lazy val projectSettings = Seq(
-  organization := "eu.l-space",
-  homepage := Some(url("https://github.com/L-space/L-space")),
-  licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
-  developers := List(
-    Developer(
-      "thijsbroersen",
-      "Thijs Broersen",
-      "thijsbroersen@gmail.com",
-      url("https://github.com/ThijsBroersen")
+inThisBuild(
+  List(
+    organization := "eu.l-space",
+    homepage := Some(url("https://gitlab.com/L-space/L-space")),
+    licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
+    developers := List(
+      Developer(
+        "thijsbroersen",
+        "Thijs Broersen",
+        "thijsbroersen@gmail.com",
+        url("https://gitlab.com/ThijsBroersen")
+      ),
+      Developer(
+        "thijsbroersen",
+        "Thijs Broersen",
+        "thijsbroersen@gmail.com",
+        url("https://github.com/ThijsBroersen")
+      )
     )
   )
 )
 
-lazy val commonSettings = projectSettings ++ Seq(
-  scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, scalaMajor)) if scalaMajor > 12 => Nil
-    case _                                        => Seq("-Ypartial-unification")
-  }),
-  scalaVersion := "2.13.5",
-  crossScalaVersions := Seq("2.13.5"),
-  publishArtifact in (Test, packageBin) := true,
-  updateOptions := updateOptions.value.withCachedResolution(true)
-)
-
-dynverSonatypeSnapshots in ThisBuild := true
+ThisBuild / dynverSeparator := "-"
+(ThisBuild / dynverSonatypeSnapshots) := true
 ThisBuild / version ~= (version =>
   """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
     .findFirstIn(version)
     .fold(version)(version.stripSuffix(_) + "-SNAPSHOT")
 )
 
+lazy val commonSettings = commonSmlBuildSettings ++ Seq(
+  Test / packageBin / publishArtifact := true,
+  //  publishArtifact in (IntegrationTest, packageBin) := true,
+  updateOptions := updateOptions.value.withCachedResolution(true),
+  Compile / run / fork := true
+  //  Test / fork := true,
+  //  Test / testForkedParallel := true
+)
+
+val skipInPublish = Seq(
+  (publish / skip) := true,
+  publish := {}
+)
+
 //ThisBuild / testFrameworks += new TestFramework("minitest.runner.Framework")
 
 lazy val lspace = project
   .in(file("."))
-  .settings(settings)
-  .settings(skip in publish := true)
+  .settings(skipInPublish)
   .aggregate(
     core.jvm,
     core.js,
-    parse.jvm,
-    parse.js,
-    parseArgonaut.jvm,
-    parseArgonaut.js,
-    parseCirce.jvm,
-    parseCirce.js,
+    parse,
     client.jvm,
     client.js,
     graph
-  ) //, services)
+//    store
+//    services
+  )
 
 lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("core"))
-  .settings(settings)
+  .settings(commonSettings)
   .settings(crossVersionSharedSources)
   .settings(
     name := "lspace-core",
@@ -71,11 +78,23 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Dependencies.coreJsDeps.value
   )
 
-lazy val parse = (crossProject(JSPlatform, JVMPlatform)
+lazy val parse = project
+  .in(file("parse"))
+  .settings(skipInPublish)
+  .aggregate(
+    parseCore.jvm,
+    parseCore.js,
+    parseArgonaut.jvm,
+    parseArgonaut.js,
+    parseCirce.jvm,
+    parseCirce.js
+  )
+
+lazy val parseCore = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("parse/core"))
   .dependsOn(core % "compile->compile;test->test")
-  .settings(settings)
+  .settings(commonSettings)
   .settings(
     name := "lspace-parse",
     libraryDependencies ++= Dependencies.parseDeps.value
@@ -91,8 +110,8 @@ lazy val parse = (crossProject(JSPlatform, JVMPlatform)
 lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("parse/argonaut"))
-  .dependsOn(parse % "compile->compile;test->test")
-  .settings(settings)
+  .dependsOn(parseCore % "compile->compile;test->test")
+  .settings(commonSettings)
   .settings(
     name := "lspace-parse-argonaut",
     libraryDependencies ++= Dependencies.parseArgonautDeps.value
@@ -106,8 +125,8 @@ lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
 lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("parse/circe"))
-  .dependsOn(parse % "compile->compile;test->test")
-  .settings(settings)
+  .dependsOn(parseCore % "compile->compile;test->test")
+  .settings(commonSettings)
   .settings(
     name := "lspace-parse-circe",
     libraryDependencies ++= Dependencies.parseCirceDeps.value
@@ -123,7 +142,7 @@ lazy val client =
     .withoutSuffixFor(JVMPlatform)
     .crossType(CrossType.Full) in file("client"))
     .dependsOn(core % "compile->compile;test->test")
-    .settings(settings)
+    .settings(commonSettings)
     .settings(
       name := "lspace-client",
       libraryDependencies ++= Dependencies.clientDeps.value
@@ -137,16 +156,24 @@ lazy val client =
     )
 
 lazy val graph = (project in file("graph"))
-  .dependsOn(parse.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
-  .settings(settings)
+  .dependsOn(parseCore.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
+  .settings(commonSettings)
   .settings(
     name := "lspace-graph",
     libraryDependencies ++= Dependencies.graphDeps
   )
 
+lazy val store = project
+  .in(file("store"))
+  .settings(skipInPublish)
+  .aggregate(
+    cassandra
+//    kafka
+  )
+
 lazy val cassandra = (project in file("store/cassandra"))
   .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
-  .settings(settings)
+  .settings(commonSettings)
   .settings(
     name := "lspace-store-cassandra",
     libraryDependencies ++= Dependencies.storeCassandraDeps,
@@ -174,10 +201,10 @@ lazy val cassandra = (project in file("store/cassandra"))
 lazy val services = (project in file("services/core"))
   .dependsOn(
     client.jvm        % "compile->compile;test->test",
-    parse.jvm         % "compile->compile;test->test",
+    parseCore.jvm     % "compile->compile;test->test",
     parseArgonaut.jvm % "test"
   )
-  .settings(settings)
+  .settings(commonSettings)
   .settings(
     name := "lspace-services",
     libraryDependencies ++= Dependencies.servicesDeps
@@ -196,10 +223,9 @@ lazy val services = (project in file("services/core"))
 lazy val site = (project in file("site"))
   .enablePlugins(MicrositesPlugin)
   .enablePlugins(MdocPlugin)
-  .dependsOn(parse.jvm % "compile->compile;compile->test")
+  .dependsOn(parseCore.jvm % "compile->compile;compile->test")
   .settings(name := "lspace-site")
-  .settings(skip in publish := true)
-  .settings(projectSettings)
+  .settings((publish / skip) := true)
   .settings(
 //    micrositeCompilingDocsTool := WithMdoc,
     mdocVariables := Map("VERSION" -> version.value)
@@ -207,7 +233,7 @@ lazy val site = (project in file("site"))
   .settings(
     micrositeName := "L-space",
     micrositeDescription := "L-space, a graph computing framework for Scala",
-    micrositeDataDirectory := (resourceDirectory in Compile).value / "data",
+    micrositeDataDirectory := (Compile / resourceDirectory).value / "data",
     //    micrositeDocumentationUrl := "/yoursite/docs",
     //    micrositeDocumentationLabelDescription := "Documentation",
     micrositeUrl := "https://docs.l-space.eu",
@@ -216,8 +242,8 @@ lazy val site = (project in file("site"))
     micrositeHomepage := "https://docs.l-space.eu",
     micrositeOrganizationHomepage := "https://l-space.eu",
     micrositeDocumentationUrl := "/docs",
-    includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.md" | "*.svg",
-    excludeFilter in ghpagesCleanSite := //preserves github-settings for custom domain, each time CNAME is written custom domain is reset?
+    (makeSite / includeFilter) := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.md" | "*.svg",
+    (ghpagesCleanSite / excludeFilter) := //preserves github-settings for custom domain, each time CNAME is written custom domain is reset?
       new FileFilter {
         def accept(f: File) = (ghpagesRepository.value / "CNAME").getCanonicalPath == f.getCanonicalPath
       } || "versions.html",
@@ -232,8 +258,8 @@ lazy val site = (project in file("site"))
 def scalaPartV = Def.setting(CrossVersion.partialVersion(scalaVersion.value))
 lazy val crossVersionSharedSources: Seq[Setting[_]] =
   Seq(Compile, Test).map { sc =>
-    (unmanagedSourceDirectories in sc) ++= {
-      (unmanagedSourceDirectories in sc).value.flatMap { dir =>
+    (sc / unmanagedSourceDirectories) ++= {
+      (sc / unmanagedSourceDirectories).value.flatMap { dir =>
         Seq(
           scalaPartV.value match {
             case Some((2, y)) if y == 12 => new File(dir.getPath + "_2.12")

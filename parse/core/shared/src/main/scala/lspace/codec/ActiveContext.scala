@@ -40,7 +40,7 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
     lazy val all: ListMap[String, String] = `@prefix0` ++ remotes.flatMap(_.`@prefix`.all)
     def apply(): ListMap[String, String]  = `@prefix0`
     def get(prefix: String): Option[String] =
-      `@prefix0`.get(prefix).orElse(remotes.reverse.toStream.flatMap(_.`@prefix`.get(prefix)).headOption)
+      `@prefix0`.get(prefix).orElse(remotes.reverse.to(LazyList).flatMap(_.`@prefix`.get(prefix)).headOption)
     def prefixOptions(value: String): ListMap[String, String] =
       `@prefix0`.filter(pv => value.startsWith(pv._2)) ++ remotes.flatMap(_.`@prefix`.prefixOptions(value))
   }
@@ -177,7 +177,7 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
         } else
           `@prefix`.get(term)
             .orElse(
-              `@vocab`.all.toStream
+              `@vocab`.all.to(LazyList)
                 .map(_ + term)
                 .flatMap(ClassType.classtypes.get) //search vocabularies for matching terms, requires pre-fetching vocabularies or try assembled iri's (@vocab-iri + term)
                 .headOption

@@ -6,7 +6,7 @@ import lspace.structure.{Edge, Edges}
 import monix.eval.Task
 import monix.reactive.Observable
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
 abstract class TEdges[G <: Transaction](override val graph: G) extends Edges(graph) {

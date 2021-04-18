@@ -16,7 +16,7 @@ import lspace.types.string.{Blank, Iri}
 import monix.eval.Task
 import monix.reactive.Observable
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 import scala.collection.immutable.{ListSet, Map}
 import scala.concurrent.duration._
@@ -412,6 +412,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
                     case List(`@container`.`@list`) | List(`@container`.`@set`) =>
                       //this processes an array as a list of edges
                       Task.parSequenceUnordered(array.map(toResource(_, expectedType).flatMap(addEdgeF(_))))
+                    case _ => throw new Exception("invalid")
                   }
                 edgesTask
             })
@@ -674,6 +675,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
           case List(a, b, c, d, e, f, g, h, i)       => (a, b, c, d, e, f, g, h, i)
           case List(a, b, c, d, e, f, g, h, i, j)    => (a, b, c, d, e, f, g, h, i, j)
           case List(a, b, c, d, e, f, g, h, i, j, k) => (a, b, c, d, e, f, g, h, i, j, k)
+          case _ => throw new Exception("invalid")
         }
         .map(_.asInstanceOf[T])
         .map(label -> _)

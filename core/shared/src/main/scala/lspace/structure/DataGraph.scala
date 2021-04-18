@@ -1,16 +1,14 @@
 package lspace.structure
 
 import lspace.datatype.DataType
-import lspace.structure.index.Index
 import lspace.structure.index.shape.Shape
 import monix.eval.Task
-import monix.execution.CancelableFuture
 import monix.reactive.Observable
 
 trait DataGraph extends Graph {
 
   lazy val init: Task[Unit] = {
-    ns.init.flatMap(u => index.init)
+    ns.init.flatMap(_ => index.init)
   }.memoizeOnSuccess
 
   def index: IndexGraph
@@ -52,7 +50,7 @@ trait DataGraph extends Graph {
                                                            to: _Resource[E]): Task[GEdge[S, E]] = {
     for {
       edge <- super.createEdge(id, from, key, to)
-      e    <- indexEdge(edge)
+      _    <- indexEdge(edge)
     } yield edge
 //    val edge = super.createEdge(id, _from, key, _to)
 //    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
@@ -68,7 +66,7 @@ trait DataGraph extends Graph {
 
     val from = edge.from
     val key  = edge.key
-    val to   = edge.to
+//    val to   = edge.to
 
     if (key == Property.default.`@id`) {
       index.indexes.`@idIndex`.store(Shape(from))

@@ -8,7 +8,7 @@ import monix.eval.Task
 import monix.reactive.Observable
 
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 abstract class Nodes(val graph: Graph) extends RApi[Node] {
   import graph._
@@ -82,7 +82,7 @@ abstract class Nodes(val graph: Graph) extends RApi[Node] {
         case nodes =>
           mergeNodes(nodes.toSet)
       }
-      .doOnFinish(f => Task(upsertingTasks.remove(iri)))
+      .doOnFinish(_ => Task(upsertingTasks.remove(iri)))
       .memoize
     Some(iri)
       .filter(_.nonEmpty)

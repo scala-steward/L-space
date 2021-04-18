@@ -12,7 +12,7 @@ object UpsertHelper {
   def apply(): UpsertHelper = new UpsertHelper()
 }
 class UpsertHelper() {
-  import scala.collection.JavaConverters._
+  import scala.jdk.CollectionConverters._
   private val oldIdNewNodeMap: scala.collection.concurrent.Map[Long, Node] =
     new ConcurrentHashMap[Long, Node]().asScala
   private val oldIdNewEdgeMap: scala.collection.concurrent.Map[Long, Edge[_, _]] =
@@ -58,10 +58,10 @@ class UpsertHelper() {
             case None => Task(edgesToRetry -= edge.id)
             case _ => Task.unit
           }
-          .onErrorHandle(f => ())
+          .onErrorHandle(_ => ())
       }
       .completedL
-      .map { f =>
+      .map { _ =>
         edgesToRetry.isEmpty
       }
   }

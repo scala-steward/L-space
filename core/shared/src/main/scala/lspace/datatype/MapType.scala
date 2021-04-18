@@ -3,9 +3,6 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.util.types.DefaultsToAny
-
-//import scala.collection.immutable.ListSet
 
 object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
 
@@ -24,7 +21,7 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
           `@extends` = Property.default.`@range` :: Nil,
           `@range` = ListType() :: Nil
         )
-    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange as ListType(NodeURLType.datatype)
+    lazy val keyRangeClassType: TypedProperty[List[Node]] = keyRange.as(ListType(NodeURLType.datatype))
 //    lazy val keyRangeProperty: TypedProperty[Property]      = keyRange + DataType.default.`@property`
 //    lazy val keyRangeDatatype: TypedProperty[DataType[Any]] = keyRange + DataType.default.`@datatype`
   }
@@ -37,17 +34,18 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
   }
 
   implicit def defaultCls[
-      K,
-      KT[+Z] <: ClassType[Z],
-      V,
-      VT[+Z] <: ClassType[Z],
-      KOut,
-      KTOut[+Z] <: ClassType[Z],
-      VOut,
-      VTOut[+Z] <: ClassType[Z]
-  ](implicit clsTpblK: ClassTypeable.Aux[KT[K], KOut, KTOut[KOut]],
-    clsTpblV: ClassTypeable.Aux[VT[V], VOut, VTOut[VOut]])
-    : ClassTypeable.Aux[MapType[Map[K, V]], Map[KOut, VOut], MapType[Map[KOut, VOut]]] =
+    K,
+    KT[+Z] <: ClassType[Z],
+    V,
+    VT[+Z] <: ClassType[Z],
+    KOut,
+    KTOut[+Z] <: ClassType[Z],
+    VOut,
+    VTOut[+Z] <: ClassType[Z]
+  ](implicit
+    clsTpblK: ClassTypeable.Aux[KT[K], KOut, KTOut[KOut]],
+    clsTpblV: ClassTypeable.Aux[VT[V], VOut, VTOut[VOut]]
+  ): ClassTypeable.Aux[MapType[Map[K, V]], Map[KOut, VOut], MapType[Map[KOut, VOut]]] =
     new ClassTypeable[MapType[Map[K, V]]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[Map[KOut, VOut]]
@@ -57,7 +55,7 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
     }
 
   def apply(): MapType[Map[Any, Any]] = datatype
-  def apply[K, V](keyRange: ClassType[K], valueRange: ClassType[V]): MapType[Map[K, V]] = {
+  def apply[K, V](keyRange: ClassType[K], valueRange: ClassType[V]): MapType[Map[K, V]] =
     new MapType[Map[K, V]](Some(keyRange).filter(_.iri.nonEmpty), Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         //        if (keyRange.filter(_.iri.nonEmpty).isEmpty && valueRange.filter(_.iri.nonEmpty).isEmpty) NS.types.`@map`
@@ -66,7 +64,6 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
 
       override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
-  }
 }
 
 abstract class MapType[+T](val keyRange: Option[ClassType[Any]], val valueRange: Option[ClassType[Any]])
@@ -79,13 +76,13 @@ abstract class MapType[+T](val keyRange: Option[ClassType[Any]], val valueRange:
         case tpe: MapType[_] =>
           ((keyRange, tpe.keyRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.iri == thatRange.iri || thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           }) && ((valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.iri == thatRange.iri || thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           })
         case _ => super.`extends`(classType)

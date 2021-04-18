@@ -2,7 +2,6 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.Ontology
 
 object StructuredType extends DataTypeDef[StructuredType[Any]] {
 
@@ -16,6 +15,7 @@ object StructuredType extends DataTypeDef[StructuredType[Any]] {
   object keys
 //  lazy val ontology =
 //    Ontology(NS.types.`@structured`, extendedClasses = List(DataType.ontology))
+  trait Properties extends DataTypeDef.Properties
 
   def apply[T]: StructuredType[T] = new StructuredType[T] {
     val iri: String = NS.types.`@structured`

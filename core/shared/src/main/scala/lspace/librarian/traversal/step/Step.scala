@@ -18,7 +18,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
         case list if list.contains(V.ontology)         => V.toStep(node)
         case list if list.contains(R.ontology)         => R.toStep(node)
         case list if list.contains(E.ontology)         => E.toStep(node)
-        case list if list.contains(Drop.ontology)      => Drop.toStep(node)
+//        case list if list.contains(Drop.ontology)      => Drop.toStep(node)
         case list if list.contains(Dedup.ontology)     => Dedup.toStep(node)
         case list if list.contains(Out.ontology)       => Out.toStep(node)
         case list if list.contains(OutMap.ontology)    => OutMap.toStep(node)
@@ -74,6 +74,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
   }
 
   object keys {}
+  trait Properties extends OntologyDef.Properties
 
   lazy val steps: List[StepDef] = List(
     G,
@@ -81,7 +82,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
     V,
     R,
     E,
-    Drop,
+//    Drop,
     Dedup,
     Out,
     OutMap,
@@ -157,6 +158,12 @@ object TraverseStep
       comment =
         "In a traverse-step the librarian can end the traversal or move along to one or more other states (traversers)."
     ) {
+  object keys extends Step.Properties
+  override lazy val properties: List[Property] = Step.properties
+  trait Properties extends Step.Properties
+}
+trait LabelStep extends Step
+object LabelStep extends StepDef(label = "LabelStep", comment = "LabelStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties

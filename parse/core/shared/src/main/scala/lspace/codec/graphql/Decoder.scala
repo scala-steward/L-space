@@ -1,5 +1,7 @@
 package lspace.codec.graphql
 
+import eu.timepit.refined._
+import eu.timepit.refined.numeric._
 import lspace._
 import lspace.codec.{ActiveContext, ActiveProperty}
 import lspace.graphql.{GraphQL, Projection, Query}
@@ -20,7 +22,7 @@ trait Decoder extends lspace.codec.Decoder {
   val argumentEnds   = ignorable + argumentsEnd
   val keyStopper     = Set(':', objectStart, objectEnd, argumentsStart, argumentsEnd) ++ ignorable
 
-  def toGraphQL(graphql: String)(implicit activeContext: ActiveContext): GraphQL = {
+  def toGraphQL(graphql: String)(implicit activeContext: ActiveContext): GraphQL =
 //    graphql.dropWhile(ignorable.contains) match {
 //      case graphql if graphql.startsWith("{") =>
 //    }
@@ -28,9 +30,8 @@ trait Decoder extends lspace.codec.Decoder {
       case (query, "")      => query
       case (query, graphql) => query //TODO: log nonempty graphql-tail
     }
-  }
 
-  def findQuery(graphql: String)(implicit activeContext: ActiveContext): (Query, String) = {
+  def findQuery(graphql: String)(implicit activeContext: ActiveContext): (Query, String) =
     graphql.dropWhile(ignorable.contains) match {
       case graphql0 if graphql0.startsWith("{") =>
         graphql0.tail.dropWhile(ignorable.contains) match {
@@ -43,6 +44,7 @@ trait Decoder extends lspace.codec.Decoder {
                       case (Nil, graphql) => throw new Exception("empty graphql object?")
                       case (projections, graphql) if graphql.startsWith("}") =>
                         query.copy(query.projections ++ projections) -> graphql.tail.dropWhile(!ignorable.contains(_))
+                      case _ => throw new Exception("invalid structure")
                     }
                 }
             }
@@ -53,9 +55,8 @@ trait Decoder extends lspace.codec.Decoder {
             }
         }
     }
-  }
 
-  def findProjections(graphql: String)(implicit activeContext: ActiveContext): (List[Projection], String) = {
+  def findProjections(graphql: String)(implicit activeContext: ActiveContext): (List[Projection], String) =
     graphql.dropWhile(ignorable.contains).span(!keyStopper.contains(_)) match {
       case ("", graphql) => List() -> graphql
       case (key0, graphql0) =>
@@ -66,8 +67,11 @@ trait Decoder extends lspace.codec.Decoder {
         val expKey = activeContext.expandIri(key).iri
         val activeProperty = activeContext.definitions
           .get(expKey)
-          .getOrElse(ActiveProperty(
-            Property.properties.get(expKey).getOrElse(throw new Exception(s"unknown property $expKey $graphql0")))())
+          .getOrElse(
+            ActiveProperty(
+              Property.properties.get(expKey).getOrElse(throw new Exception(s"unknown property $expKey $graphql0"))
+            )()
+          )
         val projection = Projection(key, activeProperty.property, projectionName, activeProperty.`@reverse`)
 
         graphql.dropWhile(ignorable.contains) match {
@@ -88,11 +92,11 @@ trait Decoder extends lspace.codec.Decoder {
             }
         }
     }
-  }
 
   @tailrec
-  final def processArguments(projection: Projection, graphql: String)(
-      implicit activeContext: ActiveContext): (List[Projection], String) = {
+  final def processArguments(projection: Projection, graphql: String)(implicit
+    activeContext: ActiveContext
+  ): (List[Projection], String) =
     graphql.dropWhile(ignorable.contains).span(!keyStopper.contains(_)) match {
       case ("", graphql) => findObject(projection, graphql)
       case (key0, graphql0) if graphql0.startsWith(":") =>
@@ -100,11 +104,13 @@ trait Decoder extends lspace.codec.Decoder {
           case graphql if graphql.startsWith("\"\"\"") =>
             graphql.drop(3).split("\"\"\"", 2).toList match {
               case List(value, graphql) => (key0, value, graphql)
+              case _ => throw new Exception("invalid")
             }
           case graphql if graphql.startsWith("\"") =>
             graphql.tail.split("\"", 2).toList match {
               case List(value, graphql) =>
                 (key0, value, graphql)
+              case _ => throw new Exception("invalid")
             }
           case graphql =>
             graphql.span(!argumentEnds.contains(_)) match {
@@ -113,14 +119,23 @@ trait Decoder extends lspace.codec.Decoder {
         }) match {
           case (key, value, graphql) =>
             val projection1 = key match {
-              case "limit"  => projection.copy(limit = Some(value.toInt))
-              case "offset" => projection.copy(offset = Some(value.toInt))
+              case "limit" =>
+                projection.copy(limit =
+                  Some(refineV[Positive](value.toInt).getOrElse(throw new Exception("invalid limit value")))
+                )
+              case "offset" =>
+                projection.copy(offset =
+                  Some(refineV[NonNegative](value.toInt).getOrElse(throw new Exception("invalid limit value")))
+                )
               case _ =>
                 val expKey = activeContext.expandIri(key).iri
                 val activeProperty = activeContext.definitions
                   .get(expKey)
-                  .getOrElse(ActiveProperty(
-                    Property.properties.get(expKey).getOrElse(throw new Exception(s"unknown property $expKey")))())
+                  .getOrElse(
+                    ActiveProperty(
+                      Property.properties.get(expKey).getOrElse(throw new Exception(s"unknown property $expKey"))
+                    )()
+                  )
                 projection.copy(parameters = projection.parameters + (activeProperty.property -> value))
             }
             graphql.dropWhile(ignorable.contains) match {
@@ -138,10 +153,10 @@ trait Decoder extends lspace.codec.Decoder {
             }
         }
     }
-  }
 
-  def findObject(projection: Projection, graphql: String)(
-      implicit activeContext: ActiveContext): (List[Projection], String) = {
+  def findObject(projection: Projection, graphql: String)(implicit
+    activeContext: ActiveContext
+  ): (List[Projection], String) =
     graphql.dropWhile(ignorable.contains) match {
       case graphql =>
         graphql.head match {
@@ -154,10 +169,10 @@ trait Decoder extends lspace.codec.Decoder {
             }
         }
     }
-  }
 
-  def findMoreProjections(projection: Projection, graphql: String)(
-      implicit activeContext: ActiveContext): (List[Projection], String) = {
+  def findMoreProjections(projection: Projection, graphql: String)(implicit
+    activeContext: ActiveContext
+  ): (List[Projection], String) =
     graphql.dropWhile(ignorable.contains) match {
       case graphql =>
         graphql.head match {
@@ -170,10 +185,9 @@ trait Decoder extends lspace.codec.Decoder {
             }
         }
     }
-  }
 
   @tailrec
-  final def processArguments(query: Query, graphql: String)(implicit activeContext: ActiveContext): (Query, String) = {
+  final def processArguments(query: Query, graphql: String)(implicit activeContext: ActiveContext): (Query, String) =
     graphql.dropWhile(ignorable.contains).span(!keyStopper.contains(_)) match {
       case ("", graphql) => query -> graphql
       case (key0, graphql0) if graphql0.startsWith(":") =>
@@ -181,10 +195,12 @@ trait Decoder extends lspace.codec.Decoder {
           case graphql if graphql.startsWith("\"\"\"") =>
             graphql.drop(3).split("\"\"\"", 2).toList match {
               case List(value, graphql) => (key0, value, graphql)
+              case _ => throw new Exception("invalid")
             }
           case graphql if graphql.startsWith("\"") =>
             graphql.tail.split("\"", 2).toList match {
               case List(value, graphql) => (key0, value, graphql)
+              case _ => throw new Exception("invalid")
             }
           case graphql =>
             graphql.span(!argumentEnds.contains(_)) match {
@@ -199,8 +215,11 @@ trait Decoder extends lspace.codec.Decoder {
                 val expKey = activeContext.expandIri(key).iri
                 val activeProperty = activeContext.definitions
                   .get(expKey)
-                  .getOrElse(ActiveProperty(
-                    Property.properties.get(expKey).getOrElse(throw new Exception(s"unknown property $expKey")))())
+                  .getOrElse(
+                    ActiveProperty(
+                      Property.properties.get(expKey).getOrElse(throw new Exception(s"unknown property $expKey"))
+                    )()
+                  )
                 query.copy(parameters = query.parameters + (activeProperty.property -> value))
             }
             graphql.dropWhile(ignorable.contains) match {
@@ -218,16 +237,15 @@ trait Decoder extends lspace.codec.Decoder {
             }
         }
     }
-  }
 
-  def processObject(projection: Projection, graphql: String)(
-      implicit activeContext: ActiveContext): (List[Projection], String) = {
+  def processObject(projection: Projection, graphql: String)(implicit
+    activeContext: ActiveContext
+  ): (List[Projection], String) =
     findProjections(graphql) match {
       case (Nil, graphql) => throw new Exception("empty graphql object?")
       case (projections, graphql) =>
         val projection1 = projection.copy(projections = projections)
         findMoreProjections(projection1, graphql)
     }
-  }
 
 }

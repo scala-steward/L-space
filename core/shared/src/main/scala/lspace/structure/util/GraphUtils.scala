@@ -6,7 +6,7 @@ import lspace.Label
 import lspace.structure.{Graph, Node, Ontology, Value}
 import monix.eval.Task
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.{concurrent, mutable}
 
 trait GraphUtils {
@@ -19,7 +19,7 @@ trait GraphUtils {
   def mergeNodes(_nodes: Set[Node]): Task[Node] = {
     val nodes = _nodes.toList.sortBy(_.id)
     val iri   = nodes.head.iri //TODO: mergetask for each iri/iris, handle empty iri
-    val iris  = nodes.head.iris
+//    val iris  = nodes.head.iris
     if (nodes.isEmpty) Task.raiseError(new Exception("mergeNodes cannot merge an empty set"))
     else {
       for {

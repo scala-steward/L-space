@@ -3,7 +3,6 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.util.types.DefaultsToAny
 
 object VectorType extends DataTypeDef[VectorType[Any]] {
 
@@ -70,8 +69,8 @@ abstract class VectorType[+V](val valueRange: Option[ClassType[Any]]) extends Co
         case tpe: VectorType[_] =>
           (valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))            => false
+            case (Some(_), None)            => true
             case (None, None)                       => true
           }
         case _ => super.`extends`(classType)

@@ -1,7 +1,7 @@
 package lspace.structure
 
 import lspace._
-import lspace.librarian.traversal.step.{Or, V}
+import lspace.librarian.traversal.step.V
 import monix.eval.Task
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec

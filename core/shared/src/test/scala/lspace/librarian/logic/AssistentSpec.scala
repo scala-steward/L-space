@@ -5,6 +5,8 @@ import org.scalatest.AppendedClues
 import org.scalatest.matchers.should.Matchers
 import predicate._
 
+import scala.annotation.unused
+
 trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
   def assistent: Assistent
 
@@ -12,7 +14,7 @@ trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
   def pTests[T, T2, X, P0[Z] <: P[Z]](ah: Assistent#Helper[P[T]],
                                       validValues: List[T2],
                                       invalidValues: List[T2],
-                                      incomparableValues: List[X])(implicit /*ev1: T2 <:< T, */ ev2: T =:!= X) =
+                                      incomparableValues: List[X])(implicit /*ev1: T2 <:< T, */ @unused ev2: T =:!= X) =
     s"test ${ah.p.toString} ${ah.p._pvalue.getClass}".which {
       s"is comparable and asserts true to ${validValues.mkString(" and ")}" in {
         validValues.foreach { t =>
@@ -57,13 +59,13 @@ trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
     pTests(assistent.gte(Gte(5)), 5 :: 5.0 :: 8L :: Nil, 4 :: 3L :: 3.3 :: Nil, "a" :: new                 {} :: Nil)
     pTests(assistent.between(Between(4, 6)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
     pTests(assistent.between(Between(4.1, 6.0)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
-    pTests(assistent.between(Between(3.9, 6l)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new  {} :: Nil)
+    pTests(assistent.between(Between(3.9, 6L)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new  {} :: Nil)
     pTests(assistent.outside(Outside(4, 6)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new     {} :: Nil)
     pTests(assistent.outside(Outside(4.1, 6.0)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new {} :: Nil)
-    pTests(assistent.outside(Outside(3.9, 6l)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new  {} :: Nil)
+    pTests(assistent.outside(Outside(3.9, 6L)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new  {} :: Nil)
     pTests(assistent.inside(Inside(4, 6)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new        {} :: Nil)
     pTests(assistent.inside(Inside(4.1, 6.0)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new    {} :: Nil)
-    pTests(assistent.inside(Inside(3.9, 6l)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
+    pTests(assistent.inside(Inside(3.9, 6L)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
     pTests(assistent.contains(Contains(3)),
            List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
            List("a", 2) :: Nil,

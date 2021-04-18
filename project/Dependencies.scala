@@ -5,10 +5,10 @@ object Dependencies {
 
   val coreDeps = Def.setting(
     Seq(
-      "eu.l-space"  %%% "types"          % "0.0.12",
+      "eu.l-space"  %%% "types"          % Version.lspaceTypes,
       "io.monix"    %%% "monix-reactive" % Version.monix,
       "com.chuusai" %%% "shapeless"      % Version.shapeless,
-      "eu.timepit"   %% "refined"        % Version.refined,
+      "eu.timepit"  %%% "refined"        % Version.refined,
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       "com.outr"      %%% "scribe"    % Version.scribe,
@@ -28,14 +28,19 @@ object Dependencies {
 
   val parseDeps = Def.setting(
     Seq(
-      "com.softwaremill.sttp.shared" %%% "monix" % Version.sttpShared
+      "com.softwaremill.sttp.shared" %%% "monix" % Version.sttpShared,
+      "com.softwaremill.sttp.client3" %% "core"  % Version.sttpClient
     )
   )
 
-  val parseJsDeps = Def.setting(Seq())
+  val parseJsDeps = Def.setting(
+    Seq(
+      "com.softwaremill.sttp.client3" %%% "monix" % Version.sttpClient
+    )
+  )
 
   val parseJvmDeps = Seq(
-//    "com.softwaremill.sttp.client" %% "async-http-client-backend-monix" % Version.sttp
+    "com.softwaremill.sttp.client3" %% "async-http-client-backend-monix" % Version.sttpClient
   )
 
   val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.3"))

@@ -4,6 +4,8 @@ import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure.{IriResource, Ontology, Property}
 
+import scala.annotation.unused
+
 trait IriType[+T] extends DataType[T]
 
 object IriType extends DataTypeDef[IriType[IriResource]] {
@@ -22,9 +24,11 @@ object IriType extends DataTypeDef[IriType[IriResource]] {
   def apply[T]: IriType[T] = new IriType[T] { val iri: String = "" }
 
   import shapeless.=:!=
-  implicit def clsIri[T](implicit classtpbl: ClassTypeable.Aux[T, T, IriType[T]],
-                         ev1: T =:!= Ontology,
-                         ev2: T =:!= Property): ClassTypeable.Aux[IriType[T], T, IriType[T]] =
+  implicit def clsIri[T](implicit
+    classtpbl: ClassTypeable.Aux[T, T, IriType[T]],
+    @unused ev1: T =:!= Ontology,
+    @unused ev2: T =:!= Property
+  ): ClassTypeable.Aux[IriType[T], T, IriType[T]] =
     new ClassTypeable[IriType[T]] {
       type C  = T
       type CT = IriType[T]

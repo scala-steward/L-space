@@ -1,18 +1,11 @@
-import lspace.ExecutionHelper
-import lspace.librarian.logic.{Assistent, DefaultAssistent}
-import lspace.librarian.task
-import lspace.librarian.task.{AsyncGuide, SyncGuide}
-import lspace.structure.{ClassType, Edge, Node, Resource, Value}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
-import monix.execution.Scheduler
-import monix.reactive.Observable
 import shapeless.HList
 
 package object lspace {
 
   type Graph = structure.Graph
-  val Graph: structure.Graph.type = structure.Graph
+  val Graph = structure.Graph
   type Node = structure.Node
   val Node = structure.Node
   type Edge[+S, +E] = structure.Edge[S, E]
@@ -42,7 +35,7 @@ package object lspace {
 
   val Traversal                                      = lspace.librarian.traversal.Traversal
   def g                                              = Traversal()
-  def __[Start: ClassTypeable, End: ClassTypeable]() = Traversal[Start, End]
+  def __[Start: ClassTypeable, End: ClassTypeable] = Traversal[Start, End]()
 
   val Label = new {
     val P = structure.Property.default
@@ -57,18 +50,22 @@ package object lspace {
 
   object Implicits {
     object DefaultAssistent {
+      import lspace.librarian.logic.Assistent
       implicit val assistent: Assistent = librarian.logic.DefaultAssistent()
     }
     object AsyncGuide {
-      implicit val guide: AsyncGuide = task.AsyncGuide()(DefaultAssistent.assistent)
+      import lspace.librarian.task.AsyncGuide
+      implicit val guide: AsyncGuide = lspace.librarian.task.AsyncGuide()(DefaultAssistent.assistent)
     }
     object SyncGuide {
-      implicit val guide: SyncGuide = task.SyncGuide()(DefaultAssistent.assistent)
+      import lspace.librarian.task.SyncGuide
+      implicit val guide: SyncGuide = lspace.librarian.task.SyncGuide()(DefaultAssistent.assistent)
     }
 
     object Scheduler {
-      implicit def global: Scheduler = ExecutionHelper.scheduler
-//      implicit def sync: Scheduler   = ExecutionHelper.syncscheduler
+      import monix.execution.Scheduler
+      implicit def global: Scheduler = lspace.ExecutionHelper.scheduler
+//      implicit def sync: Scheduler   = lspace.ExecutionHelper.syncscheduler
     }
   }
 

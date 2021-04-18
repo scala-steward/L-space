@@ -64,12 +64,12 @@ class DefaultAssistent extends Assistent {
     }
   }
   def eqv[T](p: Eqv[T]): Helper[Eqv[T]] = new Helper[Eqv[T]](p) {
-    val comparable             = (value: Any) => true
+    val comparable             = (_: Any) => true
     val assert: Any => Boolean = (value: Any) => value == p.pvalue
   }
 
   def neqv[T](p: Neqv[T]): Helper[Neqv[T]] = new Helper[Neqv[T]](p) {
-    val comparable             = (value: Any) => true
+    val comparable             = (_: Any) => true
     val assert: Any => Boolean = (value: Any) => value != p.pvalue
   }
 
@@ -655,7 +655,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).nonEmpty
 //      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).nonEmpty
       case v: Product => pvalueList.intersect(v.productIterator.toList).nonEmpty
-      case v          => false
+      case _          => false
     }
   }
   def intersectStringHelper[T <: String](p: Intersect[T]) = new Helper[Intersect[T]](p) {
@@ -696,7 +696,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => v.productIterator.toList.containsSlice(pvalueList)
 //      case v: (_, _, _, _) => v.productIterator.toList.containsSlice(pvalueList)
       case v: Product => v.productIterator.toList.containsSlice(pvalueList)
-      case v          => false
+      case _          => false
     }
   }
   def containsStringHelper[T <: String](p: Contains[T]) = new Helper[Contains[T]](p) {
@@ -753,7 +753,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).isEmpty
 //      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).isEmpty
       case v: Product => pvalueList.intersect(v.productIterator.toList).isEmpty
-      case v          => true
+      case _          => true
     }
   }
   def disjointStringHelper[T <: String](p: Disjoint[T]) = new Helper[Disjoint[T]](p) {
@@ -908,8 +908,8 @@ class DefaultAssistent extends Assistent {
   }
   override def endsWith[T](p: Suffix[T]): Helper[Suffix[T]] =
     (p.pvalue match {
-      case v: String => endsWithStringHelper(p.asInstanceOf[Suffix[String]])
-      case v         => endsWithHelper(p)
+      case _: String => endsWithStringHelper(p.asInstanceOf[Suffix[String]])
+      case _         => endsWithHelper(p)
     }).asInstanceOf[Helper[Suffix[T]]]
 
   def regex(p: Regex): Helper[Regex] = new Helper[Regex](p) {

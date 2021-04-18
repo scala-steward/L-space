@@ -1,5 +1,6 @@
 package lspace.lgraph.provider.cassandra
 
+import com.dimafeng.testcontainers.{CassandraContainer, ForAllTestContainer}
 import lspace.lgraph.LGraph
 import lspace.lgraph.provider.mem.MemIndexProvider
 import lspace.librarian.task.AsyncGuideSpec
@@ -7,7 +8,15 @@ import lspace.structure.{Graph, GraphSpec, NameSpaceGraphSpec, NodeSpec, Sampled
 import monix.eval.Task
 import org.scalatest.FutureOutcome
 
-class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec {
+class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec with ForAllTestContainer {
+
+  val container = CassandraContainer()
+
+  override def beforeAll(): Unit =
+    container.start()
+
+  override def afterAll(): Unit =
+    container.stop()
 
   implicit val guide = lspace.Implicits.AsyncGuide.guide
   import lspace.Implicits.Scheduler.global
@@ -17,12 +26,12 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
   implicit val baseDecoder = lspace.codec.argonaut.nativeDecoder
 
   def createGraph(iri: String): Graph = {
-    val storage = LCassandraStoreProvider(iri, "localhost", 9042)
+    val storage = LCassandraStoreProvider(iri, "localhost", container.mappedPort(9042))
     LGraph(storage, new MemIndexProvider, noinit = true)
   }
 
-  val store       = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", 9042)
-  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", 9042)
+  val store       = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", container.mappedPort(9042))
+  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", container.mappedPort(9042))
 
   lazy val initTask = (for {
     _ <- Task.parSequenceUnordered(

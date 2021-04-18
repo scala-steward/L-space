@@ -1,13 +1,12 @@
 package lspace.datatype
 
-import java.time.{Instant, LocalDateTime}
-
 import lspace.NS
-import lspace.structure.util.ClassTypeable
 import lspace.structure.Property
+import lspace.structure.util.ClassTypeable
 
-/**
-  * Should be ZonedDateTime because then it can be asserted against LocalDate and LocalTime
+import java.time.Instant
+
+/** Should be ZonedDateTime because then it can be asserted against LocalDate and LocalTime
   */
 object DateTimeType extends DataTypeDef[DateTimeType[Instant]] {
 

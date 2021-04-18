@@ -9,5 +9,5 @@ object ProjectStepTypeMapper extends Poly1 {
       implicit
       out: EndMapper.Aux[ET, Steps, Out, COut]
   ): Case.Aux[Traversal[ST, ET, Steps], Out] =
-    at[Traversal[ST, ET, Steps]](t => 1.asInstanceOf[out.Out])
+    at[Traversal[ST, ET, Steps]](_ => 1.asInstanceOf[out.Out])
 }

@@ -3,7 +3,6 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.util.types.DefaultsToAny
 
 object ListType extends DataTypeDef[ListType[Any]] {
 
@@ -29,8 +28,9 @@ object ListType extends DataTypeDef[ListType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =
 //    new ListType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListType[TOut]]
 
-  implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListType[List[T]], List[TOut], ListType[List[TOut]]] =
+  implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[ListType[List[T]], List[TOut], ListType[List[TOut]]] =
     new ClassTypeable[ListType[List[T]]] {
       type C  = List[TOut]
       type CT = ListType[List[TOut]]
@@ -40,7 +40,7 @@ object ListType extends DataTypeDef[ListType[Any]] {
     }
 
   def apply(): ListType[List[Any]] = datatype
-  def apply[V](valueRange: ClassType[V]): ListType[List[V]] = {
+  def apply[V](valueRange: ClassType[V]): ListType[List[V]] =
     new ListType[List[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@list`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
@@ -49,7 +49,6 @@ object ListType extends DataTypeDef[ListType[Any]] {
 
       override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
     }
-  }
 }
 
 abstract class ListType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T] {
@@ -61,8 +60,8 @@ abstract class ListType[+T](val valueRange: Option[ClassType[Any]]) extends Coll
         case tpe: ListType[_] =>
           (valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           }
         case _ => super.`extends`(classType)

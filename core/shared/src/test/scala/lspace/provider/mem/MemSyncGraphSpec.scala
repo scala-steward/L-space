@@ -4,8 +4,6 @@ import lspace.librarian.task.SyncGuideSpec
 import lspace.structure.{Graph, SampledGraph}
 import org.scalatest.FutureOutcome
 
-import scala.concurrent.Future
-
 class MemSyncGraphSpec extends SyncGuideSpec {
   implicit lazy val guide = lspace.Implicits.SyncGuide.guide
   import lspace.Implicits.Scheduler.global
@@ -19,7 +17,7 @@ class MemSyncGraphSpec extends SyncGuideSpec {
   } yield ()).memoizeOnSuccess
 
   override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+    new FutureOutcome(initTask.runToFuture flatMap { _ =>
       super.withFixture(test).toFuture
     })
   }

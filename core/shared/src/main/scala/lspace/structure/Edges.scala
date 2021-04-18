@@ -101,7 +101,7 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
         from    <- resources.upsert(edge.from)
         to      <- resources.upsert(edge.to)
         newEdge <- from.addOut(edge.key, to)
-        u       <- addMeta(edge, newEdge)
+        _       <- addMeta(edge, newEdge)
       } yield newEdge
     } else Task.now(edge)
   }
