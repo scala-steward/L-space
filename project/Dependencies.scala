@@ -3,7 +3,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Dependencies {
 
-  val coreDeps = Def.setting(
+  lazy val core = Def.setting(
     Seq(
       "eu.l-space"  %%% "types"          % Version.lspaceTypes,
       "io.monix"    %%% "monix-reactive" % Version.monix,
@@ -18,48 +18,50 @@ object Dependencies {
     )
   )
 
-  val coreJsDeps = Def.setting(
+  lazy val coreJs = Def.setting(
     Seq(
 //      "org.scala-js" %%% "scalajs-dom" % "1.0.0"
     )
   )
 
-  val coreJvmDeps = Seq()
+  lazy val coreJvm = Seq()
 
-  val parseDeps = Def.setting(
+  lazy val parse = Def.setting(
     Seq(
-      "com.softwaremill.sttp.shared" %%% "monix" % Version.sttpShared,
-      "com.softwaremill.sttp.client3" %% "core"  % Version.sttpClient
+      "com.softwaremill.sttp.shared"  %%% "monix" % Version.sttpShared,
+      "com.softwaremill.sttp.client3" %%% "core"  % Version.sttpClient
     )
   )
 
-  val parseJsDeps = Def.setting(
+  lazy val parseJs = Def.setting(
     Seq(
       "com.softwaremill.sttp.client3" %%% "monix" % Version.sttpClient
     )
   )
 
-  val parseJvmDeps = Seq(
+  lazy val parseJvm = Seq(
     "com.softwaremill.sttp.client3" %% "async-http-client-backend-monix" % Version.sttpClient
   )
 
-  val parseArgonautDeps = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.3"))
+  lazy val parseArgonaut = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.3"))
 
-  val parseCirceDeps = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.13.0"))
+  lazy val parseCirce = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.13.0"))
 
-  val clientDeps = Def.setting(Seq())
+  lazy val client = Def.setting(Seq(
+    "com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % Version.sttpTapir
+  ))
 
-  val clientJsDeps = Def.setting(Seq())
+  lazy val clientJs = Def.setting(Seq())
 
-  val clientJvmDeps = Seq()
+  lazy val clientJvm = Seq()
 
-  val graphDeps = Seq(
+  lazy val graph = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
     "com.github.pureconfig" %% "pureconfig"         % "0.14.1",
     "com.github.pureconfig" %% "pureconfig-generic" % "0.14.1"
   )
 
-  val storeCassandraDeps = Seq(
+  lazy val storeCassandra = Seq(
 //    "com.outworkers" %% "phantom-dsl" % Version.phantom
 //    "ch.qos.logback"             % "logback-classic" % "1.2.3",
 //    "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
@@ -68,31 +70,41 @@ object Dependencies {
     "com.dimafeng" %% "testcontainers-scala-cassandra" % Version.testContainers % "test"
   )
 
-  val storeKafkaDeps = Seq(
-    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC6"
+  lazy val storeKafka = Seq(
+    "io.monix" %% "monix-kafka-1x" % "1.0.0-RC7"
 //    ,
 //    "org.apache.kafka" % "kafka"           % "2.3.1"
   )
 
-  val indexElasticsearchDeps = Seq(
+  lazy val indexElasticsearch = Seq(
 //    "com.sksamuel.elastic4s"   %% "elastic4s-core"                      % Version.elastic4s,
 //    "com.sksamuel.elastic4s"   %% "elastic4s-http-streams"              % Version.elastic4s,
     "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % Version.elastic4s
 //    "com.sksamuel.elastic4s" %% "elastic4s-effect-monix" % Version.elastic4s exclude ("io.monix", "monix")
   )
 
-  val servicesDeps = Seq(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"               % Version.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server"   % Version.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"       % Version.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.tapir,
+  lazy val endpoints = Def.setting(
+    Seq(
+      "io.monix"                     %%% "monix"            % Version.monix,
+      "com.softwaremill.sttp.shared" %%% "monix"            % Version.sttpShared,
+      "com.softwaremill.sttp.tapir"  %%% "tapir-core"       % Version.sttpTapir,
+      "com.softwaremill.sttp.tapir"  %%% "tapir-json-circe" % Version.sttpTapir,
+      "com.softwaremill.sttp.tapir"  %%% "tapir-enumeratum" % Version.sttpTapir
+    )
+  )
+
+  lazy val services = Seq(
+    "com.softwaremill.sttp.tapir" %% "tapir-core"               % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server"   % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"       % Version.sttpTapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.sttpTapir,
     "com.vmunier"                 %% "scalajs-scripts"          % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
     "com.lihaoyi" %% "scalatags" % "0.9.4" //TODO: replace with Laminar
 //    "com.raquo" %% "domtypes"   % "0.9.5",
 //    "com.raquo" %% "dombuilder" % "0.9.2"
   )
-  val servicesFinchDeps = Seq(
+  lazy val servicesFinch = Seq(
 //    "com.github.finagle" %% "finchx-core"          % Version.finch,
 //    "com.github.finagle" %% "finchx-generic"       % Version.finch,
 //    "com.github.finagle" %% "finchx-argonaut"      % Version.finch,
