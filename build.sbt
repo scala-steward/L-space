@@ -1,5 +1,5 @@
 ThisBuild / scalaVersion := "2.13.5"
-ThisBuild / crossScalaVersions := Seq("2.13.5")
+ThisBuild / crossScalaVersions := Seq("2.13.5", "3.0.0")
 
 inThisBuild(
   List(
@@ -63,7 +63,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full) in file("core"))
   .settings(commonSettings)
-  .settings(crossVersionSharedSources)
+//  .settings(crossVersionSharedSources)
   .settings(
     name := "lspace-core",
     libraryDependencies ++= Dependencies.core.value
@@ -274,25 +274,25 @@ lazy val site = (project in file("site"))
     )
   )
 
-def scalaPartV = Def.setting(CrossVersion.partialVersion(scalaVersion.value))
-lazy val crossVersionSharedSources: Seq[Setting[_]] =
-  Seq(Compile, Test).map { sc =>
-    (sc / unmanagedSourceDirectories) ++= {
-      (sc / unmanagedSourceDirectories).value.flatMap { dir =>
-        Seq(
-          scalaPartV.value match {
-            case Some((2, y)) if y == 12 => new File(dir.getPath + "_2.12")
-            case Some((2, y)) if y >= 13 => new File(dir.getPath + "_2.13")
-          },
-          scalaPartV.value match {
-            case Some((2, n)) if n >= 12 => new File(dir.getPath + "_2.12+")
-            case _                       => new File(dir.getPath + "_2.12-")
-          },
-          scalaPartV.value match {
-            case Some((2, n)) if n >= 13 => new File(dir.getPath + "_2.13+")
-            case _                       => new File(dir.getPath + "_2.13-")
-          }
-        )
-      }
-    }
-  }
+//def scalaPartV = Def.setting(CrossVersion.partialVersion(scalaVersion.value))
+//lazy val crossVersionSharedSources: Seq[Setting[_]] =
+//  Seq(Compile, Test).map { sc =>
+//    (sc / unmanagedSourceDirectories) ++= {
+//      (sc / unmanagedSourceDirectories).value.flatMap { dir =>
+//        Seq(
+//          scalaPartV.value match {
+//            case Some((2, y)) if y == 12 => new File(dir.getPath + "_2.12")
+//            case Some((2, y)) if y >= 13 => new File(dir.getPath + "_2.13")
+//          },
+//          scalaPartV.value match {
+//            case Some((2, n)) if n >= 12 => new File(dir.getPath + "_2.12+")
+//            case _                       => new File(dir.getPath + "_2.12-")
+//          },
+//          scalaPartV.value match {
+//            case Some((2, n)) if n >= 13 => new File(dir.getPath + "_2.13+")
+//            case _                       => new File(dir.getPath + "_2.13-")
+//          }
+//        )
+//      }
+//    }
+//  }

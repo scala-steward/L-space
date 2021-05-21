@@ -5,16 +5,16 @@ object Dependencies {
 
   lazy val core = Def.setting(
     Seq(
-      "eu.l-space"  %%% "types"          % Version.lspaceTypes,
-      "io.monix"    %%% "monix-reactive" % Version.monix,
-      "com.chuusai" %%% "shapeless"      % Version.shapeless,
-      "eu.timepit"  %%% "refined"        % Version.refined,
+      "eu.l-space"   %%% "types"          % Version.lspaceTypes,
+      "io.monix"     %%% "monix-reactive" % Version.monix,
+      ("com.chuusai" %%% "shapeless"      % Version.shapeless).cross(CrossVersion.for3Use2_13),
+      "eu.timepit"   %%% "refined"        % Version.refined,
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
-      "com.outr"      %%% "scribe"    % Version.scribe,
+      ("com.outr"     %%% "scribe"    % Version.scribe).cross(CrossVersion.for3Use2_13),
       "org.scalatest" %%% "scalatest" % Version.scalaTest % "test",
 //      "io.monix"          %%% "minitest"        % Version.minitest  % "test",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.2.1"
+      "io.github.cquiroz" %%% "scala-java-time" % Version.scalaJavaTime
     )
   )
 
@@ -35,21 +35,25 @@ object Dependencies {
 
   lazy val parseJs = Def.setting(
     Seq(
-      "com.softwaremill.sttp.client3" %%% "monix" % Version.sttpClient
+      ("com.softwaremill.sttp.client3" %%% "monix" % Version.sttpClient).cross(CrossVersion.for3Use2_13)
     )
   )
 
   lazy val parseJvm = Seq(
-    "com.softwaremill.sttp.client3" %% "async-http-client-backend-monix" % Version.sttpClient
+    ("com.softwaremill.sttp.client3" %% "async-http-client-backend-monix" % Version.sttpClient).cross(
+      CrossVersion.for3Use2_13
+    )
   )
 
-  lazy val parseArgonaut = Def.setting(Seq("io.argonaut" %%% "argonaut" % "6.3.3"))
+  lazy val parseArgonaut = Def.setting(Seq("io.argonaut" %%% "argonaut" % Version.argonaut))
 
-  lazy val parseCirce = Def.setting(Seq("io.circe" %%% "circe-parser" % "0.13.0"))
+  lazy val parseCirce = Def.setting(Seq("io.circe" %%% "circe-parser" % Version.circe))
 
-  lazy val client = Def.setting(Seq(
-    "com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % Version.sttpTapir
-  ))
+  lazy val client = Def.setting(
+    Seq(
+      "com.softwaremill.sttp.tapir" %%% "tapir-sttp-client" % Version.sttpTapir
+    )
+  )
 
   lazy val clientJs = Def.setting(Seq())
 
@@ -57,8 +61,8 @@ object Dependencies {
 
   lazy val graph = Seq(
 //    "com.github.cb372"       %% "scalacache-monix" % "0.27.0",
-    "com.github.pureconfig" %% "pureconfig"         % "0.14.1",
-    "com.github.pureconfig" %% "pureconfig-generic" % "0.14.1"
+    "com.github.pureconfig" %% "pureconfig"         % Version.pureconfig,
+    "com.github.pureconfig" %% "pureconfig-generic" % Version.pureconfig
   )
 
   lazy val storeCassandra = Seq(
