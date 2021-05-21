@@ -32,20 +32,20 @@ object DecodeJsonLD {
       allowedProperties: List[Property] = List(),
       forbiddenProperties: List[Property] = List())(implicit decoder: Decoder[_]): DecodeJsonLD[Node, Task] = {
     val filter = {
-      if (allowedProperties.nonEmpty) { node: Node =>
+      if (allowedProperties.nonEmpty) { (node: Node) =>
         val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
         for {
           fNode <- resultGraph.nodes.create()
           _     <- Task.parSequenceUnordered(node.outE(allowedProperties: _*).map(e => fNode --- e.key --> e.to))
         } yield fNode
-      } else if (forbiddenProperties.nonEmpty) { node: Node =>
+      } else if (forbiddenProperties.nonEmpty) { (node: Node) =>
         val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
         for {
           fNode <- resultGraph.nodes.create()
           _ <- Task.parSequenceUnordered(
             node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
         } yield fNode
-      } else { node: Node =>
+      } else { (node: Node) =>
         Task.now(node)
       }
     }
@@ -123,7 +123,7 @@ object DecodeJsonLD {
       }
   }
 
-  def jsonldToEdge(implicit decoder: Decoder[_]) =
+  def jsonldToEdge[A](implicit decoder: Decoder[A]) =
     new DecodeJsonLD[Edge[Any, Any], Task] {
       def decode(implicit activeContext: ActiveContext) =
         (json: String) =>
@@ -131,8 +131,8 @@ object DecodeJsonLD {
             .stringToEdge(json)
     }
 
-  implicit def jsonldToTraversal(
-      implicit decoder: Decoder[_]): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] =
+  implicit def jsonldToTraversal[A](
+      implicit decoder: Decoder[A]): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] =
     new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] {
       def decode(implicit activeContext: ActiveContext)
         : String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =

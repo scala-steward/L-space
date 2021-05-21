@@ -7,11 +7,11 @@ object DataTypeDef {
   trait Properties {}
 }
 
-trait DataTypeDef[T <: DataType[_]] {
+trait DataTypeDef[T <: DataType[Any]] {
 
   def datatype: T
-  def iri   = datatype.iri
-  def iris  = datatype.iris
+  def iri: String   = datatype.iri
+  def iris: Set[String]  = datatype.iris
   def label = datatype.label
 
   def keys: Object

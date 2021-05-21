@@ -46,6 +46,7 @@ trait Decoder extends lspace.codec.Decoder {
                         query.copy(query.projections ++ projections) -> graphql.tail.dropWhile(!ignorable.contains(_))
                       case _ => throw new Exception("invalid structure")
                     }
+                  case _ => throw new Exception("invalid")
                 }
             }
           case _ =>
@@ -54,6 +55,7 @@ trait Decoder extends lspace.codec.Decoder {
               case (projections, graphql) => Query(projections) -> graphql
             }
         }
+      case _ => throw new Exception("invalid")
     }
 
   def findProjections(graphql: String)(implicit activeContext: ActiveContext): (List[Projection], String) =
@@ -152,6 +154,7 @@ trait Decoder extends lspace.codec.Decoder {
                 }
             }
         }
+      case _ => throw new Exception("invalid")
     }
 
   def findObject(projection: Projection, graphql: String)(implicit
@@ -204,7 +207,7 @@ trait Decoder extends lspace.codec.Decoder {
             }
           case graphql =>
             graphql.span(!argumentEnds.contains(_)) match {
-              case (value, graphql) => (key0, value, graphql)
+              case (value, graphql0) => (key0, value, graphql0)
             }
         }) match {
           case (key, value, graphql) =>
@@ -236,6 +239,7 @@ trait Decoder extends lspace.codec.Decoder {
                 }
             }
         }
+      case _ => throw new Exception("invalid")
     }
 
   def processObject(projection: Projection, graphql: String)(implicit

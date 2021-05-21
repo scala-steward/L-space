@@ -56,6 +56,7 @@ trait Decoder {
           activeContext.expandIri(nodeLike.stripLtGt) match {
             case Iri(iri)   => graph.nodes.upsert(iri)
             case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+            case _ => throw new Exception("invalid")
           }
         case intLike if intLike.endsWith("^^xsd:integer") =>
           graph.values.upsert(intLike.stripSuffix("^^xsd:integer").stripPrefix("\"").stripSuffix("\"").toInt)
@@ -79,6 +80,7 @@ trait Decoder {
             subject <- statement.subject match {
               case Iri(iri)   => graph.nodes.upsert(iri)
               case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+              case _ => throw new Exception("invalid")
             }
             p <- statement.predicates.process
             _ <- Task.parSequence(p.map { case (property, resource) => subject --- property --> resource })

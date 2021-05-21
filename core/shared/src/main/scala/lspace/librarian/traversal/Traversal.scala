@@ -137,14 +137,7 @@ object Traversal
       extends BaseMod[Start, ST, End, ET, Steps] {
 
     implicit private def labelToProperty[L: HasStep.PropertyLabel](label: L): Property =
-      label match {
-        case label: Property    => label
-        case label: PropertyDef => label.property
-        case label: String =>
-          Property.properties
-            .get(label)
-            .getOrElse(Property(label)) //throw new Exception("unknown key"))
-      }
+      implicitly[HasStep.PropertyLabel[L]].getProperty(label)
 
     //    def has[L: (String |∨| Property)#λ](label: L): Traversal[Start, End, Has :: Steps] = {
     def has[L: HasStep.PropertyLabel](label: L): Traversal[ST[Start], ET[End], Has :: Steps] =
@@ -535,7 +528,7 @@ object Traversal
 
   object CTOutMapper extends Poly1 {
     //    implicit def ct[T] = at[ClassType[T]](ct => 1.asInstanceOf[T])
-    implicit def traversalC[End, ET[+Z] <: ClassType[Z]] = at[ET[End]](_ => 1.asInstanceOf[End])
+    implicit def traversalC[End, ET[+Z] <: ClassType[Z]]: CTOutMapper.Case.Aux[ET[End], End] = at[ET[End]](_ => 1.asInstanceOf[End])
 //    implicit def traversalMap[K, V]                      = at[MapType[K, V]](t => 1.asInstanceOf[Map[K, V]])
 //    implicit def traversal[End] = at[ClassType[End]](t => 1.asInstanceOf[End])
   }
@@ -1366,6 +1359,7 @@ case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], +Steps <: HLi
   override def equals(o: Any): Boolean = o match {
     case traversal: Traversal[ClassType[_], ClassType[_], HList] @unchecked =>
       stepsList == traversal.stepsList //&& st == traversal.st && et == traversal.et
+    case _ => false
   }
 
   lazy val toNode: Task[Node] = {

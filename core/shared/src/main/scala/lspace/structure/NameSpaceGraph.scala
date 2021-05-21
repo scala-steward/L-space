@@ -30,6 +30,7 @@ trait NameSpaceGraph extends DataGraph {
           case _: Ontology    => nodes.upsert(ct.iri, Ontology.ontology)
           case _: Property    => nodes.upsert(ct.iri, Property.ontology)
           case _: DataType[_] => nodes.upsert(ct.iri, DataType.ontology, Ontology.ontology)
+          case _ => throw new Exception(s"unexpected type ${ct.getClass.getSimpleName}")
         }
       })
       .map(edges.create(resource, key, _))

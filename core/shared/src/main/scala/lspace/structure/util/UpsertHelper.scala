@@ -74,6 +74,7 @@ class UpsertHelper() {
           oldIdNewEdgeMap(resource.id)
         case (resource: Value[_]) =>
           oldIdNewValueMap(resource.id)
+        case r => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
       }).toOption
       to <- Try(edge.to match {
         case (resource: Node) =>
@@ -82,6 +83,7 @@ class UpsertHelper() {
           oldIdNewEdgeMap(resource.id)
         case (resource: Value[_]) =>
           oldIdNewValueMap(resource.id)
+        case r => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
       }).toOption
     } yield {
       createEdge(edge.id, graph.edges.create(

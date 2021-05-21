@@ -117,6 +117,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
 //        .map(_.asInstanceOf[_Value[Any]])
 //        .map(Coeval.now)
 //        .getOrElse(_TValue(v.asInstanceOf[parent.GValue[Any]]))
+    case _ => throw new Exception(s"unexpected type ${resource.getClass.getSimpleName}")
   }
 
   lazy val ns: NameSpaceGraph = parent.ns
@@ -210,6 +211,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
         }
       case edge: GEdge[_, _] =>
         edges.added -= edge
+      case _ => throw new Exception(s"unexpected type ${edge.getClass.getSimpleName}")
     }
     super.deleteEdge(edge)
   }
@@ -224,6 +226,7 @@ abstract class Transaction(val parent: Graph) extends MemDataGraph {
         values.deleted += value.id -> value.self.asInstanceOf[parent.GValue[_]]
       case value: GValue[_] =>
         values.added -= value
+      case _ => throw new Exception(s"unexpected type ${value.getClass.getSimpleName}")
     }
     super.deleteValue(value)
   }

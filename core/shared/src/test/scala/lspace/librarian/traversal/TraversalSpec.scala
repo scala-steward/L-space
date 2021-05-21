@@ -123,6 +123,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .predicate
         .exists {
           case p: p.And => p.predicate.size == 2
+          case _ => false
         } shouldBe true
       lspace.g
         .N
@@ -133,6 +134,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .predicate
         .exists {
           case p: p.And => p.predicate.head == P.gte(1.2)
+          case _ => false
         } shouldBe true
       lspace.g
         .N
@@ -143,6 +145,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .predicate
         .exists {
           case p: p.And => p.predicate.head == P.gte(1.2)
+          case _ => false
         } shouldBe true
 
       val pString = Property("aa")

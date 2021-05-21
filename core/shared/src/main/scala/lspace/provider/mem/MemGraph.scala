@@ -202,7 +202,7 @@ trait MemGraph extends Graph {
       val bw       = new BufferedWriter(new FileWriter(jsonfile))
 
       for {
-        context <- process(nodes(), { value: String =>
+        context <- process(nodes(), { (value: String) =>
           bw.write(value)
           bw.newLine()
         })

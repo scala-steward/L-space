@@ -157,6 +157,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
     expectedType match {
       case label: LiteralType[_]    => fromLiteral(value, label)
       case label: StructuredType[_] => fromStructured(value, label)
+      case _ => throw new Exception("invalid")
     }
 
   def fromLiteral(value: Any, expectedType: LiteralType[_])(implicit activeContext: ActiveContext): JIP =
@@ -169,6 +170,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case label: CalendarType[_] => fromCalendar(value, label)
       case label: NumericType[_]  => fromNumeric(value, label)
       case label: TextType[_]     => fromText(value, label)
+      case _ => throw new Exception("invalid")
     }
 
   def fromCalendar(value: Any, expectedType: CalendarType[_])(implicit activeContext: ActiveContext): JIP =
@@ -176,6 +178,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case label: DateTimeType[_]  => fromDateTime(value, label)
       case label: LocalDateType[_] => fromDate(value, label)
       case label: LocalTimeType[_] => fromTime(value, label)
+      case _ => throw new Exception("invalid")
     }
 
   def fromDateTime(value: Any, expectedType: DateTimeType[_])(implicit activeContext: ActiveContext): JIP =
@@ -203,6 +206,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case label: IntType[_]    => fromInt(value, label)
       case label: DoubleType[_] => fromDouble(value, label)
       case label: LongType[_]   => fromLong(value, label)
+      case _ => throw new Exception("invalid")
     }
 
   def fromInt(value: Any, expectedType: IntType[_])(implicit activeContext: ActiveContext): JIP =
@@ -237,6 +241,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
       case label: GeometricType[_] => fromGeometric(value, label)
       case label: QuantityType[_]  => fromQuantity(value, label)
       case label: TupleType[_]     => fromTuple(value, label)
+      case _ => throw new Exception("invalid")
     }
 
   private def toArray(v: Seq[_], label: Option[ClassType[_]])(implicit activeContext: ActiveContext): JIP = {
@@ -282,6 +287,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
           case v: Vector[_] => toArray(v, label.valueRange.headOption)
           case _            => throw ToJsonException(s"list expected ${value.getClass} found")
         }
+      case _ => throw new Exception("invalid")
     }
   def fromGeometric(value: Any, expectedType: GeometricType[_])(implicit activeContext: ActiveContext): JIP =
     value match {
@@ -298,6 +304,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
 //            JsonInProgress(Map("value" -> (v.value.asJson), "unit" -> (v.unit.symbol.asJson)).asJson)
           case _ => throw ToJsonException(s"duration expected ${value.getClass} found")
         }
+      case _ => throw new Exception("invalid")
     }
   def fromTuple(value: Any, expectedType: TupleType[_])(implicit activeContext: ActiveContext): JIP = {
     val (jsons, newAc) = value
@@ -538,6 +545,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
               Map(MapType.keys.keyRange.iri -> jip.json) -> jip2.activeContext
             else
               Map(MapType.keys.keyRange.iri -> jip.json, CollectionType.keys.valueRange.iri -> jip2.json) -> jip2.activeContext
+          case _ => throw new Exception("invalid")
         }
       case _ => Map() -> activeContext
     }
@@ -566,6 +574,7 @@ abstract class Encoder[Json](implicit val baseEncoder: JsonEncoder[Json]) extend
                     case (key, activeContext) => (l :+ (key.asJson)) -> activeContext
                   }
               }
+            case _ => throw new Exception("invalid")
           }
       } match { case (l, activeContext) => JsonInProgress(l.asJson)(activeContext) }
 

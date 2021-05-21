@@ -91,6 +91,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
       case (iri, tail) if tail.startsWith("+") =>
         val (tailTypes, newTail) = getTypes(tail.drop(1))
         (get(iri).toList ++ tailTypes).reduceOption(_ + _) -> newTail
+      case _ => throw new Exception(s"invalid collection type $iri")
     }
   }
 

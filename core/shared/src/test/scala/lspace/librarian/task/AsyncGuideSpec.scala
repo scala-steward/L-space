@@ -595,7 +595,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet)
-          .map { r: Set[(Option[Any], List[Double])] =>
+          .map { (r: Set[(Option[Any], List[Double])]) =>
             r shouldBe Set((Some("Gray"), List(2230.3)), (Some("Yoshio"), List()))
           }
           .timeout(4000.millis)
@@ -648,13 +648,13 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
-      "N.group(_.label())" in {
-        g.N
+      "N.hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri).group(_.label())" in {
+        g.N.hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri)
           .group(_.label())
           .withGraph(sampleGraph)
           .toListF
           .map { groupedNodes =>
-            groupedNodes.size shouldBe 3
+            groupedNodes.size shouldBe 2
             groupedNodes.head._1.size shouldBe 1
             groupedNodes.head._2.size should be > 1
           }

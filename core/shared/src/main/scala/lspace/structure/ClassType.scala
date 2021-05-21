@@ -35,12 +35,14 @@ object ClassType {
               case r: Node       => r.labels.reduceOption[ClassType[Any]](_ + _).getOrElse(Ontology.empty)
               case r: Edge[_, _] => r.key
               case r: Value[_]   => r.label
+              case _ => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
             }
           case r: ClassType[_] =>
             r match {
               case _: Ontology    => Ontology.ontology
               case _: Property    => Property.ontology
               case _: DataType[_] => DataType.ontology
+              case _ => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
             }
           case _ => ClassType.empty
         }
@@ -82,7 +84,7 @@ object ClassType {
       type T = ClassType[Any]
       def apply(): List[ClassType[Any]]                                  = List()
       def all(exclude: Set[ClassType[Any]] = Set()): Set[ClassType[Any]] = Set()
-      def apply(iri: String): Boolean                                    = false
+      def contains(iri: String): Boolean                                    = false
     }
 //    val _properties: List[Property]              = List()
 //    val base: Option[String] = None
@@ -283,7 +285,7 @@ trait ClassType[+T] extends IriResource {
     type T <: ClassType[Any]
     def apply(): List[T]
     def all(exclude: Set[T]): Set[T]
-    def apply(iri: String): Boolean
+    def contains(iri: String): Boolean
   }
 
   protected lazy val labelMap: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()

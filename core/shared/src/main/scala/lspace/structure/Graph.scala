@@ -167,6 +167,7 @@ trait Graph extends IriResource with GraphUtils { self =>
             edgeStore.store(edge /*.asInstanceOf[_Edge[_, _]]*/ )
           case value: _Value[_] =>
             valueStore.store(value.asInstanceOf[_Value[_]])
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
         else Task.unit
       }
@@ -266,7 +267,7 @@ trait Graph extends IriResource with GraphUtils { self =>
               )
               .mapParallelUnordered(8) { edge =>
                 //            if (edge.iri.nonEmpty) //TODO: find edge width
-                helper.mergeEdge(edge)(self).onErrorHandle { e: Throwable =>
+                helper.mergeEdge(edge)(self).onErrorHandle { (e: Throwable) =>
                   scribe.error(e.getMessage)
                 }
               }

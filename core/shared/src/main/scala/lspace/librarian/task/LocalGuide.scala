@@ -13,7 +13,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
   def buildNextStep(steps: List[Step])(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]] =
     steps match {
       case Nil =>
-        obs: F[Librarian[Any]] => obs
+        (obs: F[Librarian[Any]]) => obs
       case step :: steps =>
         step match {
           case _: GraphStep =>
@@ -35,6 +35,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
             step match {
               case step: RearrangeBarrierStep =>
                 rearrangeBarrierStep(step, steps)
+              case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
             }
           case step: ReducingStep =>
             step match {
@@ -51,6 +52,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
                 collectingBarrierStep(step, steps)
               case step: Count =>
                 countStep(step, steps)
+              case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
             }
           case step: FilterStep =>
             step match {
@@ -64,6 +66,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
             environmentStep(step, steps)
           case step: LabelStep =>
             labelStep(step, steps)
+          case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
         }
     }
 
@@ -116,5 +119,6 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
         }
       f.andThen(nextStep)
     //                nextStep andThen f
+    case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
   }
 }

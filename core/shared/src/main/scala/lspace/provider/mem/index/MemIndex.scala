@@ -64,6 +64,7 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
         case (e, null) if e != null     => false
 //        case (_, List())                => true
 //        case (e, mpp)    => mpp.forall(mpp => e.out(mpp._1).exists(v => mpp._2.forall(p => p.assert(v))))
+        case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
       }
     }.toList)
 

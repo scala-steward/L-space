@@ -57,6 +57,7 @@ object DataType
               case _: Node       => throw new Exception(s"a Node is not an instance of DataType")
               case _: Edge[_, _] => throw new Exception(s"an Edge is not an instance of DataType")
               case _: Value[_]   => DataType.default.`@valueURL`
+              case _ => throw new Exception(s"invalid type ${r.getClass.getSimpleName}")
             }
           case _: ClassType[_] => throw new Exception(s"a ClassType is not an instance of DataType")
           case _               => DataType.default.`@url`
@@ -99,6 +100,7 @@ object DataType
           case v: Vector[_] =>
             if (v.nonEmpty) DataType.default.vectorType(v.toList.map(_.ct).reduce(_ + _))
             else DataType.default.vectorType()
+          case _ => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
         }
       case v: Product =>
         v match {
@@ -180,6 +182,7 @@ object DataType
                 Some(v._11.ct)
               )
             )
+          case _ => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
         }
       case v =>
         matchers.findDataType(v).getOrElse(throw new Exception(s"not a known range ${value.getClass}"))
@@ -475,11 +478,11 @@ trait DataType[+T] extends ClassType[T] { self =>
       val _extends = extendedClasses().toSet -- exclude
       _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
     }
-    def apply(iri: String): Boolean = {
+    def contains(iri: String): Boolean = {
       val _extends = extendedClasses().toSet
       _extends.exists(_.iris.contains(iri)) || (_extends - self)
         .filterNot(_.`extends`(self))
-        .exists(_.extendedClasses(iri))
+        .exists(_.extendedClasses.contains(iri))
     }
 
     def +(parent: => DataType[Any]): this.type = this.synchronized {

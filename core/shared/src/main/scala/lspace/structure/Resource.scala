@@ -367,11 +367,13 @@ trait Resource[+T] extends IriResource {
       case _: Node       => DataType.default.`@nodeURL`
       case _: Edge[_, _] => DataType.default.`@edgeURL`
       case value: Value[_]  => value.label
+      case _ => throw new Exception(s"unexpected type ${this.getClass.getSimpleName}")
     }
     val valueCT = value match {
       case _: Node       => DataType.default.`@nodeURL`
       case _: Edge[_, _] => DataType.default.`@edgeURL`
       case value: Value[_]  => value.label
+      case _ => throw new Exception(s"unexpected type ${value.getClass.getSimpleName}")
     }
 
     for {

@@ -118,5 +118,6 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
     case value: _Value[_] => value.asInstanceOf[_Resource[T]]
     case value: Value[_] =>
       newValue(value.id, cached.dereferenceValue(value.value), value.label).asInstanceOf[_Resource[T]]
+    case _ => throw new Exception(s"unexpected type ${resource.getClass.getSimpleName}")
   }
 }

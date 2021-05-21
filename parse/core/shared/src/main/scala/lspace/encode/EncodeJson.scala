@@ -176,6 +176,7 @@ object EncodeJson {
               }
               .toMap)
               .asJson
+          case _ => throw new Exception("invalid")
         }).asJson
     }
   }

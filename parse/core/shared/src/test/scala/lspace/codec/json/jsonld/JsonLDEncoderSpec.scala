@@ -84,7 +84,7 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
             .fromActiveContext(defaultContext)
             .map(_.noSpaces)
             .map(_ shouldBe """"https://remote.example.org"""")
-            .getOrElse(fail)
+            .getOrElse(fail())
         }
       }
       "exists of a remote context and a local context" in {
@@ -96,7 +96,7 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
             .fromActiveContext(defaultContext)
             .map(_.noSpaces)
             .map(_ shouldBe """["https://remote.example.org",{"name":"https://example.com/name"}]""")
-            .getOrElse(fail)
+            .getOrElse(fail())
         }
       }
       "exists of two remote contexts and a local context" in {
@@ -111,7 +111,7 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
             .fromActiveContext(defaultContext)
             .map(_.noSpaces)
             .map(_ shouldBe """["https://remote.example.org","https://remote2.example.org",{"name":"https://example.com/name"}]""")
-            .getOrElse(fail)
+            .getOrElse(fail())
         }
       }
     }

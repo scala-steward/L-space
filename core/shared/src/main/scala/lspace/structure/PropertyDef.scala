@@ -14,7 +14,7 @@ object PropertyDef {
   * @param `@range`
   * @param `@extends`
   */
-abstract class PropertyDef(iri: String,
+abstract class PropertyDef(val iri: String,
                            label: String,
                            comment: String = "",
                            iris: Set[String] = Set(),

@@ -21,6 +21,7 @@ object TypeHelper {
     case _: LocalDate   => true
     case _: LocalTime   => true
     case _: Geometry    => true
+    case _ => throw new Exception(s"invalid type ${value.getClass.getSimpleName}")
   }
   def literalTypeIri(value: Any): Option[List[String]] =
     Option(value match {
@@ -38,6 +39,7 @@ object TypeHelper {
       case _: LocalTime =>
         NS.types.`@time` :: /*ldcontext.types.datetime :: ldcontext.types.date :: */ List()
       case _: Geometry => NS.types.`@geo` :: List()
+      case _ => throw new Exception(s"invalid type ${value.getClass.getSimpleName}")
     })
 
   private val separators = Set('(', ')', '+')
@@ -84,6 +86,7 @@ object TypeHelper {
       case (iri, tail) if tail.startsWith("+") =>
         val (tailTypes, newTail) = getTypes(tail.drop(1))
         (List(iri) ++ tailTypes) -> newTail
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
 }

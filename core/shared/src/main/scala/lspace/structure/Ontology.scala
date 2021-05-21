@@ -194,11 +194,11 @@ class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType
       val _extends = extendedClasses().toSet -- exclude
       _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
     }
-    def apply(iri: String): Boolean = {
+    def contains(iri: String): Boolean = {
       val _extends = extendedClasses().toSet
       _extends.exists(_.iris.contains(iri)) || (_extends - self)
         .filterNot(_.`extends`(self))
-        .exists(_.extendedClasses(iri))
+        .exists(_.extendedClasses.contains(iri))
     }
 
     def +(parent: => Ontology): this.type = this.synchronized {

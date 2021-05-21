@@ -28,6 +28,7 @@ object Typer {
               case step: To => //TODO: create EdgeUrlType with From and To type information
                 new Traversal(step :: traversal.steps)(traversal.st, ClassType.stubAny)
               case step: Id => new Traversal(step :: traversal.steps)(traversal.st, `@long`)
+              case _        => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
             }
             retype(steps, typedTraversal)
           case step: ResourceStep =>
@@ -40,6 +41,7 @@ object Typer {
                 new Traversal(step :: traversal.steps)(traversal.st, ClassType.stubAny)
               case step: GraphStep =>
                 new Traversal(step :: traversal.steps)(traversal.st, ClassType.stubAny)
+              case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
             }
             retype(steps, typedTraversal)
           case step: BranchStep =>
@@ -56,6 +58,7 @@ object Typer {
                         new Traversal(step :: traversal.steps)(traversal.st, ClassType.stubAny)
                       case step: InE =>
                         new Traversal(step :: traversal.steps)(traversal.st, Edge.edgeUrl)
+                      case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
                     }
                   case step: Choose[_, _] =>
                     val typedStep = Choose(
@@ -88,6 +91,7 @@ object Typer {
                       traversal.st,
                       typedStep.traversals.map(_.et).reduce(_ + _)
                     )
+                  case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
                 }
             }
             retype(steps, typedTraversal)
@@ -105,19 +109,28 @@ object Typer {
               case step: Project[_] =>
                 val typedStep = Project(
                   step.by.runtimeList.reverse
-                    .map { case t: Traversal[_, _, _] =>
-                      t.retype(traversal.et, traversal.et)
+                    .map {
+                      case t: Traversal[_, _, _] =>
+                        t.retype(traversal.et, traversal.et)
+                      case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
                     }
                     .foldLeft[HList](HNil) { case (r, t) => t :: r }
                 )
                 val typedProjections = typedStep.by.runtimeList
                 val et = typedProjections.lengthCompare(1) match {
                   case -1 => traversal.et
-                  case 0  => typedProjections.headOption.map { case t: Traversal[_, _, _] => t.enclosedEndType }.get
+                  case 0 =>
+                    typedProjections.headOption.map {
+                      case t: Traversal[_, _, _] => t.enclosedEndType
+                      case t                     => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
+                    }.get
                   case 1 =>
                     TupleType(
                       typedProjections.reverse
-                        .map { case t: Traversal[_, _, _] => t.enclosedEndType }
+                        .map {
+                          case t: Traversal[_, _, _] => t.enclosedEndType
+                          case t                     => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
+                        }
                         .map(Some(_))
                     )
                 }
@@ -125,6 +138,7 @@ object Typer {
               case step: Path[_, _] =>
                 val typedStep = Path(step.by.retype(traversal.et, traversal.et))
                 new Traversal(typedStep :: traversal.steps)(traversal.st, ListType[Any](typedStep.by.et))
+              case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
             }
             retype(steps, typedTraversal)
           case step: ReducingStep =>
@@ -145,6 +159,7 @@ object Typer {
                 new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
               case step: Max =>
                 new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
+              case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
             }
             retype(steps, typedTraversal)
           case step: FilterStep =>
@@ -169,6 +184,7 @@ object Typer {
                 step match {
                   case step: Dedup =>
                     new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
+                  case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
                 }
               case step: ClipStep =>
                 step match {
@@ -180,6 +196,7 @@ object Typer {
                     new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
                   case step: Skip =>
                     new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
+                  case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
                 }
               case step: HasStep =>
                 step match {
@@ -190,6 +207,7 @@ object Typer {
                     )
                   case _ => new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
                 }
+              case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
             }
             retype(steps, typedTraversal)
           case step: BarrierStep =>
@@ -218,19 +236,24 @@ object Typer {
                         )
                       )
                     )
+                  case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
                 }
               case step: Order =>
                 val typedStep = Order(step.by.retype(traversal.et, traversal.et), step.increasing)
                 new Traversal(typedStep :: traversal.steps)(traversal.st, traversal.et)
+              case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
             }
             retype(steps, typedTraversal)
-          case step: LabelStep => step match {
-            case step: As[_, _] =>
-              val typedTraversal =
-                new Traversal(As(step.label)(traversal.et) :: traversal.steps)(traversal.st, traversal.et)
-              retype(steps, typedTraversal)
-          }
+          case step: LabelStep =>
+            step match {
+              case step: As[_, _] =>
+                val typedTraversal =
+                  new Traversal(As(step.label)(traversal.et) :: traversal.steps)(traversal.st, traversal.et)
+                retype(steps, typedTraversal)
+              case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
+            }
           //      case _             =>
+          case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
         }
       case _ => traversal
     }

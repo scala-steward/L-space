@@ -54,12 +54,12 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: N =>
         if (
           step.nodes.forall { case node: Node =>
-            node.graph == this
+            node.graph == graph
           }
         ) {
           step.nodes match {
             case List() =>
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   graph
                     .nodes()
@@ -68,7 +68,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                     )
                 }
             case list: List[Node] =>
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   Observable.fromIterable(
                     list.map(node =>
@@ -77,7 +77,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                   )
                 }
           }
-        } else { obs: Observable[Librarian[Any]] =>
+        } else { (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             graph.nodeStore
               .hasIri(step.nodes.flatMap(_.iris).toSet)
@@ -88,12 +88,12 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: E =>
         if (
           step.edges.forall { case edge: Edge[_, _] =>
-            edge.graph == this
+            edge.graph == graph
           }
         ) {
           step.edges match {
             case List() =>
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   graph
                     .edges()
@@ -102,7 +102,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                     )
                 }
             case list: List[Edge[_, _]] =>
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   Observable.fromIterable(
                     list.map(edge =>
@@ -111,7 +111,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                   )
                 }
           }
-        } else { obs: Observable[Librarian[Any]] =>
+        } else { (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             graph.edgeStore
               .hasIri(step.edges.flatMap(_.iris).toSet)
@@ -122,12 +122,13 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: V =>
         if (
           step.values.forall { case value: Value[_] =>
-            value.graph == this
+            value.graph == graph
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
           }
         ) {
           step.values match {
             case List() =>
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   graph
                     .values()
@@ -136,7 +137,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                     )
                 }
             case list: List[Value[_] @unchecked] =>
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   Observable.fromIterable(
                     list.map(value =>
@@ -145,7 +146,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                   )
                 }
           }
-        } else { obs: Observable[Librarian[Any]] =>
+        } else { (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             Observable
               .fromIterable(step.values)
@@ -155,7 +156,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           }
         }
       //      case step: R =>
-
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -167,13 +168,13 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
     val nextStep = buildNextStep(steps)
     step match {
       case _: Id =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(obs.collect {
             case librarian if librarian.get.isInstanceOf[Resource[_]] =>
               librarian.copy(librarian.get.asInstanceOf[Resource[_]].id)
           })
       case _: From =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -184,7 +185,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
           )
       case _: To =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -195,7 +196,8 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
           )
       case step: Constant[_] =>
-        obs: Observable[Librarian[Any]] => nextStep(obs.map(librarian => librarian.copy(step.value)))
+        (obs: Observable[Librarian[Any]]) => nextStep(obs.map(librarian => librarian.copy(step.value)))
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
   }
 
@@ -206,7 +208,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
     val nextStep = buildNextStep(steps)
     step match {
       case step: Out =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -218,7 +220,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
           )
       case step: OutE =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -230,7 +232,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
           )
       case step: In =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -242,7 +244,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
           )
       case step: InE =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -254,7 +256,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             )
           )
       case _: Label =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               Observable.fromIterable(librarian.get match {
@@ -266,6 +268,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               })
             )
           )
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
   }
 
@@ -278,16 +281,16 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: HasStep =>
         step match {
           case step: Has =>
-            step.predicate.fold { obs: Observable[Librarian[Any]] =>
+            step.predicate.fold { (obs: Observable[Librarian[Any]]) =>
               obs.filter { librarian =>
                 librarian.get match {
                   case r: Resource[_] => r.out(step.key).nonEmpty
                   case _              => false
                 }
               }
-            } { p: P[_] =>
+            } { (p: P[_]) =>
               val helper = assistent.pToHelper(p)
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.filter { librarian =>
                   librarian.get match {
                     case r: Resource[_] => r.out(step.key).filter(helper.comparable).exists(helper.assert)
@@ -296,16 +299,16 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 }
             }
           case step: HasNot =>
-            step.predicate.fold { obs: Observable[Librarian[Any]] =>
+            step.predicate.fold { (obs: Observable[Librarian[Any]]) =>
               obs.filter { librarian =>
                 librarian.get match {
                   case r: Resource[_] => r.out(step.key).isEmpty
                   case _              => true
                 }
               }
-            } { p: P[_] =>
+            } { (p: P[_]) =>
               val helper = assistent.pToHelper(p)
-              obs: Observable[Librarian[Any]] =>
+              (obs: Observable[Librarian[Any]]) =>
                 obs.filter { librarian =>
                   librarian.get match {
                     case r: Resource[_] => !r.out(step.key).filter(helper.comparable).exists(helper.assert)
@@ -314,35 +317,36 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 }
             }
           case step: HasId =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.filter(_.get match {
                 case r: Resource[_] if step.ids.contains(r.id) => true
                 case _                                         => false
               })
           case step: HasIri =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.filter(_.get match {
                 case r: Resource[_] if step.iris.intersect(r.iris).nonEmpty => true
                 case _                                                      => false
               })
           case step: HasLabel =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.filter(_.get match {
                 case r: Resource[_] if step.label.exists(r.hasLabel(_).isDefined) => true
                 case _                                                            => false
               })
           case step: HasValue =>
             val helper = assistent.pToHelper(step.predicate)
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.filter { librarian =>
                 librarian.get match {
                   case r: Resource[_] => helper.comparable(r.value) && helper.assert(r.value)
                   case v              => helper.assert(v)
                 }
               }
+          case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
         }
       case _: Dedup =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           Observable
             .fromTask(
               //                obs.toListL.map(_.distinct) //BUG: does not work as expected... why?!
@@ -374,7 +378,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       //              }).map(_.head).flatten
       case step: And =>
         val andObs = step.traversals.map(traversalToF)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             andObs.map(_(librarian)).map(_.nonEmpty).reduce(_ ++ _).forall(b => b).flatMap {
               case true  => Observable(librarian)
@@ -383,7 +387,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           }
       case step: Or =>
         val orObs = step.traversals.map(traversalToF)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             orObs.map(_(librarian)).map(_.nonEmpty).reduce(_ ++ _).exists(b => b).flatMap {
               case true  => Observable(librarian)
@@ -392,7 +396,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           }
       case step: Where =>
         val traveralObservable = traversalToF(step.traversal)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             traveralObservable(librarian).nonEmpty.flatMap {
               case true  => Observable(librarian)
@@ -401,7 +405,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           }
       case step: Not =>
         val traveralObservable = traversalToF(step.traversal)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             traveralObservable(librarian).isEmpty.flatMap {
               case true  => Observable(librarian)
@@ -409,19 +413,20 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             }
           }
       case step: Coin =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.filter { _ =>
             Math.random() < step.p //get next seeded random value
           }
       case step: Is =>
         val helper = assistent.pToHelper(step.predicate)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.filter { librarian =>
             librarian.get match {
               case r: Resource[_] => helper.assert(r.value)
               case v              => helper.assert(v)
             }
           }
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -434,9 +439,9 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 
     val f = step match {
       case _: Head =>
-        obs: Observable[Librarian[T]] => obs.head
+        (obs: Observable[Librarian[T]]) => obs.head
       case _: Last =>
-        obs: Observable[Librarian[T]] => obs.last
+        (obs: Observable[Librarian[T]]) => obs.last
       case step: Min =>
         val byObservable = traversalToF(step.by)
         val byObsF = (obs: Observable[Librarian[T]]) =>
@@ -466,6 +471,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
+              case v         => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
             }))
           case lspace.NS.types.`@datetime` =>
             byObsF.andThen(_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
@@ -475,6 +481,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
             byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+          case iri => throw new Exception(s"invalid iri $iri")
         }).andThen(_.map(_._1))
       case step: Max =>
         val byObservable = traversalToF(step.by)
@@ -505,6 +512,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
+              case v         => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
             }))
           case lspace.NS.types.`@datetime` =>
             byObsF.andThen(_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
@@ -514,7 +522,9 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
             byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
             byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+          case _ => throw new Exception(s"invalid iri ${step.by.et.iri}")
         }).andThen(_.map(_._1))
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f
   }
@@ -522,13 +532,14 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 
     val f = step match {
       case step: Limit =>
-        obs: Observable[Librarian[T]] => obs.take(step.max)
+        (obs: Observable[Librarian[T]]) => obs.take(step.max)
       case step: Skip =>
-        obs: Observable[Librarian[T]] => obs.drop(step.n)
+        (obs: Observable[Librarian[T]]) => obs.drop(step.n)
       case step: Range =>
-        obs: Observable[Librarian[T]] => obs.drop(step.low - 1).take(step.high + 1 - step.low)
+        (obs: Observable[Librarian[T]]) => obs.drop(step.low - 1).take(step.high + 1 - step.low)
       case step: Tail =>
-        obs: Observable[Librarian[T]] => obs.takeLast(step.max)
+        (obs: Observable[Librarian[T]]) => obs.takeLast(step.max)
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f
   }
@@ -541,7 +552,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
     val f = step match {
       case step: Coalesce[_, _] =>
         val coalObs = step.traversals.map(traversalToF)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             coalObs.foldLeft(Observable.empty[Any]) { case (obs, coalObs) =>
               obs.nonEmpty.flatMap {
@@ -554,7 +565,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         val byObs    = traversalToF(step.by)
         val rightObs = traversalToF(step.right)
         val leftObs  = traversalToF(step.left)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             byObs(librarian).nonEmpty.flatMap {
               case true =>
@@ -565,7 +576,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           }
       case step: Local[_, _] =>
         val traveralObservable = traversalToF(step.traversal)
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             val result = traveralObservable(librarian)
             step.traversal.et match {
@@ -613,7 +624,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 //                 .filter(_.segmentList.head.stepsList.nonEmpty)
                  .map(traversalToF) match {
                  case Some(untilObs) =>
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable
                          .tailRecM(librarian -> max) { case (librarian, max) =>
@@ -629,7 +640,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                          }
                      }
                  case None =>
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> max) { case (librarian, max) =>
                          val r = repeatObs(librarian).filter(noloop(_))
@@ -646,7 +657,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 //                 .filter(_.segmentList.head.stepsList.nonEmpty)
                  .map(traversalToF) match {
                  case Some(untilObs) =>
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                          case (librarian, max) =>
@@ -662,7 +673,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                        }
                      }
                  case None =>
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable
                          .tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
@@ -685,7 +696,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                  .map(traversalToF) match {
                  case Some(untilObs) =>
                    scribe.trace("max until")
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> max) { case (librarian, max) =>
                          val r = repeatObs(librarian).filter(noloop(_))
@@ -700,7 +711,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                      }
                  case None =>
                    scribe.trace("max")
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> max) { case (librarian, max) =>
                          val r = repeatObs(librarian).filter(noloop(_))
@@ -717,7 +728,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                  .map(traversalToF) match {
                  case Some(untilObs) =>
                    scribe.trace("until")
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                          case (librarian, max) =>
@@ -733,7 +744,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                      }
                  case None =>
                    scribe.trace("last")
-                   obs: Observable[Librarian[Any]] =>
+                   (obs: Observable[Librarian[Any]]) =>
                      obs.flatMap { librarian =>
                        Observable.tailRecM(librarian -> 100) { //make configurable (fail-safe max-depth)
                          case (librarian, max) =>
@@ -748,7 +759,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
          }).andThen(_.delayOnNext(1.nanosecond))
       case step: Union[_, _] =>
         val unionObs = step.traversals.map(traversalToF).zip(step.traversals.map(_.stepsList.lastOption))
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             unionObs
               .map {
@@ -758,6 +769,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               }
               .reduce(_ ++ _)
           }
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.asInstanceOf[Observable[Librarian[Any]] => Observable[Librarian[Any]]].andThen(nextStep)
   }
@@ -771,10 +783,10 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         case List(step: ReducingStep) => reducingStep[Any](step)
         case List(step: ClipStep)     => clipStep[Any](step)
         case _ :: _ =>
-          _: Observable[Librarian[Any]] =>
+          (_: Observable[Librarian[Any]]) =>
             Observable.raiseError(new Exception("GroupStep can only be followed by a ClipStep (currently)"))
         case Nil =>
-          obs: Observable[Librarian[Any]] => obs
+          (obs: Observable[Librarian[Any]]) => obs
       }
 
     val f = step match {
@@ -789,7 +801,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         ) //hack/manipulate to multi librarian start: lspace.g.out() ++
 //        val valueSteps = step.value.stepsList //.flatMap(_.stepsList)
 
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           obs
             .mapEval { librarian =>
               byMapper(byObservable(librarian)).asInstanceOf[Task[Librarian[Any]]].map(_.get).map(librarian -> _)
@@ -801,7 +813,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 .map(l => group.key -> l.get)
             }
             .map(createLibrarian(_))
-
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
 //    else
@@ -816,7 +828,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 
     val f = step match {
       case _: Count =>
-        obs: Observable[Librarian[Any]] => obs.count.map(createLibrarian(_))
+        (obs: Observable[Librarian[Any]]) => obs.count.map(createLibrarian(_))
     }
     f.andThen(nextStep)
   }
@@ -827,7 +839,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 
     val f = step match {
       case _: Mean =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           val temp = obs
             .map(_.get)
             .map {
@@ -849,7 +861,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
           } yield if (count > 0) Some(sum / count) else None)
             .flatMap(_.map(createLibrarian(_)).map(Observable(_)).getOrElse(Observable.empty[Librarian[Any]]))
       case _: Sum =>
-        obs: Observable[Librarian[Any]] =>
+        (obs: Observable[Librarian[Any]]) =>
           Observable
             .fromTask(
               obs
@@ -876,6 +888,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
 //              .map(createLibrarian(_))
             )
             .flatMap(_.map(createLibrarian(_)).map(Observable(_)).getOrElse(Observable.empty[Librarian[Any]]))
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -937,19 +950,24 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 case v: Int    => v.toDouble
                 case v: Double => v
                 case v: Long   => v.toDouble
+                case _         => throw new Exception("Unsortable")
               })(ordering)))
             )
           case lspace.NS.types.`@datetime` =>
             if (step.increasing) {
               byObsF.andThen(obs =>
-                Observable.fromTask(obs.toListL.map(_.sortWith { case ((_, v1: Instant), (_, v2: Instant)) =>
-                  v1.isBefore(v2)
+                Observable.fromTask(obs.toListL.map(_.sortWith {
+                  case ((_, v1: Instant), (_, v2: Instant)) =>
+                    v1.isBefore(v2)
+                  case _ => throw new Exception("Unsortable")
                 }))
               )
             } else {
               byObsF.andThen(obs =>
-                Observable.fromTask(obs.toListL.map(_.sortWith { case ((_, v1: Instant), (_, v2: Instant)) =>
-                  v1.isAfter(v2)
+                Observable.fromTask(obs.toListL.map(_.sortWith {
+                  case ((_, v1: Instant), (_, v2: Instant)) =>
+                    v1.isAfter(v2)
+                  case _ => throw new Exception("Unsortable")
                 }))
               )
             }
@@ -958,12 +976,14 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((_, v1: LocalDateTime), (_, v2: LocalDateTime)) => v1.isBefore(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }))
               )
             } else {
               byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith {
                   case ((_, v1: LocalDateTime), (_, v2: LocalDateTime)) => v1.isAfter(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }))
               )
             }
@@ -972,30 +992,38 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith { case ((_, v1: LocalDate), (_, v2: LocalDate)) =>
                   v1.isBefore(v2)
+                case _ => throw new Exception(s"Unsortable")
                 }))
               )
             } else {
               byObsF.andThen(obs =>
                 Observable.fromTask(obs.toListL.map(_.sortWith { case ((_, v1: LocalDate), (_, v2: LocalDate)) =>
                   v1.isAfter(v2)
+                case _ => throw new Exception(s"Unsortable")
                 }))
               )
             }
           case lspace.NS.types.`@time` =>
             if (step.increasing) {
               byObsF.andThen(obs =>
-                Observable.fromTask(obs.toListL.map(_.sortWith { case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
-                  v1.isBefore(v2)
+                Observable.fromTask(obs.toListL.map(_.sortWith {
+                  case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
+                    v1.isBefore(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }))
               )
             } else {
               byObsF.andThen(obs =>
-                Observable.fromTask(obs.toListL.map(_.sortWith { case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
-                  v1.isAfter(v2)
+                Observable.fromTask(obs.toListL.map(_.sortWith {
+                  case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
+                    v1.isAfter(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }))
               )
             }
+          case iri => throw new Exception(s"invalid iri $iri")
         }).andThen(_.flatMap(Observable.fromIterable(_)).map(_._1))
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -1009,7 +1037,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
       case step: MapStep =>
         step match {
           case step: OutMap =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
@@ -1028,7 +1056,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 })
               )
           case step: OutEMap =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
@@ -1047,7 +1075,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 })
               )
           case step: InMap =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
@@ -1066,7 +1094,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 })
               )
           case step: InEMap =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(librarian.get match {
                   case r: Resource[_] =>
@@ -1084,6 +1112,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                   case _ => Task.now(librarian.copy(Map()))
                 })
               )
+          case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
         }
       case step: Project[_] =>
         projectStep(step, steps)
@@ -1091,7 +1120,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         val byObs = traversalToF(step.by)
         step.by.stepsList.lastOption match {
           case Some(Count) =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(
                   Task
@@ -1108,8 +1137,8 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                     }
                 )
               )
-          case Some(_ @ (_: Head | _: Min | _: Max | _: Mean)) =>
-            obs: Observable[Librarian[Any]] =>
+          case Some(_ @(_: Head | _: Min | _: Max | _: Mean)) =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(
                   Task
@@ -1133,7 +1162,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 )
               )
           case Some(Last) =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(
                   Task
@@ -1159,7 +1188,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
                 )
               )
           case _ =>
-            obs: Observable[Librarian[Any]] =>
+            (obs: Observable[Librarian[Any]]) =>
               obs.flatMap(librarian =>
                 Observable.fromTask(
                   Task
@@ -1185,6 +1214,7 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
         }
       case step: Select[_] =>
         selectStep(step, steps)
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen { r =>
       r.map {
@@ -1200,9 +1230,10 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
     val nextStep = buildNextStep(steps)
     val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
-        traversalToF(traversal) -> (if (traversal.stepsList.isEmpty) { observable: Observable[Librarian[Any]] =>
+        traversalToF(traversal) -> (if (traversal.stepsList.isEmpty) { (observable: Observable[Librarian[Any]]) =>
                                       head(observable)
                                     } else endMapper(traversal))
+      case v => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
     }
     val f =
       (obs: Observable[Librarian[Any]]) =>
@@ -1221,7 +1252,10 @@ abstract class AsyncGuide extends LocalGuide[Observable] {
               case List(v1, v2, v3, v4, v5, v6, v7)         => (v1, v2, v3, v4, v5, v6, v7)
               case List(v1, v2, v3, v4, v5, v6, v7, v8)     => (v1, v2, v3, v4, v5, v6, v7, v8)
               case List(v1, v2, v3, v4, v5, v6, v7, v8, v9) => (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-              case values => throw new Exception(s"Projection tuple larger than 9 is not supported, this calculation attempted to create a tuple of ${values.size}")
+              case values =>
+                throw new Exception(
+                  s"Projection tuple larger than 9 is not supported, this calculation attempted to create a tuple of ${values.size}"
+                )
             }
             .map(librarian.copy(_))
         }

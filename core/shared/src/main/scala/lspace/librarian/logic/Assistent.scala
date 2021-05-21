@@ -40,6 +40,10 @@ trait Assistent {
   def and(p: And): Helper[And]
   def or(p: Or): Helper[Or]
 
+//  trait PHelper[T]
+//  object PHelper {
+//    implicit def eqvHelper[T](p: Eqv[T]): Helper[Eqv[T]] = eqv(p)
+//  }
   implicit def pToHelper[T <: P[_]](p: T): Helper[T] =
     (p match {
       case p: Eqv[Any]       => eqv(p)
@@ -61,5 +65,6 @@ trait Assistent {
       case p: Fuzzy[_]       => fuzzy(p)
       case p: And            => and(p)
       case p: Or             => or(p)
+      case p => throw new Exception(s"unexpected type ${p.getClass.getSimpleName}")
     }).asInstanceOf[Helper[T]]
 }

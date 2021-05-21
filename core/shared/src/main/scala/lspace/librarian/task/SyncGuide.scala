@@ -52,13 +52,15 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     val f = step match {
       case step: N =>
         if (
-          step.nodes.forall { case node: Node =>
-            node.graph == this
+          step.nodes.forall {
+            case node: Node =>
+              node.graph == graph
+            case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
           }
         ) {
           step.nodes match {
             case List() =>
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs
                   .flatMap { librarian =>
                     graph.nodeStore.cached
@@ -69,14 +71,14 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                       )
                   }
             case list: List[Node] =>
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   list.map(node =>
                     librarian.copy(get = node, path = librarian.path.copy(librarian.path.resources :+ node))
                   )
                 }
           }
-        } else { obs: LazyList[Librarian[Any]] =>
+        } else { (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             graph.nodeStore.cached
               .all()
@@ -87,13 +89,15 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
         }
       case step: E =>
         if (
-          step.edges.forall { case edge: Edge[_, _] =>
-            edge.graph == this
+          step.edges.forall {
+            case edge: Edge[_, _] =>
+              edge.graph == graph
+            case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
           }
         ) {
           step.edges match {
             case List() =>
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   graph.edgeStore.cached
                     .all()
@@ -103,14 +107,14 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                     )
                 }
             case list: List[Edge[_, _]] =>
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   list.map(edge =>
                     librarian.copy(get = edge, path = librarian.path.copy(librarian.path.resources :+ edge))
                   )
                 }
           }
-        } else { obs: LazyList[Librarian[Any]] =>
+        } else { (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             graph.edgeStore.cached
               .all()
@@ -121,13 +125,15 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
         }
       case step: V =>
         if (
-          step.values.forall { case edge: Value[_] =>
-            edge.graph == this
+          step.values.forall {
+            case edge: Value[_] =>
+              edge.graph == graph
+            case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
           }
         ) {
           step.values match {
             case List() =>
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   graph.valueStore.cached
                     .all()
@@ -137,14 +143,14 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                     )
                 }
             case list: List[Value[_] @unchecked] =>
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.flatMap { librarian =>
                   list.map(value =>
                     librarian.copy(get = value, path = librarian.path.copy(librarian.path.resources :+ value))
                   )
                 }
           }
-        } else { obs: LazyList[Librarian[Any]] =>
+        } else { (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             graph.valueStore.cached
               .all()
@@ -154,7 +160,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
           }
         }
       //      case step: R =>
-
+      case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -165,13 +171,13 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     val nextStep = buildNextStep(steps)
     step match {
       case _: Id =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(obs.collect {
             case librarian if librarian.get.isInstanceOf[Resource[_]] =>
               librarian.copy(librarian.get.asInstanceOf[Resource[_]].id)
           })
       case _: From =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -182,7 +188,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             )
           )
       case _: To =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -193,7 +199,8 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             )
           )
       case step: Constant[_] =>
-        obs: LazyList[Librarian[Any]] => nextStep(obs.map(librarian => librarian.copy(step.value)))
+        (obs: LazyList[Librarian[Any]]) => nextStep(obs.map(librarian => librarian.copy(step.value)))
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
   }
   def moveStep(step: MoveStep, steps: List[Step])(implicit
@@ -202,7 +209,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     val nextStep = buildNextStep(steps)
     step match {
       case step: Out =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -214,7 +221,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             )
           )
       case step: OutE =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -226,7 +233,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             )
           )
       case step: In =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -238,7 +245,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             )
           )
       case step: InE =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -250,7 +257,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             )
           )
       case _: Label =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           nextStep(
             obs.flatMap(librarian =>
               librarian.get match {
@@ -262,6 +269,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
               }
             )
           )
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
   }
 
@@ -274,16 +282,16 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
       case step: HasStep =>
         step match {
           case step: Has =>
-            step.predicate.fold { obs: LazyList[Librarian[Any]] =>
+            step.predicate.fold { (obs: LazyList[Librarian[Any]]) =>
               obs.filter { librarian =>
                 librarian.get match {
                   case r: Resource[_] => r.out(step.key).nonEmpty
                   case _              => false
                 }
               }
-            } { p: P[_] =>
+            } { (p: P[_]) =>
               val helper = assistent.pToHelper(p)
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.filter { librarian =>
                   librarian.get match {
                     case r: Resource[_] => r.out(step.key).filter(helper.comparable).exists(helper.assert)
@@ -292,16 +300,16 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 }
             }
           case step: HasNot =>
-            step.predicate.fold { obs: LazyList[Librarian[Any]] =>
+            step.predicate.fold { (obs: LazyList[Librarian[Any]]) =>
               obs.filter { librarian =>
                 librarian.get match {
                   case r: Resource[_] => r.out(step.key).isEmpty
                   case _              => true
                 }
               }
-            } { p: P[_] =>
+            } { (p: P[_]) =>
               val helper = assistent.pToHelper(p)
-              obs: LazyList[Librarian[Any]] =>
+              (obs: LazyList[Librarian[Any]]) =>
                 obs.filter { librarian =>
                   librarian.get match {
                     case r: Resource[_] => !r.out(step.key).filter(helper.comparable).exists(helper.assert)
@@ -310,37 +318,38 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 }
             }
           case step: HasId =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.filter(_.get match {
                 case r: Resource[_] if step.ids.contains(r.id) => true
                 case _                                         => false
               })
           case step: HasIri =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.filter(_.get match {
                 case r: Resource[_] if step.iris.intersect(r.iris).nonEmpty => true
                 case _                                                      => false
               })
           case step: HasLabel =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.filter(_.get match {
                 case r: Resource[_] if step.label.exists(r.hasLabel(_).isDefined) => true
                 case _                                                            => false
               })
           case step: HasValue =>
             val helper = assistent.pToHelper(step.predicate)
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.filter { librarian =>
                 librarian.get match {
                   case r: Resource[_] => helper.comparable(r.value) && helper.assert(r.value)
                   case v              => helper.assert(v)
                 }
               }
+          case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
         }
       case _: Dedup =>
 //        import cats.Eq
 //        implicit val eqFoo: Eq[Any] = Eq.fromUniversalEquals
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           val results = mutable.HashSet[Any]()
           obs.filter { l =>
             l.get match {
@@ -360,42 +369,43 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
           }
       case step: And =>
         val andObs = step.traversals.map(traversalToF)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.filter { librarian =>
             andObs.forall(_(librarian).nonEmpty)
           }
       case step: Or =>
         val orObs = step.traversals.map(traversalToF)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.filter { librarian =>
             orObs.exists(_(librarian).nonEmpty)
           }
       case step: Where =>
         val traveralObservable = traversalToF(step.traversal)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.filter { librarian =>
             traveralObservable(librarian).nonEmpty
           }
       case step: Not =>
         val traveralObservable = traversalToF(step.traversal)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.filter { librarian =>
             traveralObservable(librarian).isEmpty
           }
       case step: Coin =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.filter { _ =>
             Math.random() < step.p //get next seeded random value
           }
       case step: Is =>
         val helper = assistent.pToHelper(step.predicate)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.filter { librarian =>
             librarian.get match {
               case r: Resource[_] => helper.assert(r.value)
               case v              => helper.assert(v)
             }
           }
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -404,9 +414,9 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 
     val f = step match {
       case _: Head =>
-        obs: LazyList[Librarian[T]] => obs.take(1)
+        (obs: LazyList[Librarian[T]]) => obs.take(1)
       case _: Last =>
-        obs: LazyList[Librarian[T]] => obs.lastOption.to(LazyList)
+        (obs: LazyList[Librarian[T]]) => obs.lastOption.to(LazyList)
       case step: Min =>
         val byObservable = traversalToF(step.by)
         val byObsF = (obs: LazyList[Librarian[T]]) =>
@@ -436,6 +446,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
+              case v         => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
             }))
           case lspace.NS.types.`@datetime` =>
             byObsF.andThen(_.minBy(_._2.asInstanceOf[Instant].toEpochMilli))
@@ -445,6 +456,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
             byObsF.andThen(_.minBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+          case iri => throw new Exception(s"unexpected iri $iri")
         }).andThen(_._1).andThen(LazyList(_))
       case step: Max =>
         val byObservable = traversalToF(step.by)
@@ -474,6 +486,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
               case v: Int    => v.toDouble
               case v: Double => v
               case v: Long   => v.toDouble
+              case v         => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
             }))
           case lspace.NS.types.`@datetime` =>
             byObsF.andThen(_.maxBy(_._2.asInstanceOf[Instant].toEpochMilli))
@@ -483,7 +496,9 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalDate].toEpochDay))
           case lspace.NS.types.`@time` =>
             byObsF.andThen(_.maxBy(_._2.asInstanceOf[LocalTime].toNanoOfDay))
+          case iri => throw new Exception(s"unexpected iri $iri")
         }).andThen(_._1).andThen(LazyList(_))
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f
   }
@@ -491,13 +506,14 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 
     val f = step match {
       case step: Limit =>
-        obs: LazyList[Librarian[T]] => obs.take(step.max)
+        (obs: LazyList[Librarian[T]]) => obs.take(step.max)
       case step: Skip =>
-        obs: LazyList[Librarian[T]] => obs.drop(step.n)
+        (obs: LazyList[Librarian[T]]) => obs.drop(step.n)
       case step: Range =>
-        obs: LazyList[Librarian[T]] => obs.slice(step.low - 1, step.high)
+        (obs: LazyList[Librarian[T]]) => obs.slice(step.low - 1, step.high)
       case step: Tail =>
-        obs: LazyList[Librarian[T]] => obs.takeRight(step.max)
+        (obs: LazyList[Librarian[T]]) => obs.takeRight(step.max)
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f
   }
@@ -510,7 +526,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     val f = step match {
       case step: Coalesce[_, _] =>
         val coalObs = step.traversals.map(traversalToF)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             coalObs
               .to(LazyList)
@@ -524,7 +540,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
         val byObs    = traversalToF(step.by)
         val rightObs = traversalToF(step.right)
         val leftObs  = traversalToF(step.left)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             byObs(librarian).nonEmpty match {
               case true =>
@@ -535,7 +551,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
           }
       case step: Local[_, _] =>
         val traveralObservable = traversalToF(step.traversal)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             traveralObservable(librarian)
           }
@@ -549,7 +565,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 //                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -565,7 +581,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                     }
                     obs.flatMap(l => repeat(LazyList(l), max))
                 case None =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -586,7 +602,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 //                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -602,7 +618,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                     }
                     obs.flatMap(l => repeat(LazyList(l), 100)) //make configurable (fail-safe max-depth)
                 case None =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -626,7 +642,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 //                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -640,7 +656,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                     }
                     obs.flatMap(l => repeat(LazyList(l), max))
                 case None =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -661,7 +677,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 //                .filter(_.segmentList.head.stepsList.nonEmpty)
                 .map(traversalToF) match {
                 case Some(untilObs) =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -675,7 +691,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                     }
                     obs.flatMap(l => repeat(LazyList(l), 100)) //make configurable (fail-safe max-depth)
                 case None =>
-                  obs: LazyList[Librarian[Any]] =>
+                  (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
                       val obs = librarians.flatMap(repeatObs(_))
                       if (max > 0) {
@@ -694,10 +710,11 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
         }
       case step: Union[_, _] =>
         val unionObs = step.traversals.map(traversalToF)
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs.flatMap { librarian =>
             unionObs.map(_(librarian)).reduce(_ ++ _)
           }
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.asInstanceOf[LazyList[Librarian[Any]] => LazyList[Librarian[Any]]].andThen(nextStep)
   }
@@ -710,9 +727,9 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
       steps match {
         case List(step: ClipStep) => clipStep[Any](step)
         case _ :: _ =>
-          _: LazyList[Librarian[Any]] => throw new Exception("GroupStep can only be followed by a ClipStep (currently)")
+          (_: LazyList[Librarian[Any]]) => throw new Exception("GroupStep can only be followed by a ClipStep (currently)")
         case Nil =>
-          obs: LazyList[Librarian[Any]] => obs
+          (obs: LazyList[Librarian[Any]]) => obs
       }
 
     val f = step match {
@@ -727,7 +744,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
         )
 //        val valueSteps = step.value.stepsList //.flatMap(_.stepsList)
 
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           obs
             .map { librarian =>
               byMapper(byObservable(librarian))
@@ -747,6 +764,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             }
             .map(createLibrarian(_))
             .asInstanceOf[LazyList[Librarian[Any]]]
+      case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -758,7 +776,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 
     val f = step match {
       case _: Count =>
-        obs: LazyList[Librarian[Any]] => LazyList(createLibrarian(obs.size.toLong))
+        (obs: LazyList[Librarian[Any]]) => LazyList(createLibrarian(obs.size.toLong))
     }
     f.andThen(nextStep)
   }
@@ -770,7 +788,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 
     val f = step match {
       case _: Mean =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           val temp = obs
             .map(_.get)
             .map {
@@ -791,7 +809,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
 
           LazyList(createLibrarian(if (count == 0) Double.NaN else sum / count))
       case _: Sum =>
-        obs: LazyList[Librarian[Any]] =>
+        (obs: LazyList[Librarian[Any]]) =>
           LazyList(
             createLibrarian(
               obs
@@ -812,6 +830,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 .sum
             )
           )
+      case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -872,65 +891,84 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 case v: Int    => v.toDouble
                 case v: Double => v
                 case v: Long   => v.toDouble
+                case v         => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               })(ordering)
             )
           case lspace.NS.types.`@datetime` =>
             if (step.increasing) {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: Instant), (_, v2: Instant)) =>
-                  v1.isBefore(v2)
+                obs.sortWith {
+                  case ((_, v1: Instant), (_, v2: Instant)) =>
+                    v1.isBefore(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             } else {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: Instant), (_, v2: Instant)) =>
-                  v1.isAfter(v2)
+                obs.sortWith {
+                  case ((_, v1: Instant), (_, v2: Instant)) =>
+                    v1.isAfter(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             }
           case lspace.NS.types.`@localdatetime` =>
             if (step.increasing) {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: LocalDateTime), (_, v2: LocalDateTime)) =>
-                  v1.isBefore(v2)
+                obs.sortWith {
+                  case ((_, v1: LocalDateTime), (_, v2: LocalDateTime)) =>
+                    v1.isBefore(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             } else {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: LocalDateTime), (_, v2: LocalDateTime)) =>
-                  v1.isAfter(v2)
+                obs.sortWith {
+                  case ((_, v1: LocalDateTime), (_, v2: LocalDateTime)) =>
+                    v1.isAfter(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             }
           case lspace.NS.types.`@date` =>
             if (step.increasing) {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: LocalDate), (_, v2: LocalDate)) =>
-                  v1.isBefore(v2)
+                obs.sortWith {
+                  case ((_, v1: LocalDate), (_, v2: LocalDate)) =>
+                    v1.isBefore(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             } else {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: LocalDate), (_, v2: LocalDate)) =>
-                  v1.isAfter(v2)
+                obs.sortWith {
+                  case ((_, v1: LocalDate), (_, v2: LocalDate)) =>
+                    v1.isAfter(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             }
           case lspace.NS.types.`@time` =>
             if (step.increasing) {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
-                  v1.isBefore(v2)
+                obs.sortWith {
+                  case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
+                    v1.isBefore(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             } else {
               byObsF.andThen(obs =>
-                obs.sortWith { case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
-                  v1.isAfter(v2)
+                obs.sortWith {
+                  case ((_, v1: LocalTime), (_, v2: LocalTime)) =>
+                    v1.isAfter(v2)
+                  case _ => throw new Exception(s"Unsortable")
                 }
               )
             }
+          case iri => throw new Exception(s"unexpected iri $iri")
         }).andThen(_.map(_._1))
+      case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
     }
     f.andThen(nextStep)
   }
@@ -944,7 +982,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
       case step: MapStep =>
         step match {
           case step: OutMap =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map(librarian =>
                 librarian.copy(librarian.get match {
                   case r: Resource[_] =>
@@ -962,7 +1000,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 })
               )
           case step: OutEMap =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map(librarian =>
                 librarian.copy(librarian.get match {
                   case r: Resource[_] =>
@@ -978,7 +1016,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 })
               )
           case step: InMap =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map(librarian =>
                 librarian.copy(librarian.get match {
                   case r: Resource[_] =>
@@ -997,7 +1035,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                 })
               )
           case step: InEMap =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map(librarian =>
                 librarian.copy(librarian.get match {
                   case r: Resource[_] =>
@@ -1012,6 +1050,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                   case _ => Map()
                 })
               )
+          case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
         }
       case step: Project[_] =>
         projectStep(step, steps)
@@ -1019,28 +1058,29 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
         val byObs = traversalToF(step.by)
         step.by.stepsList.lastOption match {
           case Some(Count) =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map { librarian =>
                 librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).head)
               }
           case Some(_ @(_: Head | _: Min | _: Max | _: Mean)) =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map { librarian =>
                 librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).headOption)
               }
           case Some(Last) =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map { librarian =>
                 librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).lastOption)
               }
           case _ =>
-            obs: LazyList[Librarian[Any]] =>
+            (obs: LazyList[Librarian[Any]]) =>
               obs.map { librarian =>
                 librarian.path.resources.map(r => byObs(createLibrarian(r.asInstanceOf[Resource[Any]])).toList)
               }
         }
       case step: Select[_] =>
         selectStep(step, steps)
+      case _ => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
     }
     f.andThen { r =>
       r.map {
@@ -1057,11 +1097,12 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
         traversalToF(traversal) -> {
-          (if (traversal.stepsList.isEmpty) { observable: LazyList[Librarian[Any]] =>
+          (if (traversal.stepsList.isEmpty) { (observable: LazyList[Librarian[Any]]) =>
              head(observable)
            } else endMapper(traversal))
 //          traversal.stepsList.lastOption
         }
+      case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
     }
 
     val f = (obs: LazyList[Librarian[Any]]) =>

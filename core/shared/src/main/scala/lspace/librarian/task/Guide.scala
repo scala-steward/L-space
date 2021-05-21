@@ -66,10 +66,10 @@ abstract class Guide[F[_]: Functor] {
   )(implicit graph: Graph): Librarian[Any] => F[Librarian[Any]] =
     traversal.stepsList match {
       case Nil =>
-        librarian: Librarian[Any] => createF(librarian)
+        (librarian: Librarian[Any]) => createF(librarian)
       case steps =>
         val nextStep = buildNextStep(steps)
-        librarian: Librarian[Any] => nextStep(createF(librarian))
+        (librarian: Librarian[Any]) => nextStep(createF(librarian))
     }
 
   def traversalsToF(
@@ -77,20 +77,20 @@ abstract class Guide[F[_]: Functor] {
   )(implicit graph: Graph): F[Librarian[Any]] => F[Librarian[Any]] =
     traversal.stepsList match {
       case Nil =>
-        librarians: F[Librarian[Any]] => librarians
+        (librarians: F[Librarian[Any]]) => librarians
       case steps =>
         val nextStep = buildNextStep(steps)
-        librarians: F[Librarian[Any]] => nextStep(librarians)
+        (librarians: F[Librarian[Any]]) => nextStep(librarians)
     }
 
   def reducedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
-    if (EndMapper.EndMapper0.ReducedEnd.is(steps)) Some { observable: F[Librarian[Any]] =>
+    if (EndMapper.EndMapper0.ReducedEnd.is(steps)) Some { (observable: F[Librarian[Any]]) =>
       headOption(observable)
     }
     else None
 
   def singularEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
-    if (EndMapper.EndMapper0.SingularEnd.is(steps)) Some { observable: F[Librarian[Any]] =>
+    if (EndMapper.EndMapper0.SingularEnd.is(steps)) Some { (observable: F[Librarian[Any]]) =>
       head(observable)
     }
 //    else if (EndMapper.EndMapper0.SingularFilteredEnd.is(steps)) Some({ observable: F[Librarian[Any]] =>
@@ -99,7 +99,7 @@ abstract class Guide[F[_]: Functor] {
     else None
 
   def filteredEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
-    if (EndMapper.EndMapper0.FilteredEnd.is(steps)) Some { observable: F[Librarian[Any]] =>
+    if (EndMapper.EndMapper0.FilteredEnd.is(steps)) Some { (observable: F[Librarian[Any]]) =>
       headOption(observable)
     }
     else None
@@ -117,19 +117,19 @@ abstract class Guide[F[_]: Functor] {
 //    else None
 
   def distinctedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
-    if (EndMapper.EndMapper0.DistinctedEnd.is(steps)) Some { observable: F[Librarian[Any]] =>
+    if (EndMapper.EndMapper0.DistinctedEnd.is(steps)) Some { (observable: F[Librarian[Any]]) =>
       toSet(observable)
     }
     else None
 
   def groupedEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
-    if (EndMapper.EndMapper0.GroupedEnd.is(steps)) Some { observable: F[Librarian[Any]] =>
+    if (EndMapper.EndMapper0.GroupedEnd.is(steps)) Some { (observable: F[Librarian[Any]]) =>
       toMap(observable.asInstanceOf[F[Librarian[(Any, Any)]]])
     }
     else None
 
   def oneOnOneEnd(steps: List[Step]): Option[F[Librarian[Any]] => K[Librarian[Any]]] =
-    if (EndMapper.EndMapper0.OneOnOneEnd.is(steps)) Some { observable: F[Librarian[Any]] =>
+    if (EndMapper.EndMapper0.OneOnOneEnd.is(steps)) Some { (observable: F[Librarian[Any]]) =>
       head(observable)
     }
     else None
@@ -146,7 +146,7 @@ abstract class Guide[F[_]: Functor] {
       .orElse(distinctedEnd(steps))
       .orElse(groupedEnd(steps))
       .orElse(oneOnOneEnd(steps))
-      .getOrElse { observable: F[Librarian[Any]] =>
+      .getOrElse { (observable: F[Librarian[Any]]) =>
         toList(observable)
       }
   }
@@ -190,7 +190,8 @@ abstract class Guide[F[_]: Functor] {
 
     val f = step match {
       case step: As[_, _] =>
-        obs: F[Librarian[Any]] => obs.map { l => l.copy(path = l.path.copy(labeled = l.path.labeled + (step.label -> l.get)))}
+        (obs: F[Librarian[Any]]) => obs.map { l => l.copy(path = l.path.copy(labeled = l.path.labeled + (step.label -> l.get)))}
+      case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen { r =>
       r.map {
@@ -215,6 +216,7 @@ abstract class Guide[F[_]: Functor] {
               case List(a, b)       => (a, b)
               case List(a, b, c)    => (a, b, c)
               case List(a, b, c, d) => (a, b, c, d)
+              case v => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
             })
           }
       case List(a) =>
