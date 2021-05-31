@@ -9,9 +9,9 @@ object DoubleType extends DataTypeDef[DoubleType[Double]] {
   lazy val datatype: DoubleType[Double] = new DoubleType[Double] {
     val iri: String = NS.types.`@double`
     override val iris: Set[String] =
-      Set(NS.types.`@double`, NS.types.schemaFloat, "http://schema.org/Float", NS.types.xsdDouble)
+      Set(NS.types.`@double`, NS.types.schemaFloat, "https://schema.org/Float", NS.types.xsdDouble)
     labelMap ++= Map("en" -> NS.types.`@double`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(NumericType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(NumericType.datatype)
   }
 
   object keys extends NumericType.Properties

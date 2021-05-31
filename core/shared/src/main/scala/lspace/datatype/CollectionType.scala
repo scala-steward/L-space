@@ -14,7 +14,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
   val datatype = new CollectionType[Iterable[Any]] {
     val iri: String = NS.types.`@collection`
     labelMap ++= Map("en" -> NS.types.`@collection`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   object keys {
@@ -114,6 +114,4 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 }
 
 trait CollectionType[+T] extends StructuredType[T] {
-  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
-  override lazy val _properties: List[Property]              = List(CollectionType.keys.valueRange)
 }

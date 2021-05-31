@@ -40,7 +40,6 @@ abstract class OntologyDef(
     ontology.label ++ (Map("en"   -> label).filter(_._2.nonEmpty) ++ labels.filter(_._2.nonEmpty))
     ontology.comment ++ (Map("en" -> comment).filter(_._2.nonEmpty) ++ comments.filter(_._2.nonEmpty))
     ontology.extendedClasses.++(`@extends`)
-    ontology.properties ++ properties.toSet
     ontology
   }
 

@@ -17,7 +17,7 @@ class DataTypeSpec extends AnyWordSpec with Matchers {
   }
   "retrieving datatypes" should {
     "dt" in {
-      DataType.datatypes.get("http://schema.org/Text") shouldBe Some(`@string`)
+      DataType.datatypes.get("https://schema.org/Text") shouldBe Some(`@string`)
     }
   }
 }

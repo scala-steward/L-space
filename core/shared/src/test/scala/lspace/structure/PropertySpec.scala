@@ -22,15 +22,15 @@ class PropertySpec extends AsyncWordSpec with Matchers {
       }.runToFuture
     }
   }
-  "A property.properties" should {
-    ".+ thread-safe" in {
-      val p = new Property("a")
-      (for {
-        _ <- Task.parSequenceUnordered {
-          (1 to 1000).map(i => new Property(s"a$i")).map(p.properties.+(_)).map(Task.now)
-        }
-      } yield p.properties().size shouldBe 1000).runToFuture
-    }
+//  "A property.properties" should {
+//    ".+ thread-safe" in {
+//      val p = new Property("a")
+//      (for {
+//        _ <- Task.parSequenceUnordered {
+//          (1 to 1000).map(i => new Property(s"a$i")).map(p.properties.+(_)).map(Task.now)
+//        }
+//      } yield p.properties().size shouldBe 1000).runToFuture
+//    }
 //    ".++ thread-safe" in {
 //      val p = new Property("a")
 //      (for {
@@ -39,7 +39,7 @@ class PropertySpec extends AsyncWordSpec with Matchers {
 //        }
 //      } yield p.properties().size shouldBe 1000).runToFuture
 //    }
-  }
+//  }
 //  "A property".can {
 //    "extends can be circular" in {
 //      val a: Property = "a"

@@ -9,7 +9,7 @@ object OptionType extends DataTypeDef[OptionType[Any]] {
   lazy val datatype = new OptionType[Option[Any]](None) {
     val iri: String = NS.types.`@option`
     labelMap ++= Map("en" -> NS.types.`@option`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -35,7 +35,7 @@ object OptionType extends DataTypeDef[OptionType[Any]] {
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 
-      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
+      override protected def _extendedClasses: List[ClassType[Any]] = List(datatype)
     }
 }
 

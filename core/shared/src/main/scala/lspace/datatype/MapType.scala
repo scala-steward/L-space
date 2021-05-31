@@ -9,7 +9,7 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
   lazy val datatype = new MapType[Map[Any, Any]](None, None) {
     val iri: String = NS.types.`@map`
     labelMap ++= Map("en" -> NS.types.`@map`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties {
@@ -62,7 +62,7 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
         //        else
         s"${NS.types.`@map`}(${keyRange.map(_.iri).filter(_.nonEmpty).getOrElse("")})(${valueRange.map(_.iri).filter(_.nonEmpty).getOrElse("")})"
 
-      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
+      override protected def _extendedClasses: List[ClassType[Any]] = List(datatype)
     }
 }
 
@@ -70,7 +70,7 @@ abstract class MapType[+T](val keyRange: Option[ClassType[Any]], val valueRange:
     extends CollectionType[T] {
   override def `extends`(classType: ClassType[_]): Boolean =
     if (iri == classType.iri) false
-    else if (extendedClasses().contains(classType)) true
+    else if (this.extendedClasses().contains(classType)) true
     else {
       classType match {
         case tpe: MapType[_] =>

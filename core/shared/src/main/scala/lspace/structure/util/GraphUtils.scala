@@ -34,64 +34,57 @@ trait GraphUtils {
               //    val (unmerged, transcended) =
               //      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
               for {
-                _ <- Task.sequence(unmerged.tail.map {
-                  slave =>
-                    val masterVertexOntologies = unmerged.head.labels //out(this.typeOntology).map(Ontology.wrap)
-                    val suborVertexOntologies  = slave.labels //out(this.typeOntology).map(Ontology.wrap)
-                    val ontologyGap            = suborVertexOntologies.diff(masterVertexOntologies)
-                    val typesToAdd             = mutable.HashSet[Ontology]()
-                    val typesToRemove          = mutable.HashSet[Ontology]()
-                    ontologyGap.foreach { ontology =>
-                      if (!masterVertexOntologies.exists(_.`extends`(ontology))) {
-                        masterVertexOntologies.find(o => ontology.`extends`(o)) match {
-                          case Some(inheritedOntology) =>
-                            typesToRemove += inheritedOntology
-                          case None =>
-                        }
-                        typesToAdd += ontology
+                _ <- Task.sequence(unmerged.tail.map { slave =>
+                  val masterVertexOntologies = unmerged.head.labels //out(this.typeOntology).map(Ontology.wrap)
+                  val suborVertexOntologies  = slave.labels         //out(this.typeOntology).map(Ontology.wrap)
+                  val ontologyGap            = suborVertexOntologies.diff(masterVertexOntologies)
+                  val typesToAdd             = mutable.HashSet[Ontology]()
+                  val typesToRemove          = mutable.HashSet[Ontology]()
+                  ontologyGap.foreach { ontology =>
+                    if (!masterVertexOntologies.exists(_.`extends`(ontology))) {
+                      masterVertexOntologies.find(o => ontology.`extends`(o)) match {
+                        case Some(inheritedOntology) =>
+                          typesToRemove += inheritedOntology
+                        case None =>
                       }
+                      typesToAdd += ontology
                     }
-                    val newIris = slave.iris.diff(nodes.head.iris).toList.filter(_.nonEmpty)
-                    //      typesToRemove.foreach(_.remove()) ???
-                    val linksIn  = slave.inEMap()
-                    val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
-                    for {
-                      _ <- Task.sequence(newIris.map(nodes.head.addOut(Label.P.`@ids`, _)))
-                      _ <- Task.sequence(
-                        typesToAdd
-                          .filterNot(tpe => typesToAdd.exists(_.`extends`(tpe)))
-                          .map(tpe => unmerged.head.addLabel(tpe)))
-                      _ <- Task.parSequenceUnordered(linksIn.map {
-                        case (_, properties) =>
-                          Task.parSequenceUnordered(properties.map { property =>
-                            for {
-                              _ <- property.from.addOut(property.key, unmerged.head)
-                              _ <- property.remove()
-                            } yield ()
-                          })
+                  }
+                  val newIris = slave.iris.diff(nodes.head.iris).toList.filter(_.nonEmpty)
+                  //      typesToRemove.foreach(_.remove()) ???
+                  val linksIn  = slave.inEMap()
+                  val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
+                  for {
+                    _ <- Task.sequence(newIris.map(nodes.head.addOut(Label.P.`@ids`, _)))
+                    _ <- Task.sequence(
+                      typesToAdd
+                        .filterNot(tpe => typesToAdd.exists(_.`extends`(tpe)))
+                        .map(tpe => unmerged.head.addLabel(tpe))
+                    )
+                    _ <- Task.parSequenceUnordered(linksIn.map { case (_, properties) =>
+                      Task.parSequenceUnordered(properties.map { property =>
+                        for {
+                          _ <- property.from.addOut(property.key, unmerged.head)
+                          _ <- property.remove()
+                        } yield ()
                       })
-                      _ <- Task.parSequenceUnordered(linksOut.map {
-                        case (_, properties) =>
-                          Task.parSequenceUnordered(properties.map { property =>
-                            for {
-                              _ <- unmerged.head.addOut(property.key, property.to)
-                              _ <- property.remove()
-                            } yield ()
-                          })
+                    })
+                    _ <- Task.parSequenceUnordered(linksOut.map { case (_, properties) =>
+                      Task.parSequenceUnordered(properties.map { property =>
+                        for {
+                          _ <- unmerged.head.addOut(property.key, property.to)
+                          _ <- property.remove()
+                        } yield ()
                       })
-                      //_ <- slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
-                      _ <- slave.remove()
-                    } yield ()
+                    })
+                    //_ <- slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+                    _ <- slave.remove()
+                  } yield ()
                 })
                 //_ <- Task.parSequence(transcended.map(_.remove()))
-              } yield {
-                unmerged.head
-              }
+              } yield unmerged.head
             }
-            .doOnFinish(_ =>
-              Task {
-                nodeMergeTasks.remove(iri)
-            })
+            .doOnFinish(_ => Task(nodeMergeTasks.remove(iri)).void)
             .memoizeOnSuccess
         )
         node2 <- node.graph.nodes.hasIri((node.iris + node.iri).toList).toListL.flatMap {
@@ -130,30 +123,27 @@ trait GraphUtils {
             //    val (unmerged, transcended) =
             //      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
             for {
-              _ <- Task.sequence(unmerged.tail.map {
-                slave =>
-                  //      typesToRemove.foreach(_.remove()) ???
+              _ <- Task.sequence(unmerged.tail.map { slave =>
+                //      typesToRemove.foreach(_.remove()) ???
 
-                  val linksIn  = slave.inEMap()
-                  val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
-                  for {
-                    _ <- Task.parSequenceUnordered(linksIn.map {
-                      case (_, properties) =>
-                        Task.parSequenceUnordered(properties.map { property =>
-                          property.from.addOut(property.key, unmerged.head)
-                        })
+                val linksIn  = slave.inEMap()
+                val linksOut = slave.outEMap().filterNot(p => Graph.baseKeys.contains(p._1))
+                for {
+                  _ <- Task.parSequenceUnordered(linksIn.map { case (_, properties) =>
+                    Task.parSequenceUnordered(properties.map { property =>
+                      property.from.addOut(property.key, unmerged.head)
                     })
-                    _ <- Task.parSequenceUnordered(linksOut.map {
-                      case (_, properties) =>
-                        Task.parSequenceUnordered(properties.map { property =>
-                          unmerged.head.addOut(property.key, property.to)
-                        })
+                  })
+                  _ <- Task.parSequenceUnordered(linksOut.map { case (_, properties) =>
+                    Task.parSequenceUnordered(properties.map { property =>
+                      unmerged.head.addOut(property.key, property.to)
                     })
-                    _ <- Task.defer {
-                      slave.remove()
-                    }
-                  } yield ()
-                  //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+                  })
+                  _ <- Task.defer {
+                    slave.remove()
+                  }
+                } yield ()
+                //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
               })
 //              value <- unmerged.head.graph.values
 //                .byValue(List(unmerged.head.value -> unmerged.head.label))
@@ -171,7 +161,7 @@ trait GraphUtils {
           .onErrorHandle { f =>
             f.printStackTrace(); throw f
           }
-          .doOnFinish(_ => Task(valueMergeTasks.remove(values.head.value)))
+          .doOnFinish(_ => Task(valueMergeTasks.remove(values.head.value)).void)
           .memoizeOnSuccess
       )
     }

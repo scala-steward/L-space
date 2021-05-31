@@ -177,15 +177,23 @@ object SampleGraph {
           _rate       <- _person --- properties.rate --> 4
           _address    <- _person --- "address" --> _addresses.undertheappletree
         } yield
-          new {
-            val person     = _person
-            val id         = _id
-            val name       = _name
-            val birthdate  = _birthdate
-            val birthPlace = _birthPlace
-            val balance    = _balance
-            val rate       = _rate
-            val address    = _address
+          {
+            println(properties.givenname.property.extendedClasses())
+            println(_name.labels)
+            println(_name.labels.flatMap(_.extendedClasses()))
+            println(_name.labels.flatMap(_.extendedClasses()).flatMap(_.extendedByClassesList))
+            println(properties.givenname.property.extendedClasses())
+            println(properties.name.property.extendedBy())
+            new {
+              val person     = _person
+              val id         = _id
+              val name       = _name
+              val birthdate  = _birthdate
+              val birthPlace = _birthPlace
+              val balance    = _balance
+              val rate       = _rate
+              val address    = _address
+            }
           }
         _Levi <- for {
           _person     <- graph + ontologies.person

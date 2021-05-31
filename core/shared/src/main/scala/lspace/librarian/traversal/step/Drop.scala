@@ -1,4 +1,4 @@
-package lspace.librarian.traversal.step
+//package lspace.librarian.traversal.step
 
 //import lspace.provider.detached.DetachedGraph
 //import lspace.structure._

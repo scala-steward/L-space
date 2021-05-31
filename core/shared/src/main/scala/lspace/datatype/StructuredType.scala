@@ -1,6 +1,7 @@
 package lspace.datatype
 
 import lspace.NS
+import lspace.structure.ClassType
 import lspace.structure.util.ClassTypeable
 
 object StructuredType extends DataTypeDef[StructuredType[Any]] {
@@ -9,7 +10,7 @@ object StructuredType extends DataTypeDef[StructuredType[Any]] {
     val iri: String                = NS.types.`@structured`
     override val iris: Set[String] = Set(NS.types.`@structured`)
     labelMap ++= Map("en" -> NS.types.`@structured`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(DataType.datatype)
   }
 
   object keys
@@ -20,7 +21,7 @@ object StructuredType extends DataTypeDef[StructuredType[Any]] {
   def apply[T]: StructuredType[T] = new StructuredType[T] {
     val iri: String = NS.types.`@structured`
     labelMap ++= Map("en" -> NS.types.`@structured`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(DataType.datatype)
   }
 
   implicit def clsStructured[T]: ClassTypeable.Aux[StructuredType[T], T, StructuredType[T]] =

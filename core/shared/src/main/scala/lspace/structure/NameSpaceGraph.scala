@@ -33,7 +33,7 @@ trait NameSpaceGraph extends DataGraph {
           case _ => throw new Exception(s"unexpected type ${ct.getClass.getSimpleName}")
         }
       })
-      .map(edges.create(resource, key, _))
+      .map(edges.create(resource, key, _)).void
 
   override def purge: Task[Unit] =
     for {

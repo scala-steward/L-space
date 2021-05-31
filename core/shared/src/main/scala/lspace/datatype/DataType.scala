@@ -16,7 +16,7 @@ import scala.jdk.CollectionConverters._
 object DataType
 //    extends OntologyDef(
 //      NS.types.`@datatype`,
-//      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"),
+//      Set(NS.types.`@datatype`, NS.types.schemaDataType, "https://schema.org/DataType"),
 //      NS.types.`@datatype`,
 //      `@extends` =  Ontology.ontology :: Nil
 //    )
@@ -25,7 +25,7 @@ object DataType
   lazy val ontology: Ontology = {
     val ontology = new Ontology(
       NS.types.`@datatype`,
-      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType")
+      Set(NS.types.`@datatype`, NS.types.schemaDataType, "https://schema.org/DataType")
     )
     ontology.iris.foreach(Ontology.ontologies.byIri.update(_, ontology))
     ontology.extendedClasses + Ontology.ontology
@@ -57,7 +57,7 @@ object DataType
               case _: Node       => throw new Exception(s"a Node is not an instance of DataType")
               case _: Edge[_, _] => throw new Exception(s"an Edge is not an instance of DataType")
               case _: Value[_]   => DataType.default.`@valueURL`
-              case _ => throw new Exception(s"invalid type ${r.getClass.getSimpleName}")
+              case _             => throw new Exception(s"invalid type ${r.getClass.getSimpleName}")
             }
           case _: ClassType[_] => throw new Exception(s"a ClassType is not an instance of DataType")
           case _               => DataType.default.`@url`
@@ -275,7 +275,7 @@ object DataType
           }
           datatype.iris.foreach(byIri.update(_, datatype))
           datatype.extendedClasses.all() //force eagerly init of extended classes
-          datatype.properties()          //force eagerly init of associated properties
+//          datatype.properties()          //force eagerly init of associated properties
           datatype
         }
       }
@@ -300,35 +300,37 @@ object DataType
         }
         .toMap
 
-      datatype.properties ++ (node
-        .out(Property.default.typed.propertyProperty) ++ node
-        .in(lspace.NS.types.schemaDomainIncludes)
-        .collect { case node: Node => node })
-        .filter(_.labels.contains(Property.ontology))
-        .map(Property.properties.getAndUpdate)
+//      datatype.properties ++ (node
+//        .out(Property.default.typed.propertyProperty) ++ node
+//        .in(lspace.NS.types.schemaDomainIncludes)
+//        .collect { case node: Node => node })
+//        .filter(_.labels.contains(Property.ontology))
+//        .map(Property.properties.getAndUpdate)
 
-      datatype.extendedClasses ++ node
-        .out(Property.default.`@extends`)
+      datatype.extendedClasses.++(
+        node
+          .out(Property.default.`@extends`)
 //        .headOption
-        .collect {
-          case nodes: List[_] =>
-            nodes.collect {
-              case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-                datatypes
-                  .get(node.iri)
-                  .getOrElse {
-                    datatypes.getAndUpdate(node)
-                  } //orElse???
-              case iri: String =>
-                datatypes
-                  .get(iri)
-                  .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-            }
-          case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-            List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
-        }
-        .toList
-        .flatten
+          .collect {
+            case nodes: List[_] =>
+              nodes.collect {
+                case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+                  datatypes
+                    .get(node.iri)
+                    .getOrElse {
+                      datatypes.getAndUpdate(node)
+                    } //orElse???
+                case iri: String =>
+                  datatypes
+                    .get(iri)
+                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+              }
+            case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+              List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
+          }
+          .toList
+          .flatten
+      )
 
       datatype
     }
@@ -453,6 +455,45 @@ object DataType
       val iri: String = ""
     }
   }
+
+  implicit class WithDatatype[CT[+Z] <: DataType[Z], T](_ct: CT[T]) {
+    lazy val extendedBy: ExtendedByClasses[CT[T]] = new ExtendedByClasses[CT[T]] {
+      def ct: CT[T] = _ct
+
+      def apply(): List[CT[T]] = ct.extendedByClassesList.asInstanceOf[List[CT[T]]]
+
+      def all(exclude: Set[CT[T]] = Set()): Set[CT[T]] = {
+        val _extends = apply().toSet -- exclude
+        _extends ++ (_extends - ct).flatMap(_.extendedBy.all(_extends ++ exclude))
+      }
+
+      def contains(iri: String): Boolean = {
+        val _extends = apply().toSet
+        _extends.exists(_.iris.contains(iri)) || (_extends - ct)
+          .filterNot(_.`extends`(ct))
+          .exists(_.extendedBy.contains(iri))
+      }
+
+      def +(child: => CT[T]): ExtendedByClasses[CT[T]] = ct.synchronized {
+        ct.extendedByClassesList =
+          if (!ct.extendedByClassesList.contains(child))
+            (ct.extendedByClassesList :+ child).distinct
+          else {
+            ct.extendedByClassesList
+          }
+        this
+      }
+
+      def -(parent: => CT[T]): ExtendedByClasses[CT[T]] = ct.synchronized {
+        ct.extendedClassesList = ct.extendedClassesList.filterNot(_ == parent)
+        parent match {
+          case dt: DataType[_] => dt.asInstanceOf[DataType[Any]].extendedBy.-(ct.asInstanceOf[DataType[Any]])
+          case _         =>
+        }
+        this
+      }
+    }
+  }
 }
 
 /** @tparam T
@@ -460,57 +501,8 @@ object DataType
 trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
-  def iris: Set[String]                     = Set() + iri
-  def _extendedClasses: List[DataType[Any]] = List()
-  def _properties: List[Property]           = List()
-
-  protected var extendedClassesList: Coeval[List[DataType[Any]]] = Coeval.delay(_extendedClasses).memoizeOnSuccess
-//  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
-  object extendedClasses {
-    type T = DataType[Any]
-    def apply(): List[DataType[Any]] = extendedClassesList()
-
-    /** @param exclude a datatype set to prevent circular recursion
-      * recursively fetches all extended classes (parent of parents)
-      * @return
-      */
-    def all(exclude: Set[DataType[Any]] = Set()): Set[DataType[Any]] = {
-      val _extends = extendedClasses().toSet -- exclude
-      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
-    }
-    def contains(iri: String): Boolean = {
-      val _extends = extendedClasses().toSet
-      _extends.exists(_.iris.contains(iri)) || (_extends - self)
-        .filterNot(_.`extends`(self))
-        .exists(_.extendedClasses.contains(iri))
-    }
-
-    def +(parent: => DataType[Any]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        val _parent = parent
-        if (!current.contains(parent))
-          (current :+ _parent).distinct
-        else {
-          current
-        }
-      }.memoizeOnSuccess
-      this
-    }
-    def ++(parents: => Iterable[DataType[Any]]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        (current ++ parents).distinct
-      }.memoizeOnSuccess
-      this
-    }
-    def -(parent: DataType[Any]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
-      this
-    }
-    def --(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
-      this
-    }
-  }
+  def iris: Set[String]           = Set() + iri
+  def _properties: List[Property] = List()
 
   override def toString: String = s"datatype:$iri"
 }

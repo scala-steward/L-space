@@ -32,7 +32,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
 //      println(values.added.map(_.prettyPrint))
       for {
         _ <- super.commit()
-        (collections, others) = values.added.toList.partition(_.label.isInstanceOf[CollectionType[_]])
+        (collections, others) = values.added.toList.partition(_.label.isInstanceOf[CollectionType[Any]])
         newOtherValues <- Task {
 //          println(s"committing others ${others.map(_.prettyPrint)}")
           others.map(value => parent.newValue(value.id, value.value, value.label))

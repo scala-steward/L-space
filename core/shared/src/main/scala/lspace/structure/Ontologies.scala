@@ -132,7 +132,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
               _ <- Task.parSequence(ontology.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
 
               //                properties      <- Task.parSequence(ontology.properties.map(ns.properties.store))
-              extendedClasses <- Task.parSequence(ontology.extendedClasses().map(ns.ontologies.store))
+              extendedClasses <- Task.parSequence(ontology.extendedClasses().collect { case o: Ontology => o }.map(ns.ontologies.store))
               _        <- node.addOut(Label.P.`@extends`, extendedClasses)
               _ <- Task.parSequence(ontology.label().map {
                 case (language, label) =>

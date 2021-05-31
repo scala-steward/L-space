@@ -1049,19 +1049,19 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
           val rangeIris = expandedJson
             .get(types.`@range`)
             .orElse(expandedJson.get(types.schemaRange))
-            .orElse(expandedJson.get("http://schema.org/rangeIncludes"))
+            .orElse(expandedJson.get("https://schema.org/rangeIncludes"))
             .toList
             .flatMap(extractIris(_))
 
           val domainIncludeIris = expandedJson
             .get(types.schemaDomainIncludes)
-            .orElse(expandedJson.get("http://schema.org/domainIncludes"))
+            .orElse(expandedJson.get("https://schema.org/domainIncludes"))
             .toList
             .flatMap(extractIris(_))
 
           val inverseOf = expandedJson
             .get(types.schemaInverseOf)
-            .orElse(expandedJson.get("http://schema.org/inverseOf"))
+            .orElse(expandedJson.get("https://schema.org/inverseOf"))
             .toList
             .flatMap(extractIris(_))
 

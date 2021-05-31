@@ -53,13 +53,13 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
 //        println(
 //          encoder
 //            .fromActiveContext(ActiveContext(
-//              `@prefix` = ListMap("naam" -> "http://schema.org/name"),
+//              `@prefix` = ListMap("naam" -> "https://schema.org/name"),
 //              definitions = Map(
-//                "http://schema.org/name" -> ActiveProperty(`@type` = `@string` :: Nil,
-//                                                           property = Property("http://schema.org/name")),
+//                "https://schema.org/name" -> ActiveProperty(`@type` = `@string` :: Nil,
+//                                                           property = Property("https://schema.org/name")),
 //                "nameFor" -> ActiveProperty(`@type` = person :: Nil,
 //                                            `@reverse` = true,
-//                                            property = Property("http://schema.org/name"))
+//                                            property = Property("https://schema.org/name"))
 //              )
 //            ))
 //            .map(_.noSpaces))

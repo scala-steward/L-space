@@ -1,7 +1,7 @@
 package lspace.structure
 
 import lspace.NS
-import lspace.datatype.{DataType, IriType, NodeURLType}
+import lspace.datatype.{IriType, NodeURLType}
 import lspace.librarian.traversal.{step, Traversal}
 import lspace.structure.util.ClassTypeable
 import lspace.util.CacheStatus
@@ -19,7 +19,7 @@ object Node {
   def nodeUrl: NodeURLType[Node] = new NodeURLType[Node] {
     val iri: String = NS.types.`@nodeURL`
     labelMap ++= Map("en" -> NS.types.`@nodeURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected lazy val _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 
   implicit class WithNode[T](node: Node) {

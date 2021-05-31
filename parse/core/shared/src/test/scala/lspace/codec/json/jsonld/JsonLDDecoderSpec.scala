@@ -28,17 +28,17 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
     "decode any ontology".which {
       "is served by schema.org" ignore {
         decoder
-          .toOntology("http://schema.org/Person")(ActiveContext())
+          .toOntology("https://schema.org/Person")(ActiveContext())
           .map { ontology =>
-            ontology.iri shouldBe "http://schema.org/Person"
+            ontology.iri shouldBe "https://schema.org/Person"
 //            println(ontology.properties().map(_.iri))
             ontology
               .properties("https://schema.org/additionalName")
               .isDefined shouldBe true
             ontology
-              .properties("http://schema.org/additionalName")
+              .properties("https://schema.org/additionalName")
               .exists(_.range(`@string`.iri).isDefined) shouldBe true
-            ontology.properties("http://schema.org/colleagues").isDefined shouldBe false //superseded
+            ontology.properties("https://schema.org/colleagues").isDefined shouldBe false //superseded
           }
           .timeout(60.seconds)
           .runToFuture
@@ -47,9 +47,9 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
     "decode any property".which {
       "is served by schema.org" ignore {
         decoder
-          .toProperty("http://schema.org/artEdition")(ActiveContext())
+          .toProperty("https://schema.org/artEdition")(ActiveContext())
           .map { property =>
-            property.iri shouldBe "http://schema.org/artEdition"
+            property.iri shouldBe "https://schema.org/artEdition"
             property.range().contains(`@string`) shouldBe true
             property.range().contains(`@int`) shouldBe true
             property.range().contains(`@long`) shouldBe false
@@ -62,9 +62,9 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
       decoder
         .fetchVocabularyGraph("https://schema.org/version/3.5/all-layers.jsonld")(ActiveContext())
         .map { u =>
-          val codeSampleType = Property.properties.get("http://schema.org/codeSampleType")
+          val codeSampleType = Property.properties.get("https://schema.org/codeSampleType")
           codeSampleType.isDefined shouldBe true
-          val CssSelectorType = Ontology.ontologies.get("http://schema.org/CssSelectorType")
+          val CssSelectorType = Ontology.ontologies.get("https://schema.org/CssSelectorType")
           CssSelectorType.isDefined shouldBe true
           succeed
         }
@@ -95,11 +95,11 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
           .hasLabel(Ontology("https://ns.hoorn.nl/Project"))
           .range(0, 10)
           .project(_.iri)
-          .by(_.out(Property("http://schema.org/geo").as(`@geo`)))
-          .by(_.out(Property("http://schema.org/description").as(`@string`)))
+          .by(_.out(Property("https://schema.org/geo").as(`@geo`)))
+          .by(_.out(Property("https://schema.org/description").as(`@string`)))
         decoder
           .stringToLabeledNode(
-            """{"@context":{"0":"https://ns.l-space.eu/librarian/"},"@type":"0:Traversal","0:Traversal/steps":{"@value":[{"@type":"0:step/N"},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"https://ns.hoorn.nl/Project"}},{"@type":"0:step/Range","0:step/Range/low":{"@value":0,"@type":"@int"},"0:step/Range/high":{"@value":10,"@type":"@int"}},{"@type":"0:step/Project","0:step/Project/by":{"@value":[{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"http://schema.org/description"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"http://schema.org/geo"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@geo"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"@id"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}],"@type":"@list(https://ns.l-space.eu/librarian/Traversal)"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}""",
+            """{"@context":{"0":"https://ns.l-space.eu/librarian/"},"@type":"0:Traversal","0:Traversal/steps":{"@value":[{"@type":"0:step/N"},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"https://ns.hoorn.nl/Project"}},{"@type":"0:step/Range","0:step/Range/low":{"@value":0,"@type":"@int"},"0:step/Range/high":{"@value":10,"@type":"@int"}},{"@type":"0:step/Project","0:step/Project/by":{"@value":[{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"https://schema.org/description"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"https://schema.org/geo"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@geo"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}},{"0:Traversal/steps":{"@value":[{"@type":"0:step/Out","0:MoveStep/label":{"@id":"@id"}},{"@type":"0:step/HasLabel","0:step/HasLabel/Label":{"@id":"@string"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}],"@type":"@list(https://ns.l-space.eu/librarian/Traversal)"}}],"@type":"@vector(https://ns.l-space.eu/librarian/Step)"}}""",
             Traversal.ontology
           )(ActiveContext())
           .flatMap { node =>

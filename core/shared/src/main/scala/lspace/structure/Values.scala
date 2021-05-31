@@ -18,7 +18,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   def count(): Task[Long]             = valueStore.count()
 
   def hasId(id: Long): Task[Option[Value[Any]]] = valueStore.hasId(id)
-  def cached = new {
+  def cached: Cached = new Cached{
     def hasId(id: Long): Option[Value[Any]] =
       valueStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
@@ -148,7 +148,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             case values =>
               mergeValues(values.toSet)
           }
-          .doOnFinish(_ => Task(upsertingTasks.remove(value)))
+          .doOnFinish(_ => Task(upsertingTasks.remove(value)).void)
           .memoize
       )
       .asInstanceOf[Task[Value[V]]]
@@ -167,7 +167,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             case values =>
               mergeValues(values.toSet)
           }
-          .doOnFinish(_ => Task(upsertingTasks.remove(value)))
+          .doOnFinish(_ => Task(upsertingTasks.remove(value)).void)
           .memoize
       )
       .asInstanceOf[Task[Value[V]]]

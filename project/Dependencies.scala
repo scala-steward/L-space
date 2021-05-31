@@ -8,7 +8,7 @@ object Dependencies {
       "eu.l-space"   %%% "types"          % Version.lspaceTypes,
       "io.monix"     %%% "monix-reactive" % Version.monix,
       ("com.chuusai" %%% "shapeless"      % Version.shapeless).cross(CrossVersion.for3Use2_13),
-      "eu.timepit"   %%% "refined"        % Version.refined,
+//      "eu.timepit"   %%% "refined"        % Version.refined,
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       ("com.outr"     %%% "scribe"    % Version.scribe).cross(CrossVersion.for3Use2_13),

@@ -118,7 +118,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
     "Properties".can {
       "only be single for cardinality single".ignore {
         val singleProperty = Property("singleproperty")
-        singleProperty.range + DataType.default.`@string`
+//        singleProperty.range + DataType.default.`@string`
 
         (for {
           node <- graph.nodes.create()
@@ -146,7 +146,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       }
       "be of type double" in {
         val number = Property("number")
-        number.range + DataType.default.`@double`
+//        number.range + DataType.default.`@double`
         val numberDouble = number.as(DataType.default.`@double`)
         (for {
           node <- graph.nodes.create()

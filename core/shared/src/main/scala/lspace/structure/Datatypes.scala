@@ -73,7 +73,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
 
   //        .orElse(byIri.get(iri))
 
-  def store(datatype: DataType[_]): Task[Node] = {
+  def store(datatype: DataType[Any]): Task[Node] = {
     byIri.get(datatype.iri).map(Task.now).getOrElse {
       if (DataType.datatypes.default.byIri.contains(datatype.iri)) {
         for {
@@ -183,7 +183,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                       _       <- comment.addOut(Property.default.`@language`, language)
                     } yield comment
                   })
-                  _ <- Task.parSequence(datatype.extendedClasses().map(ns.datatypes.store))
+                  _ <- Task.parSequence(datatype.extendedClasses().collect { case d: DataType[Any] => d }.map(ns.datatypes.store))
                   _ <- node.addOut(Label.P.`@extends`, datatype.extendedClasses())
                 } yield node
                 //              datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))

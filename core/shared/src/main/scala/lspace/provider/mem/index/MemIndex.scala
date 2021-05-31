@@ -47,7 +47,7 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
     splitByOut(if (traversal.steps.head.isInstanceOf[Out]) List(Set()) else List(), traversal.steps)
 
   def store(shape: Shape): Task[Unit] =
-    Task.now(synchronized {
+    Task.now(synchronized[Unit] {
 //    if (shape.edges.zipAll(path, null, null).forall {
 //          case (null, p) => false
 //          case (e, null) => false

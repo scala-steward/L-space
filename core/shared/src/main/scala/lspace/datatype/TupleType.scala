@@ -15,13 +15,13 @@ object TupleType extends DataTypeDef[TupleType[_]] {
   lazy val datatype = new TupleType[Any] {
     override lazy val iri: String = NS.types.`@tuple`
     labelMap ++= Map("en" -> NS.types.`@tuple`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   def make[T] = new TupleType[T] {
     override lazy val iri: String = NS.types.`@tuple`
     labelMap ++= Map("en" -> NS.types.`@tuple`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties { //TODO: change to PropertyDef
@@ -57,11 +57,11 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
     s"${types.`@tuple`}$iriTail"
   }
 
-  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TupleType.datatype)
+  override protected def _extendedClasses: List[ClassType[Any]] = List(TupleType.datatype)
 
   override def `extends`(classType: ClassType[_]): Boolean =
     if (iri == classType.iri) false
-    else if (extendedClasses().contains(classType)) true
+    else if (this.extendedClasses().contains(classType)) true
     else {
       classType match {
         case tpe: TupleType[_] if rangeTypes.size == tpe.rangeTypes.size =>

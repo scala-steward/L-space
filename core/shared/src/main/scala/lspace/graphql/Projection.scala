@@ -1,8 +1,5 @@
 package lspace.graphql
 
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.auto._
-import eu.timepit.refined.numeric.{NonNegative, Positive}
 import lspace.librarian.traversal.UntypedTraversal
 import lspace.librarian.traversal.step.Project
 import lspace.{g, ClassType, P, Property, Traversal}
@@ -15,8 +12,8 @@ case class Projection(
   property: Property,
   alias: String,
   reverse: Boolean = false,
-  limit: Option[Int Refined Positive] = None,
-  offset: Option[Int Refined NonNegative] = None,
+  limit: Option[Int] = None,
+  offset: Option[Int] = None,
   parameters: ListMap[Property, Any] = ListMap(), //add direction to parameter property (in/out)
   projections: List[Projection] = List()
 ) {

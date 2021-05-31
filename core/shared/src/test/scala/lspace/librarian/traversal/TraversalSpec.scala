@@ -91,7 +91,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       lspace.g.N.out().hasIri("abc").stepsList.size shouldBe 3
       val pDouble =
         Property("schema/x")
-      pDouble.range + DataType.default.`@double`
+//      pDouble.range + DataType.default.`@double`
 //      val typedPDouble: TypedProperty[Double] = pDouble.as(DataType.default.`@double`)
       graph.ns.properties.store(pDouble)
       //      val pDouble = NumericPropertyKey("x", "schema/x")(TraversalSpec.DoubleType)
@@ -149,7 +149,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         } shouldBe true
 
       val pString = Property("aa")
-      pString.range + DataType.default.`@string`
+//      pString.range + DataType.default.`@string`
 
 //      val typedPString: TypedProperty[String] = pString.as(DataType.default.`@string`)
       graph.ns.properties.store(pString)

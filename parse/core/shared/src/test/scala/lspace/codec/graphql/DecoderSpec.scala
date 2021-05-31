@@ -14,13 +14,13 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
 
-  val schemaName         = Property.properties.getOrCreate("http://schema.org/name")
-  val schemaName2        = Property.properties.getOrCreate("http://schema.org/name2")
-  val schemaDescription  = Property.properties.getOrCreate("http://schema.org/description")
-  val schemaDescription2 = Property.properties.getOrCreate("http://schema.org/description2")
+  val schemaName         = Property.properties.getOrCreate("https://schema.org/name")
+  val schemaName2        = Property.properties.getOrCreate("https://schema.org/name2")
+  val schemaDescription  = Property.properties.getOrCreate("https://schema.org/description")
+  val schemaDescription2 = Property.properties.getOrCreate("https://schema.org/description2")
   val activeContext = ActiveContext(
 //    `@prefix` = ListMap(
-//      "name" -> "http://schema.org/name"
+//      "name" -> "https://schema.org/name"
 //    ),
     definitions = Map(
       "names" -> ActiveProperty(schemaName,

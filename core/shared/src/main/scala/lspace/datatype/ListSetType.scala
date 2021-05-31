@@ -11,7 +11,7 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
   lazy val datatype = new ListSetType[ListSet[Any]](None) {
     val iri: String = NS.types.`@listset`
     labelMap ++= Map("en" -> NS.types.`@listset`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -60,13 +60,13 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
         List(NS.types.`@listset`, "(", valueRange.map(_.iri).filter(_.nonEmpty).getOrElse(""), ")")
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
-      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
+      override protected def _extendedClasses: List[ClassType[Any]] = List(datatype)
     }
 }
 
 abstract class ListSetType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V] {
   override def `extends`(classType: ClassType[_]): Boolean =
-    if (extendedClasses().contains(classType)) true
+    if (this.extendedClasses().contains(classType)) true
     else {
       classType match {
         case tpe: ListSetType[_] =>

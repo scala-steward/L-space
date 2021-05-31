@@ -2,7 +2,7 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.{IriResource, Ontology, Property}
+import lspace.structure.{ClassType, IriResource, Ontology, Property}
 
 import scala.annotation.unused
 
@@ -14,7 +14,7 @@ object IriType extends DataTypeDef[IriType[IriResource]] {
     val iri: String                = NS.types.`@url`
     override val iris: Set[String] = Set(NS.types.`@url`, NS.types.schemaURL, NS.types.xsdAnyURI)
     labelMap ++= Map("en" -> NS.types.`@url`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(DataType.datatype)
   }
 
   object keys

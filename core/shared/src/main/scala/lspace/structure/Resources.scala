@@ -62,7 +62,7 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
       nodeOrEdgeOrValueOption <- if (nodeOrEdgeOption.nonEmpty) Task.now(nodeOrEdgeOption) else values.hasId(id)
     } yield nodeOrEdgeOrValueOption
 
-  lazy val cached = new {
+  lazy val cached: Cached = new Cached {
     def hasId(id: Long): Option[Resource[Any]] =
       nodeStore.cached.hasId(id).orElse(edgeStore.cached.hasId(id)).orElse(valueStore.cached.hasId(id))
 

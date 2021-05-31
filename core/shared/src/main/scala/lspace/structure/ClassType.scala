@@ -15,7 +15,7 @@ object ClassType {
 
   object matchers {
     private lazy val datatypeMatchers = mutable.HashSet[DataTypeMatcher]()
-    def add(matcher: DataTypeMatcher): Unit = datatypeMatchers.synchronized {
+    def add(matcher: DataTypeMatcher): Unit = datatypeMatchers.synchronized[Unit] {
       datatypeMatchers += matcher
     }
     def +(matcher: DataTypeMatcher): Unit = add(matcher)
@@ -35,14 +35,14 @@ object ClassType {
               case r: Node       => r.labels.reduceOption[ClassType[Any]](_ + _).getOrElse(Ontology.empty)
               case r: Edge[_, _] => r.key
               case r: Value[_]   => r.label
-              case _ => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
+              case _             => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
             }
           case r: ClassType[_] =>
             r match {
               case _: Ontology    => Ontology.ontology
               case _: Property    => Property.ontology
               case _: DataType[_] => DataType.ontology
-              case _ => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
+              case _              => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
             }
           case _ => ClassType.empty
         }
@@ -80,12 +80,12 @@ object ClassType {
     val iris: Set[String] = Set()
 
     //    val _extendedClasses: List[_ <: DataType[_]] = List()
-    object extendedClasses {
-      type T = ClassType[Any]
-      def apply(): List[ClassType[Any]]                                  = List()
-      def all(exclude: Set[ClassType[Any]] = Set()): Set[ClassType[Any]] = Set()
-      def contains(iri: String): Boolean                                    = false
-    }
+//    object extendedClasses {
+//      type T = ClassType[Any]
+//      def apply(): List[ClassType[Any]]                                  = List()
+//      def all(exclude: Set[ClassType[Any]] = Set()): Set[ClassType[Any]] = Set()
+//      def contains(iri: String): Boolean                                 = false
+//    }
 //    val _properties: List[Property]              = List()
 //    val base: Option[String] = None
 
@@ -104,11 +104,103 @@ object ClassType {
 //    def ct: CT = default[T]
 //  }
 
+  implicit class WithAnyClassType(_ct: ClassType[Any]) {
+    lazy val extendedClasses: ExtendedClasses[ClassType[Any]] = new ExtendedClasses[ClassType[Any]] {
+      def ct: ClassType[Any] = _ct
+
+      def apply(): List[ClassType[Any]] = ct.extendedClassesList
+
+      /** @param exclude a classtype set to prevent circular recursion
+        *                recursively fetches all extended classes (parent of parents)
+        * @return
+        */
+      def all(exclude: Set[ClassType[Any]] = Set.empty[ClassType[Any]]): Set[ClassType[Any]] = {
+        val _extends = apply().toSet -- exclude
+        _extends ++ (_extends - ct).flatMap(_.extendedClasses.all(_extends ++ exclude))
+      }
+
+      def contains(iri: String): Boolean = {
+        val _extends = apply().toSet
+        _extends.exists(_.iris.contains(iri)) || (_extends - ct)
+          .filterNot(_.`extends`(ct))
+          .exists(_.extendedClasses.contains(iri))
+      }
+
+      def +(parent: => ClassType[Any]): ExtendedClasses[ClassType[Any]] = ct.synchronized {
+        ct.extendedClassesList = if (!ct.extendedClassesList.contains(parent)) {
+          parent match {
+            case d: DataType[Any] => d.extendedBy.+(ct.asInstanceOf[DataType[Any]])
+            case p: Property      => p.extendedBy.+(ct.asInstanceOf[Property])
+            case o: Ontology      => o.extendedBy.+(ct.asInstanceOf[Ontology])
+          }
+          (ct.extendedClassesList :+ parent).distinct
+        } else {
+          ct.extendedClassesList
+        }
+        this
+      }
+
+      def ++(parents: => Iterable[ClassType[Any]]): ExtendedClasses[ClassType[Any]] = ct.synchronized {
+        ct.extendedClassesList = (ct.extendedClassesList ++ parents).distinct
+        parents.map {
+          case d: DataType[Any] => d.extendedBy.+(ct.asInstanceOf[DataType[Any]])
+          case p: Property      => p.extendedBy.+(ct.asInstanceOf[Property])
+          case o: Ontology      => o.extendedBy.+(ct.asInstanceOf[Ontology])
+        }
+        this
+      }
+
+      def -(parent: => ClassType[Any]): ExtendedClasses[ClassType[Any]] = ct.synchronized {
+        ct.extendedClassesList = ct.extendedClassesList.filterNot(_ == parent)
+        parent match {
+          case d: DataType[Any] => d.extendedBy.-(ct.asInstanceOf[DataType[Any]])
+          case p: Property      => p.extendedBy.-(ct.asInstanceOf[Property])
+          case o: Ontology      => o.extendedBy.+(ct.asInstanceOf[Ontology])
+        }
+        this
+      }
+
+      def --(parent: => Iterable[ClassType[Any]]): ExtendedClasses[ClassType[Any]] = ct.synchronized {
+        ct.extendedClassesList = ct.extendedClassesList.filterNot(parent.toList.contains)
+        this
+      }
+    }
+  }
+
+//  implicit class WithClassType[CT[+Z] <: ClassType[Z], T](_ct: CT[T]) {
+//    lazy val extendedBy: ExtendedByClasses[CT[T]] = new ExtendedByClasses[CT[T]] {
+//      def ct: CT[T] = _ct
+//
+//      def apply(): List[CT[T]] = ct.extendedByClassesList.asInstanceOf[List[CT[T]]]
+//
+//      def all(exclude: Set[CT[T]] = Set()): Set[CT[T]] = {
+//        val _extends = apply().toSet -- exclude
+//        _extends ++ (_extends - ct).flatMap(_.extendedBy.all(_extends ++ exclude))
+//      }
+//
+//      def contains(iri: String): Boolean = {
+//        val _extends = apply().toSet
+//        _extends.exists(_.iris.contains(iri)) || (_extends - ct)
+//          .filterNot(_.`extends`(ct))
+//          .exists(_.extendedBy.contains(iri))
+//      }
+//
+//      def +(child: => CT[T]): ExtendedByClasses[CT[T]] = ct.synchronized {
+//        ct.extendedByClassesList =
+//          if (!ct.extendedByClassesList.contains(child))
+//            (ct.extendedByClassesList :+ child).distinct
+//          else {
+//            ct.extendedByClassesList
+//          }
+//        this
+//      }
+//    }
+//  }
 }
 
 /** @tparam T
   */
-trait ClassType[+T] extends IriResource {
+trait ClassType[+T] extends IriResource { self =>
 
   def iris: Set[String] //TODO var iriList: Set[String]
   def `@ids` = iris
@@ -206,15 +298,16 @@ trait ClassType[+T] extends IriResource {
   }
 //  protected def _properties: List[Property]
 
-//  protected def _extendedClasses: List[_ <: ClassType[_]]
+  protected def _extendedClasses: List[ClassType[Any]] = Nil
 
+  protected[lspace] var extendedClassesList: List[ClassType[Any]] = _extendedClasses
   //  def extendedClasses: List[ClassType[_]] // = out(DataType.default.EXTENDS).collect { case node: Node => node }.map(ClassType.wrap).asInstanceOf[List[ClassType[_]]]
   /** TODO: deprecate this method by implementing Ontology hierarchy
     * @param classType
     * @return
     */
   def `extends`(classType: ClassType[_]): Boolean = {
-    val _extends = extendedClasses.all(Set())
+    val _extends = this.extendedClasses.all(Set())
     _extends.toList.contains(classType)
 //    if (_extends.contains(classType)) true
 //    else {
@@ -239,40 +332,6 @@ trait ClassType[+T] extends IriResource {
     */
   def <:<(classType: ClassType[_]): Boolean = `extends`(classType)
 
-//  @deprecated(s"migrate to properties(iri: String)")
-//  def property(iri: String): Option[Property]    = properties(iri)
-//  def `@property`(iri: String): Option[Property] = properties(iri)
-
-  protected var propertiesList: Set[Property] =
-    Set[Property]() //_properties().toSet ++ extendedClasses.flatMap(_.properties)
-  object properties {
-    def apply(): Set[Property] = propertiesList
-    def apply(iri: String): Option[Property] = propertiesList.find(_.iris.contains(iri)).orElse {
-      var result: Option[Property] = None
-      val oIt                      = extendedClasses().reverseIterator
-      while (oIt.hasNext && result.isEmpty)
-        result = oIt.next().properties(iri)
-      result
-    }
-    def +(property: => Property): this.type = this.synchronized {
-      propertiesList = propertiesList + property
-      this
-    }
-    def ++(properties: => Iterable[Property]): this.type = this.synchronized {
-      propertiesList = propertiesList ++ properties
-      this
-    }
-    def -(property: => Property): this.type = this.synchronized {
-      propertiesList = propertiesList - property
-      this
-    }
-    def --(properties: => Iterable[Property]): this.type = this.synchronized {
-      propertiesList = propertiesList -- properties
-      this
-    }
-  }
-  def `@properties` = properties
-
   /** TODO: create hash-tree for faster evaluation
     * @return
     */
@@ -281,12 +340,8 @@ trait ClassType[+T] extends IriResource {
 //    def apply(): List[ClassType[Any]]
 //    def apply(iri: String): Boolean
 //  }
-  def extendedClasses: {
-    type T <: ClassType[Any]
-    def apply(): List[T]
-    def all(exclude: Set[T]): Set[T]
-    def contains(iri: String): Boolean
-  }
+
+  protected[lspace] var extendedByClassesList: List[ClassType[Any]] = List()
 
   protected lazy val labelMap: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
   object label {
@@ -320,4 +375,28 @@ trait ClassType[+T] extends IriResource {
 
 //  def base: Option[String]
 //  def `@base` = base
+}
+
+trait ExtendedClasses[T] {
+  def ct: T
+  def apply(): List[T]
+  def all(exclude: Set[T] = Set.empty[T]): Set[T]
+  def contains(iri: String): Boolean
+
+  def +(parent: => T): ExtendedClasses[T]
+  def ++(parents: => Iterable[T]): ExtendedClasses[T]
+  def -(parent: => T): ExtendedClasses[T]
+  def --(parent: => Iterable[T]): ExtendedClasses[T]
+}
+
+trait ExtendedByClasses[T] {
+  def ct: T
+  def apply(): List[T]
+  def all(exclude: Set[T] = Set.empty[T]): Set[T]
+  def contains(iri: String): Boolean
+
+  def +(child: => T): ExtendedByClasses[T]
+//  def ++(parents: => Iterable[T]): ExtendedByClasses[T]
+  def -(parent: => T): ExtendedByClasses[T]
+//  def --(parent: => Iterable[T]): ExtendedByClasses[T]
 }

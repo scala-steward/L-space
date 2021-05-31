@@ -11,7 +11,7 @@ object GeopointType extends DataTypeDef[GeopointType[Point]] {
     val iri: String                = NS.types.`@geopoint`
     override val iris: Set[String] = Set(NS.types.`@geopoint`)
     labelMap ++= Map("en" -> NS.types.`@geopoint`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties
@@ -32,7 +32,7 @@ object GeoMultipointType extends DataTypeDef[GeoMultipointType[MultiPoint]] {
   lazy val datatype: GeoMultipointType[MultiPoint] = new GeoMultipointType[MultiPoint] {
     val iri: String = NS.types.`@geomultipoint`
     labelMap ++= Map("en" -> NS.types.`@geomultipoint`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties
@@ -54,7 +54,7 @@ object GeoLineType extends DataTypeDef[GeoLineType[Line]] {
   lazy val datatype: GeoLineType[Line] = new GeoLineType[Line] {
     val iri: String = NS.types.`@geoline`
     labelMap ++= Map("en" -> NS.types.`@geoline`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties
@@ -75,7 +75,7 @@ object GeoMultiLineType extends DataTypeDef[GeoMultiLineType[MultiLine]] {
   lazy val datatype: GeoMultiLineType[MultiLine] = new GeoMultiLineType[MultiLine] {
     val iri: String = NS.types.`@geomultiline`
     labelMap ++= Map("en" -> NS.types.`@geomultiline`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties
@@ -96,7 +96,7 @@ object GeoPolygonType extends DataTypeDef[GeoPolygonType[Polygon]] {
   lazy val datatype: GeoPolygonType[Polygon] = new GeoPolygonType[Polygon] {
     val iri: String = NS.types.`@geopolygon`
     labelMap ++= Map("en" -> NS.types.`@geopolygon`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties
@@ -117,7 +117,7 @@ object GeoMultiPolygonType extends DataTypeDef[GeoMultiPolygonType[MultiPolygon]
   lazy val datatype: GeoMultiPolygonType[MultiPolygon] = new GeoMultiPolygonType[MultiPolygon] {
     val iri: String = NS.types.`@geomultipolygon`
     labelMap ++= Map("en" -> NS.types.`@geomultipolygon`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties
@@ -139,7 +139,7 @@ object GeoMultiGeometryType extends DataTypeDef[GeoMultiGeometryType[MultiGeomet
   lazy val datatype: GeoMultiGeometryType[MultiGeometry] = new GeoMultiGeometryType[MultiGeometry] {
     val iri: String = NS.types.`@geomultigeometry`
     labelMap ++= Map("en" -> NS.types.`@geomultigeometry`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(GeometricType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(GeometricType.datatype)
   }
 
   object keys extends GeometricType.Properties

@@ -13,7 +13,7 @@ object Property {
   lazy val ontology: Ontology = {
     val ontology = new Ontology(
       NS.types.`@property`,
-      Set(NS.types.`@property`, NS.types.rdfProperty, "https://schema.org/Property", "http://schema.org/Property")
+      Set(NS.types.`@property`, NS.types.rdfProperty, "https://schema.org/Property", "https://schema.org/Property")
     )
     ontology.iris.foreach(Ontology.ontologies.byIri.update(_, ontology))
     ontology
@@ -132,48 +132,48 @@ object Property {
 //          node
 //            .out(Property.default.`@range`)
 //            .collect { case node: Node => node.iri })
-      property.range ++ node
-        .out(Property.default.`@range`)
-//        .headOption
-        .collect {
-          case nodes: List[_] =>
-//            println(s"get range ${nodes.asInstanceOf[List[Node]].map(_.iri)} for ${node.iri}")
-            nodes.collect {
-              case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
-                ClassType.classtypes
-                  .get(node.iri)
-                  .getOrElse {
-                    ClassType.classtypes.getAndUpdate(node)
-                  } //orElse???
-              case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
-                ClassType.classtypes.get(node.iri).get
-              case node: Node =>
-                if (node.iri.nonEmpty) {
-//                  scribe.warn(s"range type without label, ${node.iri} is assumed to be an ontology")
-                  Ontology.ontologies.getOrCreate(node.iri)
-                } else throw new Exception(s"s node ${property.iri} with range iri ${node.iri} ${node.iris}")
-              case iri: String =>
-                ClassType.classtypes
-                  .get(iri)
-                  .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
-            }
-          case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
-            List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getAndUpdate(node)))
-          case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
-//            println(s"found ct by iri ${node.iri}")
-            List(ClassType.classtypes.get(node.iri).get)
-        }
-        .toList
-        .flatten
+//      property.range ++ node
+//        .out(Property.default.`@range`)
+////        .headOption
+//        .collect {
+//          case nodes: List[_] =>
+////            println(s"get range ${nodes.asInstanceOf[List[Node]].map(_.iri)} for ${node.iri}")
+//            nodes.collect {
+//              case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
+//                ClassType.classtypes
+//                  .get(node.iri)
+//                  .getOrElse {
+//                    ClassType.classtypes.getAndUpdate(node)
+//                  } //orElse???
+//              case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
+//                ClassType.classtypes.get(node.iri).get
+//              case node: Node =>
+//                if (node.iri.nonEmpty) {
+////                  scribe.warn(s"range type without label, ${node.iri} is assumed to be an ontology")
+//                  Ontology.ontologies.getOrCreate(node.iri)
+//                } else throw new Exception(s"s node ${property.iri} with range iri ${node.iri} ${node.iris}")
+//              case iri: String =>
+//                ClassType.classtypes
+//                  .get(iri)
+//                  .getOrElse(throw new Exception("@range looks like an iri but cannot be wrapped by a classtype"))
+//            }
+//          case node: Node if node.hasLabel(Ontology.ontology).orElse(node.hasLabel(Property.ontology)).isDefined =>
+//            List(ClassType.classtypes.get(node.iri).getOrElse(ClassType.classtypes.getAndUpdate(node)))
+//          case node: Node if ClassType.classtypes.get(node.iri).nonEmpty =>
+////            println(s"found ct by iri ${node.iri}")
+//            List(ClassType.classtypes.get(node.iri).get)
+//        }
+//        .toList
+//        .flatten
 
-      property.properties ++ (node
-        .out(Property.default.typed.propertyProperty)
-        .filter(_.out("http://schema.org/supersededBy").isEmpty) ++ node
-        .in(lspace.NS.types.schemaDomainIncludes, "http://schema.org/domainIncludes")
-        .collect { case node: Node => node })
-        .filter(_.labels.contains(Property.ontology))
-        .filter(_.out("http://schema.org/supersededBy").isEmpty)
-        .map(Property.properties.getAndUpdate)
+//      property.properties ++ (node
+//        .out(Property.default.typed.propertyProperty)
+//        .filter(_.out("https://schema.org/supersededBy").isEmpty) ++ node
+//        .in(lspace.NS.types.schemaDomainIncludes, "https://schema.org/domainIncludes")
+//        .collect { case node: Node => node })
+//        .filter(_.labels.contains(Property.ontology))
+//        .filter(_.out("https://schema.org/supersededBy").isEmpty)
+//        .map(Property.properties.getAndUpdate)
 
       property.extendedClasses ++ node
         .out(Property.default.`@extends`)
@@ -232,77 +232,51 @@ object Property {
   object default {
     import DataType.default._
 
-    lazy val `@id`: Property = new Property(NS.types.`@id`) { rangeList = `@string` :: Nil }
+    lazy val `@id`: Property = new Property(NS.types.`@id`)
     lazy val `@ids`: Property =
-      new Property(NS.types.`@ids`, Set(NS.types.`@ids`, NS.types.schemaSameAs)) {
-        rangeList = `@string` :: Nil
-      }
+      new Property(NS.types.`@ids`, Set(NS.types.`@ids`, NS.types.schemaSameAs))
     lazy val `@container`: Property =
-      new Property(NS.types.`@container`) { rangeList = `@string` :: Nil }
+      new Property(NS.types.`@container`)
     lazy val `@range`: Property = new Property(
       NS.types.`@range`,
-      iris = Set(NS.types.`@range`, NS.types.schemaRange, "http://schema.org/rangeIncludes")
-    ) {
-      rangeList = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
-    }
+      iris = Set(NS.types.`@range`, NS.types.schemaRange, "https://schema.org/rangeIncludes")
+    )
 //      range = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-    lazy val `@type`: Property = new Property(NS.types.`@type`, iris = Set(NS.types.`@type`, NS.types.rdfType)) {
-      rangeList = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
-    }
+    lazy val `@type`: Property = new Property(NS.types.`@type`, iris = Set(NS.types.`@type`, NS.types.rdfType))
 //      range = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
     lazy val `@extends`: Property = new Property(
       NS.types.`@extends`,
       iris = Set(NS.types.`@extends`, NS.types.rdfsSubClassOf, NS.types.rdfsSubPropertyOf)
-    ) {
-      rangeList = ListType() :: Nil
-    }
+    )
     lazy val inverseOf: Property =
-      new Property(NS.types.schemaInverseOf, Set(NS.types.schemaInverseOf, "http://schema.org/inverseOf"))
+      new Property(NS.types.schemaInverseOf, Set(NS.types.schemaInverseOf, "https://schema.org/inverseOf"))
 //      range = ListType(Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil) :: Nil
-    lazy val `@properties`: Property = new Property(NS.types.`@properties`) {
-      rangeList = Property.ontology :: Nil
-    }
+    lazy val `@properties`: Property = new Property(NS.types.`@properties`)
 //    val `schema:domainIncludes`: Property =
 //      new Property(NS.types.schemaDomainIncludes, iris = Set(NS.types.schemaDomainIncludes)) {
 //        rangeList = Ontology.ontology :: Property.ontology :: DataType.ontology :: Nil
 //        labelMap ++= Map("en" -> "domainIncludes")
 //      }
     lazy val `@language`: Property =
-      new Property(NS.types.`@language`, iris = Set(NS.types.`@language`, NS.types.xsdLanguage)) {
-        rangeList = `@string` :: Nil
-      }
+      new Property(NS.types.`@language`, iris = Set(NS.types.`@language`, NS.types.xsdLanguage))
     lazy val `@index`: Property =
-      new Property(NS.types.`@index`) { rangeList = `@string` :: Nil }
+      new Property(NS.types.`@index`)
     lazy val `@label`: Property =
-      new Property(NS.types.`@label`, iris = Set(NS.types.`@label`, NS.types.rdfsLabel)) {
-        rangeList = `@string` :: Nil
-      }
+      new Property(NS.types.`@label`, iris = Set(NS.types.`@label`, NS.types.rdfsLabel))
     lazy val `@comment`: Property =
-      new Property(NS.types.`@comment`, iris = Set(NS.types.`@comment`, NS.types.rdfsComment)) {
-        rangeList = `@string` :: Nil
-      }
-    lazy val `@base`: Property = new Property(NS.types.`@base`) {
-      rangeList = `@string` :: Nil
-    }
-    lazy val `@value`: Property  = new Property(NS.types.`@value`)
-    lazy val `@pvalue`: Property = new Property(NS.types.`@pvalue`)
-    lazy val `@graph`: Property  = new Property(NS.types.`@graph`)
-    lazy val `@start`: Property = new Property(NS.types.`@start`) {
-      rangeList = `@datetime` :: Nil
-    }
-    lazy val `@end`: Property = new Property(NS.types.`@end`) {
-      rangeList = `@datetime` :: Nil
-    }
-    lazy val `@createdon`: Property = new Property(NS.types.`@createdon`) {
-      rangeList = `@datetime` :: Nil
-    }
+      new Property(NS.types.`@comment`, iris = Set(NS.types.`@comment`, NS.types.rdfsComment))
+    lazy val `@base`: Property      = new Property(NS.types.`@base`)
+    lazy val `@value`: Property     = new Property(NS.types.`@value`)
+    lazy val `@pvalue`: Property    = new Property(NS.types.`@pvalue`)
+    lazy val `@graph`: Property     = new Property(NS.types.`@graph`)
+    lazy val `@start`: Property     = new Property(NS.types.`@start`)
+    lazy val `@end`: Property       = new Property(NS.types.`@end`)
+    lazy val `@createdon`: Property = new Property(NS.types.`@createdon`)
     lazy val `@modifiedon`: Property =
-      new Property(NS.types.`@modifiedon`) { rangeList = `@datetime` :: Nil }
-    lazy val `@deletedon`: Property = new Property(NS.types.`@deletedon`) {
-      rangeList = `@datetime` :: Nil
-    }
+      new Property(NS.types.`@modifiedon`)
+    lazy val `@deletedon`: Property = new Property(NS.types.`@deletedon`)
     lazy val `@transcendedon`: Property =
-      new Property(NS.types.`@transcendedon`) { rangeList = `@datetime` :: Nil }
+      new Property(NS.types.`@transcendedon`)
 //    lazy val `@valueRange`: Property = CollectionType.keys.valueRange
 //    lazy val `@keyRange`: Property   = MapType.keys.keyRange
 //    lazy val `@ranges`: Property     = TupleType.keys.range
@@ -408,6 +382,45 @@ object Property {
 
   implicit def apply(iri: String): Property           = Property.properties.getOrCreate(iri, Set())
   def apply(iri: String, iris: Set[String]): Property = Property.properties.getOrCreate(iri, iris)
+
+  implicit class WithProperty(_ct: Property) {
+    lazy val extendedBy: ExtendedByClasses[Property] = new ExtendedByClasses[Property] {
+      def ct: Property = _ct
+
+      def apply(): List[Property] = ct.extendedByClassesList.asInstanceOf[List[Property]]
+
+      def all(exclude: Set[Property] = Set()): Set[Property] = {
+        val _extends = apply().toSet -- exclude
+        _extends ++ (_extends - ct).flatMap(_.extendedBy.all(_extends ++ exclude))
+      }
+
+      def contains(iri: String): Boolean = {
+        val _extends = apply().toSet
+        _extends.exists(_.iris.contains(iri)) || (_extends - ct)
+          .filterNot(_.`extends`(ct))
+          .exists(_.extendedBy.contains(iri))
+      }
+
+      def +(child: => Property): ExtendedByClasses[Property] = ct.synchronized {
+        ct.extendedByClassesList =
+          if (!ct.extendedByClassesList.contains(child))
+            (ct.extendedByClassesList :+ child).distinct
+          else {
+            ct.extendedByClassesList
+          }
+        this
+      }
+
+      def -(parent: => Property): ExtendedByClasses[Property] = ct.synchronized {
+        ct.extendedClassesList = ct.extendedClassesList.filterNot(_ == parent)
+        parent match {
+          case p: Property => p.extendedBy.-(ct.asInstanceOf[Property])
+          case _           =>
+        }
+        this
+      }
+    }
+  }
 }
 
 /** //TODO: create inverse-link if any
@@ -421,107 +434,6 @@ class Property(
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
 //  def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
-
-  protected var rangeList: List[ClassType[Any]] = List() //_range() ++ extendedClasses.flatMap(_.range) distinct
-
-  object range {
-    def apply(): List[ClassType[Any]]              = rangeList
-    def apply(iri: String): Option[ClassType[Any]] =
-//      println(s"range find ${iri}")
-      rangeList.find(_.iris.contains(iri)).orElse {
-//        println(s"not found range ${iri} in ${apply().map(_.iris)}")
-        var result: Option[ClassType[Any]] = None
-        val oIt                            = extendedClasses().reverseIterator
-        while (oIt.hasNext && result.isEmpty)
-          result = oIt.next().range(iri)
-        result
-      }
-    def +(range: => ClassType[Any]): this.type = this.synchronized {
-      rangeList = (rangeList :+ range).distinct
-      this
-    }
-    def ++(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = (rangeList ++ range).distinct
-      this
-    }
-    def :=(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = range.toList
-      this
-    }
-    def -(range: => ClassType[Any]): this.type = this.synchronized {
-      rangeList = rangeList.filterNot(_ == range)
-      this
-    }
-    def --(range: => Iterable[ClassType[Any]]): this.type = this.synchronized {
-      rangeList = rangeList.filterNot(range.toList.contains)
-      this
-    }
-  }
-  def `@range` = range
-
-  protected var extendedByClassesList: List[Property] = List()
-
-  object extendedBy {
-    def apply(): List[Property] = extendedByClassesList
-    def all(exclude: Set[Property] = Set()): Set[Property] = {
-      val _extends = extendedByClassesList.toSet -- exclude
-      _extends ++ (_extends - self).flatMap(_.extendedBy.all(_extends ++ exclude))
-    }
-
-    def +(child: => Property): this.type = this.synchronized {
-      extendedByClassesList =
-        if (!extendedByClassesList.contains(child))
-          (extendedByClassesList :+ child).distinct
-        else {
-          extendedByClassesList
-        }
-      this
-    }
-  }
-  protected var extendedClassesList: List[Property] = List() //_extendedClasses().filterNot(_.`extends`(this))
-
-  object extendedClasses {
-    type T = Property
-    def apply(): List[Property] = extendedClassesList
-
-    /** @param exclude a property set to prevent circular recursion
-      * recursively fetches all extended classes (parent of parents)
-      * @return
-      */
-    def all(exclude: Set[Property] = Set()): Set[Property] = {
-      val _extends = extendedClasses().toSet -- exclude
-      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
-    }
-    def contains(iri: String): Boolean = {
-      val _extends = extendedClasses().toSet
-      _extends.exists(_.iris.contains(iri)) || (_extends - self)
-        .filterNot(_.`extends`(self))
-        .exists(_.extendedClasses.contains(iri))
-    }
-
-    def +(parent: => Property): this.type = this.synchronized {
-      extendedClassesList = if (!extendedClassesList.contains(parent)) {
-        parent.extendedBy.+(self)
-        (extendedClassesList :+ parent).distinct
-      } else {
-        extendedClassesList
-      }
-      this
-    }
-    def ++(parent: => Iterable[Property]): this.type = this.synchronized {
-      parent.foreach(_.extendedBy.+(self))
-      extendedClassesList = (extendedClassesList ++ parent).distinct
-      this
-    }
-    def -(parent: => Property): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.filterNot(_ == parent)
-      this
-    }
-    def --(parent: => Iterable[Property]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.filterNot(parent.toList.contains)
-      this
-    }
-  }
 
   protected var inverseOfOption: Option[Property] = None //_extendedClasses().filterNot(_.`extends`(this))
 

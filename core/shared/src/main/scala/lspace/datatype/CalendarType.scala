@@ -1,6 +1,6 @@
 package lspace.datatype
 
-import lspace.NS
+import lspace.{ClassType, NS}
 import lspace.structure.util.ClassTypeable
 import lspace.structure.Property
 
@@ -10,7 +10,7 @@ object CalendarType extends DataTypeDef[CalendarType[Any]] {
     val iri: String                = NS.types.`@temporal`
     override val iris: Set[String] = Set(NS.types.`@temporal`)
     labelMap ++= Map("en" -> NS.types.`@temporal`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(LiteralType.datatype)
   }
 
   object keys extends LiteralType.Properties

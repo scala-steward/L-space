@@ -9,7 +9,7 @@ object SetType extends DataTypeDef[SetType[Any]] {
   lazy val datatype = new SetType[Set[Any]](None) {
     val iri: String = NS.types.`@set`
     labelMap ++= Map("en" -> NS.types.`@set`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -57,13 +57,13 @@ object SetType extends DataTypeDef[SetType[Any]] {
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 
-      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
+      override protected def _extendedClasses: List[ClassType[Any]] = List(datatype)
     }
 }
 
 abstract class SetType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T] {
   override def `extends`(classType: ClassType[_]): Boolean =
-    if (extendedClasses().contains(classType)) true
+    if (this.extendedClasses().contains(classType)) true
     else {
       classType match {
         case tpe: SetType[_] =>

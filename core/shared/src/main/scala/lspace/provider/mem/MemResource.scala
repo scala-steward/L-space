@@ -34,7 +34,7 @@ trait MemResource[T] extends Resource[T] {
 
   object Lock
 
-  protected[lspace] def _addOut(edge: Edge[T, _]): Unit = Lock.synchronized {
+  protected[lspace] def _addOut(edge: Edge[T, _]): Unit = Lock.synchronized[Unit] {
     if (edge.from != this) throw new Exception("edge.from != this, cannot add out-link")
     linksOut += edge.key ->
       (linksOut
@@ -46,7 +46,7 @@ trait MemResource[T] extends Resource[T] {
 //  private val linksIn: concurrent.TrieMap[Property, List[Edge[_, T]]] =
 //    new concurrent.TrieMap[Property, List[Edge[_, T]]]() //.asScala
 
-  protected[lspace] def _addIn(edge: Edge[_, T]): Unit = Lock.synchronized {
+  protected[lspace] def _addIn(edge: Edge[_, T]): Unit = Lock.synchronized[Unit] {
     if (edge.to != this) throw new Exception("edge.to != this, cannot add in-link")
     linksIn += edge.key -> (linksIn
       .getOrElse(edge.key, HashSet[Edge[_, T]]()) + edge)

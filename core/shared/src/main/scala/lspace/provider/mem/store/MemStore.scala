@@ -31,7 +31,7 @@ trait MemStore[G <: MemGraph] extends Store[G] {
   def hasId(ids: List[Long]): Observable[T2] =
     Observable.fromIterable(ids).map(data.get).flatMap(Observable.fromIterable(_))
 
-  def cached = new {
+  def cached: Cached = new Cached {
     def all(): LazyList[T2]           = data.to(LazyList).map(_._2)
     def hasId(id: Long): Option[T2] = data.get(id)
     def count: Long                 = data.size
