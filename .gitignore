@@ -4,6 +4,8 @@ target
 node_modules
 
 /package-lock.json
-/.idea/
+.idea/*
+.vscode/*
+.metals/*
 
 *.303
