@@ -2,7 +2,7 @@ FROM gitpod/workspace-full
 
 FROM gitpod/workspace-full
 
-RUN sudo sh -c '(echo "#!/usr/bin/env sh" && curl -L https://github.com/lihaoyi/Ammonite/releases/download/2.4.0/2.13-2.4.0) > /usr/local/bin/amm213 && chmod +x /usr/local/bin/amm213
+RUN sudo sh -c '(echo "#!/usr/bin/env sh" && curl -L https://github.com/lihaoyi/Ammonite/releases/download/2.4.0/2.13-2.4.0) > /usr/local/bin/amm213 && chmod +x /usr/local/bin/amm213'
 RUN sudo sh -c '(echo "#!/usr/bin/env sh" && curl -L https://github.com/lihaoyi/Ammonite/releases/download/2.4.0/3.0-2.4.0) > /usr/local/bin/amm30 && chmod +x /usr/local/bin/amm30'
 
 RUN brew install scala coursier/formulas/coursier sbt
