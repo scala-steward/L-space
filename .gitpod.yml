@@ -1,0 +1,34 @@
+image:
+  file: .gitpod.Dockerfile
+
+vscode:
+  extensions:
+    - scala-lang.scala
+    - scalameta.metals
+
+ports:
+  - port: 8212
+    onOpen: ignore
+  - port: 9411
+
+tasks:
+- before: |
+    mkdir -p ~/.sbt/1.0
+    rm ~/.sbt/1.0/global.sbt || true
+    echo 'Global / bloopExportJarClassifiers := Some(Set("sources"))' >> ~/.sbt/1.0/global.sbt
+    echo 'Global / semanticdbEnabled := true' >> ~/.sbt/1.0/global.sbt
+    mkdir -p ~/.sbt/1.0/plugins
+    echo 'addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.4.8-110-3d7bbe2c")' > ~/.sbt/1.0/plugins/build.sbt
+    echo 'addCompilerPlugin("org.scalameta" % "semanticdb-scalac" % "4.4.27" cross CrossVersion.full)' >> ~/.sbt/1.0/plugins/build.sbt
+    echo 'scalacOptions += "-Yrangepos"' >> ~/.sbt/1.0/plugins/build.sbt
+    mkdir -p .vscode
+    echo '{
+      "metals": {
+        "sbtScript": "'"$(which sbt)"'",
+        "bloopSbtAlreadyInstalled": true
+      }
+    }' | python -m json.tool > .vscode/settings.json
+  init: sbt bloopInstall
+  command: zsh
+- before: cd ~/zipkin
+  command: java -jar zipkin.jar

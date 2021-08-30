@@ -13,7 +13,7 @@ object Dependencies {
 //      "org.typelevel" %%% "spire"          % "0.16.0",
       ("com.outr"     %%% "scribe"    % Version.scribe).cross(CrossVersion.for3Use2_13),
       "org.scalatest" %%% "scalatest" % Version.scalaTest % "test",
-//      "io.monix"          %%% "minitest"        % Version.minitest  % "test",
+      // "io.monix"          %%% "minitest"        % Version.minitest  % "test",
       "io.github.cquiroz" %%% "scala-java-time" % Version.scalaJavaTime
     )
   )
