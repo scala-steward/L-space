@@ -2,8 +2,14 @@
 *.log
 target
 node_modules
+.bloop
+project/metals.sbt
+project/.bloop
+project/project
 
 /package-lock.json
-/.idea/
+.idea
+.vscode
+.metals
 
 *.303
