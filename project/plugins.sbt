@@ -22,4 +22,4 @@ addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-extra" % "2
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.8.0")
 
-addSbtPlugin("ch.epfl.scala" % "sbt-scala3-migrate" % "0.4.2")
+addSbtPlugin("ch.epfl.scala" % "sbt-scala3-migrate" % "0.4.5")
