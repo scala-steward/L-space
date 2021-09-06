@@ -13,7 +13,7 @@ object Version {
   val scalaTest      = "3.2.9"
   val scribe         = "3.5.5"
   val shapeless      = "2.3.7"
-  val sttpClient     = "3.3.4"
+  val sttpClient     = "3.3.14"
   val sttpShared     = "1.2.5"
   val sttpTapir      = "0.18.0-M10"
   val testContainers = "0.39.3"
