@@ -20,6 +20,6 @@ addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-publish" % 
 //sbt-updates, sbt-dependency-check
 addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-extra" % "2.0.5")
 
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.8.0")
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.8.2")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-scala3-migrate" % "0.4.2")
