@@ -1,10 +1,13 @@
-ThisBuild / scalaVersion := "2.13.5"
-ThisBuild / crossScalaVersions := Seq("2.13.5", "3.0.0")
+import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
+
+ThisBuild / scalaVersion := "3.0.1"
+ThisBuild / crossScalaVersions := Seq("2.13.6", "3.0.1")
+ThisBuild / githubWorkflowJavaVersions  := Seq("graalvm-ce-java16@21.1.0", "adopt@1.11.0-11")
 
 inThisBuild(
   List(
     organization := "eu.l-space",
-    homepage := Some(url("https://gitlab.com/L-space/L-space")),
+    homepage := Some(url("https://github.com/L-space/L-space")),
     licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
     developers := List(
       Developer(
@@ -19,16 +22,29 @@ inThisBuild(
         "thijsbroersen@gmail.com",
         url("https://github.com/ThijsBroersen")
       )
-    )
+    ),
+    // scalacOptions ++= Seq(
+    //   "-Ywarn-unused"
+    // ),
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0"
+    // scalafixScalaBinaryVersion := CrossVersion.binaryScalaVersion(scalaVersion.value)
   )
 )
 
-ThisBuild / dynverSeparator := "-"
-(ThisBuild / dynverSonatypeSnapshots) := true
-ThisBuild / version ~= (version =>
-  """(\+\d\d\d\d\d\d\d\d-\d\d\d\d)-SNAPSHOT$""".r
-    .findFirstIn(version)
-    .fold(version)(version.stripSuffix(_) + "-SNAPSHOT")
+ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
+ThisBuild / githubWorkflowPublishTargetBranches :=
+  Seq(RefPredicate.StartsWith(Ref.Tag("v")))
+
+ThisBuild / githubWorkflowPublish := Seq(
+  WorkflowStep.Sbt(
+    List("ci-release"),
+    env = Map(
+      "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+      "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+      "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+      "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+    )
+  )
 )
 
 lazy val commonSettings = commonSmlBuildSettings ++ Seq(
@@ -50,11 +66,11 @@ lazy val lspace = project
   .settings(skipInPublish)
   .aggregate(
     core.jvm,
-    core.js,
-    parse,
-    client.jvm,
-    client.js,
-    graph
+    core.js
+    // parse,
+    // client.jvm,
+    // client.js,
+    // graph
 //    store
 //    services
   )
@@ -76,107 +92,107 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Dependencies.coreJs.value
   )
 
-lazy val parse = project
-  .in(file("parse"))
-  .settings(skipInPublish)
-  .aggregate(
-    parseCore.jvm,
-    parseCore.js,
-    parseArgonaut.jvm,
-    parseArgonaut.js,
-    parseCirce.jvm,
-    parseCirce.js
-  )
+// lazy val parse = project
+//   .in(file("parse"))
+//   .settings(skipInPublish)
+//   .aggregate(
+//     parseCore.jvm,
+//     parseCore.js,
+//     parseArgonaut.jvm,
+//     parseArgonaut.js,
+//     parseCirce.jvm,
+//     parseCirce.js
+//   )
 
-lazy val parseCore = (crossProject(JSPlatform, JVMPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full) in file("parse/core"))
-  .dependsOn(core % "compile->compile;test->test")
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-parse",
-    libraryDependencies ++= Dependencies.parse.value
-  )
-  .jvmSettings(
-    libraryDependencies ++= Dependencies.parseJvm
-  )
-  .jsSettings(
-//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-    libraryDependencies ++= Dependencies.parseJs.value
-  )
+// lazy val parseCore = (crossProject(JSPlatform, JVMPlatform)
+//   .withoutSuffixFor(JVMPlatform)
+//   .crossType(CrossType.Full) in file("parse/core"))
+//   .dependsOn(core % "compile->compile;test->test")
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-parse",
+//     libraryDependencies ++= Dependencies.parse.value
+//   )
+//   .jvmSettings(
+//     libraryDependencies ++= Dependencies.parseJvm
+//   )
+//   .jsSettings(
+// //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//     libraryDependencies ++= Dependencies.parseJs.value
+//   )
 
-lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full) in file("parse/argonaut"))
-  .dependsOn(parseCore % "compile->compile;test->test")
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-parse-argonaut",
-    libraryDependencies ++= Dependencies.parseArgonaut.value
-  )
-  .jvmSettings(
-  )
-  .jsSettings(
-//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-  )
+// lazy val parseArgonaut = (crossProject(JSPlatform, JVMPlatform)
+//   .withoutSuffixFor(JVMPlatform)
+//   .crossType(CrossType.Full) in file("parse/argonaut"))
+//   .dependsOn(parseCore % "compile->compile;test->test")
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-parse-argonaut",
+//     libraryDependencies ++= Dependencies.parseArgonaut.value
+//   )
+//   .jvmSettings(
+//   )
+//   .jsSettings(
+// //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//   )
 
-lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full) in file("parse/circe"))
-  .dependsOn(parseCore % "compile->compile;test->test")
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-parse-circe",
-    libraryDependencies ++= Dependencies.parseCirce.value
-  )
-  .jvmSettings(
-  )
-  .jsSettings(
-//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-  )
+// lazy val parseCirce = (crossProject(JSPlatform, JVMPlatform)
+//   .withoutSuffixFor(JVMPlatform)
+//   .crossType(CrossType.Full) in file("parse/circe"))
+//   .dependsOn(parseCore % "compile->compile;test->test")
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-parse-circe",
+//     libraryDependencies ++= Dependencies.parseCirce.value
+//   )
+//   .jvmSettings(
+//   )
+//   .jsSettings(
+// //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//   )
 
-lazy val client =
-  (crossProject(JSPlatform, JVMPlatform)
-    .withoutSuffixFor(JVMPlatform)
-    .crossType(CrossType.Full) in file("client"))
-    .dependsOn(core % "compile->compile;test->test")
-    .settings(commonSettings)
-    .settings(
-      name := "lspace-client",
-      libraryDependencies ++= Dependencies.client.value
-    )
-    .jvmSettings(
-      libraryDependencies ++= Dependencies.clientJvm
-    )
-    .jsSettings(
-//      scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-      libraryDependencies ++= Dependencies.clientJs.value
-    )
+// lazy val client =
+//   (crossProject(JSPlatform, JVMPlatform)
+//     .withoutSuffixFor(JVMPlatform)
+//     .crossType(CrossType.Full) in file("client"))
+//     .dependsOn(core % "compile->compile;test->test")
+//     .settings(commonSettings)
+//     .settings(
+//       name := "lspace-client",
+//       libraryDependencies ++= Dependencies.client.value
+//     )
+//     .jvmSettings(
+//       libraryDependencies ++= Dependencies.clientJvm
+//     )
+//     .jsSettings(
+// //      scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//       libraryDependencies ++= Dependencies.clientJs.value
+//     )
 
-lazy val graph = (project in file("graph"))
-  .dependsOn(parseCore.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-graph",
-    libraryDependencies ++= Dependencies.graph
-  )
+// lazy val graph = (project in file("graph"))
+//   .dependsOn(parseCore.jvm % "compile->compile;test->test", parseArgonaut.jvm % "test->compile")
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-graph",
+//     libraryDependencies ++= Dependencies.graph
+//   )
 
-lazy val store = project
-  .in(file("store"))
-  .settings(skipInPublish)
-  .aggregate(
-    cassandra
-//    kafka
-  )
+// lazy val store = project
+//   .in(file("store"))
+//   .settings(skipInPublish)
+//   .aggregate(
+//     cassandra
+// //    kafka
+//   )
 
-lazy val cassandra = (project in file("store/cassandra"))
-  .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-store-cassandra",
-    libraryDependencies ++= Dependencies.storeCassandra,
-    Test / parallelExecution := true
-  )
+// lazy val cassandra = (project in file("store/cassandra"))
+//   .dependsOn(graph % "compile->compile;test->test", parseArgonaut.jvm)
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-store-cassandra",
+//     libraryDependencies ++= Dependencies.storeCassandra,
+//     Test / parallelExecution := true
+//   )
 
 //lazy val kafka = (project in file("store/kafka"))
 //  .dependsOn(graph % "compile->compile;test->test")
@@ -196,38 +212,38 @@ lazy val cassandra = (project in file("store/cassandra"))
 //    Test / parallelExecution := true
 //  )
 
-lazy val endpoints = (crossProject(JSPlatform, JVMPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure) in file("endpoints"))
-  .dependsOn(
-    client        % "compile->compile;test->test",
-    parseCore     % "compile->compile;test->test",
-    parseArgonaut % "test"
-  )
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-endpoints",
-    libraryDependencies ++= Dependencies.endpoints.value
-  )
-//  .jvmSettings(
-//    libraryDependencies ++= Dependencies.endpointsJvm
-//  )
-//  .jsSettings(
-//    //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-//    libraryDependencies ++= Dependencies.endpointsJs.value
-//  )
+// lazy val endpoints = (crossProject(JSPlatform, JVMPlatform)
+//   .withoutSuffixFor(JVMPlatform)
+//   .crossType(CrossType.Pure) in file("endpoints"))
+//   .dependsOn(
+//     client        % "compile->compile;test->test",
+//     parseCore     % "compile->compile;test->test",
+//     parseArgonaut % "test"
+//   )
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-endpoints",
+//     libraryDependencies ++= Dependencies.endpoints.value
+//   )
+// //  .jvmSettings(
+// //    libraryDependencies ++= Dependencies.endpointsJvm
+// //  )
+// //  .jsSettings(
+// //    //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+// //    libraryDependencies ++= Dependencies.endpointsJs.value
+// //  )
 
-lazy val services = (project in file("services/core"))
-  .dependsOn(
-    client.jvm        % "compile->compile;test->test",
-    parseCore.jvm     % "compile->compile;test->test",
-    parseArgonaut.jvm % "test"
-  )
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-services",
-    libraryDependencies ++= Dependencies.services
-  )
+// lazy val services = (project in file("services/core"))
+//   .dependsOn(
+//     client.jvm        % "compile->compile;test->test",
+//     parseCore.jvm     % "compile->compile;test->test",
+//     parseArgonaut.jvm % "test"
+//   )
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-services",
+//     libraryDependencies ++= Dependencies.services
+//   )
 
 //lazy val servicesFinch = (project in file("services/finch"))
 //  .dependsOn(services % "compile->compile;test->test")
@@ -239,40 +255,40 @@ lazy val services = (project in file("services/core"))
 //    libraryDependencies ++= servicesFinch
 //  )
 
-lazy val site = (project in file("site"))
-  .enablePlugins(MicrositesPlugin)
-  .enablePlugins(MdocPlugin)
-  .dependsOn(parseCore.jvm % "compile->compile;compile->test")
-  .settings(name := "lspace-site")
-  .settings((publish / skip) := true)
-  .settings(
-//    micrositeCompilingDocsTool := WithMdoc,
-    mdocVariables := Map("VERSION" -> version.value)
-  )
-  .settings(
-    micrositeName := "L-space",
-    micrositeDescription := "L-space, a graph computing framework for Scala",
-    micrositeDataDirectory := (Compile / resourceDirectory).value / "data",
-    //    micrositeDocumentationUrl := "/yoursite/docs",
-    //    micrositeDocumentationLabelDescription := "Documentation",
-    micrositeUrl := "https://docs.l-space.eu",
-//    micrositeBaseUrl := "/l-space",
-    micrositeAuthor := "Thijs Broersen",
-    micrositeHomepage := "https://docs.l-space.eu",
-    micrositeOrganizationHomepage := "https://l-space.eu",
-    micrositeDocumentationUrl := "/docs",
-    (makeSite / includeFilter) := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.md" | "*.svg",
-    (ghpagesCleanSite / excludeFilter) := //preserves github-settings for custom domain, each time CNAME is written custom domain is reset?
-      new FileFilter {
-        def accept(f: File) = (ghpagesRepository.value / "CNAME").getCanonicalPath == f.getCanonicalPath
-      } || "versions.html",
-    micrositeGithubOwner := "L-space",
-    micrositeGithubRepo := "L-space",
-    micrositeGitterChannelUrl := "L-space/L-space",
-    micrositeFooterText := Some(
-      "<b>Knowledge is Power</b> <- <i>BOOKS = KNOWLEDGE = POWER = (FORCE X DISTANCE ÷ TIME)</i>"
-    )
-  )
+// lazy val site = (project in file("site"))
+//   .enablePlugins(MicrositesPlugin)
+//   .enablePlugins(MdocPlugin)
+//   .dependsOn(parseCore.jvm % "compile->compile;compile->test")
+//   .settings(name := "lspace-site")
+//   .settings((publish / skip) := true)
+//   .settings(
+// //    micrositeCompilingDocsTool := WithMdoc,
+//     mdocVariables := Map("VERSION" -> version.value)
+//   )
+//   .settings(
+//     micrositeName := "L-space",
+//     micrositeDescription := "L-space, a graph computing framework for Scala",
+//     micrositeDataDirectory := (Compile / resourceDirectory).value / "data",
+//     //    micrositeDocumentationUrl := "/yoursite/docs",
+//     //    micrositeDocumentationLabelDescription := "Documentation",
+//     micrositeUrl := "https://docs.l-space.eu",
+// //    micrositeBaseUrl := "/l-space",
+//     micrositeAuthor := "Thijs Broersen",
+//     micrositeHomepage := "https://docs.l-space.eu",
+//     micrositeOrganizationHomepage := "https://l-space.eu",
+//     micrositeDocumentationUrl := "/docs",
+//     (makeSite / includeFilter) := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.md" | "*.svg",
+//     (ghpagesCleanSite / excludeFilter) := //preserves github-settings for custom domain, each time CNAME is written custom domain is reset?
+//       new FileFilter {
+//         def accept(f: File) = (ghpagesRepository.value / "CNAME").getCanonicalPath == f.getCanonicalPath
+//       } || "versions.html",
+//     micrositeGithubOwner := "L-space",
+//     micrositeGithubRepo := "L-space",
+//     micrositeGitterChannelUrl := "L-space/L-space",
+//     micrositeFooterText := Some(
+//       "<b>Knowledge is Power</b> <- <i>BOOKS = KNOWLEDGE = POWER = (FORCE X DISTANCE ÷ TIME)</i>"
+//     )
+//   )
 
 //def scalaPartV = Def.setting(CrossVersion.partialVersion(scalaVersion.value))
 //lazy val crossVersionSharedSources: Seq[Setting[_]] =
