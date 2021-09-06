@@ -1,5 +1,5 @@
 object Version {
-  val argonaut  = "6.3.3"
+  val argonaut  = "6.3.6"
   val circe     = "0.14.0-M7"
   val elastic4s = "7.12.1"
 //  val finch          = "0.32.1"
