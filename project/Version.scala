@@ -4,7 +4,7 @@ object Version {
   val elastic4s = "7.12.1"
 //  val finch          = "0.32.1"
 //  val minitest       = "2.9.1"
-  val lspaceTypes    = "0.1.1"
+  val lspaceTypes    = "0.1.2"
   val monix          = "3.4.0"
   val pureconfig     = "0.15.0"
   val refined        = "0.9.25"
