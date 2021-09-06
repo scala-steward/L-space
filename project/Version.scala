@@ -1,6 +1,6 @@
 object Version {
   val argonaut  = "6.3.3"
-  val circe     = "0.14.0-M7"
+  val circe     = "0.14.1"
   val elastic4s = "7.12.1"
 //  val finch          = "0.32.1"
 //  val minitest       = "2.9.1"
