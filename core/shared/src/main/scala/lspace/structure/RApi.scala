@@ -17,10 +17,11 @@ trait RApi[T <: Resource[Any]] {
   def hasIri(iris: List[String]): Observable[T]
 
   def hasId(id: Long): Task[Option[T]]
-  def cached: {
+  trait Cached {
     def hasId(id: Long): Option[T]
     def dereferenceValue(t: Any): Any
     def count: Long
   }
+  def cached: Cached
 
 }

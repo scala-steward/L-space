@@ -7,14 +7,16 @@ import shapeless.{HList, HNil}
 
 import scala.collection.immutable.ListMap
 
-case class Projection(name: String,
-                      property: Property,
-                      alias: String,
-                      reverse: Boolean = false,
-                      limit: Option[Int] = None,
-                      offset: Option[Int] = None,
-                      parameters: ListMap[Property, Any] = ListMap(), //add direction to parameter property (in/out)
-                      projections: List[Projection] = List()) {
+case class Projection(
+  name: String,
+  property: Property,
+  alias: String,
+  reverse: Boolean = false,
+  limit: Option[Int] = None,
+  offset: Option[Int] = None,
+  parameters: ListMap[Property, Any] = ListMap(), //add direction to parameter property (in/out)
+  projections: List[Projection] = List()
+) {
 
   lazy val toTraversal: Traversal[ClassType[Any], ClassType[Any], _ <: HList] = {
     val traversal =
@@ -26,19 +28,20 @@ case class Projection(name: String,
       case Nil               => g.untyped
       case projection :: Nil => UntypedTraversal(Vector(Project[HList](projection :: HNil)))
       case projections =>
-        UntypedTraversal(Vector(Project[HList](projections.foldLeft[HList](HNil) {
-          case (r, t) => t :: r
+        UntypedTraversal(Vector(Project[HList](projections.foldLeft[HList](HNil) { case (r, t) =>
+          t :: r
         })))
     }
 
-    val startFilter = parameters.foldLeft(g: Traversal[ClassType[Any], ClassType[Any], HList]) {
-      case (t, (property, value)) => g.has(property, P.eqv(value))
-    }
+    val startFilter =
+      parameters.foldLeft[lspace.librarian.traversal.Traversal[ClassType[Any], ClassType[Any], HList]](g) {
+        case (t, (property, value)) => t.has(property, P.eqv(value))
+      }
     val endFilter = (limit, offset) match {
-      case (Some(limit), Some(offset)) if limit > 0 && offset >= 0 => g.range(offset, offset + limit)
-      case (Some(limit), None) if limit > 0                        => g.limit(limit)
-      case (None, Some(offset)) if offset >= 0                     => g.skip(offset)
-      case (None, None)                                            => g
+      case (Some(limit), Some(offset)) => g.range(offset, offset + limit)
+      case (Some(limit), None)         => g.limit(limit)
+      case (None, Some(offset))        => g.skip(offset)
+      case (None, None)                => g
     }
     (startFilter.untyped ++ traversal.untyped ++ projection ++ endFilter.untyped).toTyped
   }

@@ -11,7 +11,7 @@ import monix.eval.Task
 import monix.reactive.Observable
 
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object MemValueStore {
   def apply[G <: MemGraph](iri: String, graph: G): MemValueStore[G] = new MemValueStore(iri, graph)
@@ -45,19 +45,19 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
     protected lazy val cache: concurrent.Map[Any, Set[T]] =
       new ConcurrentHashMap[Any, Set[T]]().asScala
 
-    def apply(value: T): Unit = cacheLock.synchronized {
+    def apply(value: T): Unit = cacheLock.synchronized[Unit] {
       cache += value.value -> (cache.getOrElse(value.value, Set()) + value
         .asInstanceOf[T])
     }
     def all: Observable[T2] = Observable.fromIterable(cache.flatMap(_._2)).asInstanceOf[Observable[T2]]
     def byValue[V](value: V): Observable[graph.GValue[V]] =
-      Observable.fromIterable(cache.get(value).toStream.flatMap(_.toList).map(_.asInstanceOf[graph.GValue[V]]))
+      Observable.fromIterable(cache.get(value).to(LazyList).flatMap(_.toList).map(_.asInstanceOf[graph.GValue[V]]))
     def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] =
       Observable.fromIterable(
-        cache.get(value).toStream.flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]]))
-    def delete(value: T): Unit = cacheLock.synchronized {
+        cache.get(value).to(LazyList).flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]]))
+    def delete(value: T): Unit = cacheLock.synchronized[Unit] {
       val values = cache.getOrElse(value.value, Set())
-      if (values.exists(_ == value)) cache -= value.value
+      if (values.contains(value)) cache -= value.value
       else cache += value.value -> (values - value.asInstanceOf[graph.GValue[Any]])
     }
 

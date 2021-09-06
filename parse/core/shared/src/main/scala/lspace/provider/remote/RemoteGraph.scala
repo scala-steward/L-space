@@ -2,7 +2,6 @@ package lspace.provider.remote
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-
 import lspace.client.io.HttpClient
 import lspace.datatype.DataType
 import lspace.librarian.task.Guide
@@ -13,12 +12,13 @@ import lspace.structure.util.IdProvider
 import lspace.structure.{ClassType, Graph, NameSpaceGraph, Property}
 import monix.eval.Task
 import shapeless.HList
-import sttp.client._
+import sttp.client3._
 import sttp.model._
 import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.codec.json.jsonld.{JsonLDDecoder, JsonLDEncoder}
 import lspace.codec.ActiveContext
 import monix.reactive.Observable
+import sttp.capabilities.monix.MonixStreams
 
 object RemoteGraph {
   def apply[F[_], Json](iri: String, host: String, port: Int, path: List[String] = List())(
@@ -74,16 +74,16 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
           .header(HeaderNames.ContentType, "application/ld+json", true)
           //TODO: add cookie/auth headers
           .post(serviceUri)
-          .response(asStream[Observable[ByteBuffer]])
+          .response(asStreamUnsafe(MonixStreams))
         response <- httpClient.backend.flatMap { implicit backend =>
-          request.send()
+          request.send(backend)
         }
       } yield {
         response.body match {
           case Left(error) => Observable.raiseError(new Exception(error))
           case Right(stream) =>
             stream
-              .map(StandardCharsets.UTF_8.decode(_).toString())
+              .map(new String(_, StandardCharsets.UTF_8))
               .filter(_.nonEmpty)
               .mapEval(decoder.parse)
               .mapEval(decoder.toNode(_)(ActiveContext())) //TODO: use default nice named context here

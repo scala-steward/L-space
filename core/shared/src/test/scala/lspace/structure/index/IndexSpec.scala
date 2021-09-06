@@ -1,7 +1,6 @@
 package lspace.structure.index
 
 import lspace._
-import lspace.Label.D._
 import lspace.Label.P._
 import lspace.librarian.logic.predicate.P
 import lspace.librarian.traversal.UntypedTraversal
@@ -26,8 +25,8 @@ trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
           node2 <- graph.nodes.create()
           iri1  <- graph.values.create("https://some-example-iri.test")
           iri2  <- graph.values.create("https://some-example-iri.test1")
-          edge1 <- node1 --- `@id` --> iri1
-          edge2 <- node2 --- `@id` --> iri2
+          _     <- node1 --- `@id` --> iri1
+          _     <- node2 --- `@id` --> iri2
           _     <- index.store(Shape(node1))
           _     <- index.store(Shape(node2))
           _ <- index
@@ -50,20 +49,18 @@ trait IndexSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
             .find(Vector(Map(`@id` -> List(P.suffix(iri2.value.takeRight(5))))))
             .toListL
             .map(_ shouldBe List(Shape(node2)))
-        } yield {
-          succeed
-        }).runToFuture
+        } yield succeed).runToFuture
       }
       "test for numeric-predicates".ignore {
         (for {
           index <- createIndex(lspace.__[Any, Any].has(`@id`).untyped)
           node1 <- graph.nodes.create()
           node2 <- graph.nodes.create()
-          id1   <- graph.values.create(1l)
+          id1   <- graph.values.create(1L)
           id2   <- graph.values.create(0.4)
 
-          edge1 <- node1 --- `@id` --> id1
-          edge2 <- node2 --- `@id` --> id2
+          _ <- node1 --- `@id` --> id1
+          _ <- node2 --- `@id` --> id2
 
           _ <- index.store(Shape(node1))
           _ <- index.store(Shape(node2))

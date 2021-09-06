@@ -16,7 +16,7 @@ trait MemNode extends MemResource[Node] with Node {
     * @param ontology
     */
   protected[lspace] def _cacheLabel(ontology: Ontology): Unit =
-    types.synchronized {
+    types.synchronized[Unit] {
       //    val o = if (ontology.graph != graph) graph.getOntology(ontology.iri).getOrElse(graph.storeOntology(ontology)) else ontology
       val o       = ontology
       val labels2 = labels

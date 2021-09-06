@@ -2,7 +2,9 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.{IriResource, Ontology, Property}
+import lspace.structure.{ClassType, IriResource, Ontology, Property}
+
+import scala.annotation.unused
 
 trait IriType[+T] extends DataType[T]
 
@@ -12,7 +14,7 @@ object IriType extends DataTypeDef[IriType[IriResource]] {
     val iri: String                = NS.types.`@url`
     override val iris: Set[String] = Set(NS.types.`@url`, NS.types.schemaURL, NS.types.xsdAnyURI)
     labelMap ++= Map("en" -> NS.types.`@url`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(DataType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(DataType.datatype)
   }
 
   object keys
@@ -22,9 +24,11 @@ object IriType extends DataTypeDef[IriType[IriResource]] {
   def apply[T]: IriType[T] = new IriType[T] { val iri: String = "" }
 
   import shapeless.=:!=
-  implicit def clsIri[T](implicit classtpbl: ClassTypeable.Aux[T, T, IriType[T]],
-                         ev1: T =:!= Ontology,
-                         ev2: T =:!= Property): ClassTypeable.Aux[IriType[T], T, IriType[T]] =
+  implicit def clsIri[T](implicit
+    classtpbl: ClassTypeable.Aux[T, T, IriType[T]],
+    @unused ev1: T =:!= Ontology,
+    @unused ev2: T =:!= Property
+  ): ClassTypeable.Aux[IriType[T], T, IriType[T]] =
     new ClassTypeable[IriType[T]] {
       type C  = T
       type CT = IriType[T]

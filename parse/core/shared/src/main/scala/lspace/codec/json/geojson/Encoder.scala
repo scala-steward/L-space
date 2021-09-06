@@ -25,6 +25,7 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
     case value: String        => value.asJson
     case value: Map[_, _]     => value.map { case (key, value) => key.toString -> encodeValue(value) }.asJson
     case value: List[_]       => value.map(encodeValue).asJson
+    case _ => throw new Exception("invalid")
   }
 
   def encodeFeature(feature: Feature[Geometry]): Json = {
@@ -51,6 +52,7 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
       encodeMultiPolygon(multiPolygon)
     case multiGeometry: MultiGeometry =>
       encodeMultiGeometry(multiGeometry)
+    case _ => throw new Exception("invalid")
   }
   def encodeGeometryObject(geometry: Geometry): Json = geometry match {
     case point: Point =>
@@ -67,6 +69,7 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
       encodeMultiPolygonObject(multiPolygon)
     case multiGeometry: MultiGeometry =>
       encodeMultiGeometryObject(multiGeometry)
+    case _ => throw new Exception("invalid")
   }
 
   def encodePointObject(point: Point): Json =

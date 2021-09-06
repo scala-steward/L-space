@@ -1,6 +1,6 @@
 package lspace.datatype
 
-import lspace.NS
+import lspace.{ClassType, NS}
 import lspace.structure.util.ClassTypeable
 import lspace.structure.Property
 
@@ -10,7 +10,7 @@ object ColorType extends DataTypeDef[ColorType[Any]] { //TODO RgbType, CMYK, PMS
     val iri: String                = NS.types.`@color`
     override val iris: Set[String] = Set(NS.types.`@color`)
     labelMap ++= Map("en" -> NS.types.`@color`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties

@@ -1,8 +1,6 @@
 package lspace.provider.wrapped
 
-import monix.reactive.subjects.Var
 import lspace.structure._
-import lspace.util.CacheStatus
 import monix.eval.Task
 
 trait WrappedResource[T] extends Resource[T] {

@@ -28,7 +28,7 @@ trait MemIndexGraph extends MemGraph with IndexGraph {
 
     override def delete(index: Index): Task[Unit] = Task {
       indexes.remove(index.traversal)
-    }
+    }.void
   }
 
 //  protected val `@patternIndex`: Index = createIndex(Vector(Set()))

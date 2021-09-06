@@ -23,11 +23,12 @@ trait Store[G <: Graph] {
   def hasIri(iri: String): Observable[T2]
   def hasIri(iri: Set[String]): Observable[T2]
 
-  def cached: {
-    def all(): Stream[T2]
+  trait Cached {
+    def all(): LazyList[T2]
     def hasId(id: Long): Option[T2]
     def count: Long
   }
+  def cached: Cached
 
   def -(resource: T): Task[Unit] = delete(resource)
   def delete(resource: T): Task[Unit]

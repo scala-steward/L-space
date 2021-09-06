@@ -3,14 +3,13 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.util.types.DefaultsToAny
 
 object ListType extends DataTypeDef[ListType[Any]] {
 
   lazy val datatype = new ListType[List[Any]](None) {
     val iri: String = NS.types.`@list`
     labelMap ++= Map("en" -> NS.types.`@list`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CollectionType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CollectionType.datatype)
   }
 
   object keys extends CollectionType.Properties
@@ -29,8 +28,9 @@ object ListType extends DataTypeDef[ListType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): ListType[TOut] =
 //    new ListType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[ListType[TOut]]
 
-  implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListType[List[T]], List[TOut], ListType[List[TOut]]] =
+  implicit def defaultListTypeCls[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[ListType[List[T]], List[TOut], ListType[List[TOut]]] =
     new ClassTypeable[ListType[List[T]]] {
       type C  = List[TOut]
       type CT = ListType[List[TOut]]
@@ -40,29 +40,28 @@ object ListType extends DataTypeDef[ListType[Any]] {
     }
 
   def apply(): ListType[List[Any]] = datatype
-  def apply[V](valueRange: ClassType[V]): ListType[List[V]] = {
+  def apply[V](valueRange: ClassType[V]): ListType[List[V]] =
     new ListType[List[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@list`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
           .filter(_.nonEmpty)
           .reduceLeft(_ + _)
 
-      override lazy val _extendedClasses: List[_ <: DataType[_]] = datatype :: Nil
+      override protected def _extendedClasses: List[ClassType[Any]] = List(datatype)
     }
-  }
 }
 
 abstract class ListType[+T](val valueRange: Option[ClassType[Any]]) extends CollectionType[T] {
 
   override def `extends`(classType: ClassType[_]): Boolean =
-    if (extendedClasses().contains(classType)) true
+    if (this.extendedClasses().contains(classType)) true
     else {
       classType match {
         case tpe: ListType[_] =>
           (valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
-            case (None, Some(thatRange))            => false
-            case (Some(thisRange), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           }
         case _ => super.`extends`(classType)

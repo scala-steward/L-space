@@ -18,30 +18,30 @@ class CassandraGraphManager[G <: LGraph](override val graph: G, override val dat
                  Seq(
                    database.states.create.ifNotExists().future()
                  )),
-               60 seconds)
+               60.seconds)
 
   private var idState = State("all", 1000L, graph.iri)
   lazy val idProvider: LGraphIdProvider = new LGraphIdProvider {
     protected def newIdRange: Vector[Long] = {
       val idStates = Await
-        .result(database.states.findByName("all"), 5 seconds)
+        .result(database.states.findByName("all"), 5.seconds)
       if (idStates.size > 1) throw new Exception("???")
       idStates.headOption
         .map { idSpace =>
           if (idSpace.last >= idState.last) {
             idState = State("all", idSpace.last + 50000, graph.iri)
-            Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10 seconds)
-            (idSpace.last to (idState.last - 1) toVector)
+            Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10.seconds)
+            (idSpace.last.to(idState.last - 1).toVector)
           } else {
             idState = State("all", idState.last + 50000, graph.iri)
-            Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10 seconds)
-            (idSpace.last to (idState.last - 1) toVector)
+            Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10.seconds)
+            (idSpace.last.to (idState.last - 1).toVector)
           }
         }
         .getOrElse {
           idState = State("all", idState.last + 50000, graph.iri)
-          Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10 seconds)
-          (idState.last - 50000) to (idState.last - 1) toVector
+          Await.result(database.states.storeRecord(State("all", idState.last, graph.iri)), 10.seconds)
+          (idState.last - 50000).to(idState.last - 1).toVector
         }
     }
   }

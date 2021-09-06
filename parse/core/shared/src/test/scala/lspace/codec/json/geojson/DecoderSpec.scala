@@ -19,7 +19,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |  "type": "Point",
                   |  "coordinates": [102.0, 0.5]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: Point => succeed })
+        .map(_.features.head.geometry match {
+          case geo: Point => succeed
+          case _          => fail()
+        })
         .runToFuture
     }
     "decoder a multipoint" in {
@@ -30,7 +33,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |    [10, 40], [40, 30], [20, 20], [30, 10]
                   |  ]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: MultiPoint => succeed })
+        .map(_.features.head.geometry match {
+          case geo: MultiPoint => succeed
+          case _               => fail()
+        })
         .runToFuture
     }
     "decoder a line" in {
@@ -41,7 +47,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |    [102.0, 0.0], [103.0, 1.0], [104.0, 0.0], [105.0, 1.0]
                   |  ]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: Line => succeed })
+        .map(_.features.head.geometry match {
+          case geo: Line => succeed
+          case _         => fail()
+        })
         .runToFuture
     }
     "decoder a multiline" in {
@@ -53,7 +62,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |   [[40, 40], [30, 30], [40, 20], [30, 10]]
                   |  ]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: MultiLine => succeed })
+        .map(_.features.head.geometry match {
+          case geo: MultiLine => succeed
+          case _              => fail()
+        })
         .runToFuture
     }
     "decoder a polygon" in {
@@ -65,7 +77,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |    [100.0, 1.0], [100.0, 0.0]
                   |  ]]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: Polygon => succeed })
+        .map(_.features.head.geometry match {
+          case geo: Polygon => succeed
+          case _            => fail()
+        })
         .runToFuture
     }
     "decoder a multipolygon" in {
@@ -76,7 +91,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |  [[[[30, 20], [45, 40], [10, 40], [30, 20]]],
                   |  [[[15, 5], [40, 10], [10, 20], [5, 10], [15, 5]]]]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: MultiPolygon => succeed })
+        .map(_.features.head.geometry match {
+          case geo: MultiPolygon => succeed
+          case _                 => fail()
+        })
         .runToFuture
     }
     "decoder a multigeometry" in {
@@ -102,7 +120,10 @@ abstract class DecoderSpec[Json](val decoder: JsonDecoder[Json]) extends AsyncWo
                   |    }
                   |  ]
                   |}""".stripMargin)
-        .map(_.features.head.geometry match { case geo: MultiGeometry => succeed })
+        .map(_.features.head.geometry match {
+          case geo: MultiGeometry => succeed
+          case _                  => fail()
+        })
         .runToFuture
     }
     "decoder a feature" in {

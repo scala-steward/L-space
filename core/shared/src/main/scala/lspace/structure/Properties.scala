@@ -6,7 +6,7 @@ import lspace.Label
 import lspace.structure.Property.default
 import monix.eval.Task
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 
 abstract class Properties(val graph: NameSpaceGraph) {
@@ -29,8 +29,10 @@ abstract class Properties(val graph: NameSpaceGraph) {
           //            .filter(_.out(lspace.Label.P.`@label`).nonEmpty)
           .flatMap(_.map { node =>
             Task
-              .now(Property.properties
-                .getAndUpdate(node))
+              .now(
+                Property.properties
+                  .getAndUpdate(node)
+              )
               .map { property =>
                 byId += node.id   -> property
                 byIri += node.iri -> node
@@ -40,7 +42,8 @@ abstract class Properties(val graph: NameSpaceGraph) {
                 property
               }
               .map(Some(_))
-          }.getOrElse(Task.now(None))))
+          }.getOrElse(Task.now(None)))
+      )
 
   def get(id: Long): Task[Option[Property]] =
     cached(id)
@@ -52,8 +55,10 @@ abstract class Properties(val graph: NameSpaceGraph) {
             _.filter(_.hasLabel(Property.ontology).isDefined)
               .map { node =>
                 Task
-                  .now(Property.properties
-                    .getAndUpdate(node))
+                  .now(
+                    Property.properties
+                      .getAndUpdate(node)
+                  )
                   .map { property =>
                     byId += node.id   -> property
                     byIri += node.iri -> node
@@ -65,7 +70,8 @@ abstract class Properties(val graph: NameSpaceGraph) {
                   .map(Some(_))
               }
               .getOrElse(Task.now(None))
-          })
+          }
+      )
 
   def all: List[Property] = properties.byId.values.toList
 
@@ -82,7 +88,7 @@ abstract class Properties(val graph: NameSpaceGraph) {
       if (Property.properties.default.byIri.get(property.iri).isDefined) {
         for {
           node <- nodes.upsert(property.iri, property.iris)
-          u <- {
+          _ <- {
             byId += node.id   -> property
             byIri += node.iri -> node
             property.iris.foreach { iri =>
@@ -97,8 +103,8 @@ abstract class Properties(val graph: NameSpaceGraph) {
           .findL(n => n.hasLabel(Property.ontology).isDefined)
           .flatMap {
             _
-            //            .map(Task.now)
-            //      .filter(o => ontology.iris diff o.iris nonEmpty)
+              //            .map(Task.now)
+              //      .filter(o => ontology.iris diff o.iris nonEmpty)
               .map(Task.now)
               .getOrElse {
                 //        val node = ns.nodes.upsert(ontology.iri, ontology.iris)
@@ -111,15 +117,15 @@ abstract class Properties(val graph: NameSpaceGraph) {
                       .map { id =>
                         for {
                           node <- getOrCreateNode(id)
-                          u    <- node.addLabel(Property.ontology)
+                          _    <- node.addLabel(Property.ontology)
                         } yield node
                       }
                       .getOrElse {
                         //                  Property.properties.cache(property)
                         nodes.create(Property.ontology)
                       }
-                    iri  <- node.addOut(default.typed.iriUrlString, property.iri)
-                    iris <- Task.parSequence(property.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
+                    _ <- node.addOut(default.typed.iriUrlString, property.iri)
+                    _ <- Task.parSequence(property.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
                   } yield {
                     byId += node.id   -> property
                     byIri += node.iri -> node
@@ -128,35 +134,32 @@ abstract class Properties(val graph: NameSpaceGraph) {
                     }
                     node
                   }
-                  range <- Task.parSequence(property.range().map(classtypes.store))
+//                  range <- Task.parSequence(property.range().map(classtypes.store))
                   //                properties      <- Task.parSequence(property.properties.map(ns.properties.store))
-                  extendedClasses <- Task.parSequence(property.extendedClasses().map(ns.properties.store))
-                  _               <- node.addOut(Property.default.`@range`, range)
-                  extended        <- node.addOut(Label.P.`@extends`, extendedClasses)
-                  labels <- Task.parSequence(property.label().map {
-                    case (language, label) =>
-                      for {
-                        label <- node.addOut(Property.default.`@label`, label)
-                        _     <- label.addOut(Property.default.`@language`, language)
-                      } yield label
+                  extendedClasses <- Task.parSequence(property.extendedClasses().collect { case p: Property => p }.map(ns.properties.store))
+//                  _               <- node.addOut(Property.default.`@range`, range)
+                  _               <- node.addOut(Label.P.`@extends`, extendedClasses)
+                  _ <- Task.parSequence(property.label().map { case (language, label) =>
+                    for {
+                      label <- node.addOut(Property.default.`@label`, label)
+                      _     <- label.addOut(Property.default.`@language`, language)
+                    } yield label
                   })
-                  comments <- Task.parSequence(property.comment().map {
-                    case (language, comment) =>
-                      for {
-                        comment <- node.addOut(Property.default.`@comment`, comment)
-                        _       <- comment.addOut(Property.default.`@language`, language)
-                      } yield comment
+                  _ <- Task.parSequence(property.comment().map { case (language, comment) =>
+                    for {
+                      comment <- node.addOut(Property.default.`@comment`, comment)
+                      _       <- comment.addOut(Property.default.`@language`, language)
+                    } yield comment
                   })
-                } yield {
+                } yield
 
-                  //                properties.foreach(edges.create(node, Property.default.`@properties`, _))
-                  //                properties.foreach(node.addOut(Label.P.`@properties`, _))
-                  //                property.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
-                  //                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
+                //                properties.foreach(edges.create(node, Property.default.`@properties`, _))
+                //                properties.foreach(node.addOut(Label.P.`@properties`, _))
+                //                property.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
+                //                extendedClasses.foreach(edges.create(node, Property.default.`@extends`, _))
 
-                  //                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
-                  node
-                }
+                //                property.extendedClasses.foreach(_createEdge(node, Property.default.`@extends`, _))
+                node
               }
           }
       }

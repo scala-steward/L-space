@@ -4,16 +4,16 @@ import lspace.structure.Property
 
 object DataTypeDef {
   implicit def dDefToDataType[T <: DataType[_]](df: DataTypeDef[T]): T = df.datatype
+  trait Properties {}
 }
 
-trait DataTypeDef[T <: DataType[_]] {
+trait DataTypeDef[T <: DataType[Any]] {
 
   def datatype: T
-  def iri   = datatype.iri
-  def iris  = datatype.iris
+  def iri: String   = datatype.iri
+  def iris: Set[String]  = datatype.iris
   def label = datatype.label
 
   def keys: Object
   def properties: List[Property] = List()
-  trait Properties {}
 }

@@ -27,27 +27,27 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
   @tailrec
   private def splitByOut(patterns: List[Set[Property]], steps: Vector[Step]): List[Set[Property]] =
     steps match {
-      case head +: tail =>
-        tail.span(!_.isInstanceOf[Out]) match {
+      case Vector() => patterns
+      case steps =>
+        steps.tail.span(!_.isInstanceOf[Out]) match {
           case (l1, Vector()) =>
             patterns :+ l1.collect {
               case step: Has      => step.key
-              case step: HasLabel => Property.default.`@type`
+              case _: HasLabel => Property.default.`@type`
             }.toSet
           case (l1, l2) =>
             splitByOut(patterns :+ l1.collect {
               case step: Has      => step.key
-              case step: HasLabel => Property.default.`@type`
+              case _: HasLabel => Property.default.`@type`
             }.toSet, l2)
         }
-      case Vector() => patterns
     }
 
   val patterns: List[Set[Property]] =
     splitByOut(if (traversal.steps.head.isInstanceOf[Out]) List(Set()) else List(), traversal.steps)
 
   def store(shape: Shape): Task[Unit] =
-    Task.now(synchronized {
+    Task.now(synchronized[Unit] {
 //    if (shape.edges.zipAll(path, null, null).forall {
 //          case (null, p) => false
 //          case (e, null) => false
@@ -58,12 +58,13 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
     })
 
   def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape] =
-    Observable.fromIterable(data.toStream.filter { shape =>
+    Observable.fromIterable(data.to(LazyList).filter { shape =>
       (shape.origin :: shape.edges.map(_.to).toList).zipAll(values, null, null).forall {
         case (null, mpp) if mpp != null => false
         case (e, null) if e != null     => false
-        case (e, List())                => true
+//        case (_, List())                => true
 //        case (e, mpp)    => mpp.forall(mpp => e.out(mpp._1).exists(v => mpp._2.forall(p => p.assert(v))))
+        case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
       }
     }.toList)
 

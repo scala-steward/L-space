@@ -32,7 +32,7 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
   //        case resource: Resource[_] => upsertR(resource).asInstanceOf[Resource[V]]
   //        case value                 => values.create(value).asInstanceOf[Resource[V]]
   //      }
-  private def upsertR[V](value: Resource[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Resource[V]] =
+  private def upsertR[V](value: Resource[V])(implicit helper: UpsertHelper): Task[Resource[V]] =
     value match {
       //        case resource: _Resource[V]       => resource
       case resource: WrappedResource[V] => upsertR(resource.self)
@@ -62,7 +62,7 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
       nodeOrEdgeOrValueOption <- if (nodeOrEdgeOption.nonEmpty) Task.now(nodeOrEdgeOption) else values.hasId(id)
     } yield nodeOrEdgeOrValueOption
 
-  lazy val cached = new {
+  lazy val cached: Cached = new Cached {
     def hasId(id: Long): Option[Resource[Any]] =
       nodeStore.cached.hasId(id).orElse(edgeStore.cached.hasId(id)).orElse(valueStore.cached.hasId(id))
 
@@ -118,5 +118,6 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
     case value: _Value[_] => value.asInstanceOf[_Resource[T]]
     case value: Value[_] =>
       newValue(value.id, cached.dereferenceValue(value.value), value.label).asInstanceOf[_Resource[T]]
+    case _ => throw new Exception(s"unexpected type ${resource.getClass.getSimpleName}")
   }
 }

@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 import scala.collection.concurrent
 import scala.collection.immutable.Map
 import scala.util.matching.Regex
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 case class Turtle(context: ActiveContext = ActiveContext(), statements: List[Statement] = List())
@@ -56,6 +56,7 @@ trait Decoder {
           activeContext.expandIri(nodeLike.stripLtGt) match {
             case Iri(iri)   => graph.nodes.upsert(iri)
             case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+            case _ => throw new Exception("invalid")
           }
         case intLike if intLike.endsWith("^^xsd:integer") =>
           graph.values.upsert(intLike.stripSuffix("^^xsd:integer").stripPrefix("\"").stripSuffix("\"").toInt)
@@ -79,6 +80,7 @@ trait Decoder {
             subject <- statement.subject match {
               case Iri(iri)   => graph.nodes.upsert(iri)
               case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
+              case _ => throw new Exception("invalid")
             }
             p <- statement.predicates.process
             _ <- Task.parSequence(p.map { case (property, resource) => subject --- property --> resource })
@@ -126,7 +128,9 @@ trait Decoder {
           prefix.split("\n", 1).toList match {
             case List(prefix, tail) => spanPrefix(tail, prefixes :+ prefix)
             case List(tail)         => prefixes -> tail
+            case _ => throw new Exception("invalid")
           }
+        case _ => throw new Exception("invalid")
       }
     val (prefixes, tail) = spanPrefix(string)
 

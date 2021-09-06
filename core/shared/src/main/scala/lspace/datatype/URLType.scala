@@ -10,7 +10,7 @@ object NodeURLType extends DataTypeDef[NodeURLType[Node]] {
     val iri: String                = NS.types.`@nodeURL`
     override val iris: Set[String] = Set(NS.types.`@nodeURL`)
     labelMap ++= Map("en" -> NS.types.`@nodeURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 
   object keys extends IriType.Properties
@@ -27,7 +27,7 @@ object NodeURLType extends DataTypeDef[NodeURLType[Node]] {
   def apply[T]: NodeURLType[T] = new NodeURLType[T] {
     val iri: String = NS.types.`@nodeURL`
     labelMap ++= Map("en" -> NS.types.`@nodeURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 }
 
@@ -38,7 +38,7 @@ object EdgeURLType extends DataTypeDef[EdgeURLType[Edge[Any, Any]]] {
   lazy val datatype = new EdgeURLType[Edge[Any, Any]] {
     val iri: String = NS.types.`@edgeURL`
     labelMap ++= Map("en" -> NS.types.`@edgeURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 
   object keys extends IriType.Properties
@@ -55,7 +55,7 @@ object EdgeURLType extends DataTypeDef[EdgeURLType[Edge[Any, Any]]] {
   def apply[T <: Edge[_, _]]: EdgeURLType[T] = new EdgeURLType[T] {
     val iri: String = NS.types.`@edgeURL`
     labelMap ++= Map("en" -> NS.types.`@edgeURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 }
 
@@ -66,7 +66,7 @@ object ValueURLType extends DataTypeDef[ValueURLType[Any]] {
   lazy val datatype = new ValueURLType[Any] {
     val iri: String = NS.types.`@valueURL`
     labelMap ++= Map("en" -> NS.types.`@valueURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 
   object keys extends IriType.Properties
@@ -83,7 +83,7 @@ object ValueURLType extends DataTypeDef[ValueURLType[Any]] {
   def apply[T]: ValueURLType[T] = new ValueURLType[T] {
     val iri: String = NS.types.`@valueURL`
     labelMap ++= Map("en" -> NS.types.`@valueURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 }
 

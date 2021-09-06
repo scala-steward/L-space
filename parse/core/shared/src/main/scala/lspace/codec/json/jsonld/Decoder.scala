@@ -16,7 +16,7 @@ import lspace.types.string.{Blank, Iri}
 import monix.eval.Task
 import monix.reactive.Observable
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 import scala.collection.immutable.{ListSet, Map}
 import scala.concurrent.duration._
@@ -412,6 +412,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
                     case List(`@container`.`@list`) | List(`@container`.`@set`) =>
                       //this processes an array as a list of edges
                       Task.parSequenceUnordered(array.map(toResource(_, expectedType).flatMap(addEdgeF(_))))
+                    case _ => throw new Exception("invalid")
                   }
                 edgesTask
             })
@@ -454,6 +455,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       .map {
         case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
         case Iri(iri)   => graph.nodes.upsert(iri)
+        case _ => throw new Exception("invalid")
       }
 //      .map(Task.now)
   //        .getOrElse(Task.raiseError(FromJsonException("object expected when parsing to node")))
@@ -466,6 +468,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       iri.map {
         case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
         case Iri(iri)   => graph.nodes.upsert(iri)
+        case _ => throw new Exception("invalid")
       }.get
     } else {
       val iris = expandedJson.extractIds.toSet
@@ -473,6 +476,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
         .map {
           case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
           case Iri(iri)   => graph.nodes.upsert(iri, iris.map(_.iri))
+          case _ => throw new Exception("invalid")
         }
         .getOrElse(graph.nodes.create())
         .flatMap { node =>
@@ -494,6 +498,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       iri.map {
         case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
         case Iri(iri)   => graph.nodes.upsert(iri)
+        case _ => throw new Exception("invalid")
       }.get
     } else {
       val iris = expandedJson.extractIds.toSet
@@ -501,6 +506,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
         .map {
           case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess)
           case Iri(iri)   => graph.nodes.upsert(iri, iris.map(_.iri))
+          case _ => throw new Exception("invalid")
         }
         .getOrElse(graph.nodes.create())
         .flatMap { node =>
@@ -520,6 +526,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
       .flatMap {
         case Blank(iri) => blankEdges.get(iri)
         case Iri(iri)   => Some(graph.edges.hasIri(iri).headL)
+        case _ => throw new Exception("invalid")
       }
 //      .flatMap(graph.edges.hasIri(_).headOption) //TODO: check if label == edge.key and throw exception if !=
   def toEdge(expandedJson: ExpandedMap[Json], expectedType: Option[Property])(
@@ -536,7 +543,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
             .map(_.orElse(expectedTypes.headOption))
             .flatMap {
               _.map { label =>
-                from.addOut(label, to).flatMap { edge: Edge[Any, Any] =>
+                from.addOut(label, to).flatMap { (edge: Edge[Any, Any]) =>
                   withEdges(
                     edge,
                     expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@from` - types.`@to` - types.`@type`)
@@ -570,7 +577,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
             .flatMap {
               _.filter(expectedTypes.contains)
                 .map { label =>
-                  from.addOut(label, to).flatMap { edge: Edge[Any, Any] =>
+                  from.addOut(label, to).flatMap { (edge: Edge[Any, Any]) =>
                     withEdges(
                       edge,
                       expandedJson - types.`@context` - types.`@id` - types.`@ids` - types.`@from` - types.`@to` - types.`@type`)
@@ -600,6 +607,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
             case `@int`    => json.int.map(`@int`       -> _)
             case `@number` =>
               json.int.map(`@int` -> _).orElse(json.long.map(`@long` -> _)).orElse(json.double.map(`@double` -> _))
+            case _ => throw new Exception("invalid")
           }
         case tpe: CalendarType[_] =>
           tpe match {
@@ -607,6 +615,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
             case `@datetime`      => json.datetime.map(`@datetime`           -> _)
             case `@date`          => json.date.map(`@date`                   -> _)
             case `@time`          => json.time.map(`@time`                   -> _)
+            case _ => throw new Exception("invalid")
           }
         //        case tpe: ColorType[_] =>
         case BoolType.datatype => json.boolean.map(`@boolean` -> _)
@@ -674,6 +683,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
           case List(a, b, c, d, e, f, g, h, i)       => (a, b, c, d, e, f, g, h, i)
           case List(a, b, c, d, e, f, g, h, i, j)    => (a, b, c, d, e, f, g, h, i, j)
           case List(a, b, c, d, e, f, g, h, i, j, k) => (a, b, c, d, e, f, g, h, i, j, k)
+          case _ => throw new Exception("invalid")
         }
         .map(_.asInstanceOf[T])
         .map(label -> _)
@@ -713,6 +723,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
         //            Some(Task.raiseError(
         //              UnexpectedJsonException(s"expected edge with @type ${label.iri} but json is not an object")))
         case label: DataType[_] => Some(toData(json, label))
+        case _ => throw new Exception("invalid")
       })
       .orElse(tryRaw(json, label))
       .getOrElse(Task.raiseError(UnexpectedJsonException("cannot decode to value")))
@@ -734,6 +745,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
                       .map {
                         case tpe: DataType[_] =>
                           toData(json, tpe)
+                        case _ => throw new Exception("invalid")
                       }
                       .orElse(tryRaw(json))
                       .getOrElse {
@@ -755,6 +767,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
                     toScopedEdge(expandedJson, tpe).map(_.map(tpe -> _))
                   case tpe: Ontology =>
                     Some(toScopedNode(expandedJson, Some(tpe)).map(tpe -> _))
+                  case _ => throw new Exception("invalid")
                 }
                 .getOrElse {
                   toObject(json)(activeContext)
@@ -771,6 +784,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
               tryEdgeRef(json, tpe).map(_.map(tpe -> _))
             case tpe: Ontology =>
               tryNodeRef(json).map(_.map(tpe -> _))
+            case _ => throw new Exception("invalid")
           }
           .getOrElse {
             toObject(json)(activeContext)
@@ -923,6 +937,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
               node <- graph.nodes.upsert(iri, Ontology.ontology)
               _    <- Task.sequence((iris.map(_.iri) + iri toList).map(node.addOut(Label.P.`@ids`, _)))
             } yield node
+          case _ => throw new Exception("invalid")
         }
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
@@ -1022,6 +1037,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
               node <- graph.nodes.upsert(iri, Property.ontology)
               _    <- Task.sequence((iris.map(_.iri) + iri toList).map(node.addOut(Label.P.`@ids`, _)))
             } yield node
+          case _ => throw new Exception("invalid")
         }
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
@@ -1033,19 +1049,19 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
           val rangeIris = expandedJson
             .get(types.`@range`)
             .orElse(expandedJson.get(types.schemaRange))
-            .orElse(expandedJson.get("http://schema.org/rangeIncludes"))
+            .orElse(expandedJson.get("https://schema.org/rangeIncludes"))
             .toList
             .flatMap(extractIris(_))
 
           val domainIncludeIris = expandedJson
             .get(types.schemaDomainIncludes)
-            .orElse(expandedJson.get("http://schema.org/domainIncludes"))
+            .orElse(expandedJson.get("https://schema.org/domainIncludes"))
             .toList
             .flatMap(extractIris(_))
 
           val inverseOf = expandedJson
             .get(types.schemaInverseOf)
-            .orElse(expandedJson.get("http://schema.org/inverseOf"))
+            .orElse(expandedJson.get("https://schema.org/inverseOf"))
             .toList
             .flatMap(extractIris(_))
 
@@ -1168,6 +1184,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
         .map {
           //          case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create().memoizeOnSuccess) //ontology without fqdn? local-node?
           case Iri(iri) => graph.nodes.upsert(iri, iris.map(_.iri))
+          case _ => throw new Exception("invalid")
         }
         .map(_.flatMap { node =>
           val extendsIris = expandedJson
@@ -1379,7 +1396,7 @@ abstract class Decoder[Json](implicit val baseDecoder: JsonDecoder[Json], val ht
 
   def toSet(list: List[Json], label: Option[ClassType[_]])(implicit activeContext: ActiveContext): Task[Set[Any]] =
     Task.parSequence {
-      list.toSet.map { json: Json =>
+      list.toSet.map { (json: Json) =>
         toScopedObject(json, label).map(_._2)
       }
     }

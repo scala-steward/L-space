@@ -2,7 +2,7 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.Property
+import lspace.structure.{ClassType, Property}
 
 object LongType extends DataTypeDef[LongType[Long]] {
 
@@ -10,7 +10,7 @@ object LongType extends DataTypeDef[LongType[Long]] {
     val iri: String                = NS.types.`@long`
     override val iris: Set[String] = Set(NS.types.`@long`, NS.types.xsdLong)
     labelMap ++= Map("en" -> NS.types.`@long`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(NumericType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(NumericType.datatype)
   }
 
   object keys extends NumericType.Properties

@@ -1,34 +1,32 @@
 package lspace.datatype
 
+import lspace.NS
+import lspace.structure.ClassType.matchers
+import lspace.structure._
+import lspace.structure.util.ClassTypeable
+import lspace.types.geo._
+import monix.eval.Coeval
+
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.ConcurrentHashMap
-
-import lspace.NS
-import lspace.NS.types
-import lspace.structure.ClassType.matchers
-import lspace.structure.util.ClassTypeable
-import lspace.structure.OntologyDef
-import lspace.structure._
-import lspace.types.geo.{Geometry, Line, MultiGeometry, MultiLine, MultiPoint, MultiPolygon, Point, Polygon}
-import monix.eval.{Coeval, Task}
-
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
 import scala.collection.immutable.{Iterable, ListSet}
-import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 object DataType
 //    extends OntologyDef(
 //      NS.types.`@datatype`,
-//      Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"),
+//      Set(NS.types.`@datatype`, NS.types.schemaDataType, "https://schema.org/DataType"),
 //      NS.types.`@datatype`,
 //      `@extends` =  Ontology.ontology :: Nil
 //    )
 {
 
   lazy val ontology: Ontology = {
-    val ontology = new Ontology(NS.types.`@datatype`,
-                                Set(NS.types.`@datatype`, NS.types.schemaDataType, "http://schema.org/DataType"))
+    val ontology = new Ontology(
+      NS.types.`@datatype`,
+      Set(NS.types.`@datatype`, NS.types.schemaDataType, "https://schema.org/DataType")
+    )
     ontology.iris.foreach(Ontology.ontologies.byIri.update(_, ontology))
     ontology.extendedClasses + Ontology.ontology
     ontology
@@ -56,32 +54,33 @@ object DataType
         r match {
           case r: Resource[_] =>
             r match {
-              case r: Node       => throw new Exception(s"a Node is not an instance of DataType")
-              case r: Edge[_, _] => throw new Exception(s"an Edge is not an instance of DataType")
-              case r: Value[_]   => DataType.default.`@valueURL`
+              case _: Node       => throw new Exception(s"a Node is not an instance of DataType")
+              case _: Edge[_, _] => throw new Exception(s"an Edge is not an instance of DataType")
+              case _: Value[_]   => DataType.default.`@valueURL`
+              case _             => throw new Exception(s"invalid type ${r.getClass.getSimpleName}")
             }
-          case r: ClassType[_] => throw new Exception(s"a ClassType is not an instance of DataType")
+          case _: ClassType[_] => throw new Exception(s"a ClassType is not an instance of DataType")
           case _               => DataType.default.`@url`
         }
-      case v: String        => DataType.default.`@string`
-      case v: Int           => DataType.default.`@int`
-      case v: Double        => DataType.default.`@double`
-      case v: Long          => DataType.default.`@long`
-      case v: Instant       => DataType.default.`@datetime`
-      case v: LocalDateTime => DataType.default.`@localdatetime`
-      case v: LocalDate     => DataType.default.`@date`
-      case v: LocalTime     => DataType.default.`@time`
-      //      case v: Time          => DataType.default.`@duration`
-      case v: Boolean => DataType.default.`@boolean`
+      case _: String        => DataType.default.`@string`
+      case _: Int           => DataType.default.`@int`
+      case _: Double        => DataType.default.`@double`
+      case _: Long          => DataType.default.`@long`
+      case _: Instant       => DataType.default.`@datetime`
+      case _: LocalDateTime => DataType.default.`@localdatetime`
+      case _: LocalDate     => DataType.default.`@date`
+      case _: LocalTime     => DataType.default.`@time`
+      //      case _: Time          => DataType.default.`@duration`
+      case _: Boolean => DataType.default.`@boolean`
       case v: Geometry =>
         v match {
-          case v: Point         => DataType.default.`@geopoint`
-          case v: MultiPoint    => DataType.default.`@geomultipoint`
-          case v: Line          => DataType.default.`@geoline`
-          case v: MultiLine     => DataType.default.`@geomultiline`
-          case v: Polygon       => DataType.default.`@geopolygon`
-          case v: MultiPolygon  => DataType.default.`@geomultipolygon`
-          case v: MultiGeometry => DataType.default.`@geomultigeo`
+          case _: Point         => DataType.default.`@geopoint`
+          case _: MultiPoint    => DataType.default.`@geomultipoint`
+          case _: Line          => DataType.default.`@geoline`
+          case _: MultiLine     => DataType.default.`@geomultiline`
+          case _: Polygon       => DataType.default.`@geopolygon`
+          case _: MultiPolygon  => DataType.default.`@geomultipolygon`
+          case _: MultiGeometry => DataType.default.`@geomultigeo`
           case _                => DataType.default.`@geo`
         }
       case v: Iterable[_] =>
@@ -101,6 +100,7 @@ object DataType
           case v: Vector[_] =>
             if (v.nonEmpty) DataType.default.vectorType(v.toList.map(_.ct).reduce(_ + _))
             else DataType.default.vectorType()
+          case _ => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
         }
       case v: Product =>
         v match {
@@ -114,46 +114,58 @@ object DataType
             TupleType(List(Some(v._1.ct), Some(v._2.ct), Some(v._3.ct), Some(v._4.ct), Some(v._5.ct), Some(v._6.ct)))
           case v: (_, _, _, _, _, _, _) =>
             TupleType(
-              List(Some(v._1.ct),
-                   Some(v._2.ct),
-                   Some(v._3.ct),
-                   Some(v._4.ct),
-                   Some(v._5.ct),
-                   Some(v._6.ct),
-                   Some(v._7.ct)))
+              List(
+                Some(v._1.ct),
+                Some(v._2.ct),
+                Some(v._3.ct),
+                Some(v._4.ct),
+                Some(v._5.ct),
+                Some(v._6.ct),
+                Some(v._7.ct)
+              )
+            )
           case v: (_, _, _, _, _, _, _, _) =>
             TupleType(
-              List(Some(v._1.ct),
-                   Some(v._2.ct),
-                   Some(v._3.ct),
-                   Some(v._4.ct),
-                   Some(v._5.ct),
-                   Some(v._6.ct),
-                   Some(v._7.ct),
-                   Some(v._8.ct)))
+              List(
+                Some(v._1.ct),
+                Some(v._2.ct),
+                Some(v._3.ct),
+                Some(v._4.ct),
+                Some(v._5.ct),
+                Some(v._6.ct),
+                Some(v._7.ct),
+                Some(v._8.ct)
+              )
+            )
           case v: (_, _, _, _, _, _, _, _, _) =>
             TupleType(
-              List(Some(v._1.ct),
-                   Some(v._2.ct),
-                   Some(v._3.ct),
-                   Some(v._4.ct),
-                   Some(v._5.ct),
-                   Some(v._6.ct),
-                   Some(v._7.ct),
-                   Some(v._8.ct),
-                   Some(v._9.ct)))
+              List(
+                Some(v._1.ct),
+                Some(v._2.ct),
+                Some(v._3.ct),
+                Some(v._4.ct),
+                Some(v._5.ct),
+                Some(v._6.ct),
+                Some(v._7.ct),
+                Some(v._8.ct),
+                Some(v._9.ct)
+              )
+            )
           case v: (_, _, _, _, _, _, _, _, _, _) =>
             TupleType(
-              List(Some(v._1.ct),
-                   Some(v._2.ct),
-                   Some(v._3.ct),
-                   Some(v._4.ct),
-                   Some(v._5.ct),
-                   Some(v._6.ct),
-                   Some(v._7.ct),
-                   Some(v._8.ct),
-                   Some(v._9.ct),
-                   Some(v._10.ct)))
+              List(
+                Some(v._1.ct),
+                Some(v._2.ct),
+                Some(v._3.ct),
+                Some(v._4.ct),
+                Some(v._5.ct),
+                Some(v._6.ct),
+                Some(v._7.ct),
+                Some(v._8.ct),
+                Some(v._9.ct),
+                Some(v._10.ct)
+              )
+            )
           case v: (_, _, _, _, _, _, _, _, _, _, _) =>
             TupleType(
               List(
@@ -168,7 +180,9 @@ object DataType
                 Some(v._9.ct),
                 Some(v._10.ct),
                 Some(v._11.ct)
-              ))
+              )
+            )
+          case _ => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
         }
       case v =>
         matchers.findDataType(v).getOrElse(throw new Exception(s"not a known range ${value.getClass}"))
@@ -177,8 +191,7 @@ object DataType
 
   object datatypes {
 
-    /**
-      * imcomplete...
+    /** imcomplete...
       */
     object default {
       import DataType.default._
@@ -221,7 +234,7 @@ object DataType
       )
       if (datatypes.size > 99) throw new Exception("extend default-datatype-id range!")
       val byId    = (0L to datatypes.size - 1).toList.zip(datatypes).toMap
-      val byIri   = byId.toList.flatMap { case (id, dt) => (dt.iri :: dt.iris.toList).map(_ -> dt) }.toMap
+      val byIri   = byId.toList.flatMap { case (_, dt) => (dt.iri :: dt.iris.toList).map(_ -> dt) }.toMap
       val idByIri = byId.toList.flatMap { case (id, dt) => (dt.iri :: dt.iris.toList).map(_ -> id) }.toMap
     }
     private[lspace] val byIri: concurrent.Map[String, DataType[_]] =
@@ -237,13 +250,14 @@ object DataType
 //        .map(o => Coeval.now(o))
 //        .orElse(building.get(iri))
     def get(iri: String, iris: Set[String] = Set()): Option[DataType[_]] = {
-      val allIris = (iris + iri)
+      val allIris = iris + iri
       allIris.flatMap(iri => default.byIri.get(iri).orElse(byIri.get(iri))).toList match {
         case List(datatype) => Some(datatype)
         case Nil            => None
         case datatypes =>
           scribe.warn(
-            "It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
+            "It looks like multiple datatypes which have some @id's in common are found, this should not happen..."
+          )
           datatypes.headOption
       }
     }
@@ -255,12 +269,13 @@ object DataType
             case Nil            => throw new Exception(s"could not build collectiontype for @id's ${iris + iri}")
             case datatypes =>
               scribe.warn(
-                "It looks like multiple datatypes which have some @id's in common are found, this should not happen...")
+                "It looks like multiple datatypes which have some @id's in common are found, this should not happen..."
+              )
               datatypes.head
           }
           datatype.iris.foreach(byIri.update(_, datatype))
           datatype.extendedClasses.all() //force eagerly init of extended classes
-          datatype.properties()          //force eagerly init of associated properties
+//          datatype.properties()          //force eagerly init of associated properties
           datatype
         }
       }
@@ -285,35 +300,37 @@ object DataType
         }
         .toMap
 
-      datatype.properties ++ (node
-        .out(Property.default.typed.propertyProperty) ++ node
-        .in(lspace.NS.types.schemaDomainIncludes)
-        .collect { case node: Node => node })
-        .filter(_.labels.contains(Property.ontology))
-        .map(Property.properties.getAndUpdate)
+//      datatype.properties ++ (node
+//        .out(Property.default.typed.propertyProperty) ++ node
+//        .in(lspace.NS.types.schemaDomainIncludes)
+//        .collect { case node: Node => node })
+//        .filter(_.labels.contains(Property.ontology))
+//        .map(Property.properties.getAndUpdate)
 
-      datatype.extendedClasses ++ node
-        .out(Property.default.`@extends`)
+      datatype.extendedClasses.++(
+        node
+          .out(Property.default.`@extends`)
 //        .headOption
-        .collect {
-          case nodes: List[_] =>
-            nodes.collect {
-              case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-                datatypes
-                  .get(node.iri)
-                  .getOrElse {
-                    datatypes.getAndUpdate(node)
-                  } //orElse???
-              case iri: String =>
-                datatypes
-                  .get(iri)
-                  .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
-            }
-          case node: Node if node.hasLabel(DataType.ontology).isDefined =>
-            List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
-        }
-        .toList
-        .flatten
+          .collect {
+            case nodes: List[_] =>
+              nodes.collect {
+                case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+                  datatypes
+                    .get(node.iri)
+                    .getOrElse {
+                      datatypes.getAndUpdate(node)
+                    } //orElse???
+                case iri: String =>
+                  datatypes
+                    .get(iri)
+                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+              }
+            case node: Node if node.hasLabel(DataType.ontology).isDefined =>
+              List(datatypes.get(node.iri).getOrElse(datatypes.getAndUpdate(node)))
+          }
+          .toList
+          .flatten
+      )
 
       datatype
     }
@@ -336,7 +353,6 @@ object DataType
     def ct: CT = new DataType[T] { val iri: String = "" }
   }
 
-  private lazy val _this = this
   object default {
     val `@url` = IriType.datatype
 
@@ -439,68 +455,54 @@ object DataType
       val iri: String = ""
     }
   }
+
+  implicit class WithDatatype[CT[+Z] <: DataType[Z], T](_ct: CT[T]) {
+    lazy val extendedBy: ExtendedByClasses[CT[T]] = new ExtendedByClasses[CT[T]] {
+      def ct: CT[T] = _ct
+
+      def apply(): List[CT[T]] = ct.extendedByClassesList.asInstanceOf[List[CT[T]]]
+
+      def all(exclude: Set[CT[T]] = Set()): Set[CT[T]] = {
+        val _extends = apply().toSet -- exclude
+        _extends ++ (_extends - ct).flatMap(_.extendedBy.all(_extends ++ exclude))
+      }
+
+      def contains(iri: String): Boolean = {
+        val _extends = apply().toSet
+        _extends.exists(_.iris.contains(iri)) || (_extends - ct)
+          .filterNot(_.`extends`(ct))
+          .exists(_.extendedBy.contains(iri))
+      }
+
+      def +(child: => CT[T]): ExtendedByClasses[CT[T]] = ct.synchronized {
+        ct.extendedByClassesList =
+          if (!ct.extendedByClassesList.contains(child))
+            (ct.extendedByClassesList :+ child).distinct
+          else {
+            ct.extendedByClassesList
+          }
+        this
+      }
+
+      def -(parent: => CT[T]): ExtendedByClasses[CT[T]] = ct.synchronized {
+        ct.extendedClassesList = ct.extendedClassesList.filterNot(_ == parent)
+        parent match {
+          case dt: DataType[_] => dt.asInstanceOf[DataType[Any]].extendedBy.-(ct.asInstanceOf[DataType[Any]])
+          case _         =>
+        }
+        this
+      }
+    }
+  }
 }
 
-/**
-  *
-  * @tparam T
+/** @tparam T
   */
 trait DataType[+T] extends ClassType[T] { self =>
 //  type CT = DataType[_]
 
-  def iris: Set[String]                     = Set() + iri
-  def _extendedClasses: List[DataType[Any]] = List()
-  def _properties: List[Property]           = List()
-
-  protected var extendedClassesList: Coeval[List[DataType[Any]]] = Coeval.delay(_extendedClasses).memoizeOnSuccess
-//  override def extendedClasses: List[DataType[Any]]              = extendedClassesList.value()
-  object extendedClasses {
-    type T = DataType[Any]
-    def apply(): List[DataType[Any]] = extendedClassesList()
-
-    /**
-      *
-      * @param exclude a datatype set to prevent circular recursion
-      * recursively fetches all extended classes (parent of parents)
-      * @return
-      */
-    def all(exclude: Set[DataType[Any]] = Set()): Set[DataType[Any]] = {
-      val _extends = extendedClasses().toSet -- exclude
-      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
-    }
-    def apply(iri: String): Boolean = {
-      val _extends = extendedClasses().toSet
-      _extends.exists(_.iris.contains(iri)) || (_extends - self)
-        .filterNot(_.`extends`(self))
-        .exists(_.extendedClasses(iri))
-    }
-
-    def +(parent: => DataType[Any]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        val _parent = parent
-        if (!current.contains(parent))
-          (current :+ _parent).distinct
-        else {
-          current
-        }
-      }.memoizeOnSuccess
-      this
-    }
-    def ++(parents: => Iterable[DataType[Any]]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        (current ++ parents).distinct
-      }.memoizeOnSuccess
-      this
-    }
-    def -(parent: DataType[Any]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
-      this
-    }
-    def --(parent: Iterable[DataType[Any]]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
-      this
-    }
-  }
+  def iris: Set[String]           = Set() + iri
+  def _properties: List[Property] = List()
 
   override def toString: String = s"datatype:$iri"
 }

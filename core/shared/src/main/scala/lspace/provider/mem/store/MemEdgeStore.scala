@@ -56,9 +56,9 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       case None =>
         key match {
           case None =>
-            Observable.fromIterable(data.toStream.map(_._2))
+            Observable.fromIterable(data.to(LazyList).map(_._2))
           case Some(key) =>
-            Observable.fromIterable(data.toStream.collect { case e if e._2.key == key => e._2 })
+            Observable.fromIterable(data.to(LazyList).collect { case e if e._2.key == key => e._2 })
         }
       case Some(fromId) =>
         val fromResources = Observable.fromTask(graph.nodeStore.hasId(fromId)).flatMap(Observable.fromIterable(_))
@@ -84,9 +84,9 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       case None =>
         key match {
           case None =>
-            Observable.fromIterable(data.toStream.map(_._2))
+            Observable.fromIterable(data.to(LazyList).map(_._2))
           case Some(key) =>
-            Observable.fromIterable(data.toStream.collect { case e if e._2.key == key => e._2 })
+            Observable.fromIterable(data.to(LazyList).collect { case e if e._2.key == key => e._2 })
         }
       case Some(fromIri) =>
         val fromResources =

@@ -4,6 +4,8 @@ import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import monix.eval.Task
 
+import scala.annotation.unused
+
 case object Head
     extends StepDef("Head", "A head-step limits the traversal to first result.", ReducingStep.ontology :: Nil)
     with StepWrapper[Head]
@@ -15,7 +17,7 @@ case object Head
   override lazy val properties: List[Property] = ReducingStep.properties
   trait Properties extends ReducingStep.Properties
 
-  implicit def toNode(head: Head): Task[Node] = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
+  implicit def toNode(@unused head: Head): Task[Node] = DetachedGraph.nodes.create(ontology).memoizeOnSuccess
 
 }
 

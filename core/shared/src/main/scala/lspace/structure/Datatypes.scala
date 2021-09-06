@@ -1,15 +1,14 @@
 package lspace.structure
 
-import java.util.concurrent.ConcurrentHashMap
-
 import lspace.Label
 import lspace.datatype._
 import lspace.structure.Property.default
 import lspace.util.types.DefaultsToAny
 import monix.eval.{Coeval, Task}
 
-import scala.collection.{concurrent, mutable}
-import scala.collection.JavaConverters._
+import java.util.concurrent.ConcurrentHashMap
+import scala.collection.concurrent
+import scala.jdk.CollectionConverters._
 
 abstract class Datatypes(val graph: NameSpaceGraph) {
   import graph._
@@ -31,11 +30,14 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
           .findL(_.hasLabel(DataType.ontology).isDefined)
           .flatMap(_.map { node =>
             Task
-              .now(DataType.datatypes
-                .getAndUpdate(node))
+              .now(
+                DataType.datatypes
+                  .getAndUpdate(node)
+              )
               .map(_.asInstanceOf[DataType[T]])
               .map(Some(_))
-          }.getOrElse(Task.now(None))))
+          }.getOrElse(Task.now(None)))
+      )
 
   def get[T: DefaultsToAny](id: Long): Task[Option[DataType[T]]] =
     cached(id)
@@ -43,16 +45,21 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
       .getOrElse(
         nodeStore
           .hasId(id)
-          .flatMap(_.filter(_.hasLabel(DataType.ontology).isDefined)
-            .map { node =>
-              Coeval
-                .now(DataType.datatypes
-                  .getAndUpdate(node))
-                .map(_.asInstanceOf[DataType[T]])
-                .map(Some(_))
-            }
-            .getOrElse(Coeval.now(None))
-            .to[Task]))
+          .flatMap(
+            _.filter(_.hasLabel(DataType.ontology).isDefined)
+              .map { node =>
+                Coeval
+                  .now(
+                    DataType.datatypes
+                      .getAndUpdate(node)
+                  )
+                  .map(_.asInstanceOf[DataType[T]])
+                  .map(Some(_))
+              }
+              .getOrElse(Coeval.now(None))
+              .to[Task]
+          )
+      )
 
   def all: List[DataType[Any]] = datatypes.byId.values.toList
 
@@ -66,12 +73,12 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
 
   //        .orElse(byIri.get(iri))
 
-  def store(datatype: DataType[_]): Task[Node] = {
+  def store(datatype: DataType[Any]): Task[Node] = {
     byIri.get(datatype.iri).map(Task.now).getOrElse {
-      if (DataType.datatypes.default.byIri.get(datatype.iri).isDefined) {
+      if (DataType.datatypes.default.byIri.contains(datatype.iri)) {
         for {
           node <- nodes.upsert(datatype.iri, datatype.iris)
-          u <- {
+          _ <- {
             byId += node.id   -> datatype
             byIri += node.iri -> node
             datatype.iris.foreach { iri =>
@@ -86,7 +93,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
           .findL(n => n.hasLabel(DataType.ontology).isDefined)
           .flatMap {
             _
-            //      .filter(o => ontology.iris diff o.iris nonEmpty)
+              //      .filter(o => ontology.iris diff o.iris nonEmpty)
               .map(Task.now)
               .getOrElse {
                 //        val node = ns.nodes.upsert(ontology.iri, ontology.iris)
@@ -98,15 +105,15 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                       .map { id =>
                         for {
                           node <- getOrCreateNode(id)
-                          u    <- node.addLabel(DataType.ontology)
+                          _    <- node.addLabel(DataType.ontology)
                         } yield node
                       }
                       .getOrElse {
                         //                  DataType.datatypes.cache(datatype)
                         nodes.create(DataType.ontology)
                       }
-                    iri  <- node.addOut(default.typed.iriUrlString, datatype.iri)
-                    iris <- Task.parSequence(datatype.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
+                    _  <- node.addOut(default.typed.iriUrlString, datatype.iri)
+                    _ <- Task.parSequence(datatype.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
                   } yield {
                     byId += node.id   -> datatype
                     byIri += node.iri -> node
@@ -115,59 +122,69 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                     }
                     node
                   }
-                  datatypes <- Task.parSequence {
+                  _ <- Task.parSequence {
                     datatype match {
                       case dataType: CollectionType[_] =>
                         dataType match {
                           case dataType: ListSetType[_] =>
-                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
-                              node.addOut(CollectionType.keys.valueRange, List(dt))))
+                            Seq(
+                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType()))
+                                .map(dt => node.addOut(CollectionType.keys.valueRange, List(dt)))
+                            )
                           case dataType: ListType[_] =>
-                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
-                              node.addOut(CollectionType.keys.valueRange, List(dt))))
+                            Seq(
+                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType()))
+                                .map(dt => node.addOut(CollectionType.keys.valueRange, List(dt)))
+                            )
                           case dataType: MapType[_] =>
                             Seq(
-                              store(dataType.keyRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
-                                node.addOut(MapType.keys.keyRange, List(dt))),
-                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
-                                node.addOut(CollectionType.keys.valueRange, List(dt)))
+                              store(dataType.keyRange.map(ListType(_)).getOrElse(ListType()))
+                                .map(dt => node.addOut(MapType.keys.keyRange, List(dt))),
+                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType()))
+                                .map(dt => node.addOut(CollectionType.keys.valueRange, List(dt)))
                             )
                           case dataType: SetType[_] =>
-                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
-                              node.addOut(CollectionType.keys.valueRange, List(dt))))
+                            Seq(
+                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType()))
+                                .map(dt => node.addOut(CollectionType.keys.valueRange, List(dt)))
+                            )
                           case dataType: VectorType[_] =>
-                            Seq(store(dataType.valueRange.map(ListType(_)).getOrElse(ListType())).map(dt =>
-                              node.addOut(CollectionType.keys.valueRange, List(dt))))
+                            Seq(
+                              store(dataType.valueRange.map(ListType(_)).getOrElse(ListType()))
+                                .map(dt => node.addOut(CollectionType.keys.valueRange, List(dt)))
+                            )
                           case dataType: TupleType[_] =>
-                            Seq(Task
-                              .parSequence(dataType.rangeTypes.map(range =>
-                                Task.parSequence(range.toList.map(classtypes.store(_)))))
-                              .map { nodes =>
-                                node.addOut(TupleType.keys._rangeClassType, nodes.map(_.headOption))
-                              })
+                            Seq(
+                              Task
+                                .parSequence(
+                                  dataType.rangeTypes
+                                    .map(range => Task.parSequence(range.toList.map(classtypes.store(_))))
+                                )
+                                .map { nodes =>
+                                  node.addOut(TupleType.keys._rangeClassType, nodes.map(_.headOption))
+                                }
+                            )
                           case _ => Seq[Task[Edge[Any, Any]]]()
                         }
-                      case dataType: DataType[_] => Seq[Task[Edge[Any, Any]]]()
+                      case _: DataType[_] => Seq[Task[Edge[Any, Any]]]()
                       case _ =>
                         throw new Exception(s"datatype not found?! ${datatype.iri}")
                     }
                   }
-                  labels <- Task.parSequence(datatype.label().map {
-                    case (language, label) =>
-                      for {
-                        label <- node.addOut(Property.default.`@label`, label)
-                        lang  <- label.addOut(Property.default.`@language`, language)
-                      } yield label
+                  _ <- Task.parSequence(datatype.label().map { case (language, label) =>
+                    for {
+                      label <- node.addOut(Property.default.`@label`, label)
+                      _     <- label.addOut(Property.default.`@language`, language)
+                    } yield label
                   })
-                  comments <- Task.parSequence(datatype.comment().map {
-                    case (language, comment) =>
-                      for {
-                        comment <- node.addOut(Property.default.`@comment`, comment)
-                        lang    <- comment.addOut(Property.default.`@language`, language)
-                      } yield comment
+                  _ <- Task.parSequence(datatype.comment().map { case (language, comment) =>
+                    for {
+                      comment <- node.addOut(Property.default.`@comment`, comment)
+                      _       <- comment.addOut(Property.default.`@language`, language)
+                    } yield comment
                   })
-                  extendedClasses <- Task.parSequence(datatype.extendedClasses().map(ns.datatypes.store))
-                  extended        <- node.addOut(Label.P.`@extends`, datatype.extendedClasses())
+                  _ <- Task.parSequence(datatype.extendedClasses().collect { case d: DataType[Any] => d }.map(ns.datatypes.store))
+                  _ <- node.addOut(Label.P.`@extends`, datatype.extendedClasses())
                 } yield node
                 //              datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))
                 //              datatype.properties.foreach(node.addOut(Label.P.`@properties`, _))

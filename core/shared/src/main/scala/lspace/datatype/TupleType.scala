@@ -2,7 +2,6 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.NS.types
-import lspace.structure.util.ClassTypeable
 import lspace.structure._
 
 //TODO: type construction without nested types should default to @tuple, @tuple2, @tuple3 or @tuple4 (example at @list)
@@ -16,13 +15,13 @@ object TupleType extends DataTypeDef[TupleType[_]] {
   lazy val datatype = new TupleType[Any] {
     override lazy val iri: String = NS.types.`@tuple`
     labelMap ++= Map("en" -> NS.types.`@tuple`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   def make[T] = new TupleType[T] {
     override lazy val iri: String = NS.types.`@tuple`
     labelMap ++= Map("en" -> NS.types.`@tuple`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties { //TODO: change to PropertyDef
@@ -58,11 +57,11 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
     s"${types.`@tuple`}$iriTail"
   }
 
-  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TupleType.datatype)
+  override protected def _extendedClasses: List[ClassType[Any]] = List(TupleType.datatype)
 
   override def `extends`(classType: ClassType[_]): Boolean =
     if (iri == classType.iri) false
-    else if (extendedClasses().contains(classType)) true
+    else if (this.extendedClasses().contains(classType)) true
     else {
       classType match {
         case tpe: TupleType[_] if rangeTypes.size == tpe.rangeTypes.size =>
@@ -71,8 +70,8 @@ class TupleType[+T](val rangeTypes: List[Option[ClassType[Any]]] = List()) exten
               result && ((thisType, thatType) match {
                 case (Some(thisRange), Some(thatRange)) =>
                   thisRange.iri == thatRange.iri || thisRange.`@extends`(thatRange)
-                case (None, Some(thatRange)) => false
-                case (Some(thisRange), None) => true
+                case (None, Some(_)) => false
+                case (Some(_), None) => true
                 case (None, None)            => true
               })
           }

@@ -1,7 +1,6 @@
 package lspace.librarian.traversal.step
 
 import lspace.datatype.DataType
-import lspace.librarian.traversal._
 import lspace.provider.detached.DetachedGraph
 import lspace.structure._
 import lspace.util.types.DefaultsToAny
@@ -10,7 +9,8 @@ import monix.eval.Task
 object As
     extends StepDef(
       "As",
-      "An as-step marks the preliminary result so it can be referred to (gathered) further down the traversal.")
+      "An as-step marks the preliminary result so it can be referred to (gathered) further down the traversal.",
+      LabelStep.ontology :: Nil)
     with StepWrapper[As[_ <: Any, String]] {
 
   /*  import shapeless._
@@ -28,7 +28,7 @@ object As
     As[Any, String](node.out(As.keys.nameString).head)(ClassType.stubAny)
   }
 
-  object keys extends Step.Properties {
+  object keys extends LabelStep.Properties {
     object name
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/As/name",
@@ -38,8 +38,8 @@ object As
         )
     val nameString: TypedProperty[String] = name.property as DataType.default.`@string`
   }
-  override lazy val properties: List[Property] = keys.name :: Step.properties
-  trait Properties extends Step.Properties {
+  override lazy val properties: List[Property] = keys.name :: LabelStep.properties
+  trait Properties extends LabelStep.Properties {
     val name       = keys.name
     val nameString = keys.nameString
   }
@@ -52,7 +52,7 @@ object As
   }.memoizeOnSuccess
 }
 
-case class As[T: DefaultsToAny, name <: String](label: name)(val ct: ClassType[T]) extends Step {
+case class As[T: DefaultsToAny, name <: String](label: name)(val ct: ClassType[T]) extends LabelStep {
   def _maphelper: T = List[T]().head
 
   lazy val toNode: Task[Node]      = this

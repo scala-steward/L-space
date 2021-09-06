@@ -14,7 +14,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.concurrent.duration._
-import scala.language._
 
 trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
 
@@ -32,7 +31,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   def sampledGraphComputerTests(sampledGraph: SampledGraph) = {
     val sampleGraph = sampledGraph.graph
 
-    "a librarian" can traverse {
+    "a librarian".can(traverse {
       "N.toList(sampleGraph)" in {
         g.N
           .withGraph(sampleGraph)
@@ -95,7 +94,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .outMap()
           .withGraph(sampleGraph)
           .headF
-          .map(_.keySet should contain (Property("address")))
+          .map(_.keySet should contain(Property("address")))
           .timeout(4000.millis)
           .runToFuture
       }
@@ -125,18 +124,18 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //          .head shouldBe (sampleGraph.iri + "/person/56789")
 //      }
 //      "a InMap-step" in {
-//        val values = g.N.inMap().toStream
+//        val values = g.N.inMap().to(LazyList)
 //        values.head.isInstanceOf[Map[Property, Any]] shouldBe true
 //        values.nonEmpty shouldBe true
 //      }
 //      "a InE-step" in {
-//        val values = g.N.inE().toStream
+//        val values = g.N.inE().to(LazyList)
 //        values.nonEmpty shouldBe true
 //        values.take(1).exists(_.isInstanceOf[Edge[_, _]]) should be(true)
 //        g.V.is(P.eqv("Garrison")).inE("name").head.key.iri shouldBe "name"
 //      }
 //      "a InEMap-step" in {
-//        g.N.inEMap().toStream.nonEmpty shouldBe true
+//        g.N.inEMap().to(LazyList).nonEmpty shouldBe true
 //      }
       "N.has(properties.birthDate)" in {
         g.N
@@ -151,7 +150,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.gt(LocalDate.parse("2002-06-13")))""" in {
         g.N
           .has(properties.birthDate, P.gt(LocalDate.parse("2002-06-13")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 2)
@@ -161,7 +160,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.gte(LocalDate.parse("2002-06-13")))""" in {
         g.N
           .has(properties.birthDate, P.gte(LocalDate.parse("2002-06-13")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 3)
@@ -171,7 +170,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.lt(LocalDate.parse("2002-06-13")))""" in {
         g.N
           .has(properties.birthDate, P.lt(LocalDate.parse("2002-06-13")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 3)
@@ -181,7 +180,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.lte(LocalDate.parse("2002-06-13")))""" in {
         g.N
           .has(properties.birthDate, P.lte(LocalDate.parse("2002-06-13")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 4)
@@ -191,7 +190,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.inside(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))""" in {
         g.N
           .has(properties.birthDate, P.inside(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 2)
@@ -201,7 +200,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.outside(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))""" in {
         g.N
           .has(properties.birthDate, P.outside(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 3)
@@ -211,7 +210,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.has(properties.birthDate, P.between(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))""" in {
         g.N
           .has(properties.birthDate, P.between(LocalDate.parse("2002-06-13"), LocalDate.parse("2009-04-10")))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(t => t shouldBe 3)
@@ -235,7 +234,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "geometric predicate" in {
         g.N
           .has(properties.geo, P.within(Point(72.0403, 60.90879)))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 1)
@@ -303,9 +302,13 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .path(_.out("name").head)
           .withGraph(sampleGraph)
           .toListF
-          .map(_.toSet shouldBe Set(List(Some("Levi"), Some("Gray"), Some("Kevin")),
-                                    List(Some("Levi"), Some("Gray"), Some("Levi")),
-                                    List(Some("Levi"), Some("Yoshio"), Some("Levi"))))
+          .map(
+            _.toSet shouldBe Set(
+              List(Some("Levi"), Some("Gray"), Some("Kevin")),
+              List(Some("Levi"), Some("Gray"), Some("Levi")),
+              List(Some("Levi"), Some("Yoshio"), Some("Levi"))
+            )
+          )
           .timeout(4000.millis)
           .runToFuture
       }
@@ -317,9 +320,13 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .path(_.out("name"))
           .withGraph(sampleGraph)
           .toListF
-          .map(_.toSet shouldBe Set(List(List("Levi"), List("Gray"), List("Kevin")),
-                                    List(List("Levi"), List("Gray"), List("Levi")),
-                                    List(List("Levi"), List("Yoshio"), List("Levi"))))
+          .map(
+            _.toSet shouldBe Set(
+              List(List("Levi"), List("Gray"), List("Kevin")),
+              List(List("Levi"), List("Gray"), List("Levi")),
+              List(List("Levi"), List("Yoshio"), List("Levi"))
+            )
+          )
           .timeout(4000.millis)
           .runToFuture
       }
@@ -328,7 +335,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .hasIri(sampleGraph.iri + "/person/12345")
           .out("https://example.org/knows")
           .out("https://example.org/knows")
-          .path(_.out("name").count)
+          .path(_.out("name").count())
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet shouldBe Set(List(1, 1, 1), List(1, 1, 1), List(1, 1, 1)))
@@ -348,7 +355,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "N.and(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(3000))).count" in {
         g.N
           .and(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(3000)))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 2)
@@ -358,7 +365,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "N.or(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(-200))).count" in {
         g.N
           .or(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(-200)))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 3)
@@ -368,7 +375,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "N.union(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(-200))).count" in {
         g.N
           .union(_.has(properties.balance, P.gt(300)), _.has(properties.balance, P.lt(-200)))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 3)
@@ -388,7 +395,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         //      g.N.hasLabel(ontologies.person).local(_.out(properties.knows).count).toList shouldBe List(1, 3, 2, 2, 2, 2)
         g.N
           .hasLabel(ontologies.person)
-          .local(_.out(properties.name).count)
+          .local(_.out(properties.name).count())
           .withGraph(sampleGraph)
           .toListF
           .map(_ shouldBe List(1, 1, 1, 1, 1, 1))
@@ -420,7 +427,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "N.coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200))).count" in {
         g.N
           .coalesce(_.has(properties.rate, P.gte(4)), _.has(properties.balance, P.lt(-200)))
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 3)
@@ -459,22 +466,31 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         |          )""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .project(_.coalesce(_.out(properties.name).hasLabel[String],
-                              _.out(properties.birthDate).hasLabel[LocalDate],
-                              _.out(properties.rate).hasLabel[Int]))
-          .by(_.coalesce(_.out(properties.name).hasLabel[Int],
-                         _.out(properties.birthDate).hasLabel[LocalDate],
-                         _.out(properties.rate).hasLabel[Int]))
+          .project(
+            _.coalesce(
+              _.out(properties.name).hasLabel[String],
+              _.out(properties.birthDate).hasLabel[LocalDate],
+              _.out(properties.rate).hasLabel[Int]
+            )
+          )
           .by(
-            _.coalesce(_.out(properties.name).hasLabel[Int],
-                       _.out(properties.birthDate).hasLabel[Int],
-                       _.out(properties.rate).hasLabel[Int])
+            _.coalesce(
+              _.out(properties.name).hasLabel[Int],
+              _.out(properties.birthDate).hasLabel[LocalDate],
+              _.out(properties.rate).hasLabel[Int]
+            )
+          )
+          .by(
+            _.coalesce(
+              _.out(properties.name).hasLabel[Int],
+              _.out(properties.birthDate).hasLabel[Int],
+              _.out(properties.rate).hasLabel[Int]
+            )
           )
           .withGraph(sampleGraph)
           .headF
-          .map {
-            case r: (List[Any], List[Any], List[Int]) =>
-              r shouldBe (List("Levi"), List(LocalDate.parse("2008-12-20")), List(2))
+          .map { case r: (List[Any], List[Any], List[Int]) =>
+            r shouldBe (List("Levi"), List(LocalDate.parse("2008-12-20")), List(2))
           }
           .timeout(4000.millis)
           .runToFuture
@@ -482,7 +498,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/place/123")
-          .choose(_.count.is(P.eqv(1)), _.constant(true), _.constant(false))
+          .choose(_.count().is(P.eqv(1)), _.constant(true), _.constant(false))
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe true)
@@ -492,7 +508,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """.hasIri(sampleGraph.iri + "/place/123").choose(_.count.is(P.eqv(2)), _.constant(true), _.constant(false))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/place/123")
-          .choose(_.count.is(P.eqv(2)), _.constant(true), _.constant(false))
+          .choose(_.count().is(P.eqv(2)), _.constant(true), _.constant(false))
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe false)
@@ -516,21 +532,31 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .headF
           .map(r =>
-            (r: (List[Ontology], List[(List[Any], List[Double])])) shouldBe ((List(ontologies.person),
-                                                                              List((List("Levi"), List())))))
+            (r: (List[Ontology], List[(List[Any], List[Double])])) shouldBe (
+              (
+                List(ontologies.person),
+                List((List("Levi"), List()))
+              )
+            )
+          )
           .timeout(4000.millis)
           .runToFuture
       }
       """N.hasIri(sampleGraph.iri + "/person/12345").group(_.label().dedup).mapValues(_.project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.label().dedup)
+          .group(_.label().dedup())
           .mapValues(_.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
           .withGraph(sampleGraph)
           .headF
           .map(r =>
-            (r: (Set[Ontology], List[(List[Any], List[Double])])) shouldBe ((Set(ontologies.person),
-                                                                             List((List("Levi"), List())))))
+            (r: (Set[Ontology], List[(List[Any], List[Double])])) shouldBe (
+              (
+                Set(ontologies.person),
+                List((List("Levi"), List()))
+              )
+            )
+          )
           .timeout(4000.millis)
           .runToFuture
       }
@@ -548,10 +574,12 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).head).mapValues(_.head.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head))""" in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .group(_.out(properties.knows).hasLabel[Int].head())
-          .mapValues(_.head()
-            .project(_.out(properties.name))
-            .by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head))
+          .group(_.out(properties.knows).hasLabel[Int].head)
+          .mapValues(
+            _.head
+              .project(_.out(properties.name))
+              .by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)
+          )
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe ((None, Some((List("Levi"), None)))))
@@ -567,7 +595,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .withGraph(sampleGraph)
           .toListF
           .map(_.toSet)
-          .map { r: Set[(Option[Any], List[Double])] =>
+          .map { (r: Set[(Option[Any], List[Double])]) =>
             r shouldBe Set((Some("Gray"), List(2230.3)), (Some("Yoshio"), List()))
           }
           .timeout(4000.millis)
@@ -578,15 +606,16 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       """.stripMargin in {
         g.N
           .hasIri(sampleGraph.iri + "/person/12345")
-          .project(_.out(properties.knows)
-            .project(_.out(properties.name))
-            .by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0))))
+          .project(
+            _.out(properties.knows)
+              .project(_.out(properties.name))
+              .by(_.out(properties.balance).hasLabel[Double].is(P.gt(2001.0)))
+          )
           .by(_.out(properties.name))
           .withGraph(sampleGraph)
           .headF
-          .map {
-            case (tuples, name) =>
-              (tuples.toSet, name) shouldBe (Set((List("Gray"), List(2230.3)), (List("Yoshio"), List())), List("Levi"))
+          .map { case (tuples, name) =>
+            (tuples.toSet, name) shouldBe (Set((List("Gray"), List(2230.3)), (List("Yoshio"), List())), List("Levi"))
           }
           .timeout(4000.millis)
           .runToFuture
@@ -599,9 +628,8 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .by(_.out(properties.knows).count())
           .withGraph(sampleGraph)
           .headF
-          .map {
-            case (node: Node, count: Long) =>
-              count shouldBe 2
+          .map { case (node: Node, count: Long) =>
+            count shouldBe 2
           }
           .timeout(4000.millis)
           .runToFuture
@@ -620,13 +648,13 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .timeout(4000.millis)
           .runToFuture
       }
-      "N.group(_.label())" in {
-        g.N
+      "N.hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri).group(_.label())" in {
+        g.N.hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri)
           .group(_.label())
           .withGraph(sampleGraph)
           .toListF
           .map { groupedNodes =>
-            groupedNodes.size shouldBe 3
+            groupedNodes.size shouldBe 2
             groupedNodes.head._1.size shouldBe 1
             groupedNodes.head._2.size should be > 1
           }
@@ -639,7 +667,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .head
           .withGraph(sampleGraph)
           .headF
-          .map { groupedNodes =>
+          .map { _ =>
             succeed
           }
           .timeout(4000.millis)
@@ -648,7 +676,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       "N.group(_.label()).mapValues(_.count))" in {
         g.N
           .group(_.label())
-          .mapValues(_.count)
+          .mapValues(_.count())
           .withGraph(sampleGraph)
           .toMapF
           .map { groupedNodes =>
@@ -664,10 +692,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .mapValues(_.outMap())
           .withGraph(sampleGraph)
           .toListF
-          .map {
-            case List((ontologies, List(maps: Map[Property, List[Any]], _*)), _*) =>
-              ontologies.nonEmpty shouldBe true
-          }
+          .map(_ should not be empty)
           .timeout(4000.millis)
           .runToFuture
       }
@@ -737,7 +762,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .hasIri(sampleGraph.iri + "/person/56789")
           .out(properties.knows)
           .skip(1)
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 1)
@@ -748,7 +773,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .hasIri(sampleGraph.iri + "/person/56789")
           .out(properties.knows)
           .range(1, 1)
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 1)
@@ -831,7 +856,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@int`)
-          .max
+          .max()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 300)
@@ -842,7 +867,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .max
+          .max()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 2230.30)
@@ -853,7 +878,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@number`)
-          .max
+          .max()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 2230.30)
@@ -864,7 +889,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .max
+          .max()
           .in("balance")
           .count()
           .withGraph(sampleGraph)
@@ -877,7 +902,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .max
+          .max()
           .in("balance")
           .out("name")
           .withGraph(sampleGraph)
@@ -890,7 +915,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .min
+          .min()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe -245.05)
@@ -901,7 +926,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .min
+          .min()
           .in("balance")
           .out("name")
           .withGraph(sampleGraph)
@@ -914,7 +939,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .sum
+          .sum()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 2496.09)
@@ -928,7 +953,7 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .out("balance")
           .hasLabel(`@double`)
-          .mean
+          .mean()
           .withGraph(sampleGraph)
           .headF
           .map(_ shouldBe 624.0225)
@@ -971,8 +996,12 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //          .path(_.out("name").hasLabel[String])
           .withGraph(sampleGraph)
           .toListF
-          .map(_.toSet shouldBe Set(List(List("Levi"), List("Gray"), List("Kevin"), List("Garrison")),
-                                    List(List("Levi"), List("Gray"), List("Kevin"), List("Stan"))))
+          .map(
+            _.toSet shouldBe Set(
+              List(List("Levi"), List("Gray"), List("Kevin"), List("Garrison")),
+              List(List("Levi"), List("Gray"), List("Kevin"), List("Stan"))
+            )
+          )
           .timeout(4000.millis)
           .runToFuture
       }
@@ -990,31 +1019,32 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
       }
       """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://example.org/knows")), 3)""" +
         """(_.hasIri(sampleGraph.iri + "/person/345")).out("name")""" in {
-        g.N
-          .hasIri(sampleGraph.iri + "/person/12345")
-          .repeat(_.out(Property("https://example.org/knows")), 3)(
-            _.out(Property("https://example.org/knows")).hasIri(sampleGraph.iri + "/person/345"))
-          .dedup()
-          .out("name")
-          .withGraph(sampleGraph)
-          .toListF
-          .map(_.toSet shouldBe Set("Levi", "Kevin"))
-          .timeout(4000.millis)
-          .runToFuture
-      }
+          g.N
+            .hasIri(sampleGraph.iri + "/person/12345")
+            .repeat(_.out(Property("https://example.org/knows")), 3)(
+              _.out(Property("https://example.org/knows")).hasIri(sampleGraph.iri + "/person/345")
+            )
+            .dedup()
+            .out("name")
+            .withGraph(sampleGraph)
+            .toListF
+            .map(_.toSet shouldBe Set("Levi", "Kevin"))
+            .timeout(4000.millis)
+            .runToFuture
+        }
       """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://example.org/knows"), 3, true)""" +
         """(_.hasIri(sampleGraph.iri + "/person/345")).dedup().out("name")""".stripMargin in {
-        g.N
-          .hasIri(sampleGraph.iri + "/person/12345")
-          .repeat(_.out(Property("https://example.org/knows")), 3, true)(_.hasIri(sampleGraph.iri + "/person/345"))
-          .dedup()
-          .out("name")
-          .withGraph(sampleGraph)
-          .toListF
-          .map(_.toSet shouldBe Set("Gray", "Yoshio", "Levi"))
-          .timeout(4000.millis)
-          .runToFuture
-      }
+          g.N
+            .hasIri(sampleGraph.iri + "/person/12345")
+            .repeat(_.out(Property("https://example.org/knows")), 3, true)(_.hasIri(sampleGraph.iri + "/person/345"))
+            .dedup()
+            .out("name")
+            .withGraph(sampleGraph)
+            .toListF
+            .map(_.toSet shouldBe Set("Gray", "Yoshio", "Levi"))
+            .timeout(4000.millis)
+            .runToFuture
+        }
 //
 //      "an Id-step" in {
 //        val id = g.N.id.head
@@ -1026,10 +1056,10 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         g.N
           .repeat(_.out(), collect = true)
           .timeLimit(200L)
-          .count
+          .count()
           .withGraph(sampleGraph)
           .headF
-          .map(_ should be > 1l)
+          .map(_ should be > 1L)
           .timeout(4000.millis)
           .runToFuture
       }
@@ -1044,61 +1074,41 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 //        g.N.tail(2).count.head should be < total
 //      }
 //
-////      "An As-step" in {
-////        import shapeless._
-////        import syntax.singleton._
-////        implicit def stringToF[S <: String](label: S) = () => Witness(label).value
-////
-////        g.N.hasLabel(ontologies.person).as("a").out(properties.knows).as("b").toList
-////      }
-//
-//      "A Select-step" in {
-//        import shapeless._
-//        import syntax.singleton._
-//        implicit def stringToF(label: String) = () => Witness(label).value
-//
-//        val x = g.V
-//          .hasLabel(`@int`)
-//          .as("aname")
-//          .min
-//          .in(properties.rate)
+//      "An As-step" in {
+//        g.N
 //          .hasLabel(ontologies.person)
+//          .as("a")
+//          .out(properties.knows)
 //          .as("b")
-//
-//        val tp2s: Tuple2Type[Int, Node] = x.select(_.a.b).et.asInstanceOf[Tuple2Type[Int, Node]]
-//        //
-//        val (i1: Int, n1: Node) = x.select.head
-//        ////      val (i3: Int, n3: Node)   = x.select(_.a.b).head
-//        val i5: Int = g.V.hasLabel[Int].toList.head
-//        ////      val i4: Int               = x.select(_.a).head
-//        ////      val n4: Node              = x.select(_.b).head
-//        val rint: Int             = x.select("aname").head
-//        val rnode: Node           = x.select("b").head
-//        val (i33: Int, n33: Node) = x.select("aname", "b").head
-//        val (n44: Node, i44: Int) = x.select("b", "aname").head
-//        ////
-//        x.select.head._1 shouldBe 1
-//        ////      x.select(_.a.b).head._1 shouldBe 1
-//        ////      x.select(_.b.a).head._2 shouldBe 1
-//        ////      x.select(_.a.b).head._2.iri shouldBe "person-gray"
-//        ////      x.select(_.b.a).head._1.iri shouldBe "person-gray"
-//        //
-//        x.select("aname", "b").head._2.iri shouldBe sampleGraph.iri + "/person/345"
-//        x.select("aname").head shouldBe 1
-//        x.select("b").head.iri shouldBe sampleGraph.iri + "/person/345"
-//        x.select("b", "aname").head._1.iri shouldBe sampleGraph.iri + "/person/345"
-//        //
-//        g.V
-//          .hasLabel(`@int`)
-//          .as("aname")
-//          .min
-//          .in(properties.rate)
-//          .hasLabel(ontologies.person)
-//          .as("b")
-//          .select("b")
-//          .head
-//          .iri shouldBe sampleGraph.iri + "/person/345"
+//          .withGraph(sampleGraph)
+//          .toListF.as(succeed)
+//          .runToFuture
 //      }
-    }
+
+//      """g.V.hasLabel(`@int`).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b").select(_.a.b)""" in {
+//        g.V.hasLabel(`@int`).as("aname").min().in(properties.rate).hasLabel(ontologies.person).as("b").select(_.a.b)
+//          .withGraph(sampleGraph)
+//          .headF.map(_._2.iri shouldBe sampleGraph.iri + "/person/345").runToFuture
+//      }
+//      """g.V.hasLabel(`@int`).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b").select("aname")""" in {
+//        val x = g.V.hasLabel(`@int`).as("aname").min().in(properties.rate).hasLabel(ontologies.person).as("b").showLabels("b")
+//        x
+//        val y = g.V.hasLabel(`@int`).as("aname").min().in(properties.rate).hasLabel(ontologies.person).as("b").showOutA("b")
+//        y
+//        g.V.hasLabel(`@int`).as("aname").min().in(properties.rate).hasLabel(ontologies.person).as("b").select("aname")
+//          .withGraph(sampleGraph)
+//          .headF.map(_.iri shouldBe sampleGraph.iri + "/person/345").runToFuture
+//      }
+//      """g.V.hasLabel(`@int`).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b").select("b")""" in {
+//        g.V.hasLabel(`@int`).as("aname").min().in(properties.rate).hasLabel(ontologies.person).as("b").select("b")
+//          .withGraph(sampleGraph)
+//          .headF.map(_.iri shouldBe sampleGraph.iri + "/person/345").runToFuture
+//      }
+//      """g.V.hasLabel(`@int`).as("aname").min.in(properties.rate).hasLabel(ontologies.person).as("b").select("b", "aname")""" in {
+//        g.V.hasLabel(`@int`).as("aname").min().in(properties.rate).hasLabel(ontologies.person).as("b").select("b", "aname")
+//          .withGraph(sampleGraph)
+//          .headF.map(_.iri shouldBe sampleGraph.iri + "/person/345").runToFuture
+//      }
+    })
   }
 }

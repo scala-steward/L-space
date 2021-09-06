@@ -63,13 +63,13 @@ class DefaultAssistent extends Assistent {
         case _          => false
     }
   }
-  def eqv[T](p: Eqv[T]): Helper[Eqv[T]] = new Helper[Eqv[T]](p) {
-    val comparable             = (value: Any) => true
+  override def eqv[T](p: Eqv[T]): Helper[Eqv[T]] = new Helper[Eqv[T]](p) {
+    val comparable             = (_: Any) => true
     val assert: Any => Boolean = (value: Any) => value == p.pvalue
   }
 
-  def neqv[T](p: Neqv[T]): Helper[Neqv[T]] = new Helper[Neqv[T]](p) {
-    val comparable             = (value: Any) => true
+  override def neqv[T](p: Neqv[T]): Helper[Neqv[T]] = new Helper[Neqv[T]](p) {
+    val comparable             = (_: Any) => true
     val assert: Any => Boolean = (value: Any) => value != p.pvalue
   }
 
@@ -79,6 +79,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => v > pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Int =>
@@ -89,6 +90,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v > pvalue
           case v: Double => v > pvalue
           case v: Long   => v > pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Double =>
@@ -99,6 +101,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v > pvalue
           case v: Double => v > pvalue
           case v: Long   => v > pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Long =>
@@ -109,6 +112,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v > pvalue
           case v: Double => v > pvalue
           case v: Long   => v > pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Instant =>
@@ -116,6 +120,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDateTime =>
@@ -123,6 +128,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDate =>
@@ -130,6 +136,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalTime =>
@@ -137,6 +144,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue => throw new Exception(s"cannot Gt compare a value of type ${pvalue.getClass.getSimpleName}")
@@ -148,6 +156,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => v >= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Int =>
@@ -158,6 +167,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v >= pvalue
           case v: Double => v >= pvalue
           case v: Long   => v >= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Double =>
@@ -168,6 +178,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v >= pvalue
           case v: Double => v >= pvalue
           case v: Long   => v >= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Long =>
@@ -178,6 +189,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v >= pvalue
           case v: Double => v >= pvalue
           case v: Long   => v >= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Instant =>
@@ -185,6 +197,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => v == pvalue || v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDateTime =>
@@ -192,6 +205,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => v == pvalue || v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDate =>
@@ -199,6 +213,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => v == pvalue || v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalTime =>
@@ -206,6 +221,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => v == pvalue || v.isAfter(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue => throw new Exception(s"cannot Gte compare a value of type ${pvalue.getClass.getSimpleName}")
@@ -217,6 +233,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => v < pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Int =>
@@ -227,6 +244,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v < pvalue
           case v: Double => v < pvalue
           case v: Long   => v < pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Double =>
@@ -237,6 +255,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v < pvalue
           case v: Double => v < pvalue
           case v: Long   => v < pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Long =>
@@ -247,6 +266,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v < pvalue
           case v: Double => v < pvalue
           case v: Long   => v < pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Instant =>
@@ -254,6 +274,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDateTime =>
@@ -261,6 +282,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDate =>
@@ -268,6 +290,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalTime =>
@@ -275,6 +298,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue => throw new Exception(s"cannot Lt compare a value of type ${pvalue.getClass.getSimpleName}")
@@ -286,6 +310,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => v <= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Int =>
@@ -296,6 +321,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v <= pvalue
           case v: Double => v <= pvalue
           case v: Long   => v <= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Double =>
@@ -306,6 +332,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v <= pvalue
           case v: Double => v <= pvalue
           case v: Long   => v <= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Long =>
@@ -316,6 +343,7 @@ class DefaultAssistent extends Assistent {
           case v: Int    => v <= pvalue
           case v: Double => v <= pvalue
           case v: Long   => v <= pvalue
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: Instant =>
@@ -323,6 +351,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => v == pvalue || v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDateTime =>
@@ -330,6 +359,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => v == pvalue || v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalDate =>
@@ -337,6 +367,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => v == pvalue || v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue: LocalTime =>
@@ -344,6 +375,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => v == pvalue || v.isBefore(pvalue)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case pvalue => throw new Exception(s"cannot Lte compare a value of type ${pvalue.getClass.getSimpleName}")
@@ -355,6 +387,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => lower <= v && v <= upper
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: Instant, upper: Instant) =>
@@ -362,6 +395,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => (v == lower || v.isAfter(lower)) && (v == upper || v.isBefore(upper))
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalDateTime, upper: LocalDateTime) =>
@@ -369,6 +403,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => (v == lower || v.isAfter(lower)) && (v == upper || v.isBefore(upper))
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalDate, upper: LocalDate) =>
@@ -376,6 +411,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => (v == lower || v.isAfter(lower)) && (v == upper || v.isBefore(upper))
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalTime, upper: LocalTime) =>
@@ -383,6 +419,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => (v == lower || v.isAfter(lower)) && (v == upper || v.isBefore(upper))
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower, upper) =>
@@ -394,6 +431,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower <= v
                 case v: Double => lower <= v
                 case v: Long   => lower <= v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower: Double =>
             (v: Any) =>
@@ -401,6 +439,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower <= v
                 case v: Double => lower <= v
                 case v: Long   => lower <= v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower: Long =>
             (v: Any) =>
@@ -408,6 +447,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower <= v
                 case v: Double => lower <= v
                 case v: Long   => lower <= v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower => throw new Exception(s"cannot Between compare a value of type ${lower.getClass.getSimpleName}")
         }) ->
@@ -418,6 +458,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v <= upper
                   case v: Double => v <= upper
                   case v: Long   => v <= upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper: Double =>
               (v: Any) =>
@@ -425,6 +466,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v <= upper
                   case v: Double => v <= upper
                   case v: Long   => v <= upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper: Long =>
               (v: Any) =>
@@ -432,6 +474,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v <= upper
                   case v: Double => v <= upper
                   case v: Long   => v <= upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper => throw new Exception(s"cannot Between compare a value of type ${upper.getClass.getSimpleName}")
           })
@@ -448,6 +491,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => lower > v || v > upper
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: Instant, upper: Instant) =>
@@ -455,6 +499,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => v.isBefore(lower) || v.isAfter(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalDateTime, upper: LocalDateTime) =>
@@ -462,6 +507,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => v.isBefore(lower) || v.isAfter(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalDate, upper: LocalDate) =>
@@ -469,6 +515,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => v.isBefore(lower) || v.isAfter(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalTime, upper: LocalTime) =>
@@ -476,6 +523,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => v.isBefore(lower) || v.isAfter(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower, upper) =>
@@ -487,6 +535,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower > v
                 case v: Double => lower > v
                 case v: Long   => lower > v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower: Double =>
             (v: Any) =>
@@ -494,6 +543,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower > v
                 case v: Double => lower > v
                 case v: Long   => lower > v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower: Long =>
             (v: Any) =>
@@ -501,6 +551,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower > v
                 case v: Double => lower > v
                 case v: Long   => lower > v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower => throw new Exception(s"cannot Outside compare a value of type ${lower.getClass.getSimpleName}")
         }) ->
@@ -511,6 +562,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v > upper
                   case v: Double => v > upper
                   case v: Long   => v > upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper: Double =>
               (v: Any) =>
@@ -518,6 +570,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v > upper
                   case v: Double => v > upper
                   case v: Long   => v > upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper: Long =>
               (v: Any) =>
@@ -525,6 +578,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v > upper
                   case v: Double => v > upper
                   case v: Long   => v > upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper => throw new Exception(s"cannot Outside compare a value of type ${upper.getClass.getSimpleName}")
           })
@@ -541,6 +595,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[String]
         val assert: Any => Boolean = {
           case v: String => lower < v && v < upper
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: Instant, upper: Instant) =>
@@ -548,6 +603,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[Instant]
         val assert: Any => Boolean = {
           case v: Instant => v.isAfter(lower) && v.isBefore(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalDateTime, upper: LocalDateTime) =>
@@ -555,6 +611,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDateTime]
         val assert: Any => Boolean = {
           case v: LocalDateTime => v.isAfter(lower) && v.isBefore(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalDate, upper: LocalDate) =>
@@ -562,6 +619,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalDate]
         val assert: Any => Boolean = {
           case v: LocalDate => v.isAfter(lower) && v.isBefore(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower: LocalTime, upper: LocalTime) =>
@@ -569,6 +627,7 @@ class DefaultAssistent extends Assistent {
         val comparable = (value: Any) => value.isInstanceOf[LocalTime]
         val assert: Any => Boolean = {
           case v: LocalTime => v.isAfter(lower) && v.isBefore(upper)
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
         }
       }
     case (lower, upper) =>
@@ -580,6 +639,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower < v
                 case v: Double => lower < v
                 case v: Long   => lower < v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower: Double =>
             (v: Any) =>
@@ -587,6 +647,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower < v
                 case v: Double => lower < v
                 case v: Long   => lower < v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower: Long =>
             (v: Any) =>
@@ -594,6 +655,7 @@ class DefaultAssistent extends Assistent {
                 case v: Int    => lower < v
                 case v: Double => lower < v
                 case v: Long   => lower < v
+                case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
               }
           case lower => throw new Exception(s"cannot Inside compare a value of type ${lower.getClass.getSimpleName}")
         }) ->
@@ -604,6 +666,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v < upper
                   case v: Double => v < upper
                   case v: Long   => v < upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper: Double =>
               (v: Any) =>
@@ -611,6 +674,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v < upper
                   case v: Double => v < upper
                   case v: Long   => v < upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper: Long =>
               (v: Any) =>
@@ -618,6 +682,7 @@ class DefaultAssistent extends Assistent {
                   case v: Int    => v < upper
                   case v: Double => v < upper
                   case v: Long   => v < upper
+                  case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
                 }
             case upper => throw new Exception(s"cannot Inside compare a value of type ${upper.getClass.getSimpleName}")
           })
@@ -655,7 +720,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).nonEmpty
 //      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).nonEmpty
       case v: Product => pvalueList.intersect(v.productIterator.toList).nonEmpty
-      case v          => false
+      case _          => false
     }
   }
   def intersectStringHelper[T <: String](p: Intersect[T]) = new Helper[Intersect[T]](p) {
@@ -663,6 +728,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => pvalue.intersect(v).nonEmpty
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def intersectGeoHelper[T <: Geometry](p: Intersect[T]) = new Helper[Intersect[T]](p) {
@@ -670,6 +736,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[Geometry] //???
     val assert: Any => Boolean = {
       case v: Geometry => v.intersect(pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
 
@@ -696,7 +763,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => v.productIterator.toList.containsSlice(pvalueList)
 //      case v: (_, _, _, _) => v.productIterator.toList.containsSlice(pvalueList)
       case v: Product => v.productIterator.toList.containsSlice(pvalueList)
-      case v          => false
+      case _          => false
     }
   }
   def containsStringHelper[T <: String](p: Contains[T]) = new Helper[Contains[T]](p) {
@@ -704,6 +771,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => v.contains(pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def containsGeoHelper[T <: Geometry](p: Contains[T]) = new Helper[Contains[T]](p) {
@@ -711,6 +779,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[Geometry] //???
     val assert: Any => Boolean = {
       case v: Geometry => v.contains(pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def containsPHelper[T <: P[_]](p: Contains[T]) = new Helper[Contains[T]](p) {
@@ -718,7 +787,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) =>
       value.isInstanceOf[Iterable[_]] || value.isInstanceOf[(_, _)] || value.isInstanceOf[(_, _, _)] || value
         .isInstanceOf[(_, _, _, _)] //nP contains comparable?
-    val nP = pToHelper(pvalue)
+    val nP = containsHelper(p)
     val assert: Any => Boolean = {
       case v: ListSet[_] => v.exists(nP.assert)
       case v: List[_]    => v.exists(nP.assert)
@@ -728,6 +797,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => v.productIterator.toList.exists(nP.assert)
 //      case v: (_, _, _, _) => v.productIterator.toList.exists(nP.assert)
       case v: Product => v.productIterator.toList.exists(nP.assert)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   override def contains[T](p: Contains[T]): Helper[Contains[T]] =
@@ -753,7 +823,7 @@ class DefaultAssistent extends Assistent {
 //      case v: (_, _, _)    => pvalueList.intersect(v.productIterator.toList).isEmpty
 //      case v: (_, _, _, _) => pvalueList.intersect(v.productIterator.toList).isEmpty
       case v: Product => pvalueList.intersect(v.productIterator.toList).isEmpty
-      case v          => true
+      case _          => true
     }
   }
   def disjointStringHelper[T <: String](p: Disjoint[T]) = new Helper[Disjoint[T]](p) {
@@ -761,6 +831,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => pvalue.intersect(v).isEmpty
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def disjointGeoHelper[T <: Geometry](p: Disjoint[T]) = new Helper[Disjoint[T]](p) {
@@ -768,6 +839,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[Geometry] //???
     val assert: Any => Boolean = {
       case v: Geometry => v.disjoint(pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   override def disjoint[T](p: Disjoint[T]): Helper[Disjoint[T]] =
@@ -800,6 +872,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => pvalue.contains(v)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def withinGeoHelper[T <: Geometry](p: Within[T]) = new Helper[Within[T]](p) {
@@ -807,6 +880,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[Geometry] //???
     val assert: Any => Boolean = {
       case v: Geometry => v.within(pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   override def within[T](p: Within[T]): Helper[Within[T]] =
@@ -844,6 +918,7 @@ class DefaultAssistent extends Assistent {
         v.productIterator.toList.size >= pvalueList.size && v.productIterator.toList.zip(pvalueList).forall {
           case (v, p) => v == p
         }
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def startsWithStringHelper[T <: String](p: Prefix[T]) = new Helper[Prefix[T]](p) {
@@ -851,6 +926,7 @@ class DefaultAssistent extends Assistent {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => v.startsWith(pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   override def startsWith[T](p: Prefix[T]): Helper[Prefix[T]] =
@@ -898,38 +974,42 @@ class DefaultAssistent extends Assistent {
           .forall {
             case (v, p) => v == p
           }
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   def endsWithStringHelper[T <: String](p: Suffix[T]) = new Helper[Suffix[T]](p) {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => v.endsWith(p.pvalue)
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
   override def endsWith[T](p: Suffix[T]): Helper[Suffix[T]] =
     (p.pvalue match {
-      case v: String => endsWithStringHelper(p.asInstanceOf[Suffix[String]])
-      case v         => endsWithHelper(p)
+      case _: String => endsWithStringHelper(p.asInstanceOf[Suffix[String]])
+      case _         => endsWithHelper(p)
     }).asInstanceOf[Helper[Suffix[T]]]
 
-  def regex(p: Regex): Helper[Regex] = new Helper[Regex](p) {
+  override def regex(p: Regex): Helper[Regex] = new Helper[Regex](p) {
     val comparable = (value: Any) => value.isInstanceOf[String] //???
     val assert: Any => Boolean = {
       case v: String => p.pvalue.findFirstIn(v).isDefined
+      case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
     }
   }
 
-  def fuzzy[T](p: Fuzzy[T]): Helper[Fuzzy[T]] = p.pvalue match {
+  override def fuzzy[T](p: Fuzzy[T]): Helper[Fuzzy[T]] = p.pvalue match {
     case _: String =>
       throw AssertionNotSupported("fuzzy string match not supported") //TODO, how to support? e.g. lowercase all strings on each search or keep a lazy lowercased cache value
+    case _ => throw new Exception(s"unexpected type ${p.pvalue.getClass.getSimpleName}")
   }
 
-  def and(p: And): Helper[And] = new Helper[And](p) {
+  override def and(p: And): Helper[And] = new Helper[And](p) {
     val ands                   = p.predicate.map(pToHelper)
     val comparable             = (value: Any) => ands.forall(_.comparable(value))
     val assert: Any => Boolean = (value: Any) => ands.forall(_.assert(value))
   }
-  def or(p: Or): Helper[Or] = new Helper[Or](p) {
+  override def or(p: Or): Helper[Or] = new Helper[Or](p) {
     val ors                    = p.predicate.map(pToHelper)
     val comparable             = (value: Any) => ors.exists(_.comparable(value))
     val assert: Any => Boolean = (value: Any) => ors.filter(_.comparable(value)).exists(_.assert(value))

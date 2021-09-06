@@ -1,7 +1,7 @@
 package lspace.provider.mem
 
+import lspace.structure.History
 import lspace.structure.util.IdProvider
-import lspace.structure.{DataGraph, History}
 import monix.eval.Task
 import monix.execution.atomic.Atomic
 
@@ -25,20 +25,20 @@ object MemGraphHistory {
           def iri: String = _iri + ".ns" + ".index"
 
           lazy val graph: MemGraph      = _thisgraph
-          lazy val index: MemIndexGraph = this
+//          lazy val index: MemIndexGraph = this
         }
       }
       lazy val index: MemIndexGraph = new MemIndexGraph {
         def iri: String = _iri + ".index"
 
         lazy val graph: MemGraph = self
-        private val _thisgraph   = thisgraph
-        lazy val index: MemIndexGraph = new MemIndexGraph {
-          def iri: String = _iri + ".index" + ".index"
-
-          lazy val graph: MemGraph      = _thisgraph
-          lazy val index: MemIndexGraph = this
-        }
+//        private val _thisgraph   = thisgraph
+//        lazy val index: MemIndexGraph = new MemIndexGraph {
+//          def iri: String = _iri + ".index" + ".index"
+//
+//          lazy val graph: MemGraph      = _thisgraph
+//          lazy val index: MemIndexGraph = this
+//        }
       }
       init
     }

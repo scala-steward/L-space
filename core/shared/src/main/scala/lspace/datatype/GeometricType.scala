@@ -2,7 +2,7 @@ package lspace.datatype
 
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.Property
+import lspace.structure.{ClassType, Property}
 import lspace.types.geo.Geometry
 
 object GeometricType extends DataTypeDef[GeometricType[Geometry]] {
@@ -11,7 +11,7 @@ object GeometricType extends DataTypeDef[GeometricType[Geometry]] {
     val iri: String                = NS.types.`@geo`
     override val iris: Set[String] = Set(NS.types.`@geo`)
     labelMap ++= Map("en" -> NS.types.`@geo`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   object keys extends StructuredType.Properties

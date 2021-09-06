@@ -65,8 +65,8 @@ object Collection
     lazy val `ns.l-space.eu/librarian/Collection/itemList`: TypedKey[List[Any]]    = keys.itemList
   }
 
-  def apply[T](node: Node, ct: Option[ClassType[T]]): Collection[T, ClassType[T]] =
-    wrap(node).asInstanceOf[Collection[T, ClassType[T]]]
+//  def apply[T](node: Node, ct: Option[ClassType[T]]): Collection[T, ClassType[T]] =
+//    wrap(node).asInstanceOf[Collection[T, ClassType[T]]]
 
   implicit def toNode[T, CT <: ClassType[_]](collection: Collection[T, CT]): Task[Node] = {
     for {

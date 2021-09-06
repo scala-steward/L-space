@@ -13,12 +13,12 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
     case step: Step => Task.now(step)
     case _ =>
       node.labels match {
-        case list if list.contains(G.ontology)         => G.toStep(node)
-        case list if list.contains(N.ontology)         => N.toStep(node)
-        case list if list.contains(V.ontology)         => V.toStep(node)
-        case list if list.contains(R.ontology)         => R.toStep(node)
-        case list if list.contains(E.ontology)         => E.toStep(node)
-        case list if list.contains(Drop.ontology)      => Drop.toStep(node)
+        case list if list.contains(G.ontology) => G.toStep(node)
+        case list if list.contains(N.ontology) => N.toStep(node)
+        case list if list.contains(V.ontology) => V.toStep(node)
+        case list if list.contains(R.ontology) => R.toStep(node)
+        case list if list.contains(E.ontology) => E.toStep(node)
+//        case list if list.contains(Drop.ontology)      => Drop.toStep(node)
         case list if list.contains(Dedup.ontology)     => Dedup.toStep(node)
         case list if list.contains(Out.ontology)       => Out.toStep(node)
         case list if list.contains(OutMap.ontology)    => OutMap.toStep(node)
@@ -74,6 +74,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
   }
 
   object keys {}
+  trait Properties extends OntologyDef.Properties
 
   lazy val steps: List[StepDef] = List(
     G,
@@ -81,7 +82,7 @@ object Step extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Step", Set()
     V,
     R,
     E,
-    Drop,
+//    Drop,
     Dedup,
     Out,
     OutMap,
@@ -161,6 +162,12 @@ object TraverseStep
   override lazy val properties: List[Property] = Step.properties
   trait Properties extends Step.Properties
 }
+trait LabelStep extends Step
+object LabelStep extends StepDef(label = "LabelStep", comment = "LabelStep", Step.ontology :: Nil) {
+  object keys extends Step.Properties
+  override lazy val properties: List[Property] = Step.properties
+  trait Properties extends Step.Properties
+}
 trait ProjectionStep extends Step
 object ProjectionStep extends StepDef(label = "ProjectionStep", comment = "ProjectionStep", Step.ontology :: Nil) {
   object keys extends Step.Properties
@@ -189,8 +196,7 @@ object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", Branch
 
   override lazy val properties: List[Property] = keys.label.property :: BranchStep.properties
 
-  /**
-    * mirror of properties in object keys
+  /** mirror of properties in object keys
     */
   trait Properties extends BranchStep.Properties {
     lazy val `ns.l-space.eu/librarian/MoveStep/label`: Property                   = keys.label
@@ -199,9 +205,11 @@ object MoveStep extends StepDef(label = "MoveStep", comment = "MoveStep", Branch
 }
 trait MapStep extends ProjectionStep with GroupingStep
 object MapStep
-    extends StepDef(label = "MapStep",
-                    comment = "Property MapStep",
-                    ProjectionStep.ontology :: GroupingStep.ontology :: Nil) {
+    extends StepDef(
+      label = "MapStep",
+      comment = "Property MapStep",
+      ProjectionStep.ontology :: GroupingStep.ontology :: Nil
+    ) {
   object keys extends ProjectionStep.Properties with GroupingStep.Properties
   override lazy val properties: List[Property] = ProjectionStep.properties ++ GroupingStep.properties
   trait Properties extends ProjectionStep.Properties with GroupingStep.Properties
@@ -232,28 +240,34 @@ object RearrangeStep extends StepDef(label = "RearrangeStep", comment = "Rearran
 //}
 trait GroupingBarrierStep extends BarrierStep with GroupingStep //with TraverseStep
 object GroupingBarrierStep
-    extends StepDef(label = "CollectingBarrierStep",
-                    comment = "CollectingBarrierStep",
-                    BarrierStep.ontology :: GroupingStep.ontology :: TraverseStep.ontology :: Nil) {
+    extends StepDef(
+      label = "CollectingBarrierStep",
+      comment = "CollectingBarrierStep",
+      BarrierStep.ontology :: GroupingStep.ontology :: TraverseStep.ontology :: Nil
+    ) {
   object keys extends BarrierStep.Properties with GroupingStep.Properties with TraverseStep.Properties
-  override lazy val properties
-    : List[Property] = BarrierStep.properties ++ GroupingStep.properties ++ TraverseStep.properties
+  override lazy val properties: List[Property] =
+    BarrierStep.properties ++ GroupingStep.properties ++ TraverseStep.properties
   trait Properties extends BarrierStep.Properties with GroupingStep.Properties with TraverseStep.Properties
 }
 trait ReducingBarrierStep extends BarrierStep with ReducingStep //with TraverseStep
 object ReducingBarrierStep
-    extends StepDef(label = "ReducingBarrierStep",
-                    comment = "ReducingBarrierStep",
-                    BarrierStep.ontology :: ReducingStep.ontology :: Nil) {
+    extends StepDef(
+      label = "ReducingBarrierStep",
+      comment = "ReducingBarrierStep",
+      BarrierStep.ontology :: ReducingStep.ontology :: Nil
+    ) {
   object keys extends BarrierStep.Properties with ReducingStep.Properties
   override lazy val properties: List[Property] = BarrierStep.properties ::: ReducingStep.properties
   trait Properties extends BarrierStep.Properties with ReducingStep.Properties
 }
 trait FilterBarrierStep extends BarrierStep with FilterStep //with ReducingStep
 object FilterBarrierStep
-    extends StepDef(label = "FilterBarrierStep",
-                    comment = "FilterBarrierStep",
-                    BarrierStep.ontology :: FilterStep.ontology :: Nil) {
+    extends StepDef(
+      label = "FilterBarrierStep",
+      comment = "FilterBarrierStep",
+      BarrierStep.ontology :: FilterStep.ontology :: Nil
+    ) {
   object keys extends BarrierStep.Properties with FilterStep.Properties
   override lazy val properties: List[Property] = BarrierStep.properties ::: FilterStep.properties
   trait Properties extends BarrierStep.Properties with FilterStep.Properties
@@ -307,23 +321,39 @@ object HasStep extends StepDef(label = "HasStep", comment = "HasStep", FilterSte
 
   sealed trait ClassTypeLabel[T]
 
-  sealed trait PropertyLabel[T] extends ClassTypeLabel[T]
+  sealed trait PropertyLabel[T] extends ClassTypeLabel[T] {
+    def getProperty(label: T): Property
+  }
 
-  implicit def IsPropertyDef[T <: PropertyDef] = new PropertyLabel[T] {}
-  implicit object IsProperty extends PropertyLabel[Property]
-  implicit object IsString   extends PropertyLabel[String]
+  object PropertyLabel {
+    implicit def IsPropertyDef[T <: PropertyDef]: PropertyLabel[T] = new PropertyLabel[T] {
+      def getProperty(label: T): Property = label.property
+    }
+    implicit object IsProperty extends PropertyLabel[Property] {
+      def getProperty(label: Property): Property = label
+    }
+    implicit object IsString extends PropertyLabel[String] {
+      def getProperty(label: String): Property = Property.properties
+        .get(label)
+        .getOrElse(Property(label)) //throw new Exception("unknown key"))
+    }
+  }
 
   sealed trait DataTypeLabel[T] extends ClassTypeLabel[T]
 
-  implicit def IsDataTypeDef[T <: DataTypeDef[_]] = new DataTypeLabel[T] {}
-  implicit object IsDataType extends DataTypeLabel[DataType[_]]
-  implicit object IsString1  extends DataTypeLabel[String]
+  object DataTypeLabel {
+    implicit def IsDataTypeDef[T <: DataTypeDef[_]]: DataTypeLabel[T] = new DataTypeLabel[T] {}
+    implicit object IsDataType extends DataTypeLabel[DataType[_]]
+    implicit object IsString   extends DataTypeLabel[String]
+  }
 
   sealed trait OntologyLabel[T] extends ClassTypeLabel[T]
 
-  implicit def IsOntologyDef[T <: OntologyDef] = new OntologyLabel[T] {}
-  implicit object IsOntology extends OntologyLabel[Ontology]
-  implicit object IsString2  extends OntologyLabel[String]
+  object OntologyLabel {
+    implicit def IsOntologyDef[T <: OntologyDef]: OntologyLabel[T] = new OntologyLabel[T] {}
+    implicit object IsOntology extends OntologyLabel[Ontology]
+    implicit object IsString   extends OntologyLabel[String]
+  }
 
   object keys extends FilterStep.Properties
   override lazy val properties: List[Property] = FilterStep.properties

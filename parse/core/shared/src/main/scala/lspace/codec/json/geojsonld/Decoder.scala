@@ -104,6 +104,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
                       Task.parSequenceUnordered(array.map(toResource(_, expectedType)
                         .onErrorHandleWith { case t => autodiscoverValue(json) }
                         .flatMap(addEdgeF(_))))
+                    case _ => throw new Exception("invalid")
                   }
                 edgesTask
             })
@@ -152,7 +153,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
         .getOrElse(Task.now(Map[String, Json]()))
       node <- DetachedGraph.nodes.create()
       //      geo  <- DetachedGraph.values.upsert(geometry, lspace.ClassType.detect(geometry))
-      _ <- node --- "http://schema.org/geo" --> geometry
+      _ <- node --- "https://schema.org/geo" --> geometry
       _ <- withJsonProperties(node, properties.expand)
     } yield node
   def decodeFeatureOption(map: Map[String, Json])(implicit context: ActiveContext): Option[Task[lspace.Node]] =
@@ -190,14 +191,14 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
                     node <- DetachedGraph.nodes.create()
                     v = geoJsonDecoder.decodeGeometryCollection(map)
                     value <- DetachedGraph.values.upsert(v, lspace.DataType.detect(v))
-                    _     <- node --- "http://schema.org/location" --> value
+                    _     <- node --- "https://schema.org/location" --> value
                   } yield List(node)
                 case _ =>
                   for {
                     node  <- DetachedGraph.nodes.create()
                     geo   <- decodeGeometryCoordinates(iri, geoJsonDecoder.decodeCoordinates(map))
                     value <- DetachedGraph.values.upsert(geo)
-                    _     <- node --- "http://schema.org/location" --> value
+                    _     <- node --- "https://schema.org/location" --> value
                   } yield List(node)
               }
             case None => Task.raiseError(new Exception("invalid geojson"))

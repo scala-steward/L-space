@@ -6,7 +6,7 @@ import lspace.client.session.Session
 import monix.eval.Task
 
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object SessionBroker {
   def apply(baseIri: String): SessionBroker = new SessionBroker(baseIri)

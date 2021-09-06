@@ -1,15 +1,14 @@
 package lspace.provider.mem
 
-import java.util.concurrent.ConcurrentHashMap
-
-import lspace.datatype.{DataType, TextType}
+import lspace.datatype.TextType
 import lspace.structure.Property.default
 import lspace.structure._
 import monix.eval.Task
 import monix.reactive.Observable
 
-import scala.collection.{concurrent, mutable}
-import scala.collection.JavaConverters._
+import java.util.concurrent.ConcurrentHashMap
+import scala.jdk.CollectionConverters._
+import scala.collection.concurrent
 import scala.collection.immutable.HashSet
 
 object MemResource {}
@@ -35,7 +34,7 @@ trait MemResource[T] extends Resource[T] {
 
   object Lock
 
-  protected[lspace] def _addOut(edge: Edge[T, _]): Unit = Lock.synchronized {
+  protected[lspace] def _addOut(edge: Edge[T, _]): Unit = Lock.synchronized[Unit] {
     if (edge.from != this) throw new Exception("edge.from != this, cannot add out-link")
     linksOut += edge.key ->
       (linksOut
@@ -47,7 +46,7 @@ trait MemResource[T] extends Resource[T] {
 //  private val linksIn: concurrent.TrieMap[Property, List[Edge[_, T]]] =
 //    new concurrent.TrieMap[Property, List[Edge[_, T]]]() //.asScala
 
-  protected[lspace] def _addIn(edge: Edge[_, T]): Unit = Lock.synchronized {
+  protected[lspace] def _addIn(edge: Edge[_, T]): Unit = Lock.synchronized[Unit] {
     if (edge.to != this) throw new Exception("edge.to != this, cannot add in-link")
     linksIn += edge.key -> (linksIn
       .getOrElse(edge.key, HashSet[Edge[_, T]]()) + edge)
@@ -63,8 +62,8 @@ trait MemResource[T] extends Resource[T] {
     else linksOut.values.flatten.map(_.to.value).toList
 
   def outMap(key: Property*): Map[Property, List[Any]] =
-    if (key.isEmpty) linksOut.toMap.mapValues(_.map(_.to.value).toList).toMap
-    else outE(key: _*).groupBy(_.key).mapValues(_.map(_.to.value)).toMap
+    if (key.isEmpty) linksOut.toMap.view.mapValues(_.map(_.to.value).toList).toMap
+    else outE(key: _*).groupBy(_.key).view.mapValues(_.map(_.to.value)).toMap
 
   def outE(key: Property*): List[Edge[T, Any]] =
     if (key.nonEmpty)
@@ -74,7 +73,7 @@ trait MemResource[T] extends Resource[T] {
     else linksOut.values.toList.flatten.asInstanceOf[List[Edge[T, Any]]]
 
   def outEMap(key: Property*): Map[Property, List[Edge[T, Any]]] =
-    if (key.isEmpty) linksOut.toMap.mapValues(_.asInstanceOf[HashSet[Edge[T, Any]]].toList).toMap
+    if (key.isEmpty) linksOut.toMap.view.mapValues(_.asInstanceOf[HashSet[Edge[T, Any]]].toList).toMap
     else outE(key: _*).groupBy(_.key)
 
   def in(key: Property*): List[Any] =
@@ -85,8 +84,8 @@ trait MemResource[T] extends Resource[T] {
     else linksIn.values.toList.flatten.map(_.from.value)
 
   def inMap(key: Property*): Map[Property, List[Any]] =
-    if (key.isEmpty) linksIn.toMap.mapValues(_.map(_.from.value).toList).toMap
-    else inE(key: _*).groupBy(_.key).mapValues(_.map(_.from.value)).toMap
+    if (key.isEmpty) linksIn.toMap.view.mapValues(_.map(_.from.value).toList).toMap
+    else inE(key: _*).groupBy(_.key).view.mapValues(_.map(_.from.value)).toMap
 
   def inE(key: Property*): List[Edge[Any, T]] =
     if (key.nonEmpty)
@@ -96,11 +95,8 @@ trait MemResource[T] extends Resource[T] {
     else linksIn.values.toList.flatten.asInstanceOf[List[Edge[Any, T]]]
 
   def inEMap(key: Property*): Map[Property, List[Edge[Any, T]]] =
-    if (key.isEmpty) linksIn.toMap.mapValues(_.asInstanceOf[HashSet[Edge[Any, T]]].toList).toMap
+    if (key.isEmpty) linksIn.toMap.view.mapValues(_.asInstanceOf[HashSet[Edge[Any, T]]].toList).toMap
     else inE(key.toList: _*).groupBy(_.key)
-
-  private def validateDT[V](dt: DataType[V], value: V) =
-    if (dt.iri.nonEmpty) dt else ClassType.detect(value)
 
   def removeIn[V >: T](edge: Edge[_, V]): Task[Unit] = Task.defer {
     Lock.synchronized {

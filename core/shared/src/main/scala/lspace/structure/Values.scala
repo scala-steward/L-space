@@ -7,7 +7,7 @@ import lspace.structure.util.{ClassTypeable, UpsertHelper}
 import monix.eval.Task
 import monix.reactive.Observable
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 import scala.collection.immutable.ListSet
 
@@ -18,7 +18,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   def count(): Task[Long]             = valueStore.count()
 
   def hasId(id: Long): Task[Option[Value[Any]]] = valueStore.hasId(id)
-  def cached = new {
+  def cached: Cached = new Cached{
     def hasId(id: Long): Option[Value[Any]] =
       valueStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
@@ -33,11 +33,13 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
         valueStore
           .hasIri(iri)
           .asInstanceOf[Observable[Value[_]]] //        println(r.map(_.iri))
-      } else Observable[Value[_]]()
+      }
+    else Observable[Value[_]]()
   }
 
-  def byValue[T, TOut, CTOut <: ClassType[_]](value: T)(
-      implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Observable[Value[T]] =
+  def byValue[T, TOut, CTOut <: ClassType[_]](value: T)(implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): Observable[Value[T]] =
     valueStore.byValue(value, clsTpbl.ct.asInstanceOf[DataType[T]]).asInstanceOf[Observable[Value[T]]]
   def byValue[T](valueSet: List[(T, DataType[T])]): Observable[Value[T]] =
     //      val valueList = valueSet.distinct.filter(_ != null)
@@ -58,12 +60,11 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     case v: Set[_]     => Task.parSequence[Any, Set](v.map(dereferenceValue))
     case v: Map[_, _] =>
       Task
-        .parSequence(v.toList.map {
-          case (key, value) =>
-            for {
-              a <- dereferenceValue(key)
-              b <- dereferenceValue(value)
-            } yield (a, b)
+        .parSequence(v.toList.map { case (key, value) =>
+          for {
+            a <- dereferenceValue(key)
+            b <- dereferenceValue(value)
+          } yield (a, b)
         })
         .map(_.toMap)
     case (v1, v2) =>
@@ -98,11 +99,12 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     case v: Node        => nodes.upsert(v)
     case v: Edge[_, _]  => edges.upsert(v)
     case v: Value[_]    => values.upsert(v)
-    case _              => Task.now(t) //TODO: check if t is a supported datatype?
+    case _              => Task.now(t)                            //TODO: check if t is a supported datatype?
   }
 
-  final def create[T, TOut, CTOut <: ClassType[_]](value: T)(
-      implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]): Task[Value[T]] = //add implicit DataType[T]
+  final def create[T, TOut, CTOut <: ClassType[_]](value: T)(implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): Task[Value[T]] = //add implicit DataType[T]
     byValue(value).headOptionL.flatMap(_.map(_.asInstanceOf[_Value[T]]).map(Task.now).getOrElse {
       for {
         dereferencedValue <- dereferenceValue(value).map(_.asInstanceOf[T])
@@ -127,14 +129,15 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             value <- createValue(id, dereferencedValue, finalDT)
           } yield value
         })
-    } yield { b }
+    } yield b
   }
 
   private val upsertingTasks: concurrent.Map[Any, Task[Value[Any]]] =
     new ConcurrentHashMap[Any, Task[Value[Any]]]().asScala
 
-  def upsert[V, TOut, CTOut <: ClassType[Any]](value: V)(
-      implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Task[Value[V]] =
+  def upsert[V, TOut, CTOut <: ClassType[Any]](
+    value: V
+  )(implicit clsTpbl: ClassTypeable.Aux[V, TOut, CTOut]): Task[Value[V]] =
     upsertingTasks
       .getOrElseUpdate(
         value,
@@ -145,7 +148,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             case values =>
               mergeValues(values.toSet)
           }
-          .doOnFinish(_ => Task(upsertingTasks.remove(value)))
+          .doOnFinish(_ => Task(upsertingTasks.remove(value)).void)
           .memoize
       )
       .asInstanceOf[Task[Value[V]]]
@@ -164,7 +167,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
             case values =>
               mergeValues(values.toSet)
           }
-          .doOnFinish(_ => Task(upsertingTasks.remove(value)))
+          .doOnFinish(_ => Task(upsertingTasks.remove(value)).void)
           .memoize
       )
       .asInstanceOf[Task[Value[V]]]
@@ -176,12 +179,10 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   //      _value
   final def upsert[V](value: Value[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Value[V]] =
     if (value.graph != this) {
-      helper.createValue(value.id,
-      upsert(value.value, value.label))
+      helper.createValue(value.id, upsert(value.value, value.label))
     } else Task.now(value)
 
-  /**
-    * adds a value to the graph including all edges and (meta) edges on edges as long as edges have edges
+  /** adds a value to the graph including all edges and (meta) edges on edges as long as edges have edges
     * @param value
     * @tparam V
     * @return
@@ -190,10 +191,12 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     if (value.graph != this) {
       hasIri(value.iri).toListL
         .flatMap {
-          case List() => create(value.value, value.label)
-          case List(storedValue: Value[_]) if storedValue.value == value.value =>
-            Task.now(storedValue.asInstanceOf[Value[V]])
-          case List(_: Value[_], _*) =>
+          case Nil => create(value.value, value.label)
+          case storedValue :: Nil =>
+            if (storedValue.value == value.value)
+              Task.now(storedValue.asInstanceOf[Value[V]])
+            else Task.raiseError(new Exception("multiple values with the same iri, what should we do?! Dedup?"))
+          case _ :: _ =>
             Task.raiseError(new Exception("multiple values with the same iri, what should we do?! Dedup?"))
         }
         .flatMap { newValue =>
@@ -206,22 +209,19 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     case _                => Task.unit //LOG???
   }
 
-  /**
-    * adds a value
+  /** adds a value
     * @param value
     * @tparam V
     * @return
     */
   final def +[V](value: Value[V]): Task[Value[V]] = upsert(value)
 
-  /**
-    * deletes a value
+  /** deletes a value
     * @param value
     */
   final def -(value: Value[Any]): Task[Unit] = delete(value)
 
-  /**
-    * adds a value and meta-properties (value.outE())
+  /** adds a value and meta-properties (value.outE())
     * @param value
     * @tparam V
     * @return

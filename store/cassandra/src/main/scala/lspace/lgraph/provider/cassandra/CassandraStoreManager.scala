@@ -3,7 +3,9 @@ package lspace.lgraph.provider.cassandra
 import com.datastax.driver.core.PagingState
 import com.outworkers.phantom.builder.batch.BatchQuery
 import com.outworkers.phantom.dsl._
+import lspace.client.io.HttpClient
 import lspace.codec.ActiveContext
+import lspace.codec.json.{JsonDecoder, JsonEncoder}
 import lspace.lgraph._
 import lspace.lgraph.store.{LEdgeStore, LNodeStore, LValueStore, StoreManager}
 import lspace.datatype.DataType
@@ -32,16 +34,19 @@ object CassandraStoreManager {
 }
 
 class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override val database: CassandraGraphTables)(
-    implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: NativeTypeDecoder.Aux[Json])
+    implicit baseEncoder: JsonEncoder[Json],
+    baseDecoder: JsonDecoder[Json],
+    httpClient: HttpClient)
     extends StoreManager(graph)
     with DatabaseProvider[CassandraGraphTables] {
   import CassandraStoreManager._
 
   val encoder: EncodeLDFS[Json] = EncodeLDFS()
   val decoder: DecodeLDFS[Json] = DecodeLDFS(graph)
-  import decoder.{baseDecoder => _, Json => _, _}
-  import encoder.{baseEncoder => _, Json => _, _}
+  import decoder._
+  import encoder._
+  import baseEncoder._
+  import baseDecoder._
 
   override def nodeStore: LNodeStore[G]   = graph.nodeStore.asInstanceOf[LNodeStore[G]]
   override def edgeStore: LEdgeStore[G]   = graph.edgeStore.asInstanceOf[LEdgeStore[G]]

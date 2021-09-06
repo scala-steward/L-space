@@ -1,7 +1,6 @@
 package lspace.provider.wrapped
 
 import lspace.structure._
-import lspace.util.CacheStatus
 
 abstract class WrappedEdge[S, E](override val self: Edge[S, E]) extends Edge[S, E] with WrappedResource[Edge[S, E]] {
 

@@ -1,7 +1,6 @@
 package lspace.provider.wrapped
 
 import lspace.structure._
-import lspace.util.CacheStatus
 import monix.eval.Task
 
 abstract class WrappedNode(override val self: Node) extends Node with WrappedResource[Node] {

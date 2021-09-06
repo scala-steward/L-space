@@ -18,7 +18,7 @@ case class LspaceKafkaProducer(topic: String) {
       bootstrapServers = if (hosts.nonEmpty) hosts else List("localhost:9092")
     )
 
-  def apply(nodes: Stream[Node]) =
+  def apply(nodes: LazyList[Node]) =
     Observable
       .fromIterable(nodes)
       .map(lspace.codec.argonaut.Encoder(_).toString())

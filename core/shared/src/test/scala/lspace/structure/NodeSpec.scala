@@ -5,12 +5,10 @@ import lspace.datatype.{DataType, VectorType}
 import org.scalatest.BeforeAndAfterAll
 import lspace.util.SampleGraph
 import monix.eval.Task
-import monix.execution.Scheduler
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
 trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with GraphFixtures {
-  import SampleGraph.ontologies._
   import SampleGraph.properties._
   import lspace.Implicits.Scheduler.global
   override def executionContext = lspace.Implicits.Scheduler.global
@@ -120,7 +118,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
     "Properties".can {
       "only be single for cardinality single".ignore {
         val singleProperty = Property("singleproperty")
-        singleProperty.range + DataType.default.`@string`
+//        singleProperty.range + DataType.default.`@string`
 
         (for {
           node <- graph.nodes.create()
@@ -148,7 +146,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
       }
       "be of type double" in {
         val number = Property("number")
-        number.range + DataType.default.`@double`
+//        number.range + DataType.default.`@double`
         val numberDouble = number.as(DataType.default.`@double`)
         (for {
           node <- graph.nodes.create()

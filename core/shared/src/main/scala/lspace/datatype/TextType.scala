@@ -3,16 +3,15 @@ package lspace.datatype
 import lspace.NS
 import lspace.structure.util.ClassTypeable
 import lspace.structure._
-import lspace.types.string.Iri
 
 object TextType extends DataTypeDef[TextType[String]] {
 
   lazy val datatype: TextType[String] = new TextType[String] {
     val iri: String = NS.types.`@string`
     override val iris: Set[String] =
-      Set(NS.types.`@string`, NS.types.schemaText, "http://schema.org/Text", NS.types.xsdString)
+      Set(NS.types.`@string`, NS.types.schemaText, "https://schema.org/Text", NS.types.xsdString)
     labelMap ++= Map("en" -> NS.types.`@string`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(LiteralType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(LiteralType.datatype)
   }
 
   object keys extends LiteralType.Properties
@@ -32,5 +31,5 @@ trait TextType[+T] extends LiteralType[T]
 //  override val iri: String       = NS.types.`@iri`
 //  override val iris: Set[String] = Set()
 //
-//  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(TextType.textType)
+//  override protected def _extendedClasses: List[ClassType[Any]] = List(TextType.textType)
 //}

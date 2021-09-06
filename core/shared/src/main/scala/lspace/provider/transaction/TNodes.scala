@@ -6,7 +6,7 @@ import lspace.structure.{Node, Nodes}
 import monix.eval.Task
 import monix.reactive.Observable
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(graph) {
   import graph._

@@ -1,18 +1,17 @@
 package lspace.datatype
 
 import java.time.LocalDate
-
 import lspace.NS
 import lspace.structure.util.ClassTypeable
-import lspace.structure.Property
+import lspace.structure.{ClassType, Property}
 
 object LocalDateType extends DataTypeDef[LocalDateType[LocalDate]] {
 
   lazy val datatype: LocalDateType[LocalDate] = new LocalDateType[LocalDate] {
     val iri: String                = NS.types.`@date`
-    override val iris: Set[String] = Set(NS.types.`@date`, NS.types.schemaDate, "http://schema.org/Date")
+    override val iris: Set[String] = Set(NS.types.`@date`, NS.types.schemaDate, "https://schema.org/Date")
     labelMap ++= Map("en" -> NS.types.`@date`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CalendarType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CalendarType.datatype)
   }
 
   object keys extends CalendarType.Properties

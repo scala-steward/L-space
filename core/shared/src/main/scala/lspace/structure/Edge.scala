@@ -1,7 +1,7 @@
 package lspace.structure
 
 import lspace.NS
-import lspace.datatype.{DataType, EdgeURLType, IriType}
+import lspace.datatype.{EdgeURLType, IriType}
 import lspace.librarian.traversal.{step, Traversal}
 import lspace.structure.util.ClassTypeable
 import monix.eval.Task
@@ -18,7 +18,7 @@ object Edge {
   lazy val edgeUrl = new EdgeURLType[Edge[Any, Any]] {
     val iri: String = NS.types.`@edgeURL`
     labelMap ++= Map("en" -> NS.types.`@edgeURL`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(IriType.datatype)
+    override protected lazy val _extendedClasses: List[ClassType[Any]] = List(IriType.datatype)
   }
 
   implicit class WithEdge[S, E](edge: Edge[S, E]) {

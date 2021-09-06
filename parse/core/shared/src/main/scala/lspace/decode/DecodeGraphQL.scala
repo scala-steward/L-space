@@ -19,11 +19,11 @@ object DecodeGraphQL {
       implicit decoder: Decoder): DecodeGraphQL[Query, Task] = {
 
     lazy val validProperty: Property => Boolean =
-      if (allowedProperties.nonEmpty) { property: Property =>
+      if (allowedProperties.nonEmpty) { (property: Property) =>
         allowedProperties.contains(property) && !forbiddenProperties.contains(property)
-      } else if (forbiddenProperties.nonEmpty) { property: Property =>
+      } else if (forbiddenProperties.nonEmpty) { (property: Property) =>
         !forbiddenProperties.contains(property)
-      } else { property: Property =>
+      } else { (property: Property) =>
         true
       }
 

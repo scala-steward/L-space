@@ -1,27 +1,23 @@
 package lspace.structure
 
-import java.util.concurrent.ConcurrentHashMap
-
-import lspace.structure
-import monix.eval.Task
 import lspace.datatype.{DataType, GraphType, TextType}
 import lspace.librarian.task.Guide
-import lspace.provider.transaction.Transaction
 import lspace.librarian.traversal.util.{EndMapper, ResultMapper}
 import lspace.provider.detached.DetachedGraph
 import lspace.provider.mem.MemGraph
+import lspace.provider.transaction.Transaction
+import lspace.structure
 import lspace.structure.store.{EdgeStore, NodeStore, ValueStore}
 import lspace.structure.util.{ClassTypeable, GraphUtils, IdProvider, UpsertHelper}
+import monix.eval.Task
 import monix.reactive.Observable
-import shapeless.{::, HList, HNil}
+import shapeless.HList
 
 import scala.collection.mutable
-import scala.util.Try
 
 object Graph {
 
-  /**
-    * easy helper for creating simple in-memory graphs (graph can always be merged into other types of graphs, e.g. graphs which are persistent)
+  /** easy helper for creating simple in-memory graphs (graph can always be merged into other types of graphs, e.g. graphs which are persistent)
     * @param iri
     * @return
     */
@@ -95,46 +91,39 @@ trait Graph extends IriResource with GraphUtils { self =>
 
   protected[lspace] def idProvider: IdProvider
 
-  /**
-    * creates new transaction
+  /** creates new transaction
     * @return
     */
   def transaction: Transaction
 
-  /**
-    * Store of all nodes
+  /** Store of all nodes
     * @return
     */
   protected[lspace] def nodeStore: NodeStore[this.type]
 
-  /**
-    * Store of all edges
+  /** Store of all edges
     * @return
     */
   protected[lspace] def edgeStore: EdgeStore[this.type]
 
-  /**
-    * Store of all values
+  /** Store of all values
     * @return
     */
   protected[lspace] def valueStore: ValueStore[this.type]
 
   def init: Task[Unit]
 
-  /**
-    * Resources, an aggration of nodes, edges and values
+  /** Resources, an aggration of nodes, edges and values
     */
   def resources: Resources               = _resources
   private lazy val _resources: Resources = new Resources(this) {}
 
-  /**
-    * Edges Aka Links Aka Properties
+  /** Edges Aka Links Aka Properties
     */
   def edges: Edges               = _edges
   private lazy val _edges: Edges = new Edges(this) {}
 
-  /**
-    * Nodes Aka Vertices
+  /** Nodes Aka Vertices
     */
   def nodes: Nodes               = _nodes
   private lazy val _nodes: Nodes = new Nodes(this) {}
@@ -149,7 +138,7 @@ trait Graph extends IriResource with GraphUtils { self =>
       .flatMap(_.map(Task.now).getOrElse {
         for {
           node <- Task.now(newNode(id))
-          u    <- storeNode(node)
+          _    <- storeNode(node)
         } yield node
       })
   final def +(label: Ontology): Task[Node]         = nodes.create(label)
@@ -157,10 +146,12 @@ trait Graph extends IriResource with GraphUtils { self =>
 
   protected[lspace] def newEdge[S, E](id: Long, from: _Resource[S], key: Property, to: _Resource[E]): GEdge[S, E]
 
-  protected[lspace] def createEdge[S, E](id: Long,
-                                         from: _Resource[S],
-                                         key: Property,
-                                         to: _Resource[E]): Task[GEdge[S, E]] =
+  protected[lspace] def createEdge[S, E](
+    id: Long,
+    from: _Resource[S],
+    key: Property,
+    to: _Resource[E]
+  ): Task[GEdge[S, E]] =
 //    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
     for {
       _ <- (if (!Property.properties.default.byIri.contains(key.iri))
@@ -176,7 +167,9 @@ trait Graph extends IriResource with GraphUtils { self =>
             edgeStore.store(edge /*.asInstanceOf[_Edge[_, _]]*/ )
           case value: _Value[_] =>
             valueStore.store(value.asInstanceOf[_Value[_]])
-        } else Task.unit
+          case v => throw new Exception(s"unexpected type ${v.getClass.getSimpleName}")
+        }
+        else Task.unit
       }
     } yield edge
 
@@ -193,8 +186,7 @@ trait Graph extends IriResource with GraphUtils { self =>
 
   protected def storeValue(value: GValue[_]): Task[Unit] = valueStore.store(value)
 
-  /**
-    * deletes the Node from the graph
+  /** deletes the Node from the graph
     * @param node
     */
   protected[lspace] def deleteNode(node: _Node): Task[Unit] =
@@ -203,8 +195,7 @@ trait Graph extends IriResource with GraphUtils { self =>
       _ <- nodeStore.delete(node)
     } yield ()
 
-  /**
-    * deletes the Edge from the graph
+  /** deletes the Edge from the graph
     * @param edge
     */
   protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =
@@ -213,8 +204,7 @@ trait Graph extends IriResource with GraphUtils { self =>
       _ <- edgeStore.delete(edge)
     } yield ()
 
-  /**
-    * deletes the Value from the graph
+  /** deletes the Value from the graph
     * @param value
     */
   protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] =
@@ -223,14 +213,15 @@ trait Graph extends IriResource with GraphUtils { self =>
       _ <- valueStore.delete(value)
     } yield ()
 
-  /**
-    * TODO: rename to _deleteProperties/_deleteEdges?
+  /** TODO: rename to _deleteProperties/_deleteEdges?
     * @param resource
     */
   protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit]
 
   //TODO: break graph cycles
-  protected[lspace] def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T)(implicit helper: UpsertHelper = UpsertHelper()): Task[Unit] =
+  protected[lspace] def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T)(implicit
+    helper: UpsertHelper = UpsertHelper()
+  ): Task[Unit] =
     Observable
       .fromIterable(source.outE().filterNot(p => Graph.baseKeys.contains(p.key)))
       .mapEval { edge =>
@@ -248,7 +239,8 @@ trait Graph extends IriResource with GraphUtils { self =>
     if (graph != this) {
       if (graph == DetachedGraph)
         scribe.warn(
-          s"adding the contents of DetachedGraph to ${this.iri} has zero effect as DetachedGraph does not store any objects, they float")
+          s"adding the contents of DetachedGraph to ${this.iri} has zero effect as DetachedGraph does not store any objects, they float"
+        )
       for {
         _ <- graph
           .nodes()
@@ -257,28 +249,35 @@ trait Graph extends IriResource with GraphUtils { self =>
 //            (if (node.iri.nonEmpty) nodes.upsert(node.iri, node.labels: _*)
 //             else nodes.create(node.labels: _*)).map(node.id -> _)
             nodes.upsert(node)
-          }.completedL
+          }
+          .completedL
         _ <- graph
           .values()
           .mapParallelUnordered(8) { value =>
-          values.upsert(value)
-          }.completedL
+            values.upsert(value)
+          }
+          .completedL
         r <- {
           for {
             _ <- graph
               .edges()
               .filter(e =>
                 !((e.key == Property.default.`@id` || e.key == Property.default.`@ids`) && e.from
-                  .isInstanceOf[Node] && e.to.hasLabel(TextType.datatype).isDefined))
+                  .isInstanceOf[Node] && e.to.hasLabel(TextType.datatype).isDefined)
+              )
               .mapParallelUnordered(8) { edge =>
                 //            if (edge.iri.nonEmpty) //TODO: find edge width
-                helper.mergeEdge(edge)(self).onErrorHandle { e: Throwable =>
+                helper.mergeEdge(edge)(self).onErrorHandle { (e: Throwable) =>
                   scribe.error(e.getMessage)
                 }
               }
               .toListL
-            _ <- helper.retryEdges(self) //TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
-            _ <- helper.retryEdges(self) //Possible strategy: only recurse when the number of edges-to-retry declines after an iteration
+            _ <- helper.retryEdges(
+              self
+            ) //TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
+            _ <- helper.retryEdges(
+              self
+            ) //Possible strategy: only recurse when the number of edges-to-retry declines after an iteration
             _ <- helper.retryEdges(self)
             _ <- helper.retryEdges(self)
             _ <- helper.retryEdges(self)
@@ -289,15 +288,19 @@ trait Graph extends IriResource with GraphUtils { self =>
   }
 
   import lspace.Traversal
-  def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, Out, OutCT <: ClassType[_], F[_]](
-    traversal: Traversal[ST, ET[End], Steps])(implicit
-                                              tweaker: EndMapper.Aux[ET[End], Steps, Out, OutCT],
-                                              guide: Guide[F],
-                                              mapper: ResultMapper[F, ET[End], OutCT]): mapper.FT =
-    mapper.apply(traversal, this).asInstanceOf[mapper.FT]
+  def *>[ST <: ClassType[_], End, ET[+Z] <: ClassType[Z], Steps <: HList, Out, OutCT <: ClassType[_], F[_], FT](
+    traversal: Traversal[ST, ET[End], Steps]
+  )(implicit
+    tweaker: EndMapper.Aux[ET[End], Steps, Out, OutCT],
+    guide: Guide[F],
+    mapper: ResultMapper.Aux[F, ET[End], OutCT, FT]
+  ): FT =
+    mapper.apply(traversal, this)
 
-  protected[lspace] def traverse[F[_]](traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
-                                       guide: Guide[F]): F[Any] = guide.buildTraversal[Any](traversal)(this)
+  protected[lspace] def traverse[F[_]](
+    traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+    guide: Guide[F]
+  ): F[Any] = guide.buildTraversal[Any](traversal)(this)
 
   def persist: Task[Unit] = Task.unit
 

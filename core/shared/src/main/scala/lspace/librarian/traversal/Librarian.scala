@@ -2,8 +2,6 @@ package lspace.librarian.traversal
 
 import java.time.Instant
 
-import lspace.structure.Graph
-
 object Librarian {
 //  def apply[T](_get: T) = new Traverser(_get)
 }

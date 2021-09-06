@@ -46,5 +46,6 @@ abstract class Classtypes(val graph: NameSpaceGraph) {
     case ontology: Ontology    => ontologies.store(ontology)
     case property: Property    => properties.store(property)
     case datatype: DataType[_] => datatypes.store(datatype)
+    case _ => throw new Exception(s"unexpected type ${classType.getClass.getSimpleName}")
   }
 }

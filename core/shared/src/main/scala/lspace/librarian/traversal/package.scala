@@ -1,39 +1,13 @@
 package lspace.librarian
 
-import lspace.librarian.traversal.step.As
 import lspace.structure.TypedProperty
-import lspace.structure.util._
-import shapeless.{::, <:!<, DepFn1, HList, HNil, Poly, Poly1}
+import shapeless.{::, <:!<, DepFn1, HList, HNil, Poly}
 
 import scala.annotation.implicitNotFound
 
 package object traversal {
 
   type TypedKey[Z] = TypedProperty[Z]
-
-//  object ContainerSteps extends Poly1 {
-//    implicit def count                        = at[Count](s => s)
-//    implicit def head                         = at[Head](s => s)
-//    implicit def last                         = at[Last](s => s)
-//    implicit def max                          = at[Max](s => s)
-//    implicit def min                          = at[Min](s => s)
-//    implicit def mean                         = at[Mean](s => s)
-//    implicit def sum                          = at[Sum](s => s)
-//    implicit def project[Traversals <: HList] = at[Project[Traversals]](s => s)
-//    implicit def group[T <: ClassType[_], Segments <: HList, Tv <: ClassType[_], SegmentsV <: HList] =
-//      at[Group[T, Segments, Tv, SegmentsV]](s => s)
-//    //  implicit def caseMap[T <: MapStep] = at[T](s => s)
-//    implicit def outmap                                      = at[OutMap](s => s)
-//    implicit def outemap                                     = at[OutEMap](s => s)
-//    implicit def inmap                                       = at[InMap](s => s)
-//    implicit def inemap                                      = at[InEMap](s => s)
-//    implicit def is                                          = at[Is](s => s)
-//    implicit def path[ET <: ClassType[_], Segments <: HList] = at[Path[ET, Segments]](s => s)
-//  }
-
-//  object LabelStepToKeyValueLabelStep extends Poly1 {
-//    implicit def getType[T, name] = at[As[T, name]](t => t._maphelper ->)
-//  }
 
   /**
     * https://stackoverflow.com/questions/25713668/do-a-covariant-filter-on-an-hlist

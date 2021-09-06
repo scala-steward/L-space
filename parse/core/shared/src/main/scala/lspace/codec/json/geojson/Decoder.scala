@@ -128,6 +128,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "Point" => decodePoint(decodeCoordinates(map))
+          case _ => throw new Exception("invalid")
       })
   def decodePoint(coordinates: List[Json]): Point =
     coordinates match {
@@ -145,6 +146,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiPoint" => decodeMultiPoint(decodeCoordinates(map))
+          case _ => throw new Exception("invalid")
       })
   def decodeMultiPoint(coordinates: List[Json]): MultiPoint =
     MultiPoint(coordinates.map(decoder.jsonToList).map {
@@ -158,6 +160,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "LineString" => decodeLine(decodeCoordinates(map))
+          case _ => throw new Exception("invalid")
       })
   def decodeLine(coordinates: List[Json]): Line =
     Line(coordinates.map(decoder.jsonToList).map {
@@ -171,6 +174,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiLineString" => decodeMultiLine(decodeCoordinates(map))
+          case _ => throw new Exception("invalid")
       })
   def decodeMultiLine(coordinates: List[Json]): MultiLine =
     MultiLine(coordinates.map(decoder.jsonToList).map {
@@ -184,6 +188,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "Polygon" => decodePolygon(decodeCoordinates(map))
+          case _ => throw new Exception("invalid")
       })
   //TODO: array of polygons (donuts)
   def decodePolygon(coordinates: List[Json]): Polygon =
@@ -202,6 +207,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiPolygon" => decodeMultiPolygon(decodeCoordinates(map))
+          case _ => throw new Exception("invalid")
       })
   def decodeMultiPolygon(coordinates: List[Json]): MultiPolygon =
     MultiPolygon(coordinates.map(decoder.jsonToList).map {
@@ -215,6 +221,7 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "GeometryCollection" => decodeGeometryCollection(map)
+          case _ => throw new Exception("invalid")
       })
   def decodeGeometryCollection(map: Map[String, Json]): MultiGeometry =
     map.get("geometries") match {

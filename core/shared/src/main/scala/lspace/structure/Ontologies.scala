@@ -8,7 +8,7 @@ import lspace.structure.Property.default
 import monix.eval.{Coeval, Task}
 
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 abstract class Ontologies(val graph: NameSpaceGraph) {
   import graph._
@@ -95,7 +95,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
       if (Ontology.ontologies.default.byIri.get(ontology.iri).isDefined) {
         for {
           node <- nodes.upsert(ontology.iri, ontology.iris)
-          u <- {
+          _ <- {
             byId += node.id   -> ontology
             byIri += node.iri -> node
             ontology.iris.foreach { iri =>
@@ -119,7 +119,7 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                 .map { id =>
                   for {
                     node <- getOrCreateNode(id)
-                    u <- {
+                    _ <- {
                       node.addLabel(Ontology.ontology)
                     }
                   } yield node
@@ -128,24 +128,24 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                   //                  Ontology.ontologies.cache(ontology)
                   nodes.create(Ontology.ontology)
                 }
-              u    <- node.addOut(default.typed.iriUrlString, ontology.iri)
-              iris <- Task.parSequence(ontology.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
+              _    <- node.addOut(default.typed.iriUrlString, ontology.iri)
+              _ <- Task.parSequence(ontology.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
 
               //                properties      <- Task.parSequence(ontology.properties.map(ns.properties.store))
-              extendedClasses <- Task.parSequence(ontology.extendedClasses().map(ns.ontologies.store))
-              extendsE        <- node.addOut(Label.P.`@extends`, extendedClasses)
-              labels <- Task.parSequence(ontology.label().map {
+              extendedClasses <- Task.parSequence(ontology.extendedClasses().collect { case o: Ontology => o }.map(ns.ontologies.store))
+              _        <- node.addOut(Label.P.`@extends`, extendedClasses)
+              _ <- Task.parSequence(ontology.label().map {
                 case (language, label) =>
                   for {
                     label <- node.addOut(Property.default.`@label`, label)
-                    lang  <- label.addOut(Property.default.`@language`, language)
+                    _  <- label.addOut(Property.default.`@language`, language)
                   } yield label
               })
-              comments <- Task.parSequence(ontology.comment().map {
+              _ <- Task.parSequence(ontology.comment().map {
                 case (language, comment) =>
                   for {
                     comment <- node.addOut(Property.default.`@comment`, comment)
-                    lang    <- comment.addOut(Property.default.`@language`, language)
+                    _    <- comment.addOut(Property.default.`@language`, language)
                   } yield comment
               })
             } yield {

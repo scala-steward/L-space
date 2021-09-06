@@ -14,11 +14,11 @@ object PropertyDef {
   * @param `@range`
   * @param `@extends`
   */
-abstract class PropertyDef(iri: String,
+abstract class PropertyDef(val iri: String,
                            label: String,
                            comment: String = "",
                            iris: Set[String] = Set(),
-                           container: List[String] = List(),
+                           container: List[String] = List(), //never used?
                            `@range`: => List[ClassType[_]] = List(),
                            `@extends`: => List[Property] = List(),
                            labels: Map[String, String] = Map(),
@@ -27,12 +27,16 @@ abstract class PropertyDef(iri: String,
 
   def classtype = property
 
-  val property: Property = Property.properties.getOrCreate(iri, iris)
-  property.label ++ Map("en"   -> label).filter(_._2.nonEmpty) ++ labels.filter(_._2.nonEmpty)
-  property.comment ++ Map("en" -> comment).filter(_._2.nonEmpty) ++ comments.filter(_._2.nonEmpty)
-  property.range ++ `@range`
-  property.extendedClasses ++ `@extends`
-  property.properties ++ properties.toSet
+  lazy val property: Property = {
+    val property = Property.properties.getOrCreate(iri, iris)
+    property.label ++ Map("en"   -> label).filter(_._2.nonEmpty) ++ labels.filter(_._2.nonEmpty)
+    property.comment ++ Map("en" -> comment).filter(_._2.nonEmpty) ++ comments.filter(_._2.nonEmpty)
+//    property.range ++ `@range`
+    property.extendedClasses ++ `@extends`
+//    property.properties ++ properties.toSet
+    property
+  }
+
 
 //  def keys: Object               = new {}
   lazy val properties: List[Property] = List()

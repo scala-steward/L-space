@@ -1,12 +1,9 @@
 package lspace.structure
 
 import lspace.datatype.DataType
-import lspace.librarian.traversal.Traversal
-import lspace.librarian.traversal.step.Step
 import lspace.structure.index.Indexes
 import lspace.structure.util.IdProvider
 import monix.eval.Task
-import shapeless.HList
 
 trait IndexGraph extends Graph {
   def graph: Graph

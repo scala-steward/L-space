@@ -1,22 +1,21 @@
 package lspace.datatype
 
-import java.time.{Instant, LocalDateTime}
-
-import lspace.NS
-import lspace.structure.util.ClassTypeable
+import lspace.{ClassType, NS}
 import lspace.structure.Property
+import lspace.structure.util.ClassTypeable
 
-/**
-  * Should be ZonedDateTime because then it can be asserted against LocalDate and LocalTime
+import java.time.Instant
+
+/** Should be ZonedDateTime because then it can be asserted against LocalDate and LocalTime
   */
 object DateTimeType extends DataTypeDef[DateTimeType[Instant]] {
 
   lazy val datatype: DateTimeType[Instant] = new DateTimeType[Instant] {
     val iri: String = NS.types.`@datetime`
     override val iris: Set[String] =
-      Set(NS.types.`@datetime`, NS.types.schemaDateTime, "http://schema.org/DateTime", NS.types.xsdDateTimeStamp)
+      Set(NS.types.`@datetime`, NS.types.schemaDateTime, "https://schema.org/DateTime", NS.types.xsdDateTimeStamp)
     labelMap ++= Map("en" -> NS.types.`@datetime`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(CalendarType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(CalendarType.datatype)
   }
 
   object keys extends CalendarType.Properties

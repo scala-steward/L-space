@@ -5,19 +5,21 @@ import java.util.concurrent.ConcurrentHashMap
 import lspace.NS
 import lspace.datatype.{DataType, IriType}
 import lspace.structure.util.ClassTypeable
-import monix.eval.Coeval
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 
 object Ontology {
   lazy val ontology: Ontology = {
-    val ontology = new Ontology(NS.types.`@class`,
-                                Set(NS.types.`@class`,
-                                    NS.types.rdfsClass,
-                                    NS.types.schemaClass,
-                                    "https://schema.org/Class",
-                                    "http://schema.org/Class"))
+    val ontology = new Ontology(
+      NS.types.`@class`,
+      Set(
+        NS.types.`@class`,
+        NS.types.rdfsClass,
+        NS.types.schemaClass,
+        "https://schema.org/Class"
+      )
+    )
     ontology.iris.foreach(ontologies.byIri.update(_, ontology))
     ontology
   }
@@ -25,8 +27,7 @@ object Ontology {
 //             iris = Set(NS.types.`@class`,
 //                        NS.types.rdfsClass,
 //                        NS.types.schemaClass,
-//                        "https://schema.org/Class",
-//                        "http://schema.org/Class"))
+//                        "https://schema.org/Class"))
 //  lazy val unknownOntology: Ontology =
 //    Ontology("@unknownOntology", iris = Set("@unknownOntology"), extendedClasses = List(ontology))
 
@@ -48,7 +49,7 @@ object Ontology {
       val ontologies = List(ontology, Property.ontology, DataType.ontology) //::: Step.steps.map(_.ontology)
       if (ontologies.size > 99) throw new Exception("extend default-ontology-id range!")
       val byId    = (200L to 200L + ontologies.size - 1).toList.zip(ontologies).toMap
-      val byIri   = byId.toList.flatMap { case (id, p) => (p.iri :: p.iris.toList).map(_ -> p) }.toMap
+      val byIri   = byId.toList.flatMap { case (_, p) => (p.iri :: p.iris.toList).map(_ -> p) }.toMap
       val idByIri = byId.toList.flatMap { case (id, p) => (p.iri :: p.iris.toList).map(_ -> id) }.toMap
     }
     private[lspace] val byIri: concurrent.Map[String, Ontology] =
@@ -56,13 +57,14 @@ object Ontology {
 
     def all: List[Ontology] = byIri.values.toList.distinct
     def get(iri: String, iris: Set[String] = Set()): Option[Ontology] = {
-      val allIris = (iris + iri)
+      val allIris = iris + iri
       allIris.flatMap(iri => default.byIri.get(iri).orElse(byIri.get(iri))).toList match {
         case List(ontology) => Some(ontology)
         case Nil            => None
         case ontologies =>
           scribe.warn(
-            "It looks like multiple ontologies which have some @id's in common are found, this should not happen...")
+            "It looks like multiple ontologies which have some @id's in common are found, this should not happen..."
+          )
           ontologies.headOption
       }
     }
@@ -100,14 +102,14 @@ object Ontology {
         }
         .toMap
 
-      ontology.properties ++ (node
-        .out(Property.default.typed.propertyProperty)
-        .filter(_.out("http://schema.org/supersededBy").isEmpty) ++ node
-        .in(lspace.NS.types.schemaDomainIncludes)
-        .collect { case node: Node => node })
-        .filter(_.labels.contains(Property.ontology))
-        .filter(_.out("http://schema.org/supersededBy").isEmpty)
-        .map(Property.properties.getAndUpdate)
+//      ontology.properties ++ (node
+//        .out(Property.default.typed.propertyProperty)
+//        .filter(_.out("https://schema.org/supersededBy").isEmpty) ++ node
+//        .in(lspace.NS.types.schemaDomainIncludes)
+//        .collect { case node: Node => node })
+//        .filter(_.labels.contains(Property.ontology))
+//        .filter(_.out("https://schema.org/supersededBy").isEmpty)
+//        .map(Property.properties.getAndUpdate)
 
       ontology.extendedClasses ++ node
         .out(Property.default.`@extends`)
@@ -127,12 +129,14 @@ object Ontology {
                     .get(node.iri, node.iris)
                     .getOrElse {
                       Ontology.ontologies.getAndUpdate(node)
-                    }) //orElse???
+                    }
+                ) //orElse???
               case iri: String =>
                 Some(
                   Ontology.ontologies
                     .get(iri)
-                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property")))
+                    .getOrElse(throw new Exception("@extends looks like an iri but cannot be wrapped by a property"))
+                )
             }.flatten
           case node: Node if node.hasLabel(Ontology.ontology).isDefined =>
             List(Ontology.ontologies.get(node.iri, node.iris).getOrElse(Ontology.ontologies.getAndUpdate(node)))
@@ -168,64 +172,51 @@ object Ontology {
 //  }
 
   implicit def apply(iri: String): Ontology = Ontology.ontologies.getOrCreate(iri, Set())
+
+  implicit class WithOntology(_ct: Ontology) {
+    lazy val extendedBy: ExtendedByClasses[Ontology] = new ExtendedByClasses[Ontology] {
+      def ct: Ontology = _ct
+
+      def apply(): List[Ontology] = ct.extendedByClassesList.asInstanceOf[List[Ontology]]
+
+      def all(exclude: Set[Ontology] = Set()): Set[Ontology] = {
+        val _extends = apply().toSet -- exclude
+        _extends ++ (_extends - ct).flatMap(_.extendedBy.all(_extends ++ exclude))
+      }
+
+      def contains(iri: String): Boolean = {
+        val _extends = apply().toSet
+        _extends.exists(_.iris.contains(iri)) || (_extends - ct)
+          .filterNot(_.`extends`(ct))
+          .exists(_.extendedBy.contains(iri))
+      }
+
+      def +(child: => Ontology): ExtendedByClasses[Ontology] = ct.synchronized {
+        ct.extendedByClassesList =
+          if (!ct.extendedByClassesList.contains(child))
+            (ct.extendedByClassesList :+ child).distinct
+          else {
+            ct.extendedByClassesList
+          }
+        this
+      }
+
+      def -(parent: => Ontology): ExtendedByClasses[Ontology] = ct.synchronized {
+        ct.extendedClassesList = ct.extendedClassesList.filterNot(_ == parent)
+        parent match {
+          case o: Ontology => o.extendedBy.-(ct.asInstanceOf[Ontology])
+          case _           =>
+        }
+        this
+      }
+    }
+  }
 }
 
-/**
-  *
-  * @param iri
+/** @param iri
   * @param iris
   */
 class Ontology(val iri: String, val iris: Set[String] = Set()) extends ClassType[Node] { self =>
-
-  protected var extendedClassesList
-    : Coeval[List[Ontology]] = Coeval(List()).memoizeOnSuccess //_extendedClasses().filterNot(_.`extends`(this))
-  object extendedClasses {
-    type T = Ontology
-    def apply(): List[Ontology] = extendedClassesList.value()
-
-    /**
-      *
-      * @param exclude a ontology set to prevent circular recursion
-      * recursively fetches all extended classes (parent of parents)
-      * @return
-      */
-    def all(exclude: Set[Ontology] = Set()): Set[Ontology] = {
-      val _extends = extendedClasses().toSet -- exclude
-      _extends ++ (_extends - self).flatMap(_.extendedClasses.all(_extends ++ exclude))
-    }
-    def apply(iri: String): Boolean = {
-      val _extends = extendedClasses().toSet
-      _extends.exists(_.iris.contains(iri)) || (_extends - self)
-        .filterNot(_.`extends`(self))
-        .exists(_.extendedClasses(iri))
-    }
-
-    def +(parent: => Ontology): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        val _parent = parent
-        if (!current.contains(parent))
-          (current :+ _parent).distinct
-        else {
-          current
-        }
-      }.memoizeOnSuccess
-      this
-    }
-    def ++(parents: => Iterable[Ontology]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map { current =>
-        (current ++ parents).distinct
-      }.memoizeOnSuccess
-      this
-    }
-    def -(parent: => Ontology): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(_ == parent)).memoizeOnSuccess
-      this
-    }
-    def --(parent: => Iterable[Ontology]): this.type = this.synchronized {
-      extendedClassesList = extendedClassesList.map(_.filterNot(parent.toList.contains)).memoizeOnSuccess
-      this
-    }
-  }
 
   override def toString: String = s"ontology:$iri"
 

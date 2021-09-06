@@ -24,7 +24,7 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
     else Observable[Edge[_, _]]()
   }
 
-  def cached = new {
+  def cached: Cached = new Cached {
     def hasId(id: Long): Option[Edge[Any, Any]] =
       edgeStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
@@ -101,7 +101,7 @@ abstract class Edges(val graph: Graph) extends RApi[Edge[Any, Any]] {
         from    <- resources.upsert(edge.from)
         to      <- resources.upsert(edge.to)
         newEdge <- from.addOut(edge.key, to)
-        u       <- addMeta(edge, newEdge)
+        _       <- addMeta(edge, newEdge)
       } yield newEdge
     } else Task.now(edge)
   }

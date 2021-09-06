@@ -14,7 +14,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
   val datatype = new CollectionType[Iterable[Any]] {
     val iri: String = NS.types.`@collection`
     labelMap ++= Map("en" -> NS.types.`@collection`)
-    override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
+    override protected def _extendedClasses: List[ClassType[Any]] = List(StructuredType.datatype)
   }
 
   object keys {
@@ -29,7 +29,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
     lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange as ListType(NodeURLType.datatype)
   }
   override lazy val properties: List[Property] = keys.valueRange :: Nil //StructuredValue.properties
-  trait Properties { //extends StructuredValue.Properties {
+  trait Properties extends StructuredType.Properties {
     lazy val valueRange: Property                           = keys.valueRange
     lazy val valueRangeClassType: TypedProperty[List[Node]] = keys.valueRangeClassType
   }
@@ -91,6 +91,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
       case (iri, tail) if tail.startsWith("+") =>
         val (tailTypes, newTail) = getTypes(tail.drop(1))
         (get(iri).toList ++ tailTypes).reduceOption(_ + _) -> newTail
+      case _ => throw new Exception(s"invalid collection type $iri")
     }
   }
 
@@ -113,6 +114,4 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 }
 
 trait CollectionType[+T] extends StructuredType[T] {
-  override lazy val _extendedClasses: List[_ <: DataType[_]] = List(StructuredType.datatype)
-  override lazy val _properties: List[Property]              = List(CollectionType.keys.valueRange)
 }

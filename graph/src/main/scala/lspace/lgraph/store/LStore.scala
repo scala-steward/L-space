@@ -9,7 +9,7 @@ import monix.eval.Task
 import monix.reactive.Observable
 
 import scala.collection.concurrent
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object LStore {
 //  def apply[T <: Resource[_]](iri: String, graph: LGraph): LStore[T] =
@@ -41,7 +41,7 @@ trait LStore[G <: LGraph] extends Store[G] {
   }
 
   def cachedById(id: Long)     = if (!isDeleted(id)) _cache.get(id) else None
-  def cachedByIri(iri: String) = _cacheByIri.get(iri).toList.flatten.filterNot(r => isDeleted(r.id)).toStream
+  def cachedByIri(iri: String) = _cacheByIri.get(iri).toList.flatten.filterNot(r => isDeleted(r.id)).to(LazyList)
   def countids                 = _cache.size
   def countiris                = _cacheByIri.size
 
@@ -119,8 +119,8 @@ trait LStore[G <: LGraph] extends Store[G] {
 
   def all(): Observable[T2]
 
-  def cached = new {
-    def all(): Stream[T2]           = _cache.values.toStream
+  def cached: Cached = new Cached {
+    def all(): LazyList[T2]           = _cache.values.to(LazyList)
     def hasId(id: Long): Option[T2] = _cache.get(id)
     def count: Long                 = _cache.size
   }

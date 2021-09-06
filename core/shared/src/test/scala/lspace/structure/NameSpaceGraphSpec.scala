@@ -2,7 +2,6 @@ package lspace.structure
 
 import lspace.NS.types
 import lspace.datatype.DataType
-import monix.execution.Scheduler
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
