@@ -11,7 +11,7 @@ ports:
     onOpen: ignore
   # - port: 9411
 
-tasks:
+# tasks:
 # - before: |
 #     mkdir -p ~/.sbt/1.0
 #     rm ~/.sbt/1.0/global.sbt || true
@@ -28,7 +28,7 @@ tasks:
 #         "bloopSbtAlreadyInstalled": true
 #       }
 #     }' | python -m json.tool > .vscode/settings.json
-- init: sbt bloopInstall
-  command: zsh
+#   init: sbt bloopInstall
+#   command: zsh
 # - before: cd ~/zipkin
 #   command: java -jar zipkin.jar
