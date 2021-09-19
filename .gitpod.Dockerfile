@@ -9,16 +9,8 @@ RUN curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)" && \
     ./cs install cs && \
     echo 'export PATH="$PATH:/home/gitpod/.local/share/coursier/bin"' >> ~/.zshrc && \
     echo 'export PATH="$PATH:/home/gitpod/.local/share/coursier/bin"' >> ~/.bashrc && \
-    ./cs install sbt && \
-    ./cs install scalafix && \
-    ./cs install scalafmt && \
-    ./cs install mdoc && \
+    ./cs install sbt scalafix scalafmt mdoc && \
     ./cs install bloop --only-prebuilt=true && \
     rm cs
 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
-RUN echo 'export PATH="$PATH:/home/gitpod/.local/share/coursier/bin"' >> ~/.zshrc
-RUN echo 'export PATH="$PATH:/home/gitpod/.local/share/coursier/bin"' >> ~/.bashrc
-
-ENV SHELL=zsh
