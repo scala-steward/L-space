@@ -2,20 +2,21 @@ FROM gitpod/workspace-full
 
 FROM gitpod/workspace-full
 
-RUN sudo sh -c '\
-    (echo "#!/usr/bin/env sh" && \
-    curl -L https://github.com/lihaoyi/Ammonite/releases/download/2.4.0/2.13-2.4.0) \
-    > /usr/local/bin/amm213 && chmod +x /usr/local/bin/amm213'
-RUN sudo sh -c '(echo "#!/usr/bin/env sh" && \
-    curl -L https://github.com/lihaoyi/Ammonite/releases/download/2.4.0/3.0-2.4.0) \
-    > /usr/local/bin/amm30 && chmod +x /usr/local/bin/amm30'
+ENV SHELL=zsh
 
-RUN bash -c '. /home/gitpod/.sdkman/bin/sdkman-init.sh && \
-    sdk install java 21.2.0.r11-grl && \
-    sdk install sbt'
+RUN . /home/gitpod/.sdkman/bin/sdkman-init.sh && \
+    sdk install java 21.2.0.r11-grl
+
+RUN curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)" && \
+    chmod +x cs && \
+    ./cs install cs && \
+    rm cs && \
+    echo 'export PATH="$PATH:/home/gitpod/.local/share/coursier/bin"' >> ~/.zshrc
+
+RUN cs install sbt && \
+    cs install scalafix && \
+    cs install scalafmt && \
+    cs install mdoc && \
+    cs install bloop --only-prebuilt=true
 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
-RUN bash -c 'mkdir -p ~/zipkin && \
-    cd ~/zipkin && \
-    curl -sSL https://zipkin.io/quickstart.sh | bash -s'
