@@ -12,11 +12,11 @@ addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.4")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.0.0")
 
 //sbt-scalafmt, sbt-tpolecat
-addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-common" % "2.0.7")
+addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-common" % "2.0.8")
 //sbt-ci-release
-addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-publish" % "2.0.7")
+addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-publish" % "2.0.8")
 //sbt-updates, sbt-dependency-check
-addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-extra" % "2.0.7")
+addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-extra" % "2.0.8")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.30")
 
