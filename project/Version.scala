@@ -12,7 +12,7 @@ object Version {
   val scalaJavaTime  = "2.3.0"
   val scalaMock      = "5.1.0"
   val scalaTest      = "3.2.9"
-  val scribe         = "3.5.5"
+  val scribe         = "3.6.3"
   val shapeless      = "2.3.7"
   val sttpClient     = "3.3.13"
   val sttpShared     = "1.2.5"
