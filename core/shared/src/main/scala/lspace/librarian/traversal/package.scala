@@ -9,13 +9,13 @@ package object traversal {
 
   type TypedKey[Z] = TypedProperty[Z]
 
-  /**
-    * https://stackoverflow.com/questions/25713668/do-a-covariant-filter-on-an-hlist
+  /** https://stackoverflow.com/questions/25713668/do-a-covariant-filter-on-an-hlist
     * @tparam L
     * @tparam U
     */
   @implicitNotFound(
-    "Implicit not found: lspace.librarian.traversal.CoFilter[${L}, ${U}]. You requested to filter all elements of type <: ${U}, but there is none in the HList ${L}.")
+    "Implicit not found: lspace.librarian.traversal.CoFilter[${L}, ${U}]. You requested to filter all elements of type <: ${U}, but there is none in the HList ${L}."
+  )
   trait CoFilter[L <: HList, U] extends DepFn1[L] { type Out <: HList }
 
   object CoFilter {
@@ -48,13 +48,15 @@ package object traversal {
 
   private def toTuple2[Prefix, Suffix](l: Prefix :: Suffix :: HNil): (Prefix, Suffix) = (l.head, l.tail.head)
 
-  /**
-    * Splits an HList L at an element of (super)type U
-    * @tparam L The HList to split
-    * @tparam U the (super)type which the splitter uses to decide where to split
+  /** Splits an HList L at an element of (super)type U
+    * @tparam L
+    *   The HList to split
+    * @tparam U
+    *   the (super)type which the splitter uses to decide where to split
     */
   @implicitNotFound(
-    "Implicit not found: lspace.librarian.traversal.CoSplitLeft[${L}, ${U}]. You requested to split at an element of type <: ${U}, but there is none in the HList ${L}.")
+    "Implicit not found: lspace.librarian.traversal.CoSplitLeft[${L}, ${U}]. You requested to split at an element of type <: ${U}, but there is none in the HList ${L}."
+  )
   trait CoSplitLeft[L <: HList, U] extends DepFn1[L] with Serializable {
     type Prefix <: HList
     type Suffix <: HList
@@ -72,8 +74,9 @@ package object traversal {
       type Suffix = Suffix0
     }
 
-    implicit def splitLeft[L <: HList, U, P <: HList, S <: HList](
-        implicit splitLeft: CoSplitLeft0[HNil, L, U, P, S]): Aux[L, U, P, S] =
+    implicit def splitLeft[L <: HList, U, P <: HList, S <: HList](implicit
+      splitLeft: CoSplitLeft0[HNil, L, U, P, S]
+    ): Aux[L, U, P, S] =
       new CoSplitLeft[L, U] {
         type Prefix = P
         type Suffix = S
@@ -86,8 +89,9 @@ package object traversal {
     }
 
     trait LowPrioritySplitLeft0 {
-      implicit def hlistSplitLeft0[AccP <: HList, AccSH, AccST <: HList, U, P <: HList, S <: HList](
-          implicit slt: CoSplitLeft0[AccP, AccST, U, P, S]): CoSplitLeft0[AccP, AccSH :: AccST, U, AccSH :: P, S] =
+      implicit def hlistSplitLeft0[AccP <: HList, AccSH, AccST <: HList, U, P <: HList, S <: HList](implicit
+        slt: CoSplitLeft0[AccP, AccST, U, P, S]
+      ): CoSplitLeft0[AccP, AccSH :: AccST, U, AccSH :: P, S] =
         new CoSplitLeft0[AccP, AccSH :: AccST, U, AccSH :: P, S] {
           def apply(accP: AccP, accS: AccSH :: AccST): (AccSH :: P) :: S :: HNil =
             slt(accP, accS.tail) match {
@@ -96,7 +100,7 @@ package object traversal {
         }
       implicit def hlistSplitLeft1[AccP <: HList, AccSH, U]: CoSplitLeft0[AccP, HList, U, HList, HNil] =
         new CoSplitLeft0[AccP, HList, U, HList, HNil] {
-          def apply(accP: AccP, accS: HList): HList :: HNil :: HNil = (accS) :: HNil :: HNil
+          def apply(accP: AccP, accS: HList): HList :: HNil :: HNil = accS :: HNil :: HNil
         }
     }
 
@@ -109,13 +113,14 @@ package object traversal {
     }
   }
 
-  /**
-    * Type Class witnessing that an 'HList' can be spanned with a 'Poly' to produce two 'HList's
+  /** Type Class witnessing that an 'HList' can be spanned with a 'Poly' to produce two 'HList's
     *
-    * @author Thijs Broersen
+    * @author
+    *   Thijs Broersen
     */
   @implicitNotFound(
-    "Implicit not found: lspace.librarian.traversal.Span[${L}, ${U}]. You requested to span all first consecutive elements of Poly ${U}, but there is none in the HList ${L}.")
+    "Implicit not found: lspace.librarian.traversal.Span[${L}, ${U}]. You requested to span all first consecutive elements of Poly ${U}, but there is none in the HList ${L}."
+  )
   trait Span[L <: HList, U <: Poly] extends DepFn1[L] with Serializable {
     type Prefix <: HList
     type Suffix <: HList
@@ -135,10 +140,10 @@ package object traversal {
       type Suffix = Suffix0
     }
 
-    implicit def spanLeft[H, L <: HList, U <: Poly, ClrResult, P <: HList, S <: HList](
-        implicit
-        clr: Case1.Aux[U, H, ClrResult],
-        spanLeft: Span0[HNil, H :: L, U, P, S]): Aux[H :: L, U, P, S] =
+    implicit def spanLeft[H, L <: HList, U <: Poly, ClrResult, P <: HList, S <: HList](implicit
+      clr: Case1.Aux[U, H, ClrResult],
+      spanLeft: Span0[HNil, H :: L, U, P, S]
+    ): Aux[H :: L, U, P, S] =
       new Span[H :: L, U] {
         type Prefix = P
         type Suffix = S
@@ -152,7 +157,8 @@ package object traversal {
 
     trait LowPrioritySpan0 {
       implicit def hlistSpan0[AccP <: HList, AccSH, AccST <: HList, U <: Poly, P <: HList, S <: HList, ClrResult](
-          implicit slt: Span0[AccP, AccST, U, P, S]): Span0[AccP, AccSH :: AccST, U, AccSH :: P, S] =
+        implicit slt: Span0[AccP, AccST, U, P, S]
+      ): Span0[AccP, AccSH :: AccST, U, AccSH :: P, S] =
         new Span0[AccP, AccSH :: AccST, U, AccSH :: P, S] {
           def apply(accP: AccP, accS: AccSH :: AccST): (AccSH :: P) :: S :: HNil =
             slt(accP, accS.tail) match {
@@ -162,23 +168,19 @@ package object traversal {
     }
 
     object Span0 extends LowPrioritySpan0 {
-      implicit def hlistSpan1[P <: HList, U <: Poly, SH, ST <: HList, Result <: HList](
-          implicit
-          collect: shapeless.ops.hlist.Collect.Aux[SH :: HNil, U, Result],
-          ev: Result =:= HNil): Span0[P, SH :: ST, U, P, SH :: ST] =
+      implicit def hlistSpan1[P <: HList, U <: Poly, SH, ST <: HList, Result <: HList](implicit
+        collect: shapeless.ops.hlist.Collect.Aux[SH :: HNil, U, Result],
+        ev: Result =:= HNil
+      ): Span0[P, SH :: ST, U, P, SH :: ST] =
         new Span0[P, SH :: ST, U, P, SH :: ST] {
           def apply(accP: P, accS: SH :: ST): P :: (SH :: ST) :: HNil = accP :: accS :: HNil
         }
 
-      implicit def hlistSpan2[P <: HList, U <: Poly, ST <: HList](
-          implicit
-          ev: ST =:= HNil): Span0[P, ST, U, P, ST] =
+      implicit def hlistSpan2[P <: HList, U <: Poly, ST <: HList](implicit ev: ST =:= HNil): Span0[P, ST, U, P, ST] =
         new Span0[P, ST, U, P, ST] {
           def apply(accP: P, accS: ST): P :: ST :: HNil = accP :: accS :: HNil
         }
-      implicit def hlistSpan3[P <: HList, U <: Poly, ST <: HList](
-          implicit
-          ev: ST =:= HList): Span0[P, ST, U, P, ST] =
+      implicit def hlistSpan3[P <: HList, U <: Poly, ST <: HList](implicit ev: ST =:= HList): Span0[P, ST, U, P, ST] =
         new Span0[P, ST, U, P, ST] {
           def apply(accP: P, accS: ST): P :: ST :: HNil = accP :: accS :: HNil
         }

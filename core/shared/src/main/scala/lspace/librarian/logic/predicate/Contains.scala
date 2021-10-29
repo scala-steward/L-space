@@ -20,12 +20,11 @@ object Contains
   override lazy val properties: List[Property] = CollectionP.properties
   trait Properties extends CollectionP.Properties
 
-  implicit def toNode[T](contains: Contains[T]): Task[Node] = {
+  implicit def toNode[T](contains: Contains[T]): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.value, ClassType.detect(contains.pvalue), contains.pvalue)
     } yield node
-  }
 }
 
 case class Contains[+T](pvalue: T) extends CollectionP[T] {

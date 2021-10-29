@@ -10,7 +10,7 @@ import monix.eval.Task
 import monix.reactive.Observable
 
 class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStore[G] with EdgeStore[G] {
-  override def store(edge: T): Task[Unit] = Task { cache(edge) }
+  override def store(edge: T): Task[Unit] = Task(cache(edge))
   override def cache(edge: T): Unit = {
     super.cache(edge)
     edge.from
@@ -19,8 +19,10 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
     edge.to
       .asInstanceOf[MemResource[Any]]
       ._addIn(edge.asInstanceOf[Edge[_, Any]])
-    if ((edge.key == `@id` || edge.key == `@ids`) && edge.to
-          .isInstanceOf[graph._Value[_]] && edge.to.asInstanceOf[graph._Value[_]].label == `@string`)
+    if (
+      (edge.key == `@id` || edge.key == `@ids`) && edge.to
+        .isInstanceOf[graph._Value[_]] && edge.to.asInstanceOf[graph._Value[_]].label == `@string`
+    )
       graph.`@idStore`.cache(edge.to.asInstanceOf[graph.GValue[_]])
 //    for {
 //      _ <- if ((edge.key == `@id` || edge.key == `@ids`) && edge.to.isInstanceOf[graph._Value[String]])
@@ -36,7 +38,8 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
         _.in(`@id`, `@ids`)
           .filter(_.isInstanceOf[Edge[_, _]])
           .asInstanceOf[List[T2]]
-          .distinct)
+          .distinct
+      )
       .flatMap(Observable.fromIterable(_))
 
   def hasIri(iri: Set[String]): Observable[T2] =
@@ -44,11 +47,16 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
       .fromTask(
         Observable
           .fromIterable(iri)
-          .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).map(_.in(`@id`, `@ids`)
-            .filter(_.isInstanceOf[Edge[_, _]])))
+          .mergeMap(
+            graph.`@idStore`.byValue(_, DataType.default.`@string`).map(
+              _.in(`@id`, `@ids`)
+                .filter(_.isInstanceOf[Edge[_, _]])
+            )
+          )
           .flatMap(Observable.fromIterable)
           .toListL
-          .map(_.asInstanceOf[List[T2]].distinct))
+          .map(_.asInstanceOf[List[T2]].distinct)
+      )
       .flatMap(Observable.fromIterable(_))
 
   def byId(fromId: Option[Long] = None, key: Option[Property] = None, toId: Option[Long] = None): Observable[T2] = {
@@ -77,9 +85,11 @@ class MemEdgeStore[G <: MemGraph](val iri: String, val graph: G) extends MemStor
     }
   }
 
-  def byIri(fromIri: Option[String] = None,
-            key: Option[Property] = None,
-            toIri: Option[String] = None): Observable[T2] = {
+  def byIri(
+    fromIri: Option[String] = None,
+    key: Option[Property] = None,
+    toIri: Option[String] = None
+  ): Observable[T2] = {
     val edges = fromIri match {
       case None =>
         key match {

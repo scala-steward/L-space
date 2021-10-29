@@ -19,7 +19,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
   val index: MemIndexGraph = new MemIndexGraph {
     def iri: String = _iri + ".index"
 
-    val graph: MemGraph      = self
+    val graph: MemGraph = self
 //    val index: MemIndexGraph = this
   }
   override def commit(): Task[Unit] =
@@ -41,7 +41,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
         newNodes <- Task.parSequence {
           nodes.added.toList.map(_._2).map { node =>
             for {
-              newNode <- Task { parent.newNode(node.id) }
+              newNode <- Task(parent.newNode(node.id))
               _ = node.labels.foreach(newNode._cacheLabel)
             } yield newNode
           }
@@ -59,16 +59,18 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
             case (v1, v2, v3, v4) =>
               (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
             case (v1, v2, v3, v4, v5) =>
-              (dereferenceValue(v1),
-               dereferenceValue(v2),
-               dereferenceValue(v3),
-               dereferenceValue(v4),
-               dereferenceValue(v5))
+              (
+                dereferenceValue(v1),
+                dereferenceValue(v2),
+                dereferenceValue(v3),
+                dereferenceValue(v4),
+                dereferenceValue(v5)
+              )
             //        case v: Ontology     => nodes.upsert(parent.ns.ontologies.store(v)) //irrelevant, value is already dereferenced
             //        case v: Property     => nodes.upsert(parent.ns.properties.store(v))
             //        case v: DataType[_]  => nodes.upsert(parent.ns.datatypes.store(v))
-            case v: _TNode       => v.self
-            case v: Node         => newNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
+            case v: _TNode => v.self
+            case v: Node   => newNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
             case v: _TEdge[_, _] => v.self
             case _: Edge[_, _]   => throw new Exception("dereferencing edge failed")
             case v: _TValue[_]   => v.self
@@ -115,8 +117,7 @@ class MemTransaction(override val parent: MemGraph) extends Transaction(parent) 
       } yield ()
     } else Task.unit
 
-  /**
-    * clears the transaction's MemGraph
+  /** clears the transaction's MemGraph
     */
-  override def rollback(): Task[Unit] = Task { open = false } //return claimed id's?
+  override def rollback(): Task[Unit] = Task { open = false } // return claimed id's?
 }

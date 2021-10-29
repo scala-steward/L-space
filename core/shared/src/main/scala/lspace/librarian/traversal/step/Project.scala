@@ -17,10 +17,14 @@ object Project
         node
           .out(keys.byTraversal)
           .map(
-            _.map(Traversal
-              .toTraversal(_)
-              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
-          .head)
+            _.map(
+              Traversal
+                .toTraversal(_)
+                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+            )
+          )
+          .head
+      )
     } yield Project[HList](by.reverse.foldLeft[HList](HNil) { case (hlist, traversal) => traversal :: hlist })
 
   object keys extends ProjectionStep.Properties {
@@ -48,7 +52,8 @@ object Project
       traversals <- Task.parSequence(
         project.by.runtimeList
           .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList]])
-          .map(_.toNode))
+          .map(_.toNode)
+      )
       _ <- node.addOut(keys.byTraversal, traversals)
     } yield node
   }.memoizeOnSuccess

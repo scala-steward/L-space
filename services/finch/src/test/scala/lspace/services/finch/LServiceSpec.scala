@@ -12,11 +12,13 @@ import org.scalatest.wordspec.AsyncWordSpec
 object LServiceSpec {}
 trait LServiceSpec extends AsyncWordSpec with Matchers {
 
-  implicit class WithApiService[Json](labeledNodeApi: LabeledNodeApi[Json])(
-      implicit service: LService[Request, Response, Service]) {
+  implicit class WithApiService[Json](labeledNodeApi: LabeledNodeApi[Json])(implicit
+    service: LService[Request, Response, Service]
+  ) {
     import services.util._
     def labeledApiTests = {
-      val label = labeledNodeApi.newNodeBaseIri //ontology.label("en").getOrElse(labeledNodeApi.ontology.iri).toLowerCase()
+      val label =
+        labeledNodeApi.newNodeBaseIri // ontology.label("en").getOrElse(labeledNodeApi.ontology.iri).toLowerCase()
       s"have an $label-api" in {
         val input = Input
           .get(s"/")

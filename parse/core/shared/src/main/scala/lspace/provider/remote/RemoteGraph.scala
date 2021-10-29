@@ -21,18 +21,19 @@ import monix.reactive.Observable
 import sttp.capabilities.monix.MonixStreams
 
 object RemoteGraph {
-  def apply[F[_], Json](iri: String, host: String, port: Int, path: List[String] = List())(
-      implicit baseEncoder: JsonEncoder[Json],
-      baseDecoder: JsonDecoder[Json],
-      httpClient: HttpClient): RemoteGraph[Json] =
+  def apply[F[_], Json](iri: String, host: String, port: Int, path: List[String] = List())(implicit
+    baseEncoder: JsonEncoder[Json],
+    baseDecoder: JsonDecoder[Json],
+    httpClient: HttpClient
+  ): RemoteGraph[Json] =
     new RemoteGraph(iri, host, port, path)(baseEncoder, baseDecoder, httpClient) {}
 }
 //TODO: add session/credential config
-abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String])(
-    implicit baseEncoder: JsonEncoder[Json],
-    baseDecoder: JsonDecoder[Json],
-    httpClient: HttpClient)
-    extends Graph {
+abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path: List[String])(implicit
+  baseEncoder: JsonEncoder[Json],
+  baseDecoder: JsonDecoder[Json],
+  httpClient: HttpClient
+) extends Graph {
 
   val cache: Graph = Graph.apply(iri)
 
@@ -60,37 +61,37 @@ abstract class RemoteGraph[Json](val iri: String, host: String, port: Int, path:
   override def init: Task[Unit] = ???
 
   override protected[lspace] def traverse[F[_]](
-      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
-      guide: Guide[F]): F[Any] = executeTraversal(traversal).asInstanceOf[F[Any]]
+    traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList],
+    guide: Guide[F]
+  ): F[Any] = executeTraversal(traversal).asInstanceOf[F[Any]]
   protected[lspace] def executeTraversal[F[_]](
-      traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]): Observable[Any] =
+    traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], _ <: HList]
+  ): Observable[Any] =
     Observable
       .fromTask(for {
         node <- traversal.toNode
-        json = encoder(node)(ActiveContext()) //TODO: create nice named default context
+        json = encoder(node)(ActiveContext()) // TODO: create nice named default context
         request = basicRequest
           .body(json)
           .header(HeaderNames.Accept, "application/ld+json", true)
           .header(HeaderNames.ContentType, "application/ld+json", true)
-          //TODO: add cookie/auth headers
+          // TODO: add cookie/auth headers
           .post(serviceUri)
           .response(asStreamUnsafe(MonixStreams))
         response <- httpClient.backend.flatMap { implicit backend =>
           request.send(backend)
         }
-      } yield {
-        response.body match {
-          case Left(error) => Observable.raiseError(new Exception(error))
-          case Right(stream) =>
-            stream
-              .map(new String(_, StandardCharsets.UTF_8))
-              .filter(_.nonEmpty)
-              .mapEval(decoder.parse)
-              .mapEval(decoder.toNode(_)(ActiveContext())) //TODO: use default nice named context here
-              .map(Collection.wrap)
-              .map(_.item)
-              .flatMap(Observable.fromIterable(_))
-        }
+      } yield response.body match {
+        case Left(error) => Observable.raiseError(new Exception(error))
+        case Right(stream) =>
+          stream
+            .map(new String(_, StandardCharsets.UTF_8))
+            .filter(_.nonEmpty)
+            .mapEval(decoder.parse)
+            .mapEval(decoder.toNode(_)(ActiveContext())) // TODO: use default nice named context here
+            .map(Collection.wrap)
+            .map(_.item)
+            .flatMap(Observable.fromIterable(_))
       })
       .flatten
 

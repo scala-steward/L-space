@@ -13,7 +13,8 @@ object InMap extends StepDef("InMap", "An inMap-step ..", MoveStep.ontology :: N
           .outE(MoveStep.keys.label)
           .map(_.to.iri)
           .filter(_.nonEmpty)
-          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))) //TODO: get from target graph(s) or download if not found?
+          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))
+      ) // TODO: get from target graph(s) or download if not found?
       out = InMap(properties.toSet)
     } yield out
 

@@ -18,7 +18,7 @@ trait GraphUtils {
 
   def mergeNodes(_nodes: Set[Node]): Task[Node] = {
     val nodes = _nodes.toList.sortBy(_.id)
-    val iri   = nodes.head.iri //TODO: mergetask for each iri/iris, handle empty iri
+    val iri   = nodes.head.iri // TODO: mergetask for each iri/iris, handle empty iri
 //    val iris  = nodes.head.iris
     if (nodes.isEmpty) Task.raiseError(new Exception("mergeNodes cannot merge an empty set"))
     else {
@@ -35,8 +35,8 @@ trait GraphUtils {
               //      nodesSortedById.partition(_.out(default.typed.transcendedOnDateTime).isEmpty)
               for {
                 _ <- Task.sequence(unmerged.tail.map { slave =>
-                  val masterVertexOntologies = unmerged.head.labels //out(this.typeOntology).map(Ontology.wrap)
-                  val suborVertexOntologies  = slave.labels         //out(this.typeOntology).map(Ontology.wrap)
+                  val masterVertexOntologies = unmerged.head.labels // out(this.typeOntology).map(Ontology.wrap)
+                  val suborVertexOntologies  = slave.labels         // out(this.typeOntology).map(Ontology.wrap)
                   val ontologyGap            = suborVertexOntologies.diff(masterVertexOntologies)
                   val typesToAdd             = mutable.HashSet[Ontology]()
                   val typesToRemove          = mutable.HashSet[Ontology]()
@@ -77,11 +77,11 @@ trait GraphUtils {
                         } yield ()
                       })
                     })
-                    //_ <- slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+                    // _ <- slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
                     _ <- slave.remove()
                   } yield ()
                 })
-                //_ <- Task.parSequence(transcended.map(_.remove()))
+                // _ <- Task.parSequence(transcended.map(_.remove()))
               } yield unmerged.head
             }
             .doOnFinish(_ => Task(nodeMergeTasks.remove(iri)).void)
@@ -92,7 +92,7 @@ trait GraphUtils {
             Task(node)
           case List() =>
 //            Task.raiseError(new Exception(s"after merging no node ${node.iri} left?"))
-            Task.now(node) //TODO: this should not be needed, somehow after merging the node is sometimes not found
+            Task.now(node) // TODO: this should not be needed, somehow after merging the node is sometimes not found
           case list =>
             mergeNodes(list.toSet)
         }
@@ -143,7 +143,7 @@ trait GraphUtils {
                     slave.remove()
                   }
                 } yield ()
-                //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
+              //      slave.addOut(default.typed.transcendedOnDateTime, Instant.now())
               })
 //              value <- unmerged.head.graph.values
 //                .byValue(List(unmerged.head.value -> unmerged.head.label))
@@ -155,7 +155,7 @@ trait GraphUtils {
 //                  case list =>
 //                    mergeValues(list.toSet)
 //                }
-              //_ <- Task.parSequence(transcended.map(_.remove()))
+              // _ <- Task.parSequence(transcended.map(_.remove()))
             } yield unmerged.head
           }
           .onErrorHandle { f =>

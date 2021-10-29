@@ -16,32 +16,38 @@ class CollectionTypeSpec extends AnyWordSpec with Matchers {
     "handle @list(@double)" in { CollectionType.get("@list(@double)") shouldBe Some(`@list`(DoubleType.datatype)) }
     "handle @tuple" in { CollectionType.get("@tuple") shouldBe Some(TupleType.datatype) }
     "handle @tuple(@int)(@double)" in {
-      CollectionType.get("@tuple(@int)(@double)") shouldBe Some(`@tuple`(`@int` :: `@double` :: Nil map (Some(_))))
+      CollectionType.get("@tuple(@int)(@double)") shouldBe Some(`@tuple`((`@int` :: `@double` :: Nil).map(Some(_))))
     }
     "handle @tuple(@list(@int))(@double)" in {
       CollectionType.get("@tuple(@list(@int))(@double)") shouldBe Some(
-        `@tuple`(`@list`(`@int`) :: `@double` :: Nil map (Some(_))))
+        `@tuple`((`@list`(`@int`) :: `@double` :: Nil).map(Some(_)))
+      )
     }
     "handle @tuple(@list(@geoline))(@double)" in {
       CollectionType.get("@tuple(@list(@geoline))(@double)") shouldBe Some(
-        `@tuple`(`@list`(`@geoline`) :: `@double` :: Nil map (Some(_))))
+        `@tuple`((`@list`(`@geoline`) :: `@double` :: Nil).map(Some(_)))
+      )
     }
     "handle @tuple(@list(@string))(@double)" in {
       CollectionType.get("@tuple(@list(@string))(@double)") shouldBe Some(
-        `@tuple`(`@list`(`@string`) :: `@double` :: Nil map (Some(_))))
+        `@tuple`((`@list`(`@string`) :: `@double` :: Nil).map(Some(_)))
+      )
     }
     "handle @tuple(@int)(@double)(@date)" in {
       CollectionType.get("@tuple(@int)(@double)(@date)") shouldBe Some(
-        `@tuple`(`@int` :: `@double` :: `@date` :: Nil map (Some(_))))
+        `@tuple`((`@int` :: `@double` :: `@date` :: Nil).map(Some(_)))
+      )
     }
     "handle @tuple(@list(@string))(@list(@geoline))(@list(@string))" in {
       CollectionType.get("@tuple(@list(@string))(@list(@geoline))(@list(@string))") shouldBe Some(
-        `@tuple`(`@list`(`@string`) :: `@list`(`@geoline`) :: `@list`(`@string`) :: Nil map (Some(_))))
+        `@tuple`((`@list`(`@string`) :: `@list`(`@geoline`) :: `@list`(`@string`) :: Nil).map(Some(_)))
+      )
     }
     "handle @map(@double)(@map(@int)(@string))" in {
 
       CollectionType.get("@map(@double)(@map(@int)(@string))") shouldBe Some(
-        `@map`(DoubleType.datatype, `@map`(IntType.datatype, TextType.datatype)))
+        `@map`(DoubleType.datatype, `@map`(IntType.datatype, TextType.datatype))
+      )
     }
     "handle @map(@int)(@string)" in {
       CollectionType.get("@map(@int)(@string)") shouldBe Some(`@map`(IntType.datatype, TextType.datatype))
@@ -77,20 +83,31 @@ class CollectionTypeSpec extends AnyWordSpec with Matchers {
     }
     "be true for @vector(@map(@int)) extending @map(@map, @map)" in {
       `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(), `@map`()) shouldBe true
-      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(`@int`, `@double`), `@map`()) shouldBe true
-      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(`@map`(`@int`, `@double`),
-                                                                              `@map`(`@int`, `@double`)) shouldBe false
+      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(
+        `@map`(`@int`, `@double`),
+        `@map`()
+      ) shouldBe true
+      `@map`(`@map`(`@int`, `@double`), `@map`(`@int`, `@double`)) <:< `@map`(
+        `@map`(`@int`, `@double`),
+        `@map`(`@int`, `@double`)
+      ) shouldBe false
     }
     "be true for @tuple(@int, @double) extending @tuple" in {
       `@tuple`(`@int`, `@double`) <:< `@tuple`() shouldBe true
     }
     "be true for @tuple(@tuple(@int, @double), @tuple(@int, @double)) extending @tuple(@tuple, @tuple)" in {
-      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(`@tuple`(), `@tuple`()) shouldBe true
-      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(`@tuple`(`@int`, `@double`),
-                                                                                      `@tuple`()) shouldBe true
+      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(
+        `@tuple`(),
+        `@tuple`()
+      ) shouldBe true
       `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(
         `@tuple`(`@int`, `@double`),
-        `@tuple`(`@int`, `@double`)) shouldBe false
+        `@tuple`()
+      ) shouldBe true
+      `@tuple`(`@tuple`(`@int`, `@double`), `@tuple`(`@int`, `@double`)) <:< `@tuple`(
+        `@tuple`(`@int`, `@double`),
+        `@tuple`(`@int`, `@double`)
+      ) shouldBe false
     }
   }
 }

@@ -4,9 +4,7 @@ object PropertyDef {
   implicit def pDefToProperty(df: PropertyDef): Property = df.property
 }
 
-/**
-  *
-  * @param iri
+/** @param iri
   * @param label
   * @param comment
   * @param iris
@@ -14,29 +12,29 @@ object PropertyDef {
   * @param `@range`
   * @param `@extends`
   */
-abstract class PropertyDef(val iri: String,
-                           label: String,
-                           comment: String = "",
-                           iris: Set[String] = Set(),
-                           container: List[String] = List(), //never used?
-                           `@range`: => List[ClassType[_]] = List(),
-                           `@extends`: => List[Property] = List(),
-                           labels: Map[String, String] = Map(),
-                           comments: Map[String, String] = Map())
-    extends ClassTypeDef[Property] {
+abstract class PropertyDef(
+  val iri: String,
+  label: String,
+  comment: String = "",
+  iris: Set[String] = Set(),
+  container: List[String] = List(), // never used?
+  `@range`: => List[ClassType[_]] = List(),
+  `@extends`: => List[Property] = List(),
+  labels: Map[String, String] = Map(),
+  comments: Map[String, String] = Map()
+) extends ClassTypeDef[Property] {
 
   def classtype = property
 
   lazy val property: Property = {
     val property = Property.properties.getOrCreate(iri, iris)
-    property.label ++ Map("en"   -> label).filter(_._2.nonEmpty) ++ labels.filter(_._2.nonEmpty)
+    property.label ++ Map("en" -> label).filter(_._2.nonEmpty) ++ labels.filter(_._2.nonEmpty)
     property.comment ++ Map("en" -> comment).filter(_._2.nonEmpty) ++ comments.filter(_._2.nonEmpty)
 //    property.range ++ `@range`
     property.extendedClasses ++ `@extends`
 //    property.properties ++ properties.toSet
     property
   }
-
 
 //  def keys: Object               = new {}
   lazy val properties: List[Property] = List()

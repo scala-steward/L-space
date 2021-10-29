@@ -25,7 +25,7 @@ object Skip
           "The number of first-results to skip",
           `@range` = DataType.default.`@string` :: Nil
         )
-    val nInt: TypedProperty[Int] = n.property as DataType.default.`@int`
+    val nInt: TypedProperty[Int] = n.property.as(DataType.default.`@int`)
   }
   override lazy val properties: List[Property] = keys.n :: ClipStep.properties
   trait Properties extends ClipStep.Properties {

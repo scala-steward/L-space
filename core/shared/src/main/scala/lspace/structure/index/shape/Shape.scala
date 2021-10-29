@@ -9,5 +9,5 @@ object Shape {
 }
 
 case class Shape private (origin: Resource[_], edges: Vector[Edge[_, _]]) {
-  override def toString: String = "Shape(" + origin.prettyPrint :: edges.toList.map(_.prettyPrint) mkString (", ") + ")"
+  override def toString: String = "Shape(" + origin.prettyPrint :: edges.toList.map(_.prettyPrint) mkString ", " + ")"
 }

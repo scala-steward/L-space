@@ -108,14 +108,12 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
       lspace.g.N.has(pDouble, P.eqv(1.0)).stepsList.size shouldBe 2
       lspace.g.N.has(pDouble, P.gte(1.0) && P.lt(1.0)).stepsList.size shouldBe 2
       //      DetachedGraph.g.N.has(pDouble, P.gte(1.0) lt (1.0)).steps.size shouldBe 3
-      lspace.g
-        .N
+      lspace.g.N
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
         .stepsList
         .last
         .isInstanceOf[step.Has] shouldBe true
-      lspace.g
-        .N
+      lspace.g.N
         .has(pDouble, P.gte(1.0) && P.lt(1.0))
         .stepsList
         .last
@@ -123,10 +121,9 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .predicate
         .exists {
           case p: p.And => p.predicate.size == 2
-          case _ => false
+          case _        => false
         } shouldBe true
-      lspace.g
-        .N
+      lspace.g.N
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
         .stepsList
         .last
@@ -134,10 +131,9 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .predicate
         .exists {
           case p: p.And => p.predicate.head == P.gte(1.2)
-          case _ => false
+          case _        => false
         } shouldBe true
-      lspace.g
-        .N
+      lspace.g.N
         .has(pDouble, P.gte(1.2) && P.lt(1.0))
         .stepsList
         .last
@@ -145,7 +141,7 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .predicate
         .exists {
           case p: p.And => p.predicate.head == P.gte(1.2)
-          case _ => false
+          case _        => false
         } shouldBe true
 
       val pString = Property("aa")
@@ -198,9 +194,10 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     """g.N.group(_.outMap())""" in Future {
       (g.N
         .group(_.outMap())
-        .et: TupleType[(Map[Property, List[Any]], List[Node])]) shouldBe tupleType(mapType(Property.urlType,
-                                                                                           listType()),
-                                                                                   listType(Node.nodeUrl))
+        .et: TupleType[(Map[Property, List[Any]], List[Node])]) shouldBe tupleType(
+        mapType(Property.urlType, listType()),
+        listType(Node.nodeUrl)
+      )
     }
     """g.N.group(_.out())""" in Future {
       (g.N
@@ -236,7 +233,8 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
         .mapValues(_.project(_.out("name")).by(_.out("balance").hasLabel[Double].is(P.gt(200.0))))
         .et: TupleType[(List[Ontology], List[(List[Any], List[Double])])]) shouldBe tupleType(
         listType(Ontology.urlType),
-        listType(tupleType(listType(), listType(`@double`))))
+        listType(tupleType(listType(), listType(`@double`)))
+      )
     }
     """g.N.project(_.out()).by(_.in())""" in Future {
       (g.N.project(_.out()).by(_.in()).et: TupleType[(List[Any], List[Any])]) shouldBe tupleType(listType(), listType())
@@ -247,24 +245,29 @@ class TraversalSpec extends AsyncWordSpec with Matchers {
     """g.N.project(_.out().hasLabel[Int].head).by(_.in())""" in Future {
       (g.N.project(_.out().hasLabel[Int].head).by(_.in()).et: TupleType[(Option[Int], List[Any])]) shouldBe tupleType(
         optionType(`@int`),
-        listType())
+        listType()
+      )
     }
     """g.N.project(_.group()).by(_.in())""" in Future {
       (g.N
         .project(_.group(_.out()).mapValues(_.out()))
         .by(_.in())
-        .et: TupleType[(Map[List[Any], List[Any]], List[Any])]) shouldBe tupleType(mapType(listType(), listType()),
-                                                                                   listType())
+        .et: TupleType[(Map[List[Any], List[Any]], List[Any])]) shouldBe tupleType(
+        mapType(listType(), listType()),
+        listType()
+      )
     }
     """g.N.project(_.out()).by(_.inMap())""" in Future {
       (g.N.project(_.out()).by(_.inMap()).et: TupleType[(List[Any], Map[Property, List[Any]])]) shouldBe tupleType(
         listType(),
-        mapType(Property.urlType, listType()))
+        mapType(Property.urlType, listType())
+      )
     }
     """g.N.project(_.out()).by(_.outMap())""" in Future {
       (g.N.project(_.out()).by(_.outMap()).et: TupleType[(List[Any], Map[Property, List[Any]])]) shouldBe tupleType(
         listType(),
-        mapType(Property.urlType, listType()))
+        mapType(Property.urlType, listType())
+      )
     }
     """g.N.project(_.out()).by(_.inMap()).by(_.out().hasLabel[Int].max())""" in Future {
       (g.N

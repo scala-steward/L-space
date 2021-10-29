@@ -18,7 +18,8 @@ object Local
         .map(
           Traversal
             .toTraversal(_)
-            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+        )
         .head
     } yield Local(traversal)
 
@@ -30,7 +31,7 @@ object Local
           "A traversal ..",
           `@range` = Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property.as(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: BranchStep.properties
   trait Properties extends BranchStep.Properties {

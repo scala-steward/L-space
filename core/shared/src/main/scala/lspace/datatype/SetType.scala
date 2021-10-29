@@ -44,7 +44,7 @@ object SetType extends DataTypeDef[SetType[Any]] {
     new ClassTypeable[SetType[Set[T]]] {
       type C  = Set[TOut]
       type CT = SetType[Set[TOut]]
-      def ct: CT = //SetType(List(clsTpbl.ct)).asInstanceOf[SetType[TOut]]
+      def ct: CT = // SetType(List(clsTpbl.ct)).asInstanceOf[SetType[TOut]]
         if (clsTpbl.ct.iri.nonEmpty) SetType(clsTpbl.ct.asInstanceOf[ClassType[TOut]])
         else SetType.datatype.asInstanceOf[SetType[Set[TOut]]]
     }

@@ -17,7 +17,8 @@ import scala.collection.mutable
 
 object Graph {
 
-  /** easy helper for creating simple in-memory graphs (graph can always be merged into other types of graphs, e.g. graphs which are persistent)
+  /** easy helper for creating simple in-memory graphs (graph can always be merged into other types of graphs, e.g.
+    * graphs which are persistent)
     * @param iri
     * @return
     */
@@ -158,7 +159,7 @@ trait Graph extends IriResource with GraphUtils { self =>
               ns.properties.store(key)
             else Task.unit).startAndForget
       edge <- Task.now(newEdge(id, from, key, to))
-      _    <- storeEdge(edge) //.startAndForget //what if this fails?
+      _ <- storeEdge(edge) // .startAndForget //what if this fails?
       _ <- {
         if (edge.key == Property.default.`@id` || edge.key == Property.default.`@ids`) edge.from match {
           case node: _Node =>
@@ -218,7 +219,7 @@ trait Graph extends IriResource with GraphUtils { self =>
     */
   protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit]
 
-  //TODO: break graph cycles
+  // TODO: break graph cycles
   protected[lspace] def addMeta[S <: Resource[_], T <: Resource[_]](source: S, target: T)(implicit
     helper: UpsertHelper = UpsertHelper()
   ): Task[Unit] =
@@ -274,10 +275,10 @@ trait Graph extends IriResource with GraphUtils { self =>
               .toListL
             _ <- helper.retryEdges(
               self
-            ) //TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
+            ) // TODO: improve adding/retrying edges (chains of edges / edges-on-edges), recursive? or merge from/to ahead of time?
             _ <- helper.retryEdges(
               self
-            ) //Possible strategy: only recurse when the number of edges-to-retry declines after an iteration
+            ) // Possible strategy: only recurse when the number of edges-to-retry declines after an iteration
             _ <- helper.retryEdges(self)
             _ <- helper.retryEdges(self)
             _ <- helper.retryEdges(self)

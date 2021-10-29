@@ -113,33 +113,36 @@ object ClassTypeable {
     def ct: CT = TextType.datatype
   }
 
-  implicit def defaultList[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[List[T], List[TOut], ListType[List[TOut]]] =
+  implicit def defaultList[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[List[T], List[TOut], ListType[List[TOut]]] =
     new ClassTypeable[List[T]] {
       type C  = List[TOut]
       type CT = ListType[List[TOut]]
       def ct: CT = ListType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[ListType[List[TOut]]]
     }
 
-  implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](
-      implicit clsTpbl: ClassTypeable.Aux[T, Set[TOut], SetType[Set[TOut]]])
-    : ClassTypeable.Aux[Set[T], Set[TOut], SetType[Set[TOut]]] =
+  implicit def defaultSet[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, Set[TOut], SetType[Set[TOut]]]
+  ): ClassTypeable.Aux[Set[T], Set[TOut], SetType[Set[TOut]]] =
     new ClassTypeable[Set[T]] {
       type C  = Set[TOut]
       type CT = SetType[Set[TOut]]
       def ct: CT = SetType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[SetType[Set[TOut]]]
     }
 
-  implicit def defaultVector[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[Vector[T], Vector[TOut], VectorType[Vector[TOut]]] =
+  implicit def defaultVector[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[Vector[T], Vector[TOut], VectorType[Vector[TOut]]] =
     new ClassTypeable[Vector[T]] {
       type C  = Vector[TOut]
       type CT = VectorType[Vector[TOut]]
       def ct: CT = VectorType(clsTpbl.ct.asInstanceOf[ClassType[TOut]]).asInstanceOf[VectorType[Vector[TOut]]]
     }
 
-  implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[ListSet[T], ListSet[TOut], ListSetType[ListSet[TOut]]] =
+  implicit def defaultListSet[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[ListSet[T], ListSet[TOut], ListSetType[ListSet[TOut]]] =
     new ClassTypeable[ListSet[T]] {
       type C  = ListSet[TOut]
       type CT = ListSetType[ListSet[TOut]]
@@ -147,14 +150,16 @@ object ClassTypeable {
     }
 
   implicit def defaultMap[
-      K,
-      V,
-      KOut,
-      KTOut[+Z] <: ClassType[Z],
-      VOut,
-      VTOut[+Z] <: ClassType[Z]
-  ](implicit clsTpblK: ClassTypeable.Aux[K, KOut, KTOut[KOut]], clsTpblV: ClassTypeable.Aux[V, VOut, VTOut[VOut]])
-    : ClassTypeable.Aux[Map[K, V], Map[KOut, VOut], MapType[Map[KOut, VOut]]] =
+    K,
+    V,
+    KOut,
+    KTOut[+Z] <: ClassType[Z],
+    VOut,
+    VTOut[+Z] <: ClassType[Z]
+  ](implicit
+    clsTpblK: ClassTypeable.Aux[K, KOut, KTOut[KOut]],
+    clsTpblV: ClassTypeable.Aux[V, VOut, VTOut[VOut]]
+  ): ClassTypeable.Aux[Map[K, V], Map[KOut, VOut], MapType[Map[KOut, VOut]]] =
     new ClassTypeable[Map[K, V]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[Map[KOut, VOut]]
@@ -163,32 +168,29 @@ object ClassTypeable {
     }
 
   implicit def defaultTuple2[
-      A,
-      B,
-      AOut,
-      ATOut <: ClassType[_],
-      BOut,
-      BTOut <: ClassType[_]
-  ](implicit clsTpblA: ClassTypeable.Aux[A, AOut, ATOut],
-    clsTpblB: ClassTypeable.Aux[B, BOut, BTOut]): ClassTypeable.Aux[(A, B), (AOut, BOut), TupleType[(AOut, BOut)]] =
+    A,
+    B,
+    AOut,
+    ATOut <: ClassType[_],
+    BOut,
+    BTOut <: ClassType[_]
+  ](implicit
+    clsTpblA: ClassTypeable.Aux[A, AOut, ATOut],
+    clsTpblB: ClassTypeable.Aux[B, BOut, BTOut]
+  ): ClassTypeable.Aux[(A, B), (AOut, BOut), TupleType[(AOut, BOut)]] =
     new ClassTypeable[(A, B)] {
       type C  = (AOut, BOut)
       type CT = TupleType[(AOut, BOut)]
       def ct: CT = TupleType(List(Some(clsTpblA.ct), Some(clsTpblB.ct))).asInstanceOf[TupleType[(AOut, BOut)]]
     }
 
-  implicit def defaultTuple3[A,
-                             Aout,
-                             ATout <: ClassType[_],
-                             B,
-                             Bout,
-                             BTout <: ClassType[_],
-                             C,
-                             Cout,
-                             CTout <: ClassType[_]](implicit clsTpblA: ClassTypeable.Aux[A, Aout, ATout],
-                                                    clsTpblB: ClassTypeable.Aux[B, Bout, BTout],
-                                                    clsTpblC: ClassTypeable.Aux[C, Cout, CTout])
-    : ClassTypeable.Aux[(A, B, C), (Aout, Bout, Cout), TupleType[(Aout, Bout, Cout)]] =
+  implicit def defaultTuple3[A, Aout, ATout <: ClassType[_], B, Bout, BTout <: ClassType[
+    _
+  ], C, Cout, CTout <: ClassType[_]](implicit
+    clsTpblA: ClassTypeable.Aux[A, Aout, ATout],
+    clsTpblB: ClassTypeable.Aux[B, Bout, BTout],
+    clsTpblC: ClassTypeable.Aux[C, Cout, CTout]
+  ): ClassTypeable.Aux[(A, B, C), (Aout, Bout, Cout), TupleType[(Aout, Bout, Cout)]] =
     new ClassTypeable[(A, B, C)] {
       type C  = (Aout, Bout, Cout)
       type CT = TupleType[(Aout, Bout, Cout)]
@@ -197,22 +199,14 @@ object ClassTypeable {
           .asInstanceOf[TupleType[(Aout, Bout, Cout)]]
     }
 
-  implicit def defaultTuple4[A,
-                             Aout,
-                             ATout <: ClassType[_],
-                             B,
-                             Bout,
-                             BTout <: ClassType[_],
-                             C,
-                             Cout,
-                             CTout <: ClassType[_],
-                             D,
-                             Dout,
-                             DTout <: ClassType[_]](implicit clsTpblA: ClassTypeable.Aux[A, Aout, ATout],
-                                                    clsTpblB: ClassTypeable.Aux[B, Bout, BTout],
-                                                    clsTpblC: ClassTypeable.Aux[C, Cout, CTout],
-                                                    clsTpblD: ClassTypeable.Aux[D, Dout, DTout])
-    : ClassTypeable.Aux[(A, B, C, D), (Aout, Bout, Cout, Dout), TupleType[(Aout, Bout, Cout, Dout)]] =
+  implicit def defaultTuple4[A, Aout, ATout <: ClassType[_], B, Bout, BTout <: ClassType[
+    _
+  ], C, Cout, CTout <: ClassType[_], D, Dout, DTout <: ClassType[_]](implicit
+    clsTpblA: ClassTypeable.Aux[A, Aout, ATout],
+    clsTpblB: ClassTypeable.Aux[B, Bout, BTout],
+    clsTpblC: ClassTypeable.Aux[C, Cout, CTout],
+    clsTpblD: ClassTypeable.Aux[D, Dout, DTout]
+  ): ClassTypeable.Aux[(A, B, C, D), (Aout, Bout, Cout, Dout), TupleType[(Aout, Bout, Cout, Dout)]] =
     new ClassTypeable[(A, B, C, D)] {
       type C  = (Aout, Bout, Cout, Dout)
       type CT = TupleType[(Aout, Bout, Cout, Dout)]

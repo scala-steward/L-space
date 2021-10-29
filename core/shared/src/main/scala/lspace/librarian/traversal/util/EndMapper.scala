@@ -52,13 +52,13 @@ object EndMapper {
           case _: ReducingStep => false
           case _               => true
         } match {
-          case (Nil, Nil) => false //not reduced
-          case (_, Nil)   => false //not reduced
+          case (Nil, Nil) => false // not reduced
+          case (_, Nil)   => false // not reduced
 //          case (steps, reduceStep :: leadSteps) if !BranchedEnd.is(steps) && !ResourcedEnd.is(steps) => true
           case (steps, _ :: leadSteps)
               if steps.forall(ReducedEndInvariant.isInvariant) && BranchedOrResourcedEnd.is(
                 leadSteps
-              ) => //perhaps just look for at least one branche or resourche step
+              ) => // perhaps just look for at least one branche or resourche step
             true
           case _ => false
         }
@@ -88,7 +88,7 @@ object EndMapper {
         BranchedOrResourcedEnd.type,
         BranchedOrResourced
       ]
-      //tail contains branch step?
+      // tail contains branch step?
     ): EndMapper0[ET[End], Steps, Option[End], OptionType[Option[End]]] =
       new EndMapper0[ET[End], Steps, Option[End], OptionType[Option[End]]] {
         def map(et: ET[End]): OptionType[Option[End]] = OptionType(et)
@@ -101,7 +101,7 @@ object EndMapper {
           case _: Count => false
           case _        => true
         } match {
-          case (_, Nil)                                                          => false //not singular
+          case (_, Nil)                                                          => false // not singular
           case (steps, _ :: _) if steps.forall(SingularEndInvariant.isInvariant) => true
           case _                                                                 => false
         }
@@ -118,7 +118,7 @@ object EndMapper {
       implicit def projected[T <: ProjectionStep]: Case.Aux[T, T] = at[T](identity)
     }
 
-    //Q: IDEA does not find implicit when ClassType[End] is changed to ET[End], compiling is no problem
+    // Q: IDEA does not find implicit when ClassType[End] is changed to ET[End], compiling is no problem
     implicit def singularEnd[End, ET[Z] <: ClassType[
       Z
     ], Steps <: HList, Filters <: HList, Tail <: HList, Filters1 <: HList](implicit
@@ -140,7 +140,7 @@ object EndMapper {
 //          case _: ReducingStep    => false
           case _ => false
         } match {
-          case (Nil, Nil)    => false //no filtered end
+          case (Nil, Nil)    => false // no filtered end
           case (_ :: _, Nil) => true
           case (Nil, _ :: _) => false
           case (_, leadSteps)
@@ -244,8 +244,8 @@ object EndMapper {
           case _: BranchStep => false
           case _             => true
         } match {
-          case (Nil, Nil)    => false //not a branched end
-          case (_ :: _, Nil) => false //not a branched end
+          case (Nil, Nil)    => false // not a branched end
+          case (_ :: _, Nil) => false // not a branched end
           case (steps, _ :: _) if steps.forall(BranchedEndCompatible.isInvariant) =>
             true
           case _ => false
@@ -304,7 +304,7 @@ object EndMapper {
           case _: ResourceStep => false
           case _               => true
         } match {
-          case (_, Nil)                                                            => false //not a resourced end
+          case (_, Nil)                                                            => false // not a resourced end
           case (steps, _ :: _) if steps.forall(ResourcedEndCompatible.isInvariant) => true
           case _                                                                   => false
         }
@@ -358,7 +358,7 @@ object EndMapper {
           case _: Dedup => false
           case _        => true
         } match {
-          case (_, Nil) => false //not a distincted end
+          case (_, Nil) => false // not a distincted end
           case (steps, singularStep :: leadSteps) =>
             if (
               steps
@@ -409,7 +409,7 @@ object EndMapper {
           case _: GroupingBarrierStep => false
           case _                      => true
         } match {
-          case (_, Nil)                                                         => false //not a grouped end
+          case (_, Nil)                                                         => false // not a grouped end
           case (steps, _ :: _) if steps.forall(GroupedEndInvariant.isInvariant) => true
           case _                                                                => false
         }
@@ -442,7 +442,7 @@ object EndMapper {
             et.rangeTypes.tail.head
               .asInstanceOf[Option[ClassType[V]]]
               .getOrElse(ClassType.stubAny.asInstanceOf[ClassType[V]])
-          ) //)
+          ) // )
       }
 
     object OneOnOneEnd extends Poly1 {
@@ -453,7 +453,7 @@ object EndMapper {
           case _: ProjectionStep => true
           case _                 => false
         } match {
-          case (_ :: _, Nil) => true //not a projected end
+          case (_ :: _, Nil) => true // not a projected end
 //          case (_, singularStep :: leadSteps)
 //              if (singularStep :: leadSteps).forall(OneOnOneEndInvariant.isInvariant) =>
 //            true
@@ -487,8 +487,8 @@ object EndMapper {
     * @return
     */
   def tweakEnd(traversal: Traversal[_ <: ClassType[Any], _ <: ClassType[Any], HList]): ClassType[Any] = {
-    //FilterBarrierStep
-    //ReducingBarrierStep
+    // FilterBarrierStep
+    // ReducingBarrierStep
     import scala.collection.immutable.::
     traversal.stepsList.reverse.span {
       case _: ReducingStep | _: Dedup                                                   => false

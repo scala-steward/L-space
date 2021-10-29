@@ -41,24 +41,24 @@ abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(gra
     } ++ fromParent.filter(n => !idSet.contains(n.id))
   }
 
-  override def hasId(id: Long): Task[Option[Node]] = {
+  override def hasId(id: Long): Task[Option[Node]] =
     if (deleted.contains(id)) Task.now(None)
     else
       for {
         r <- super
           .hasId(id)
-        r1 <- if (r.nonEmpty) Task.now(r)
-        else
-          parent.nodes
-            .hasId(id)
-            .flatMap {
-              case Some(node) => _TNode(node.asInstanceOf[parent._Node]).to[Task].map(Some(_))
-              case None       => Task.now(None)
-            }
+        r1 <-
+          if (r.nonEmpty) Task.now(r)
+          else
+            parent.nodes
+              .hasId(id)
+              .flatMap {
+                case Some(node) => _TNode(node.asInstanceOf[parent._Node]).to[Task].map(Some(_))
+                case None       => Task.now(None)
+              }
       } yield r1
-  }
 
-  override def hasId(id: List[Long]): Observable[Node] = {
+  override def hasId(id: List[Long]): Observable[Node] =
     Observable
       .fromIterable(id)
       .filter(!deleted.contains(_))
@@ -66,15 +66,15 @@ abstract class TNodes[G <: Transaction](override val graph: G) extends Nodes(gra
         Observable
           .fromTask(for {
             nodeOption <- super.hasId(id)
-            nodeOrEdgeOption <- if (nodeOption.nonEmpty) Task.now(nodeOption)
-            else
-              parent.nodes.hasId(id).flatMap {
-                case Some(node) => _TNode(node.asInstanceOf[parent._Node]).to[Task].map(Some(_))
-                case None       => Task.now(None)
-              }
+            nodeOrEdgeOption <-
+              if (nodeOption.nonEmpty) Task.now(nodeOption)
+              else
+                parent.nodes.hasId(id).flatMap {
+                  case Some(node) => _TNode(node.asInstanceOf[parent._Node]).to[Task].map(Some(_))
+                  case None       => Task.now(None)
+                }
           } yield nodeOrEdgeOption)
           .map(_.toList)
           .flatMap(Observable.fromIterable(_))
       }
-  }
 }

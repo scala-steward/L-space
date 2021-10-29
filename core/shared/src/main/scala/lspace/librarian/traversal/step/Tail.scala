@@ -19,7 +19,7 @@ object Tail
           "The maximum number of tail-results",
           `@range` = DataType.default.`@string` :: Nil
         )
-    val maxInt: TypedProperty[Int] = max.property as DataType.default.`@int`
+    val maxInt: TypedProperty[Int] = max.property.as(DataType.default.`@int`)
   }
   override lazy val properties: List[Property] = keys.max :: ClipStep.properties
   trait Properties extends ClipStep.Properties {

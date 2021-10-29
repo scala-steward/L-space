@@ -15,8 +15,9 @@ trait DecodeGraphQL[A, F[_]] extends Decode[A, F] {
 object DecodeGraphQL {
   type Aux[Out, F[_], In0] = DecodeGraphQL[Out, F] { type In = In0 }
 
-  def graphqlToQuery(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder): DecodeGraphQL[Query, Task] = {
+  def graphqlToQuery(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(implicit
+    decoder: Decoder
+  ): DecodeGraphQL[Query, Task] = {
 
     lazy val validProperty: Property => Boolean =
       if (allowedProperties.nonEmpty) { (property: Property) =>
@@ -29,7 +30,8 @@ object DecodeGraphQL {
 
     lazy val validProjection: Projection => Boolean = (projection: Projection) =>
       validProperty(projection.property) && (projection.projections.isEmpty || projection.projections.exists(
-        _.projections.forall(projection => validProjection(projection))))
+        _.projections.forall(projection => validProjection(projection))
+      ))
 
     lazy val validQuery: Query => Boolean = (query: Query) => query.projections.forall(validProjection)
 

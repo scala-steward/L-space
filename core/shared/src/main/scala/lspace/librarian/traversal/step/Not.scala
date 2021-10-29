@@ -16,7 +16,8 @@ object Not extends StepDef("Not", "A not-step ..", FilterStep.ontology :: Nil) w
         .map(
           Traversal
             .toTraversal(_)
-            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+        )
         .head
     } yield Not(traversal)
 
@@ -28,7 +29,7 @@ object Not extends StepDef("Not", "A not-step ..", FilterStep.ontology :: Nil) w
           "A traversal which must have a empty result",
           `@range` = Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property.as(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {

@@ -11,7 +11,7 @@ trait NameSpaceGraph extends DataGraph {
 
   lazy val idProvider: IdProvider = graph.idProvider
 
-  override lazy val init: Task[Unit] = Task.unit //index.init
+  override lazy val init: Task[Unit] = Task.unit // index.init
 
   val classtypes: Classtypes = new Classtypes(this) {}
 
@@ -30,10 +30,11 @@ trait NameSpaceGraph extends DataGraph {
           case _: Ontology    => nodes.upsert(ct.iri, Ontology.ontology)
           case _: Property    => nodes.upsert(ct.iri, Property.ontology)
           case _: DataType[_] => nodes.upsert(ct.iri, DataType.ontology, Ontology.ontology)
-          case _ => throw new Exception(s"unexpected type ${ct.getClass.getSimpleName}")
+          case _              => throw new Exception(s"unexpected type ${ct.getClass.getSimpleName}")
         }
       })
-      .map(edges.create(resource, key, _)).void
+      .map(edges.create(resource, key, _))
+      .void
 
   override def purge: Task[Unit] =
     for {

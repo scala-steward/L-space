@@ -9,9 +9,11 @@ import lspace.structure.{OntologyDef, _}
 import monix.eval.Task
 
 object Collection
-    extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/Collection",
-                        label = "Collection",
-                        comment = "Collection ..") {
+    extends OntologyDef(
+      lspace.NS.vocab.Lspace + "librarian/Collection",
+      label = "Collection",
+      comment = "Collection .."
+    ) {
 
   def wrap(node: Node): Collection[Any, ClassType[Any]] = node match {
     case node: Collection[Any, ClassType[Any]] @unchecked => node
@@ -21,7 +23,7 @@ object Collection
         node.out(Collection.keys.endDateTime).head,
         node.out(Collection.keys.itemList).take(1).flatten.toList,
         Some(ClassType.stubAny)
-      ) //(node)
+      ) // (node)
   }
 
   object keys extends Step.Properties {
@@ -32,7 +34,7 @@ object Collection
           "Start time of collecting",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val startDateTime: TypedProperty[Instant] = start.property as DataType.default.`@datetime`
+    lazy val startDateTime: TypedProperty[Instant] = start.property.as(DataType.default.`@datetime`)
 
     object end
         extends PropertyDef(
@@ -41,7 +43,7 @@ object Collection
           "End time of collecting",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val endDateTime: TypedProperty[Instant] = start.property as DataType.default.`@datetime`
+    lazy val endDateTime: TypedProperty[Instant] = start.property.as(DataType.default.`@datetime`)
 
     object item
         extends PropertyDef(
@@ -50,7 +52,7 @@ object Collection
           "Collected item",
           `@range` = ListType() :: Nil
         ) {}
-    lazy val itemList: TypedProperty[List[Any]] = item as ListType()
+    lazy val itemList: TypedProperty[List[Any]] = item.as(ListType())
 
   }
 
@@ -77,14 +79,17 @@ object Collection
         .asInstanceOf[Option[ClassType[T]]]
         .map(ct => node.addOut(keys.item.property, ListType(ct).asInstanceOf[ClassType[List[T]]], collection.item))
         .getOrElse(
-          node.addOut(keys.itemList, collection.item.asInstanceOf[List[Any]]).asInstanceOf[Task[Edge[Node, Any]]])
+          node.addOut(keys.itemList, collection.item.asInstanceOf[List[Any]]).asInstanceOf[Task[Edge[Node, Any]]]
+        )
     } yield node
   }.memoizeOnSuccess
 }
 
-case class Collection[+T, CT <: ClassType[_]](startDateTime: Instant,
-                                              endDateTime: Instant,
-                                              item: List[T],
-                                              ct: Option[CT] = None) {
+case class Collection[+T, CT <: ClassType[_]](
+  startDateTime: Instant,
+  endDateTime: Instant,
+  item: List[T],
+  ct: Option[CT] = None
+) {
   lazy val toNode: Task[Node] = this
 }

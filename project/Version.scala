@@ -5,7 +5,7 @@ object Version {
 //  val finch          = "0.32.1"
 //  val minitest       = "2.9.1"
   val lspaceTypes    = "0.2.1"
-  val minitest  = "2.9.6"
+  val minitest       = "2.9.6"
   val monix          = "3.4.0"
   val pureconfig     = "0.16.0"
   val refined        = "0.9.25"

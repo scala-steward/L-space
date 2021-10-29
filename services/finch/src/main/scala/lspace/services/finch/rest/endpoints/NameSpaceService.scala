@@ -18,26 +18,28 @@ import monix.execution.Scheduler
 import scala.collection.mutable
 
 object NameSpaceService {
-  def apply[JSON](graph: Lspace)(implicit activeContext: ActiveContext,
-                                 decoder: JsonLDDecoder[JSON],
-                                 encoder: JsonLDEncoder[JSON],
-                                 guide: AsyncGuide,
-                                 scheduler: Scheduler): NameSpaceService[JSON] =
+  def apply[JSON](graph: Lspace)(implicit
+    activeContext: ActiveContext,
+    decoder: JsonLDDecoder[JSON],
+    encoder: JsonLDEncoder[JSON],
+    guide: AsyncGuide,
+    scheduler: Scheduler
+  ): NameSpaceService[JSON] =
     new NameSpaceService(graph)(activeContext, decoder, encoder, guide, scheduler)
 }
 
-class NameSpaceService[JSON](graph: Graph)(implicit val activeContext: ActiveContext,
-                                           decoder: JsonLDDecoder[JSON],
-                                           encoder: JsonLDEncoder[JSON],
-                                           guide: AsyncGuide,
-                                           scheduler: Scheduler)
-    extends Api {
+class NameSpaceService[JSON](graph: Graph)(implicit
+  val activeContext: ActiveContext,
+  decoder: JsonLDDecoder[JSON],
+  encoder: JsonLDEncoder[JSON],
+  guide: AsyncGuide,
+  scheduler: Scheduler
+) extends Api {
 
   val headersAll = root.map(_.headerMap.toMap)
   val cache      = mutable.HashMap[String, mutable.HashMap[String, String]]()
 
-  /**
-    * retrieve a single resource
+  /** retrieve a single resource
     * @return
     */
   val getResource: Endpoint[IO, String] = get(paths[String]) { (paths: List[String]) =>
@@ -55,7 +57,8 @@ class NameSpaceService[JSON](graph: Graph)(implicit val activeContext: ActiveCon
             cache += (graph.iri + "/" + path)                                                                -> (cache
               .getOrElse(graph.iri + "/" + path, mutable.HashMap[String, String]()) += "application/ld+json" -> json)
             json
-          })
+          }
+      )
       .map(Ok)
       .map(_.withHeader("Content-Type", "application/ld+json"))
       .onErrorHandle(f => io.finch.NotFound(new Exception("unknown path")))
@@ -76,7 +79,8 @@ class NameSpaceService[JSON](graph: Graph)(implicit val activeContext: ActiveCon
             cache += iri                                                                  -> (cache
               .getOrElse(iri, mutable.HashMap[String, String]()) += "application/ld+json" -> json)
             json
-          })
+          }
+      )
       .map(Ok)
       .map(_.withHeader("Content-Type", "application/ld+json"))
       .onErrorHandle(f => io.finch.NotFound(new Exception("unknown iri")))

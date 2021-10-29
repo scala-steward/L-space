@@ -39,8 +39,7 @@ trait Index {
 
 //  lazy val toNode: Task[Node] = this.memoizeOnSuccess
 
-  /**
-    * A traversal-pattern containing FilterStep's and RearrangeSteps separated by an Out-step
+  /** A traversal-pattern containing FilterStep's and RearrangeSteps separated by an Out-step
     * @return
     */
   def traversal: UntypedTraversal
@@ -49,21 +48,20 @@ trait Index {
 
   lazy val id: Long = traversal.hashCode()
 
-  /** TODO: add edge??? as pointer to changed datapoint to be used for incremental updates?
-    * adds value-path to resources-path
+  /** TODO: add edge??? as pointer to changed datapoint to be used for incremental updates? adds value-path to
+    * resources-path
     * @param shape
     */
   def store(shape: Shape): Task[Unit]
 
-  /**
-    * searches for value-path-pattern in this index
+  /** searches for value-path-pattern in this index
     * @param values
-    * @return list of applicable resource-paths
+    * @return
+    *   list of applicable resource-paths
     */
   def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape]
 
-  /**
-    * removes value-paths and purges resource-path when it is incomplete
+  /** removes value-paths and purges resource-path when it is incomplete
     * @param shape
     */
   def delete(shape: Shape): Task[Unit]

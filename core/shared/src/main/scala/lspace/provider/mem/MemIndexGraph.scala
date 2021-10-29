@@ -21,10 +21,9 @@ trait MemIndexGraph extends MemGraph with IndexGraph {
 
     override def get(traversal: UntypedTraversal): Task[Option[Index]] = Task(indexes.get(traversal))
 
-    override def create(traversal: UntypedTraversal): Task[Index] = {
+    override def create(traversal: UntypedTraversal): Task[Index] =
       //    graph.nodes.upsert(traversal.toNode)
       Task(MemIndex(traversal))
-    }
 
     override def delete(index: Index): Task[Unit] = Task {
       indexes.remove(index.traversal)

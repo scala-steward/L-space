@@ -21,15 +21,18 @@ object HasLabel
 //          }
 //          .map(node.graph.ns.classtypes.get(_))
 //      }
-      Task
-        .parSequence(
-          node
-            .out(keys.label)
-            .collect {
-              case node: Node => node.iri
-            }
-            .map(node.graph.ns.classtypes.get(_)))
-        .map(_.flatten) //.map(_.getOrElse(ClassType.stubNothing)))) //stubNothing is inserted when the ClassType is expected to be non-existing within the graph
+        Task
+          .parSequence(
+            node
+              .out(keys.label)
+              .collect { case node: Node =>
+                node.iri
+              }
+              .map(node.graph.ns.classtypes.get(_))
+          )
+          .map(
+            _.flatten
+          ) // .map(_.getOrElse(ClassType.stubNothing)))) //stubNothing is inserted when the ClassType is expected to be non-existing within the graph
     } yield HasLabel(labels)
 //      node
 //        .out(keys.label)

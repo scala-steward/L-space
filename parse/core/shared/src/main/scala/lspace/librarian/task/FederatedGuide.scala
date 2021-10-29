@@ -8,11 +8,10 @@ object FederatedGuide {
   }
 }
 
-/**
-  * This guide should execute federated queries (where parts of the query are executed against/on remote graphs).
+/** This guide should execute federated queries (where parts of the query are executed against/on remote graphs).
   */
 trait FederatedGuide extends AsyncGuide {
 
-  //TODO: add graph-step
+  // TODO: add graph-step
 //  def executeRemote()
 }

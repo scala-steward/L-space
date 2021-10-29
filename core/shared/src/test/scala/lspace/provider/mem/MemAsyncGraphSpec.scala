@@ -18,11 +18,10 @@ class MemAsyncGraphSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with
     sample <- sampleGraph.load
   } yield sample).memoizeOnSuccess
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { _ =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { _ =>
       super.withFixture(test).toFuture
     })
-  }
 
   nameSpaceGraphTests(graph)
   graphTests(graph)

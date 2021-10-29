@@ -33,8 +33,8 @@ package object lspace {
 //  implicit def tToT[ST <: ClassType[_], ET <: ClassType[_], Steps <: HList](
 //      t: Traversal[ST, ET, Steps]): lspace.librarian.traversal.Traversal[ST, ET, Steps] = t
 
-  val Traversal                                      = lspace.librarian.traversal.Traversal
-  def g                                              = Traversal()
+  val Traversal                                    = lspace.librarian.traversal.Traversal
+  def g                                            = Traversal()
   def __[Start: ClassTypeable, End: ClassTypeable] = Traversal[Start, End]()
 
   val Label = new {

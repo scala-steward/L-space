@@ -11,16 +11,17 @@ import monix.reactive.Observable
 
 object LGraph {
 
-  /**
-    *
-    * @param cacheLevel fraction of resources to populate the cache, 0 for nothing 1 for everything (if memory allows for it)
+  /** @param cacheLevel
+    *   fraction of resources to populate the cache, 0 for nothing 1 for everything (if memory allows for it)
     */
   case class Options(cacheLevel: Double = 1.0)
-  def apply(storeProvider: StoreProvider,
-            indexProvider: IndexProvider,
-            options: Options = Options(),
-            noinit: Boolean = false): LGraph = {
-    val _iri           = storeProvider.iri
+  def apply(
+    storeProvider: StoreProvider,
+    indexProvider: IndexProvider,
+    options: Options = Options(),
+    noinit: Boolean = false
+  ): LGraph = {
+    val _iri = storeProvider.iri
 
     val graph = new LDataGraph {
       val iri: String          = _iri
@@ -37,7 +38,8 @@ object LGraph {
                 ns.index.storeManager.init,
                 storeManager.init,
                 index.storeManager.init
-              ))
+              )
+            )
         } yield ()).memoize
 
       lazy val storeManager: StoreManager[this.type] = storeProvider.dataManager(this)
@@ -63,7 +65,7 @@ object LGraph {
       lazy val index: LIndexGraph = new LIndexGraph {
         val iri: String = _iri + ".index"
 
-        lazy val graph: LGraph      = self
+        lazy val graph: LGraph = self
 
         lazy val storeManager: StoreManager[this.type] = storeProvider.indexManager(this)
         lazy val indexManager: IndexManager[this.type] = indexProvider.dataManager(this)
@@ -174,10 +176,12 @@ trait LGraph extends Graph {
 //    edge.asInstanceOf[_Edge[Any, Any]]
 //  }
 
-  override protected[lspace] def createEdge[S, E](id: Long,
-                                                  from: _Resource[S],
-                                                  key: Property,
-                                                  to: _Resource[E]): Task[GEdge[S, E]] =
+  override protected[lspace] def createEdge[S, E](
+    id: Long,
+    from: _Resource[S],
+    key: Property,
+    to: _Resource[E]
+  ): Task[GEdge[S, E]] =
     for { edge <- super.createEdge(id, from, key, to) } yield {
       val lastaccess = LResource.getLastAccessStamp()
       edge._lastoutsync = Some(lastaccess)
@@ -214,12 +218,10 @@ trait LGraph extends Graph {
     }
 
   protected[lspace] def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] =
-    (Observable.fromIterable(resource.asInstanceOf[LResource[Any]].outEMap()).flatMap {
-      case (_, properties) =>
-        Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
-    } ++ Observable.fromIterable(resource.asInstanceOf[LResource[Any]].inEMap()).flatMap {
-      case (_, properties) =>
-        Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
+    (Observable.fromIterable(resource.asInstanceOf[LResource[Any]].outEMap()).flatMap { case (_, properties) =>
+      Observable.fromIterable(properties).mapEval(edge => edge.to.removeIn(edge))
+    } ++ Observable.fromIterable(resource.asInstanceOf[LResource[Any]].inEMap()).flatMap { case (_, properties) =>
+      Observable.fromIterable(properties).mapEval(edge => edge.from.removeOut(edge))
     }).completedL
 
   override def transaction: Transaction = LTransaction(thisgraph)
@@ -234,7 +236,7 @@ trait LGraph extends Graph {
 
   override def close(): Task[Unit] =
     for {
-    _ <- super.close()
-    _ <- storeManager.close()
+      _ <- super.close()
+      _ <- storeManager.close()
     } yield ()
 }

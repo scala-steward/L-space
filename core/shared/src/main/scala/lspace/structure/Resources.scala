@@ -10,18 +10,18 @@ import scala.collection.immutable.ListSet
 abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
   import graph._
   def apply(): Observable[Resource[_]] = nodes() ++ edges() ++ values()
-  def count(): Task[Long]              = Task.parSequence(List(nodeStore.count(), edgeStore.count(), valueStore.count())).map(_.sum)
+  def count(): Task[Long] = Task.parSequence(List(nodeStore.count(), edgeStore.count(), valueStore.count())).map(_.sum)
 
   def hasIri(iris: List[String]): Observable[Resource[Any]] = {
     val validIris = iris.filter(_.nonEmpty)
     if (validIris.nonEmpty) {
       Observable
         .fromIterable(validIris)
-        .flatMap(
-          iri =>
-            nodeStore
-              .hasIri(iri)
-              .asInstanceOf[Observable[Resource[_]]] ++ edgeStore.hasIri(iri).asInstanceOf[Observable[Resource[_]]])
+        .flatMap(iri =>
+          nodeStore
+            .hasIri(iri)
+            .asInstanceOf[Observable[Resource[_]]] ++ edgeStore.hasIri(iri).asInstanceOf[Observable[Resource[_]]]
+        )
         .asInstanceOf[Observable[Resource[_]]]
     } else Observable[Resource[_]]()
   }
@@ -72,9 +72,8 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
       case v: List[_]    => v.map(dereferenceValue)
       case v: Set[_]     => v.map(dereferenceValue)
       case v: Map[_, _] =>
-        v.map {
-          case (key, value) =>
-            dereferenceValue(key) -> dereferenceValue(value)
+        v.map { case (key, value) =>
+          dereferenceValue(key) -> dereferenceValue(value)
         }
       case (v1, v2) =>
         (dereferenceValue(v1), dereferenceValue(v2))
@@ -94,10 +93,13 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
         edgeStore.cached
           .hasId(v.id)
           .getOrElse(
-            newEdge[Any, Any](v.id,
-                              cache(v.from).asInstanceOf[_Resource[Any]],
-                              v.key,
-                              cache(v.to).asInstanceOf[_Resource[Any]]))
+            newEdge[Any, Any](
+              v.id,
+              cache(v.from).asInstanceOf[_Resource[Any]],
+              v.key,
+              cache(v.to).asInstanceOf[_Resource[Any]]
+            )
+          )
       case v: _Value[_] => v
       case v: Value[_]  => valueStore.cached.hasId(v.id).getOrElse(newValue(v.id, dereferenceValue(v.value), v.label))
       case _            => t
@@ -111,10 +113,12 @@ abstract class Resources(val graph: Graph) extends RApi[Resource[Any]] {
     case node: Node        => newNode(node.id).asInstanceOf[_Resource[T]]
     case edge: _Edge[_, _] => edge.asInstanceOf[_Resource[T]]
     case edge: Edge[_, _] =>
-      newEdge[Any, Any](edge.id,
-                        cache(edge.from).asInstanceOf[_Resource[Any]],
-                        edge.key,
-                        cache(edge.to).asInstanceOf[_Resource[Any]]).asInstanceOf[_Resource[T]]
+      newEdge[Any, Any](
+        edge.id,
+        cache(edge.from).asInstanceOf[_Resource[Any]],
+        edge.key,
+        cache(edge.to).asInstanceOf[_Resource[Any]]
+      ).asInstanceOf[_Resource[T]]
     case value: _Value[_] => value.asInstanceOf[_Resource[T]]
     case value: Value[_] =>
       newValue(value.id, cached.dereferenceValue(value.value), value.label).asInstanceOf[_Resource[T]]

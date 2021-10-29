@@ -27,7 +27,7 @@ object EncodeJsonLD {
   }
 
   implicit def nodeToJsonLD[T <: Node, Json](implicit encoder: JsonLDEncoder[Json]) = new EncodeJsonLD[T, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (node: T) => Coeval { encoder(node)(activeContext) }
+    def encode(implicit activeContext: ActiveContext) = (node: T) => Coeval(encoder(node)(activeContext))
   }
 
   implicit def nodesToJsonLD[T, Json](implicit encoder: JsonLDEncoder[Json]) = {
@@ -38,7 +38,7 @@ object EncodeJsonLD {
 
     new EncodeJsonLD[List[T], Coeval] {
       def encode(implicit activeContext: ActiveContext): List[T] => Coeval[String] =
-        (nodes: List[T]) => Coeval { encoder.fromAny(nodes).withContext.noSpaces }
+        (nodes: List[T]) => Coeval(encoder.fromAny(nodes).withContext.noSpaces)
     }
   }
 
@@ -58,11 +58,16 @@ object EncodeJsonLD {
             val context = ac2
               .copy(
                 definitions = jip.activeContext.definitions() ++ Map(
-                  Collection.keys.start.property.iri -> ActiveProperty(`@type` = lspace.Label.D.`@datetime` :: Nil,
-                                                                       property = Collection.keys.start.property)(),
-                  Collection.keys.end.property.iri -> ActiveProperty(`@type` = lspace.Label.D.`@datetime` :: Nil,
-                                                                     property = Collection.keys.end.property)()
-                ))
+                  Collection.keys.start.property.iri -> ActiveProperty(
+                    `@type` = lspace.Label.D.`@datetime` :: Nil,
+                    property = Collection.keys.start.property
+                  )(),
+                  Collection.keys.end.property.iri -> ActiveProperty(
+                    `@type` = lspace.Label.D.`@datetime` :: Nil,
+                    property = Collection.keys.end.property
+                  )()
+                )
+              )
 
             ListMap(
               types.`@context`                  -> context.asJson.get,
@@ -71,7 +76,7 @@ object EncodeJsonLD {
               endIri                            -> collection.endDateTime.asJson,
               Collection.keys.item.property.iri -> jip.json
             ).asJson.noSpaces
-        }
+          }
     }
 
   implicit def activeContextToJsonLD[Json](implicit encoder: JsonLDEncoder[Json]) = {
@@ -84,32 +89,34 @@ object EncodeJsonLD {
             Map(
               types.`@context` -> encoder
                 .fromActiveContext(activeContext)
-                .getOrElse(Map[String, Json]().asJson)).asJson.noSpaces
-        }
+                .getOrElse(Map[String, Json]().asJson)
+            ).asJson.noSpaces
+          }
     }
   }
 
   implicit val encodeJsonLDJson = new EncodeJsonLD[String, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (json: String) => Coeval { json }
+    def encode(implicit activeContext: ActiveContext) = (json: String) => Coeval(json)
   }
   implicit val encodeBooleanJsonLD = new EncodeJsonLD[Boolean, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Boolean) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Boolean) => Coeval(value.toString)
   }
   implicit val encodeIntJsonLD = new EncodeJsonLD[Int, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Int) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Int) => Coeval(value.toString)
   }
   implicit val encodeDoubleJsonLD = new EncodeJsonLD[Double, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Double) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Double) => Coeval(value.toString)
   }
   implicit val encodeLongJsonLD = new EncodeJsonLD[Long, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Long) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Long) => Coeval(value.toString)
   }
 
-  implicit def queryResultToJsonLD[T <: QueryResult, Json](
-      implicit encoder: JsonLDEncoder[Json]): EncodeJsonLD[T, Coeval] =
+  implicit def queryResultToJsonLD[T <: QueryResult, Json](implicit
+    encoder: JsonLDEncoder[Json]
+  ): EncodeJsonLD[T, Coeval] =
     new EncodeJsonLD[T, Coeval] {
       import encoder.baseEncoder._
       def encode(implicit activeContext: ActiveContext) =
-        (node: T) => Coeval { _queryresultToJsonMap(node).asInstanceOf[Json].noSpaces }
+        (node: T) => Coeval(_queryresultToJsonMap(node).asInstanceOf[Json].noSpaces)
     }
 }

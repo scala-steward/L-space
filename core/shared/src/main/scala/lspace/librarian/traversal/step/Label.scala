@@ -11,15 +11,15 @@ object Label extends StepDef("Label", "A label-step ..", MoveStep.ontology :: Ni
       labels <- Task.parSequence(
         node
           .out(keys.`ns.l-space.eu/librarian/MoveStep/label`)
-          .collect {
-            case node: Node => node.iri
+          .collect { case node: Node =>
+            node.iri
           }
-          .map(node.graph.ns.classtypes.get(_).map(_.get)))
-    } yield
-      Label(
-        labels //TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
-        .toSet
+          .map(node.graph.ns.classtypes.get(_).map(_.get))
       )
+    } yield Label(
+      labels // TODO:         .getOrElse(throw new Exception("Label with unknown/uncached ontology"))
+        .toSet
+    )
 
   object keys extends MoveStep.Properties
   override lazy val properties: List[Property] = MoveStep.properties

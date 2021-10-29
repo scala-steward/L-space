@@ -14,7 +14,7 @@ object LIndex {
 
 class LIndex(val traversal: UntypedTraversal) extends Index {
 
-  def store(shape: Shape): Task[Unit] = Task { synchronized {} }
+  def store(shape: Shape): Task[Unit] = Task(synchronized {})
 
   def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape] =
     Observable()

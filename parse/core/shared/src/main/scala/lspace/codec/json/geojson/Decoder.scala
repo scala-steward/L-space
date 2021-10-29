@@ -25,9 +25,11 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .orElse(json.string)
       .map(Coeval.now)
       .orElse(json.list.map(_.map(autodiscoverValue)).map(Coeval.traverse(_)(f => f)))
-      .orElse(json.obj
-        .map(_.map { case (key, value) => autodiscoverValue(value).map(key -> _) })
-        .map(Coeval.traverse(_)(f => f).map(_.toMap)))
+      .orElse(
+        json.obj
+          .map(_.map { case (key, value) => autodiscoverValue(value).map(key -> _) })
+          .map(Coeval.traverse(_)(f => f).map(_.toMap))
+      )
 //      .orElse(decodeGeometryOption(json))
       .getOrElse(Coeval.raiseError(new Exception("autodiscover not possible")))
 
@@ -43,14 +45,16 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
           decoder
             .jsonToMap(_)
             .map(Coeval.now)
-            .getOrElse(Coeval.raiseError(new Exception("invalid properties"))))
+            .getOrElse(Coeval.raiseError(new Exception("invalid properties")))
+        )
         .getOrElse(Coeval.now(Map[String, Json]()))
         .flatMap(properties =>
           Coeval
-            .traverse(properties.toList)({
-              case (key, value) => autodiscoverValue(value).map(key -> _)
-            })
-            .map(_.toMap))
+            .traverse(properties.toList) { case (key, value) =>
+              autodiscoverValue(value).map(key -> _)
+            }
+            .map(_.toMap)
+        )
         .to[Task]
     } yield Feature(geometry, properties)
   def decodeFeatureOption(map: Map[String, Json]): Option[Task[Feature[Geometry]]] =
@@ -70,20 +74,25 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
                   .map(
                     decoder
                       .jsonToList(_)
-                      .map(_.map(decoder
-                        .jsonToMap(_)
-                        .map(decodeFeatureOption(_).getOrElse(Task.raiseError(new Exception("invalid feature"))))
-                        .getOrElse(Task.raiseError(new Exception("feature must be an object")))))
+                      .map(
+                        _.map(
+                          decoder
+                            .jsonToMap(_)
+                            .map(decodeFeatureOption(_).getOrElse(Task.raiseError(new Exception("invalid feature"))))
+                            .getOrElse(Task.raiseError(new Exception("feature must be an object")))
+                        )
+                      )
                       .map(Task.parSequence(_))
-                      .getOrElse(Task.raiseError(new Exception("features must be an array"))))
+                      .getOrElse(Task.raiseError(new Exception("features must be an array")))
+                  )
                   .getOrElse(Task.raiseError(new Exception("FeatureCollection without 'features' is weird")))
                   .map(FeatureCollection(_))
               case "Feature" =>
                 decodeFeature(map).map(List(_)).map(FeatureCollection(_))
               case "GeometryCollection" =>
-                Task { FeatureCollection(List(Feature(decodeGeometryCollection(map)))) }
+                Task(FeatureCollection(List(Feature(decodeGeometryCollection(map)))))
               case _ =>
-                Task { FeatureCollection(List(Feature(decodeGeometryCoordinates(iri, decodeCoordinates(map))))) }
+                Task(FeatureCollection(List(Feature(decodeGeometryCoordinates(iri, decodeCoordinates(map))))))
             }
           case None => Task.raiseError(new Exception("invalid geojson"))
         }
@@ -96,7 +105,8 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .map(
         decodeGeometryOption(_).getOrElse(
           throw new Exception("geometry without type")
-        ))
+        )
+      )
   def decodeGeometry(map: Map[String, Json]): Geometry =
     decodeGeometryOption(map).getOrElse(throw new Exception("geometry without type"))
   def decodeGeometryOption(map: Map[String, Json]): Option[Geometry] =
@@ -128,8 +138,9 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "Point" => decodePoint(decodeCoordinates(map))
-          case _ => throw new Exception("invalid")
-      })
+          case _       => throw new Exception("invalid")
+        }
+      )
   def decodePoint(coordinates: List[Json]): Point =
     coordinates match {
       case List(x, y) =>
@@ -146,8 +157,9 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiPoint" => decodeMultiPoint(decodeCoordinates(map))
-          case _ => throw new Exception("invalid")
-      })
+          case _            => throw new Exception("invalid")
+        }
+      )
   def decodeMultiPoint(coordinates: List[Json]): MultiPoint =
     MultiPoint(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodePoint(coordinates)
@@ -160,8 +172,9 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "LineString" => decodeLine(decodeCoordinates(map))
-          case _ => throw new Exception("invalid")
-      })
+          case _            => throw new Exception("invalid")
+        }
+      )
   def decodeLine(coordinates: List[Json]): Line =
     Line(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodePoint(coordinates)
@@ -174,8 +187,9 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiLineString" => decodeMultiLine(decodeCoordinates(map))
-          case _ => throw new Exception("invalid")
-      })
+          case _                 => throw new Exception("invalid")
+        }
+      )
   def decodeMultiLine(coordinates: List[Json]): MultiLine =
     MultiLine(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodeLine(coordinates)
@@ -188,9 +202,10 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "Polygon" => decodePolygon(decodeCoordinates(map))
-          case _ => throw new Exception("invalid")
-      })
-  //TODO: array of polygons (donuts)
+          case _         => throw new Exception("invalid")
+        }
+      )
+  // TODO: array of polygons (donuts)
   def decodePolygon(coordinates: List[Json]): Polygon =
     Polygon(coordinates.map(decoder.jsonToList).flatMap {
       case Some(coordinates) =>
@@ -207,8 +222,9 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "MultiPolygon" => decodeMultiPolygon(decodeCoordinates(map))
-          case _ => throw new Exception("invalid")
-      })
+          case _              => throw new Exception("invalid")
+        }
+      )
   def decodeMultiPolygon(coordinates: List[Json]): MultiPolygon =
     MultiPolygon(coordinates.map(decoder.jsonToList).map {
       case Some(coordinates) => decodePolygon(coordinates)
@@ -221,8 +237,9 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       .flatMap(map =>
         map.get("type").flatMap(decoder.jsonToString).map {
           case "GeometryCollection" => decodeGeometryCollection(map)
-          case _ => throw new Exception("invalid")
-      })
+          case _                    => throw new Exception("invalid")
+        }
+      )
   def decodeGeometryCollection(map: Map[String, Json]): MultiGeometry =
     map.get("geometries") match {
       case Some(json) =>
@@ -230,7 +247,8 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
           decoder
             .jsonToList(json)
             .map(decodeMultiGeometry)
-            .getOrElse(throw new Exception("invalid MultiGeometry, array expected for geometries")))
+            .getOrElse(throw new Exception("invalid MultiGeometry, array expected for geometries"))
+        )
       case None => throw FromJsonException("not a valid geojson MultiGeometry, geometries missing")
     }
 
@@ -239,5 +257,6 @@ class Decoder[Json](val decoder: JsonDecoder[Json]) extends lspace.codec.Decoder
       geometries
         .map(decoder.jsonToMap(_).getOrElse(throw new Exception("invalid MultiGeometry Geometry")))
         .map(decodeGeometry)
-        .toVector)
+        .toVector
+    )
 }

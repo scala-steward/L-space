@@ -28,8 +28,8 @@ object OpenSession
           "Date and time at which the session expires.",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:OpenSession/expiration@Instant`
-      : TypedProperty[Instant] = `lspace:OpenSession/expiration` as DataType.default.`@datetime`
+    lazy val `lspace:OpenSession/expiration@Instant`: TypedProperty[Instant] =
+      `lspace:OpenSession/expiration`.as(DataType.default.`@datetime`)
 
     object `lspace:OpenSession/startTime`
         extends PropertyDef(
@@ -38,8 +38,8 @@ object OpenSession
           "Date and time at which the session has started.",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:OpenSession/startTime@Instant`
-      : TypedProperty[Instant] = `lspace:OpenSession/startTime` as DataType.default.`@datetime`
+    lazy val `lspace:OpenSession/startTime@Instant`: TypedProperty[Instant] =
+      `lspace:OpenSession/startTime`.as(DataType.default.`@datetime`)
 
     object `lspace:OpenSession/endTime`
         extends PropertyDef(
@@ -48,13 +48,13 @@ object OpenSession
           "Date and time at which the session has ended.",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:OpenSession/endTime@Instant`
-      : TypedProperty[Instant] = `lspace:OpenSession/endTime` as DataType.default.`@datetime`
+    lazy val `lspace:OpenSession/endTime@Instant`: TypedProperty[Instant] =
+      `lspace:OpenSession/endTime`.as(DataType.default.`@datetime`)
 
   }
 
-  override lazy val properties
-    : List[Property] = keys.`lspace:OpenSession/expiration`.property :: keys.`lspace:OpenSession/startTime`.property :: keys.`lspace:OpenSession/endTime`.property :: Session.properties
+  override lazy val properties: List[Property] =
+    keys.`lspace:OpenSession/expiration`.property :: keys.`lspace:OpenSession/startTime`.property :: keys.`lspace:OpenSession/endTime`.property :: Session.properties
 
   trait Properties extends Session.Properties {
     lazy val `lspace:OpenSession/expiration`: Property                  = keys.`lspace:OpenSession/expiration`
@@ -78,7 +78,7 @@ object OpenSession
     }
   }
 
-  implicit def toNode(session: OpenSession): Task[Node] = {
+  implicit def toNode(session: OpenSession): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(Property.default.typed.iriUrlString, session.iri)
@@ -86,7 +86,6 @@ object OpenSession
       _    <- node.addOut(keys.`lspace:OpenSession/startTime@Instant`, session.startTime)
       _    <- session.endTime.map(node.addOut(keys.`lspace:OpenSession/endTime@Instant`, _)).getOrElse(Task.unit)
     } yield node
-  }
 
   def toOpenSession(node: Node): Task[OpenSession] = Task {
     val expiration0: Instant =

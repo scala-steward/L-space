@@ -23,7 +23,7 @@ object DetachedGraph extends MemDataGraph {
     lazy val index: MemIndexGraph = new MemIndexGraph {
       def iri: String = "detachedmemgraph.ns" + ".index"
 
-      lazy val graph: MemGraph      = _thisgraph
+      lazy val graph: MemGraph = _thisgraph
 //      lazy val index: MemIndexGraph = this
     }
   }
@@ -32,8 +32,7 @@ object DetachedGraph extends MemDataGraph {
     new MemIndexGraph {
       override def graph: MemGraph = self
 
-      /**
-        * An empty uri means that there is no URI assigned.
+      /** An empty uri means that there is no URI assigned.
         *
         * @return
         */

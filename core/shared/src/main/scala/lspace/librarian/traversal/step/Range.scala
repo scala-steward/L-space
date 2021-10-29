@@ -18,7 +18,7 @@ object Range extends StepDef("Range", "A range ..", ClipStep.ontology :: Nil) wi
           "The lower result-index to start from",
           `@range` = DataType.default.`@int` :: Nil
         )
-    val lowInt: TypedProperty[Int] = low.property as DataType.default.`@int`
+    val lowInt: TypedProperty[Int] = low.property.as(DataType.default.`@int`)
 
     object high
         extends PropertyDef(
@@ -27,7 +27,7 @@ object Range extends StepDef("Range", "A range ..", ClipStep.ontology :: Nil) wi
           "The higher result-index to start from",
           `@range` = DataType.default.`@int` :: Nil
         )
-    val highInt: TypedProperty[Int] = high.property as DataType.default.`@int`
+    val highInt: TypedProperty[Int] = high.property.as(DataType.default.`@int`)
   }
   override lazy val properties: List[Property] = keys.low.property :: keys.high.property :: ClipStep.properties
   trait Properties extends FilterStep.Properties {

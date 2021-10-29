@@ -30,7 +30,8 @@ object Max
         .parSequence(
           node
             .out(Max.keys.byTraversal)
-            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
+            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]]))
+        )
         .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
     } yield Max(by)
 

@@ -25,7 +25,7 @@ class Encoder[Json](val encoder: JsonEncoder[Json]) extends lspace.codec.Encoder
     case value: String        => value.asJson
     case value: Map[_, _]     => value.map { case (key, value) => key.toString -> encodeValue(value) }.asJson
     case value: List[_]       => value.map(encodeValue).asJson
-    case _ => throw new Exception("invalid")
+    case _                    => throw new Exception("invalid")
   }
 
   def encodeFeature(feature: Feature[Geometry]): Json = {

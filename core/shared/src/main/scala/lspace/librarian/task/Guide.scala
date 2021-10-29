@@ -134,7 +134,7 @@ abstract class Guide[F[_]: Functor] {
     }
     else None
 
-  //transform a nested traversal result to it's expected type
+  // transform a nested traversal result to it's expected type
   def endMapper(traversal: Traversal[ClassType[Any], ClassType[Any], HList]): F[Librarian[Any]] => K[Librarian[Any]] = {
 //    branchedEnd(traversal.stepsList)
 //      .orElse(resourcedEnd(traversal.stepsList))
@@ -190,7 +190,8 @@ abstract class Guide[F[_]: Functor] {
 
     val f = step match {
       case step: As[_, _] =>
-        (obs: F[Librarian[Any]]) => obs.map { l => l.copy(path = l.path.copy(labeled = l.path.labeled + (step.label -> l.get)))}
+        (obs: F[Librarian[Any]]) =>
+          obs.map(l => l.copy(path = l.path.copy(labeled = l.path.labeled + (step.label -> l.get))))
       case _ => throw new Exception(s"invalid type ${step.getClass.getSimpleName}")
     }
     f.andThen { r =>
@@ -216,7 +217,7 @@ abstract class Guide[F[_]: Functor] {
               case List(a, b)       => (a, b)
               case List(a, b, c)    => (a, b, c)
               case List(a, b, c, d) => (a, b, c, d)
-              case v => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
+              case v                => throw new Exception(s"invalid type ${v.getClass.getSimpleName}")
             })
           }
       case List(a) =>

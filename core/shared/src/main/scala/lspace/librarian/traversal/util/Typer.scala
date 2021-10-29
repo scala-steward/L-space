@@ -23,9 +23,9 @@ object Typer {
             val typedTraversal = step match {
               case step: Constant[_] =>
                 new Traversal(step :: traversal.steps)(traversal.st, step.label)
-              case step: From => //TODO: create EdgeUrlType with From and To type information
+              case step: From => // TODO: create EdgeUrlType with From and To type information
                 new Traversal(step :: traversal.steps)(traversal.st, ClassType.stubAny)
-              case step: To => //TODO: create EdgeUrlType with From and To type information
+              case step: To => // TODO: create EdgeUrlType with From and To type information
                 new Traversal(step :: traversal.steps)(traversal.st, ClassType.stubAny)
               case step: Id => new Traversal(step :: traversal.steps)(traversal.st, `@long`)
               case _        => throw new Exception(s"unexpected type ${step.getClass.getSimpleName}")
@@ -129,7 +129,7 @@ object Typer {
                       typedProjections.reverse
                         .map {
                           case t: Traversal[_, _, _] => t.enclosedEndType
-                          case t                     => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
+                          case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
                         }
                         .map(Some(_))
                     )
@@ -146,7 +146,7 @@ object Typer {
               case step: ReducingBarrierStep =>
                 step match {
                   case step: Mean =>
-                    new Traversal(step :: traversal.steps)(traversal.st, traversal.et) //int to double?
+                    new Traversal(step :: traversal.steps)(traversal.st, traversal.et) // int to double?
                   case step: Sum =>
                     new Traversal(step :: traversal.steps)(traversal.st, traversal.et)
                   case _ => throw new Exception("unexpected")

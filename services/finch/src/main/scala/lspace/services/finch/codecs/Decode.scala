@@ -14,31 +14,34 @@ object Decode {
 
   import io.finch.internal.HttpContent
 
-  implicit def fromTextPlain[Out](implicit activeContext: ActiveContext,
-                                  decoder: lspace.services.codecs.Decode[String, Text.Plain, Out, Task])
-    : io.finch.Decode.Aux[Task[Out], Text.Plain] =
+  implicit def fromTextPlain[Out](implicit
+    activeContext: ActiveContext,
+    decoder: lspace.services.codecs.Decode[String, Text.Plain, Out, Task]
+  ): io.finch.Decode.Aux[Task[Out], Text.Plain] =
     io.finch.Decode.instance[Task[Out], Text.Plain] { (b, cs) =>
       Right(decoder.decode(b.asString(cs), activeContext))
     }
 
-  implicit def fromApplicationJson[Out](implicit activeContext: ActiveContext,
-                                        decoder: lspace.services.codecs.Decode[String, Application.Json, Out, Task])
-    : io.finch.Decode.Aux[Task[Out], Application.Json] =
+  implicit def fromApplicationJson[Out](implicit
+    activeContext: ActiveContext,
+    decoder: lspace.services.codecs.Decode[String, Application.Json, Out, Task]
+  ): io.finch.Decode.Aux[Task[Out], Application.Json] =
     io.finch.Decode.instance[Task[Out], Application.Json] { (b, cs) =>
       Right(decoder.decode(b.asString(cs), activeContext))
     }
 
-  implicit def fromApplicationJsonLD[Out](implicit activeContext: ActiveContext,
-                                          decoder: lspace.services.codecs.Decode[String, Application.JsonLD, Out, Task])
-    : io.finch.Decode.Aux[Task[Out], Application.JsonLD] =
+  implicit def fromApplicationJsonLD[Out](implicit
+    activeContext: ActiveContext,
+    decoder: lspace.services.codecs.Decode[String, Application.JsonLD, Out, Task]
+  ): io.finch.Decode.Aux[Task[Out], Application.JsonLD] =
     io.finch.Decode.instance[Task[Out], Application.JsonLD] { (b, cs) =>
       Right(decoder.decode(b.asString(cs), activeContext))
     }
 
-  implicit def fromApplicationGraphQL[Out](
-      implicit activeContext: ActiveContext,
-      decoder: lspace.services.codecs.Decode[String, Application.GraphQL, Out, Task])
-    : io.finch.Decode.Aux[Task[Out], Application.GraphQL] =
+  implicit def fromApplicationGraphQL[Out](implicit
+    activeContext: ActiveContext,
+    decoder: lspace.services.codecs.Decode[String, Application.GraphQL, Out, Task]
+  ): io.finch.Decode.Aux[Task[Out], Application.GraphQL] =
     io.finch.Decode.instance[Task[Out], Application.GraphQL] { (b, cs) =>
       Right(decoder.decode(b.asString(cs), activeContext))
     }

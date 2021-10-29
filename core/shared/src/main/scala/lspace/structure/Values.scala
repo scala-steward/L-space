@@ -18,7 +18,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
   def count(): Task[Long]             = valueStore.count()
 
   def hasId(id: Long): Task[Option[Value[Any]]] = valueStore.hasId(id)
-  def cached: Cached = new Cached{
+  def cached: Cached = new Cached {
     def hasId(id: Long): Option[Value[Any]] =
       valueStore.cached.hasId(id)
     def dereferenceValue(t: Any): Any = t
@@ -50,11 +50,11 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
     //      else List[Value[_]]()
     Observable.fromIterable(valueSet).flatMap { value =>
       valueStore.byValue(value._1, value._2).asInstanceOf[Observable[Value[T]]]
-    } //distinct
+    } // distinct
 
   def dereferenceValue(t: Any): Task[Any] = t match {
     case v: Vector[_] =>
-      Task.parSequence[Any, Vector](v.map(dereferenceValue)) //without type parameters it cannot be inferred
+      Task.parSequence[Any, Vector](v.map(dereferenceValue)) // without type parameters it cannot be inferred
     case v: ListSet[_] => Task.parSequence[Any, ListSet](v.map(dereferenceValue))
     case v: List[_]    => Task.parSequence[Any, List](v.map(dereferenceValue))
     case v: Set[_]     => Task.parSequence[Any, Set](v.map(dereferenceValue))
@@ -93,18 +93,18 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
         d <- dereferenceValue(v4)
         e <- dereferenceValue(v5)
       } yield (a, b, c, d, e)
-    case v: Ontology    => nodes.upsert(v.iri, Ontology.ontology) //ns.ontologies.store(v))
-    case v: Property    => nodes.upsert(v.iri, Property.ontology) //(ns.properties.store(v))
-    case v: DataType[_] => nodes.upsert(v.iri, DataType.ontology) //ns.datatypes.store(v))
+    case v: Ontology    => nodes.upsert(v.iri, Ontology.ontology) // ns.ontologies.store(v))
+    case v: Property    => nodes.upsert(v.iri, Property.ontology) // (ns.properties.store(v))
+    case v: DataType[_] => nodes.upsert(v.iri, DataType.ontology) // ns.datatypes.store(v))
     case v: Node        => nodes.upsert(v)
     case v: Edge[_, _]  => edges.upsert(v)
     case v: Value[_]    => values.upsert(v)
-    case _              => Task.now(t)                            //TODO: check if t is a supported datatype?
+    case _              => Task.now(t)                            // TODO: check if t is a supported datatype?
   }
 
   final def create[T, TOut, CTOut <: ClassType[_]](value: T)(implicit
     clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
-  ): Task[Value[T]] = //add implicit DataType[T]
+  ): Task[Value[T]] = // add implicit DataType[T]
     byValue(value).headOptionL.flatMap(_.map(_.asInstanceOf[_Value[T]]).map(Task.now).getOrElse {
       for {
         dereferencedValue <- dereferenceValue(value).map(_.asInstanceOf[T])
@@ -117,7 +117,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
           })
       } yield b
     })
-  final protected[lspace] def create[T](value: T, dt: DataType[T]): Task[Value[T]] = { //add implicit DataType[T]
+  final protected[lspace] def create[T](value: T, dt: DataType[T]): Task[Value[T]] = { // add implicit DataType[T]
     val detectedDT = DataType.detect(value)
     val finalDT    = if (detectedDT.`@extends`(dt)) detectedDT else dt
     for {
@@ -173,8 +173,8 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
       .asInstanceOf[Task[Value[V]]]
   //      val _value: Value[V] = if (values.isEmpty) {
   //        create(value, dt)
-  ////      } else if (values.size > 1) {
-  ////        GraphUtils.mergeValues(values.toSet)
+  // //      } else if (values.size > 1) {
+  // //        GraphUtils.mergeValues(values.toSet)
   //      } else values.head
   //      _value
   final def upsert[V](value: Value[V])(implicit helper: UpsertHelper = UpsertHelper()): Task[Value[V]] =
@@ -206,7 +206,7 @@ abstract class Values(val graph: Graph) extends RApi[Value[_]] {
 
   final def delete(value: Value[Any]): Task[Unit] = value match {
     case value: _Value[_] => deleteValue(value.asInstanceOf[_Value[_]])
-    case _                => Task.unit //LOG???
+    case _                => Task.unit // LOG???
   }
 
   /** adds a value

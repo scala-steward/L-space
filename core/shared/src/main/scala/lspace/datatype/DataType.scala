@@ -89,7 +89,7 @@ object DataType
             if (v.nonEmpty)
               DataType.default.mapType(v.keys.toList.map(_.ct).reduce(_ + _), v.values.toList.map(_.ct).reduce(_ + _))
             else
-              DataType.default.mapType() //TODO: recursively map nested values to map -> toList.distinct ?
+              DataType.default.mapType() // TODO: recursively map nested values to map -> toList.distinct ?
           case v: ListSet[_] =>
             if (v.nonEmpty) DataType.default.listsetType(v.toList.map(_.ct).reduce(_ + _))
             else DataType.default.listsetType()
@@ -274,7 +274,7 @@ object DataType
               datatypes.head
           }
           datatype.iris.foreach(byIri.update(_, datatype))
-          datatype.extendedClasses.all() //force eagerly init of extended classes
+          datatype.extendedClasses.all() // force eagerly init of extended classes
 //          datatype.properties()          //force eagerly init of associated properties
           datatype
         }
@@ -319,7 +319,7 @@ object DataType
                     .get(node.iri)
                     .getOrElse {
                       datatypes.getAndUpdate(node)
-                    } //orElse???
+                    } // orElse???
                 case iri: String =>
                   datatypes
                     .get(iri)
@@ -437,7 +437,7 @@ object DataType
       MapType(kct.asInstanceOf[ClassType[K]], vct.asInstanceOf[ClassType[V]])
     def `@map`[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[Map[K, V]] = mapType(ktpe, vtpe)
     def mapType[K, V](implicit ktpe: ClassTypeable[K], vtpe: ClassTypeable[V]): MapType[Map[K, V]] =
-      MapType(ktpe.ct.asInstanceOf[ClassType[K]], vtpe.ct.asInstanceOf[ClassType[V]]) //.asInstanceOf[MapType[K, V]]
+      MapType(ktpe.ct.asInstanceOf[ClassType[K]], vtpe.ct.asInstanceOf[ClassType[V]]) // .asInstanceOf[MapType[K, V]]
     def `@map`(): MapType[Map[Any, Any]]                           = MapType()
     def mapType(): MapType[Map[Any, Any]]                          = MapType()
     def `@tuple`[T](ct: ClassType[_]*): TupleType[T]               = TupleType[T](ct.toList.map(Some(_)))
@@ -488,7 +488,7 @@ object DataType
         ct.extendedClassesList = ct.extendedClassesList.filterNot(_ == parent)
         parent match {
           case dt: DataType[_] => dt.asInstanceOf[DataType[Any]].extendedBy.-(ct.asInstanceOf[DataType[Any]])
-          case _         =>
+          case _               =>
         }
         this
       }

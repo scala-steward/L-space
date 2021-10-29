@@ -16,12 +16,14 @@ object Group
         node
           .out(keys.byTraversal)
           .take(1)
-          .head)
+          .head
+      )
       value <- Traversal.toTraversal(
         node
           .out(keys.valueTraversal)
           .take(1)
-          .head)
+          .head
+      )
     } yield Group(by, value)
 
   object keys extends GroupingBarrierStep.Properties {
@@ -32,7 +34,7 @@ object Group
           "A traversal ..",
           `@range` = Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property.as(Traversal.ontology)
     object value
         extends PropertyDef(
           lspace.NS.vocab.Lspace + "librarian/step/Group/value",
@@ -40,7 +42,7 @@ object Group
           "A traversal ..",
           `@range` = Traversal.ontology :: Nil
         )
-    val valueTraversal: TypedProperty[Node] = value.property as Traversal.ontology
+    val valueTraversal: TypedProperty[Node] = value.property.as(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.by :: GroupingBarrierStep.properties
 
@@ -50,7 +52,8 @@ object Group
   }
 
   implicit def toNode[ET <: ClassType[_], Segments <: HList, ETv <: ClassType[_], SegmentsV <: HList](
-      step: Group[ET, Segments, ETv, SegmentsV]): Task[Node] = {
+    step: Group[ET, Segments, ETv, SegmentsV]
+  ): Task[Node] = {
     for {
       node  <- DetachedGraph.nodes.create(ontology)
       by    <- step.by.toNode
@@ -63,9 +66,9 @@ object Group
 }
 
 case class Group[+ET <: ClassType[Any], Steps <: HList, +ETv <: ClassType[Any], StepsV <: HList](
-    by: Traversal[_ <: ClassType[Any], ET, Steps],
-    value: Traversal[_ <: ClassType[Any], ETv, StepsV])
-    extends GroupingBarrierStep {
+  by: Traversal[_ <: ClassType[Any], ET, Steps],
+  value: Traversal[_ <: ClassType[Any], ETv, StepsV]
+) extends GroupingBarrierStep {
 
   lazy val toNode: Task[Node]      = this
   override def prettyPrint: String = "group(_." + by.toString + ")"

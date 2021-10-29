@@ -17,11 +17,11 @@ object Path
           node
             .out(keys.byTraversal)
             .take(1)
-            .head)
-    } yield
-      Path[ClassType[Any], HList](
-        by.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]]
-      )
+            .head
+        )
+    } yield Path[ClassType[Any], HList](
+      by.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]]
+    )
 
   object keys {
     object by
@@ -31,7 +31,7 @@ object Path
           "A traversal ..",
           `@range` = Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property.as(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.by :: ProjectionStep.properties
   trait Properties extends ProjectionStep.Properties {

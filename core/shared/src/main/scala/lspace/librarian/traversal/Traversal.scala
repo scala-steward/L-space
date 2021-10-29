@@ -23,7 +23,7 @@ import lspace.structure._
 import lspace.types.geo.Geometry
 import lspace.util.types.DefaultsToAny
 import monix.eval.Task
-import shapeless.{::, <:!<, HList, HNil, LUBConstraint, Poly1, Id => _, Path => _, Select => _}
+import shapeless.{::, <:!<, HList, HNil, Id => _, LUBConstraint, Path => _, Poly1, Select => _}
 import shapeless.ops.hlist.{Collect, Prepend}
 
 import scala.annotation.implicitNotFound
@@ -88,7 +88,7 @@ object Traversal
 
     def E: Traversal[ST[Start], EdgeURLType[
       Edge[Any, Any]
-    ], step.E :: Steps] = //: Traversal[ST[Start],ClassType[Edge[S, E]], step.E :: Steps] =
+    ], step.E :: Steps] = // : Traversal[ST[Start],ClassType[Edge[S, E]], step.E :: Steps] =
       E[Any, Any]()
 
     def E[S: DefaultsToAny, E: DefaultsToAny](
@@ -104,7 +104,7 @@ object Traversal
     ): Traversal[ST[Start], Out, step.V :: Steps] =
       add(step.V(value :: values.toList), st, cls.ct)
 
-    //FIX: within MoveStepsHelper the result type (ET1) freaks-out the compiler, it has trouble calculating it (IDEA shows correct types)
+    // FIX: within MoveStepsHelper the result type (ET1) freaks-out the compiler, it has trouble calculating it (IDEA shows correct types)
     def out[V, End1, ET1 <: ClassType[End1]](
       key: TypedProperty[V]
     )(implicit et: ClassTypeable.Aux[V, End1, ET1]): Traversal[ST[Start], ET1, HasLabel :: Out :: Steps] =
@@ -219,11 +219,11 @@ object Traversal
     //      Traversal[ST[Start], cls.CT, HasLabel :: Steps](HasLabel(cls.ct :: Nil) :: _traversal.steps)(target, st, cls.ct)
     //    }
 
-    //TODO: create IsNode step
+    // TODO: create IsNode step
 //    def isNode: Traversal[ST[Start], NodeURLType[Node], HasLabel :: Steps] =
 //      add(HasLabel())
 //
-    //TODO: create IsEdge step
+    // TODO: create IsEdge step
 //    def isEdge: Traversal[ST[Start], EdgeURLType[Edge[Any, Any]], HasLabel :: Steps] =
 //      add(HasLabel())
 
@@ -248,7 +248,8 @@ object Traversal
       add(HasLabel(DataType.default.`@color` :: Nil), st, DataType.default.`@color`)
 
     /** A Coin step filters traversals based on a probability-distribution
-      * @param p probability by which the traverser remains in the stream
+      * @param p
+      *   probability by which the traverser remains in the stream
       * @return
       */
     def coin(p: Double): Traversal[ST[Start], ET[End], Coin :: Steps] = add(Coin(p))
@@ -502,7 +503,7 @@ object Traversal
     def mapValues[CV <: ClassType[Any], VSteps <: HList, Steps1 <: HList, VOut, CVOut <: ClassType[Any]](
       value: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CV, VSteps]
     )(implicit
-      prepend: Prepend.Aux[VSteps, Out :: HNil, Steps1], //Hack to trick OutTweaker with multi-librarian input (grouped librarians) //Out-step is to spoof OutTweaker to force a branched OutTweaker calculation
+      prepend: Prepend.Aux[VSteps, Out :: HNil, Steps1], // Hack to trick OutTweaker with multi-librarian input (grouped librarians) //Out-step is to spoof OutTweaker to force a branched OutTweaker calculation
       outV: EndMapper.Aux[CV, Steps1, VOut, CVOut]
     ): Traversal[ST[Start], TupleType[(KOut, VOut)], Group[CK, KeySteps, CV, VSteps] :: Steps] = {
       val step =
@@ -528,7 +529,8 @@ object Traversal
 
   object CTOutMapper extends Poly1 {
     //    implicit def ct[T] = at[ClassType[T]](ct => 1.asInstanceOf[T])
-    implicit def traversalC[End, ET[+Z] <: ClassType[Z]]: CTOutMapper.Case.Aux[ET[End], End] = at[ET[End]](_ => 1.asInstanceOf[End])
+    implicit def traversalC[End, ET[+Z] <: ClassType[Z]]: CTOutMapper.Case.Aux[ET[End], End] =
+      at[ET[End]](_ => 1.asInstanceOf[End])
 //    implicit def traversalMap[K, V]                      = at[MapType[K, V]](t => 1.asInstanceOf[Map[K, V]])
 //    implicit def traversal[End] = at[ClassType[End]](t => 1.asInstanceOf[End])
   }
@@ -558,9 +560,9 @@ object Traversal
         ProjectStepTypeMapper.type,
         ALLPROJECTIONS,
         EndH
-      ], //only for type-calculation, never executed
+      ], // only for type-calculation, never executed
       reverse: shapeless.ops.hlist.Reverse.Aux[EndH, REndH],
-      tupler: shapeless.ops.hlist.Tupler.Aux[REndH, End0] //only for type-calculation, never executed
+      tupler: shapeless.ops.hlist.Tupler.Aux[REndH, End0] // only for type-calculation, never executed
     ): Traversal[ST[Start], TupleType[End0], Project[ALLPROJECTIONS] :: Steps] = {
       val step = Project[ALLPROJECTIONS](
         prepend(
@@ -590,7 +592,7 @@ object Traversal
     def as[S <: String](name: S): Traversal[ST[Start], ET[End], As[End, name.type] :: Steps] =
       add(As[End, name.type](name)(et))
 
-    //TODO: add a 'byValue' traversal, so a traversal on the grouped result is contained within the step
+    // TODO: add a 'byValue' traversal, so a traversal on the grouped result is contained within the step
     def group[CK <: ClassType[Any], KSteps <: HList, KOut, CKOut <: ClassType[Any]](
       by: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CK, KSteps]
     )(implicit
@@ -615,7 +617,7 @@ object Traversal
     }
 
     def project(): Traversal[ST[Start], ET[End], Project[Traversal[ET[End], ET[End], HNil] :: HNil] :: Steps] =
-      add(Project(Traversal(et, et) :: HNil), st, et) //TupleType[End](List(Some(et))))
+      add(Project(Traversal(et, et) :: HNil), st, et) // TupleType[End](List(Some(et))))
 
     def project[CP <: ClassType[Any], PSteps <: HList, POut, CPOut <: ClassType[Any]](
       by1: Traversal[ET[End], ET[End], HNil] => Traversal[ET[End], CP, PSteps]
@@ -690,10 +692,14 @@ object Traversal
       )
     }
 
-    /** @param traversal to be repeated
-      * @param until     nonempty traversal is being repeated
-      * @param max       number of times is being repeated
-      * @param collect   result of each loop
+    /** @param traversal
+      *   to be repeated
+      * @param until
+      *   nonempty traversal is being repeated
+      * @param max
+      *   number of times is being repeated
+      * @param collect
+      *   result of each loop
       * @return
       */
     def repeat[ET0 <: ClassType[_]](
@@ -738,7 +744,7 @@ object Traversal
       )
     }
 
-    //TODO: HList for Coalesce traversals
+    // TODO: HList for Coalesce traversals
     /** Coalesce returns the result of the first non-empty traversal.
       * @param traversal
       * @param traversals
@@ -817,7 +823,8 @@ object Traversal
   trait ClipStepsHelper[Start, ST[+Z] <: ClassType[Z], End, ET[+Z] <: ClassType[Z], Steps <: HList]
       extends BaseMod[Start, ST, End, ET, Steps] {
 
-    /** @param time in millis
+    /** @param time
+      *   in millis
       * @return
       */
     def timeLimit(time: Long): Traversal[ST[Start], ET[End], TimeLimit :: Steps] =
@@ -895,7 +902,8 @@ object Traversal
   trait NodeStepsHelper[Start, ST[+Z] <: ClassType[Z], ET[+Z] <: ClassType[Z], Steps <: HList]
       extends BaseMod[Start, ST, Node, ET, Steps] {
 
-    /** this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in NodeStepsHelper overwrites all other definitions... :S
+    /** this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in NodeStepsHelper
+      * overwrites all other definitions... :S
       * @param label
       * @return
       */
@@ -947,7 +955,8 @@ object Traversal
     ): Traversal[ST[Start], OutCT, To :: Steps] =
       add(To: To, st, ct.ct)
 
-    /** this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in EdgeStepsHelper overwrites all other definitions... :S
+    /** this looks redundant w.r.t. the global FilterStepsHelper, but somehow a 'hasLabel' definition in EdgeStepsHelper
+      * overwrites all other definitions... :S
       * @param label
       * @return
       */
@@ -1143,7 +1152,8 @@ object Traversal
 //    implicit def getSteps[Steps <: HList] = at[Steps]](s => s.steps)
 //  }
 
-  /** TODO: implicits for select-steps are not resolved by Intellij/IDEA but compile as they should, any suggestions are welcome...
+  /** TODO: implicits for select-steps are not resolved by Intellij/IDEA but compile as they should, any suggestions are
+    * welcome...
     *
     * @param _traversal
     * @param f
@@ -1340,7 +1350,7 @@ case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], +Steps <: HLi
   def ++[ST0 <: ClassType[_], ET0 <: ClassType[_], Steps0 <: HList, Steps1 >: Steps <: HList, Out <: HList](
     traversal: Traversal[ST0, ET0, Steps0]
   )(
-    implicit //ev: ET <:< ST0,
+    implicit // ev: ET <:< ST0,
     p1: Prepend.Aux[Steps0, Steps1, Out]
   ): Traversal[ST, ET0, Out] =
     this.copy(p1(traversal.steps, steps))(st, traversal.et).retype(st, et).asInstanceOf[Traversal[ST, ET0, Out]]
@@ -1358,7 +1368,7 @@ case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], +Steps <: HLi
 
   override def equals(o: Any): Boolean = o match {
     case traversal: Traversal[ClassType[_], ClassType[_], HList] @unchecked =>
-      stepsList == traversal.stepsList //&& st == traversal.st && et == traversal.et
+      stepsList == traversal.stepsList // && st == traversal.st && et == traversal.et
     case _ => false
   }
 

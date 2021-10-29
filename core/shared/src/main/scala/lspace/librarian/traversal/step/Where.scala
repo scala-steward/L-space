@@ -16,7 +16,8 @@ object Where extends StepDef("Where", "A where-step ..", FilterStep.ontology :: 
         .map(
           Traversal
             .toTraversal(_)
-            .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]]))
+            .map(_.asInstanceOf[Traversal[_ <: ClassType[_], _ <: ClassType[_], HList]])
+        )
         .head
     } yield Where(traversal)
 
@@ -29,7 +30,7 @@ object Where extends StepDef("Where", "A where-step ..", FilterStep.ontology :: 
           container = lspace.NS.types.`@list` :: Nil,
           `@range` = Traversal.ontology :: Nil
         )
-    val traversalTraversal: TypedProperty[Node] = traversal.property as Traversal.ontology
+    val traversalTraversal: TypedProperty[Node] = traversal.property.as(Traversal.ontology)
   }
   override lazy val properties: List[Property] = keys.traversal :: FilterStep.properties
   trait Properties extends FilterStep.Properties {

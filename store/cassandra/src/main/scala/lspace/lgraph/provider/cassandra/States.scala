@@ -9,7 +9,6 @@ abstract class States extends Table[States, State] {
   object iri  extends StringColumn
   object id   extends LongColumn
 
-  def findByName(name: String): Future[List[State]] = {
-    select.where(_.name eqs name).fetch()
-  }
+  def findByName(name: String): Future[List[State]] =
+    select.where(_.name.eqs(name)).fetch()
 }

@@ -27,7 +27,7 @@ object NamedActiveContext {
   private val cache: scala.collection.concurrent.Map[String, NamedActiveContext] =
     new java.util.concurrent.ConcurrentHashMap[String, NamedActiveContext](16, 0.9f, 32).asScala
 
-  //TODO: create cache
+  // TODO: create cache
   def get(iri: String): Option[NamedActiveContext]        = cache.get(iri)
   def cache(namedActiveContext: NamedActiveContext): Unit = cache.update(namedActiveContext.iri, namedActiveContext)
 }

@@ -17,10 +17,14 @@ object Union
         node
           .out(keys.traversalTraversal)
           .map(
-            _.map(Traversal
-              .toTraversal(_)
-              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
-          .head)
+            _.map(
+              Traversal
+                .toTraversal(_)
+                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+            )
+          )
+          .head
+      )
     } yield Union(traversals)
 
   object keys extends BranchStep.Properties {

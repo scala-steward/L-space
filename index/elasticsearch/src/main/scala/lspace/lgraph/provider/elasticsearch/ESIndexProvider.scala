@@ -5,8 +5,10 @@ import lspace.lgraph.LGraph
 import lspace.lgraph.index.{IndexManager, IndexProvider}
 
 object ESIndexProvider {
-  def apply[Json](iri: String, host: String, port: Int)(implicit encoder: JsonLDEncoder[Json],
-                                                        decoder: JsonLDDecoder[Json]): ESIndexProvider[Json] =
+  def apply[Json](iri: String, host: String, port: Int)(implicit
+    encoder: JsonLDEncoder[Json],
+    decoder: JsonLDDecoder[Json]
+  ): ESIndexProvider[Json] =
     new ESIndexProvider(iri, host, port)
 
 //  val keySpaceBuilders: concurrent.Map[StoragePoint, KeySpaceBuilder] =
@@ -14,9 +16,10 @@ object ESIndexProvider {
 }
 
 //TODO: support multi-node cluster
-class ESIndexProvider[Json](val iri: String, host: String, port: Int)(implicit encoder: JsonLDEncoder[Json],
-                                                                      decoder: JsonLDDecoder[Json])
-    extends IndexProvider {
+class ESIndexProvider[Json](val iri: String, host: String, port: Int)(implicit
+  encoder: JsonLDEncoder[Json],
+  decoder: JsonLDDecoder[Json]
+) extends IndexProvider {
 
   import org.apache.http.HttpHost
   import org.elasticsearch.client.{RestClient, RestHighLevelClient}
@@ -37,9 +40,8 @@ class ESIndexProvider[Json](val iri: String, host: String, port: Int)(implicit e
   import org.elasticsearch.action.ActionListener
   import org.elasticsearch.action.index.IndexResponse
   def listener[T] = new ActionListener[T]() {
-    def onResponse(indexResponse: T): Unit = {
+    def onResponse(indexResponse: T): Unit =
       println(s"got response: \n${indexResponse.toString}")
-    }
 
     def onFailure(e: Exception): Unit = {}
   }
@@ -54,7 +56,7 @@ class ESIndexProvider[Json](val iri: String, host: String, port: Int)(implicit e
   val searchRequest = new SearchRequest("posts")
   client.searchAsync(searchRequest, RequestOptions.DEFAULT, listener[SearchResponse])
 
-  //c.close()
+  // c.close()
 //  def ep(prefix: String) =
 //    ElasticNodeEndpoint("http", host, port, Some(iri.replace('.', '_').replace('-', '_') + prefix))
 //  def properties(prefix: String) = ElasticProperties(Seq(ep(prefix)))

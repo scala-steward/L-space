@@ -19,7 +19,7 @@ object N
           "A node",
           `@range` = ListType(DataType.default.`@nodeURL`) :: Nil
         )
-    val nodeUrl: TypedProperty[List[Node]] = node.property as ListType(DataType.default.`@nodeURL`)
+    val nodeUrl: TypedProperty[List[Node]] = node.property.as(ListType(DataType.default.`@nodeURL`))
   }
   override lazy val properties: List[Property] = keys.node :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {

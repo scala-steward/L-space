@@ -35,14 +35,14 @@ object MemGraph {
         lazy val index: MemIndexGraph = new MemIndexGraph {
           def iri: String = _iri + ".ns" + ".index"
 
-          lazy val graph: MemGraph      = _thisgraph
+          lazy val graph: MemGraph = _thisgraph
 //          lazy val index: MemIndexGraph = this
         }
       }
       lazy val index: MemIndexGraph = new MemIndexGraph {
         def iri: String = _iri + ".index"
 
-        lazy val graph: MemGraph    = self
+        lazy val graph: MemGraph = self
 //        private lazy val _thisgraph = thisgraph
 //        lazy val index: MemIndexGraph = new MemIndexGraph {
 //          def iri: String = _iri + ".index" + ".index"
@@ -160,8 +160,7 @@ trait MemGraph extends Graph {
       }
       .asInstanceOf[GValue[T]]
 
-  /**
-    * delete in-/out-going edges from the resource
+  /** delete in-/out-going edges from the resource
     * @param resource
     */
   protected def deleteResource[T <: _Resource[_]](resource: T): Task[Unit] =
@@ -192,8 +191,10 @@ trait MemGraph extends Graph {
 //            } yield ())
 //    } completedL
 
-  def toFile(path: String = "defaultname.json",
-             process: (Observable[Resource[_]], String => Unit) => Task[String]): Task[Unit] =
+  def toFile(
+    path: String = "defaultname.json",
+    process: (Observable[Resource[_]], String => Unit) => Task[String]
+  ): Task[Unit] =
     Task.defer {
       import java.io._
 
@@ -202,10 +203,13 @@ trait MemGraph extends Graph {
       val bw       = new BufferedWriter(new FileWriter(jsonfile))
 
       for {
-        context <- process(nodes(), { (value: String) =>
-          bw.write(value)
-          bw.newLine()
-        })
+        context <- process(
+          nodes(),
+          { (value: String) =>
+            bw.write(value)
+            bw.newLine()
+          }
+        )
       } yield {
         bw.close()
 

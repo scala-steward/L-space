@@ -18,8 +18,7 @@ object LResource {
   private[this] val getLastAccessStampLock = new Object
   private[this] val lastaccessStamp        = AtomicLong(Instant.now().getEpochSecond)
 
-  /**
-    * This method is used to create timestamps with fixed intervals and reuses equal values.
+  /** This method is used to create timestamps with fixed intervals and reuses equal values.
     * @return
     */
   def getLastAccessStamp() = getLastAccessStampLock.synchronized {
@@ -119,7 +118,7 @@ trait LResource[T] extends Resource[T] {
   }*/
 
   override def keys: Set[Property] =
-    (linksOut.keySet ++ linksIn.keySet).toSet //TODO: this returns only from cached edges, query LStore
+    (linksOut.keySet ++ linksIn.keySet).toSet // TODO: this returns only from cached edges, query LStore
 
   def out(key: Property*): List[Any] =
     if (key.nonEmpty)

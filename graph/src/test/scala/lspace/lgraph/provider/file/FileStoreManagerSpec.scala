@@ -28,17 +28,15 @@ class FileStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec w
     _ <- Task {
       val directory = new java.io.File("_data")
       def deleteAll(file: java.io.File): Unit =
-        try {
-          if (file.exists()) {
-            if (file.isDirectory && file.listFiles().toList.nonEmpty)
-              file
-                .listFiles()
-                .toList
-                .filter(_.exists())
-                .filter(_ != null)
-                .foreach(f => deleteAll(f))
-            file.delete()
-          }
+        try if (file.exists()) {
+          if (file.isDirectory && file.listFiles().toList.nonEmpty)
+            file
+              .listFiles()
+              .toList
+              .filter(_.exists())
+              .filter(_ != null)
+              .foreach(f => deleteAll(f))
+          file.delete()
         } catch {
           case e: Throwable => scribe.warn(e.getMessage)
         }

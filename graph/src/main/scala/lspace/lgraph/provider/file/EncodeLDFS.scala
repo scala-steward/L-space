@@ -11,8 +11,9 @@ case class EncodeLDFS[Json](idMaps: IdMaps = IdMaps())(implicit override val bas
     extends Encoder {
   import baseEncoder._
 
-  override def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(
-      implicit activeContext: ActiveContext): JIP = {
+  override def fromAny(value: Any, expectedType: Option[ClassType[_]] = None)(implicit
+    activeContext: ActiveContext
+  ): JIP =
     value match {
       case resource: IriResource =>
         resource match {
@@ -36,8 +37,8 @@ case class EncodeLDFS[Json](idMaps: IdMaps = IdMaps())(implicit override val bas
         } else {
           val jip = fromData(value, label)
           JsonInProgress(Map(types.`@value` -> jip.json, types.`@type` -> label.iri.compact.asJson).asJson)(
-            jip.activeContext)
+            jip.activeContext
+          )
         }
     }
-  }
 }

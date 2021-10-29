@@ -107,16 +107,19 @@ trait GraphSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with 
             _ <- graph.nodes.create().flatMap(_ --- `@id` --> "dup-existing-node-123")
             _ <- graph.nodes.create().flatMap(_ --- `@id` --> "dup-existing-node-123")
             _ <- graph.nodes.upsert("dup-existing-node-123")
-            _ <- (for { //merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
+            _ <- (for { // merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
               _ <- graph.nodes.hasIri("dup-existing-node-123").toListL.map(_.size shouldBe 1)
               _ <- graph.nodes.hasIri("dup-existing-node-123").toListL.map(_.size shouldBe 1)
               _ <- graph.nodes.create().flatMap(_ --- `@id` --> "dup-existing-node-123")
               _ <- graph.nodes.create().flatMap(_ --- `@id` --> "dup-existing-node-123")
               _ <- graph.nodes.create().flatMap(_ --- `@id` --> "dup-existing-node-123")
               _ <- graph.nodes.upsert("dup-existing-node-123")
-              _ <- //merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
-                graph.nodes.hasIri("dup-existing-node-123").toListL.map(_.size shouldBe 1) //.delayExecution(200.millis)
-            } yield ())                                                                    //.delayExecution(200.millis)
+              _ <- // merging nodes is a async side-effect of upsert, the delay should be enough so that the previous mergetask can finish
+                graph.nodes
+                  .hasIri("dup-existing-node-123")
+                  .toListL
+                  .map(_.size shouldBe 1) // .delayExecution(200.millis)
+            } yield ())                   // .delayExecution(200.millis)
           } yield succeed).timeout(4000.millis).runToFuture
         }
       }

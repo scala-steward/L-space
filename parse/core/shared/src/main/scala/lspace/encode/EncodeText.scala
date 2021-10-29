@@ -26,24 +26,25 @@ object EncodeText {
             Map(
               types.`@context` -> encoder
                 .fromActiveContext(activeContext)
-                .getOrElse(Map[String, Json]().asJson)).asJson.noSpaces
-        }
+                .getOrElse(Map[String, Json]().asJson)
+            ).asJson.noSpaces
+          }
     }
   }
 
   implicit val encodeStringText = new EncodeText[String, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: String) => Coeval { value }
+    def encode(implicit activeContext: ActiveContext) = (value: String) => Coeval(value)
   }
   implicit val encodeBooleanText = new EncodeText[Boolean, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Boolean) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Boolean) => Coeval(value.toString)
   }
   implicit val encodeIntText = new EncodeText[Int, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Int) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Int) => Coeval(value.toString)
   }
   implicit val encodeDoubleText = new EncodeText[Double, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Double) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Double) => Coeval(value.toString)
   }
   implicit val encodeLongText = new EncodeText[Long, Coeval] {
-    def encode(implicit activeContext: ActiveContext) = (value: Long) => Coeval { value.toString }
+    def encode(implicit activeContext: ActiveContext) = (value: Long) => Coeval(value.toString)
   }
 }

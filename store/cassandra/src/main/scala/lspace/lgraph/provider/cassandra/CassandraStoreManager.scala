@@ -21,23 +21,26 @@ import scala.concurrent.duration._
 object CassandraStoreManager {
   val cassandraQueryConsumer =
     Consumer
-      .foreachTask[((Session, ExecutionContextExecutor),
-                    BatchQuery[_ <: com.outworkers.phantom.builder.ConsistencyBound])] {
-        case ((session: Session, ec: ExecutionContextExecutor),
-              query: BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]) =>
+      .foreachTask[
+        ((Session, ExecutionContextExecutor), BatchQuery[_ <: com.outworkers.phantom.builder.ConsistencyBound])
+      ] {
+        case (
+              (session: Session, ec: ExecutionContextExecutor),
+              query: BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]
+            ) =>
           for { _ <- Task.deferFuture(query.future()(session, ec)) } yield ()
       }
-  val loadBalancer = {
+  val loadBalancer =
     Consumer
       .loadBalance(parallelism = 20, cassandraQueryConsumer)
-  }
 }
 
 class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override val database: CassandraGraphTables)(
-    implicit baseEncoder: JsonEncoder[Json],
-    baseDecoder: JsonDecoder[Json],
-    httpClient: HttpClient)
-    extends StoreManager(graph)
+  implicit
+  baseEncoder: JsonEncoder[Json],
+  baseDecoder: JsonDecoder[Json],
+  httpClient: HttpClient
+) extends StoreManager(graph)
     with DatabaseProvider[CassandraGraphTables] {
   import CassandraStoreManager._
 
@@ -52,17 +55,19 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
   override def edgeStore: LEdgeStore[G]   = graph.edgeStore.asInstanceOf[LEdgeStore[G]]
   override def valueStore: LValueStore[G] = graph.valueStore.asInstanceOf[LValueStore[G]]
 
-  private def pagedNodesF(f: Option[PagingState] => Task[ListResult[Node]],
-                          pagingState: Option[PagingState] = None): Observable[graph.GNode] = {
+  private def pagedNodesF(
+    f: Option[PagingState] => Task[ListResult[Node]],
+    pagingState: Option[PagingState] = None
+  ): Observable[graph.GNode] = {
 
     val resultF = f(pagingState).memoizeOnSuccess
     Observable
       .fromTask(
         for {
           result <- resultF
-        } yield
-          result.records.toStream
-            .filterNot(n => graph.nodeStore.isDeleted(n.id)))
+        } yield result.records.toStream
+          .filterNot(n => graph.nodeStore.isDeleted(n.id))
+      )
       .flatMap(Observable.fromIterable(_))
       .mapEval { node =>
         nodeStore.cachedById(node.id).asInstanceOf[Option[graph.GNode]].map(Task.now).getOrElse {
@@ -73,17 +78,19 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
             _ = for {
               iri            <- node.iri
               (edgeId, toId) <- node.iriEdge
-            } yield
-              graph.newEdge[Any, String](edgeId,
-                                         _node,
-                                         lspace.Label.P.`@id`,
-                                         graph.newValue(toId, iri, lspace.Label.D.`@string`))
-            _ = (node.iris.toList.sorted zip node.irisEdges).map {
-              case (iri, (edgeId, toId)) =>
-                graph.newEdge[Any, String](edgeId,
-                                           _node,
-                                           lspace.Label.P.`@ids`,
-                                           graph.newValue(toId, iri, lspace.Label.D.`@string`))
+            } yield graph.newEdge[Any, String](
+              edgeId,
+              _node,
+              lspace.Label.P.`@id`,
+              graph.newValue(toId, iri, lspace.Label.D.`@string`)
+            )
+            _ = node.iris.toList.sorted.zip(node.irisEdges).map { case (iri, (edgeId, toId)) =>
+              graph.newEdge[Any, String](
+                edgeId,
+                _node,
+                lspace.Label.P.`@ids`,
+                graph.newValue(toId, iri, lspace.Label.D.`@string`)
+              )
             }
           } yield _node
         }
@@ -92,22 +99,25 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
     }
   }
 
-  private def pagedEdgesF(f: Option[PagingState] => Task[ListResult[Edge]],
-                          pagingState: Option[PagingState] = None): Observable[graph.GEdge[Any, Any]] = {
+  private def pagedEdgesF(
+    f: Option[PagingState] => Task[ListResult[Edge]],
+    pagingState: Option[PagingState] = None
+  ): Observable[graph.GEdge[Any, Any]] = {
     val resultF = f(pagingState)
 
     Observable
       .fromTask(
         for {
           result <- resultF
-        } yield
-          result.records.toStream
-            .filterNot(e =>
-              graph.edgeStore.isDeleted(e.id) || graph.edgeStore.isDeleted(e.fromId) || graph.edgeStore
-                .isDeleted(e.toId) || graph.nodeStore.isDeleted(e.fromId) || graph.valueStore
-                .isDeleted(e.fromId) || graph.nodeStore.isDeleted(e.toId) || graph.valueStore.isDeleted(e.toId)))
+        } yield result.records.toStream
+          .filterNot(e =>
+            graph.edgeStore.isDeleted(e.id) || graph.edgeStore.isDeleted(e.fromId) || graph.edgeStore
+              .isDeleted(e.toId) || graph.nodeStore.isDeleted(e.fromId) || graph.valueStore
+              .isDeleted(e.fromId) || graph.nodeStore.isDeleted(e.toId) || graph.valueStore.isDeleted(e.toId)
+          )
+      )
       .flatMap(Observable.fromIterable(_))
-      .mapEval { edge => //map with Either? batch retrieval of uncached resources? async connect?
+      .mapEval { edge => // map with Either? batch retrieval of uncached resources? async connect?
         edgeStore.cachedById(edge.id).asInstanceOf[Option[graph.GEdge[Any, Any]]].map(Task.now).getOrElse {
           for {
             from <- edge.fromType match {
@@ -134,18 +144,20 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
             for {
               iri            <- edge.iri
               (edgeId, toId) <- edge.iriEdge
-            } yield
-              graph.newEdge[Any, String](edgeId,
-                                         _edge,
-                                         lspace.Label.P.`@id`,
-                                         graph.newValue(toId, iri, lspace.Label.D.`@string`))
+            } yield graph.newEdge[Any, String](
+              edgeId,
+              _edge,
+              lspace.Label.P.`@id`,
+              graph.newValue(toId, iri, lspace.Label.D.`@string`)
+            )
 
-            (edge.iris.toList.sorted zip edge.irisEdges).map {
-              case (iri, (edgeId, toId)) =>
-                graph.newEdge[Any, String](edgeId,
-                                           _edge,
-                                           lspace.Label.P.`@ids`,
-                                           graph.newValue(toId, iri, lspace.Label.D.`@string`))
+            edge.iris.toList.sorted.zip(edge.irisEdges).map { case (iri, (edgeId, toId)) =>
+              graph.newEdge[Any, String](
+                edgeId,
+                _edge,
+                lspace.Label.P.`@ids`,
+                graph.newValue(toId, iri, lspace.Label.D.`@string`)
+              )
             }
             _edge
           }
@@ -155,16 +167,18 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
     }
   }
 
-  private def pagedValuesF(f: Option[PagingState] => Task[ListResult[Value]],
-                           pagingState: Option[PagingState] = None): Observable[graph.GValue[Any]] = {
+  private def pagedValuesF(
+    f: Option[PagingState] => Task[ListResult[Value]],
+    pagingState: Option[PagingState] = None
+  ): Observable[graph.GValue[Any]] = {
     val resultF = f(pagingState)
     Observable
       .fromTask(
         for {
           result <- resultF
-        } yield
-          result.records.toStream
-            .filterNot(n => graph.valueStore.isDeleted(n.id)))
+        } yield result.records.toStream
+          .filterNot(n => graph.valueStore.isDeleted(n.id))
+      )
       .flatMap(Observable.fromIterable(_))
       .mapEval { value =>
         valueStore.cachedById(value.id).asInstanceOf[Option[graph.GValue[Any]]].map(Task.now).getOrElse {
@@ -176,24 +190,28 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
             }
             parsedValue <- decoder
               .parse(value.value)
-              .flatMap(decoder
-                .toData(_, datatype)(context))
+              .flatMap(
+                decoder
+                  .toData(_, datatype)(context)
+              )
           } yield {
             val _value = graph.newValue(value.id, parsedValue, datatype)
             for {
               iri            <- value.iri
               (edgeId, toId) <- value.iriEdge
-            } yield
-              graph.newEdge[Any, String](edgeId,
-                                         _value,
-                                         lspace.Label.P.`@id`,
-                                         graph.newValue(toId, iri, lspace.Label.D.`@string`))
-            (value.iris.toList.sorted zip value.irisEdges).map {
-              case (iri, (edgeId, toId)) =>
-                graph.newEdge[Any, String](edgeId,
-                                           _value,
-                                           lspace.Label.P.`@ids`,
-                                           graph.newValue(toId, iri, lspace.Label.D.`@string`))
+            } yield graph.newEdge[Any, String](
+              edgeId,
+              _value,
+              lspace.Label.P.`@id`,
+              graph.newValue(toId, iri, lspace.Label.D.`@string`)
+            )
+            value.iris.toList.sorted.zip(value.irisEdges).map { case (iri, (edgeId, toId)) =>
+              graph.newEdge[Any, String](
+                edgeId,
+                _value,
+                lspace.Label.P.`@ids`,
+                graph.newValue(toId, iri, lspace.Label.D.`@string`)
+              )
             }
             _value
           }
@@ -245,8 +263,9 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
     pagedEdgesF(ps => Task.deferFuture(database.edgesByFromAndTo.findByFromAndKeyAndTo(fromId, toId, ps)))
 
   override def edgesByFromIdAndKeyAndToId(fromId: Long, key: Property, toId: Long): Observable[graph.GEdge[Any, Any]] =
-    pagedEdgesF(
-      ps => Task.deferFuture(database.edgesByFromAndKeyAndTo.findByFromAndKeyAndTo(fromId, key.iri, toId, ps)))
+    pagedEdgesF(ps =>
+      Task.deferFuture(database.edgesByFromAndKeyAndTo.findByFromAndKeyAndTo(fromId, key.iri, toId, ps))
+    )
 
 //  override def edgesByKey(key: Property): Observable[graph._Edge[_, _]] =
 //    pagedEdgesF(
@@ -289,17 +308,24 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 //    } yield values
 
   override def valueByValue[T](value: T, dt: DataType[T]): Observable[graph.GValue[T]] =
-    pagedValuesF(
-      ps =>
-        Task.deferFuture(
-          database.valuesByValue.findByValue(encoder.fromData(value, dt)(ActiveContext()).json.toString(), ps)))
+    pagedValuesF(ps =>
+      Task.deferFuture(
+        database.valuesByValue.findByValue(encoder.fromData(value, dt)(ActiveContext()).json.toString(), ps)
+      )
+    )
       .asInstanceOf[Observable[graph.GValue[T]]]
 
   override def valuesByValue[T](values: List[(T, DataType[T])]): Observable[graph.GValue[T]] =
     pagedValuesF(ps =>
-      Task.deferFuture(database.valuesByValue.findByValues(values.map {
-        case (value, dt) => encoder.fromData(value, dt)(ActiveContext()).json.toString()
-      }, ps)))
+      Task.deferFuture(
+        database.valuesByValue.findByValues(
+          values.map { case (value, dt) =>
+            encoder.fromData(value, dt)(ActiveContext()).json.toString()
+          },
+          ps
+        )
+      )
+    )
       .asInstanceOf[Observable[graph.GValue[T]]]
 
   private def structureNodeToNode(node: graph._Node) =
@@ -317,7 +343,11 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 
     Observable
       .fromIterable(
-        cnodes.map(database.nodes.store(_)).grouped(100).toStream.map(Batch.unlogged.add(_))
+        cnodes
+          .map(database.nodes.store(_))
+          .grouped(100)
+          .toStream
+          .map(Batch.unlogged.add(_))
 //          ++
 //          cnodes
 //            .filter(_.iri.nonEmpty)
@@ -332,7 +362,7 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 //            .grouped(100)
 //            .toStream
 //            .map(Batch.unlogged.add(_))
-          map (r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
+          .map(r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
       )
       .consumeWith(loadBalancer)
 
@@ -416,7 +446,11 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 
     Observable
       .fromIterable(
-        cvalues.map(database.values.store(_)).grouped(100).toStream.map(Batch.unlogged.add(_))
+        cvalues
+          .map(database.values.store(_))
+          .grouped(100)
+          .toStream
+          .map(Batch.unlogged.add(_))
 //          ++
 //          cvalues
 //            .filter(_.iri.nonEmpty)
@@ -425,16 +459,20 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 //            .toStream
 //            .map(Batch.unlogged.add(_)) ++
 //          cvalues.map(database.valuesByValue.store(_)).grouped(100).toStream.map(Batch.unlogged.add(_))
-          map (r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
+          .map(r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
       )
       .consumeWith(loadBalancer)
   }
 
   def deleteNodes(nodes: List[graph._Node]): Task[_] = {
-    val cnodes = nodes.map(structureNodeToNode) //ignores unretrievable nodes
+    val cnodes = nodes.map(structureNodeToNode) // ignores unretrievable nodes
     Observable
       .fromIterable(
-        cnodes.map(n => database.nodes.delete(n.id)).grouped(100).toStream.map(Batch.unlogged.add(_))
+        cnodes
+          .map(n => database.nodes.delete(n.id))
+          .grouped(100)
+          .toStream
+          .map(Batch.unlogged.add(_))
 //          ++
 //          cnodes.map(n => database.nodesByIri.delete(n.id)).grouped(100).toStream.map(Batch.unlogged.add(_)) ++
 //          cnodes
@@ -442,12 +480,12 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
 //            .grouped(100)
 //            .toStream
 //            .map(Batch.unlogged.add(_))
-          map (r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
+          .map(r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
       )
       .consumeWith(loadBalancer)
   }
   def deleteEdges(edges: List[graph._Edge[_, _]]): Task[_] = {
-    val cedges = edges.map(structureEdgeToEdge) //ignores unretrievable edges
+    val cedges = edges.map(structureEdgeToEdge) // ignores unretrievable edges
     Observable
       .fromIterable(
         cedges.map(e => database.edges.delete(e.id)).grouped(100).toStream.map(Batch.unlogged.add(_)) ++
@@ -488,7 +526,7 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
       .consumeWith(loadBalancer)
   }
   def deleteValues(values: List[graph._Value[_]]): Task[_] = {
-    val cvalues = values.map(structureValueToValue) //ignores unretrievable edges
+    val cvalues = values.map(structureValueToValue) // ignores unretrievable edges
     Observable
       .fromIterable(
         cvalues.map(v => database.values.delete(v.id)).grouped(100).toStream.map(Batch.unlogged.add(_))
@@ -504,13 +542,13 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
               .grouped(100)
               .toStream
               .map(Batch.unlogged.add(_))
-          map (r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
+            map (r => (session, context) -> r.asInstanceOf[BatchQuery[com.outworkers.phantom.builder.ConsistencyBound]])
       )
       .consumeWith(loadBalancer)
   }
 
   override def nodes: Observable[graph.GNode] =
-    pagedNodesF(ps => Task.deferFuture(database.nodes.select.paginateRecord(ps))) //fetchRecord()))
+    pagedNodesF(ps => Task.deferFuture(database.nodes.select.paginateRecord(ps))) // fetchRecord()))
 
   def nodeCount(): Task[Long] = Task.deferFuture(database.nodes.select.count().one()).map {
     case Some(count) => count
@@ -551,7 +589,8 @@ class CassandraStoreManager[G <: LGraph, Json](override val graph: G, override v
           Task.deferFuture(database.values.create.ifNotExists().future()),
 //          Task.deferFuture(database.valuesByIri.create.ifNotExists().future()),
           Task.deferFuture(database.valuesByValue.create.ifNotExists().future())
-        ))
+        )
+      )
     } yield ()).memoizeOnSuccess
 
   def persist(): Task[Unit] = Task.unit

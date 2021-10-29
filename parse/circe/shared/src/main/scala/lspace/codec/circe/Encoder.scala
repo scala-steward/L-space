@@ -14,7 +14,7 @@ class Encoder extends json.Encoder[Json] {
   implicit override def boolToJson: Boolean => Json  = boolean => Json.fromBoolean(boolean)
   implicit override def intToJson: Int => Json       = int => Json.fromInt(int)
   implicit override def doubleToJson: Double => Json =
-    double => Json.fromDouble(double).get //Not all doubles can be represented as Json? Number-length limitation?
+    double => Json.fromDouble(double).get // Not all doubles can be represented as Json? Number-length limitation?
   implicit override def longToJson: Long => Json                     = long => Json.fromLong(long)
   implicit override def mapToJson: Map[String, Json] => Json         = map => Json.obj(map.toList: _*)
   implicit override def listToJson: List[Json] => Json               = list => Json.arr(list: _*)

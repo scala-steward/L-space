@@ -16,12 +16,11 @@ object Suffix extends PredicateDef("Suffix", `@extends` = List(SeqP.ontology)) w
   override lazy val properties: List[Property] = SeqP.properties
   trait Properties extends SeqP.Properties
 
-  implicit def toNode[T](p: Suffix[T]): Task[Node] = {
+  implicit def toNode[T](p: Suffix[T]): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
-  }
 }
 
 case class Suffix[+T](pvalue: T) extends SeqP[T] {

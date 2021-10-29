@@ -8,9 +8,11 @@ import monix.eval.Task
 import shapeless.HList
 
 object Or
-    extends StepDef("Or",
-                    "An or-step traverser only survives if at least one of the n-traversals has a non-empty result.",
-                    FilterStep.ontology :: Nil)
+    extends StepDef(
+      "Or",
+      "An or-step traverser only survives if at least one of the n-traversals has a non-empty result.",
+      FilterStep.ontology :: Nil
+    )
     with StepWrapper[Or] {
 
   def toStep(node: Node): Task[Or] =
@@ -19,10 +21,14 @@ object Or
         node
           .out(keys.traversalTraversal)
           .map(
-            _.map(Traversal
-              .toTraversal(_)
-              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
-          .head)
+            _.map(
+              Traversal
+                .toTraversal(_)
+                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+            )
+          )
+          .head
+      )
     } yield Or(traversals)
 
   object keys extends FilterStep.Properties {

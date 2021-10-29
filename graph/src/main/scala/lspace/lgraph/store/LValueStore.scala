@@ -39,7 +39,8 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
       Observable.fromIterable(cache.get(value).to(LazyList).flatMap(_.toList).map(_.asInstanceOf[graph.GValue[V]]))
     def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] =
       Observable.fromIterable(
-        cache.get(value).to(LazyList).flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]]))
+        cache.get(value).to(LazyList).flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]])
+      )
     def delete(value: T): Unit = cacheLock.synchronized {
       val values = cache.getOrElse(value.value, Set())
       if (values.exists(_ == value)) cache -= value.value
@@ -101,8 +102,9 @@ class LValueStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] 
         .executeOn(LStore.ec)
   }
 
-  def byValue[V, VOut, CVOut <: DataType[VOut]](value: V)(
-      implicit clsTpbl: ClassTypeable.Aux[V, VOut, CVOut]): Observable[graph._Value[V]] =
+  def byValue[V, VOut, CVOut <: DataType[VOut]](value: V)(implicit
+    clsTpbl: ClassTypeable.Aux[V, VOut, CVOut]
+  ): Observable[graph._Value[V]] =
     byValue(value, clsTpbl.ct.asInstanceOf[DataType[V]])
   def byValue[V](value: V, dt: DataType[V]): Observable[graph._Value[V]] =
     vcache.byValue(value, dt).filter(v => !isDeleted(v.id))

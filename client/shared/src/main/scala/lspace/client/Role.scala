@@ -22,10 +22,12 @@ object Role extends OntologyDef(lspace.NS.vocab.Lspace + "Role", Set(), "Role", 
 
   object keys {
     object `schema:name`
-        extends PropertyDef(lspace.NS.vocab.schema + "name",
-                            label = "name",
-                            `@range` = DataType.default.`@string` :: Nil)
-    val `schema:name@String` = `schema:name` as DataType.default.`@string`
+        extends PropertyDef(
+          lspace.NS.vocab.schema + "name",
+          label = "name",
+          `@range` = DataType.default.`@string` :: Nil
+        )
+    val `schema:name@String` = `schema:name`.as(DataType.default.`@string`)
   }
   override lazy val properties: List[Property] = keys.`schema:name` :: Nil
   trait Properties {

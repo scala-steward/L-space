@@ -9,19 +9,23 @@ class Encode[In, Codec, Out, F[_]](encoder: lspace.encode.Encode.Aux[In, F, Out]
 
 object Encode {
 
-  implicit def textPlain[In, Codec, Out, F[_]](
-      implicit encoder: EncodeText.Aux[In, F, Out]): Encode[In, Text.Plain, Out, F] =
+  implicit def textPlain[In, Codec, Out, F[_]](implicit
+    encoder: EncodeText.Aux[In, F, Out]
+  ): Encode[In, Text.Plain, Out, F] =
     new Encode[In, Text.Plain, Out, F](encoder)
 
-  implicit def textHtml[In, Codec, Out, F[_]](
-      implicit encoder: EncodeText.Aux[In, F, Out]): Encode[In, Text.Html, Out, F] =
+  implicit def textHtml[In, Codec, Out, F[_]](implicit
+    encoder: EncodeText.Aux[In, F, Out]
+  ): Encode[In, Text.Html, Out, F] =
     new Encode[In, Text.Html, Out, F](encoder)
 
-  implicit def applicationJson[In, Codec, Out, F[_]](
-      implicit encoder: EncodeText.Aux[In, F, Out]): Encode[In, Application.Json, Out, F] =
+  implicit def applicationJson[In, Codec, Out, F[_]](implicit
+    encoder: EncodeText.Aux[In, F, Out]
+  ): Encode[In, Application.Json, Out, F] =
     new Encode[In, Application.Json, Out, F](encoder)
 
-  implicit def applicationJsonLD[In, Codec, Out, F[_]](
-      implicit encoder: EncodeText.Aux[In, F, Out]): Encode[In, Application.JsonLD, Out, F] =
+  implicit def applicationJsonLD[In, Codec, Out, F[_]](implicit
+    encoder: EncodeText.Aux[In, F, Out]
+  ): Encode[In, Application.JsonLD, Out, F] =
     new Encode[In, Application.JsonLD, Out, F](encoder)
 }

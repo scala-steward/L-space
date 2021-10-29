@@ -31,9 +31,10 @@ abstract class EncodeJsonLDSpec[Json](encoder: JsonLDEncoder[Json]) extends AnyW
         .value() shouldBe """{"@context":"https://remote.example.org"}"""
     }
     "encode an ActiveContext with remote context and a local context" in {
-      val defaultContext = ActiveContext(`@prefix` = ListMap("name" -> "https://example.com/name"),
-                                         remotes =
-                                           List(NamedActiveContext("https://remote.example.org", ActiveContext())))
+      val defaultContext = ActiveContext(
+        `@prefix` = ListMap("name" -> "https://example.com/name"),
+        remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext()))
+      )
 
       implicitly[EncodeJsonLD[ActiveContext, Coeval]]
         .encode(ActiveContext())(defaultContext)

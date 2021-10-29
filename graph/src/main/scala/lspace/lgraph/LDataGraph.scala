@@ -15,6 +15,7 @@ trait LDataGraph extends LGraph with DataGraph {
             storeManager.persist,
             ns.storeManager.persist,
             index.storeManager.persist
-          ))
+          )
+        )
     } yield ()
 }

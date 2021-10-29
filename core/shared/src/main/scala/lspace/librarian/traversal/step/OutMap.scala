@@ -13,7 +13,8 @@ object OutMap extends StepDef("OutMap", "An outMap-step ..", MoveStep.ontology :
           .outE(MoveStep.keys.label)
           .map(_.to.iri)
           .filter(_.nonEmpty)
-          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))) //TODO: get from target graph(s) or download if not found?
+          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))
+      ) // TODO: get from target graph(s) or download if not found?
       out = OutMap(properties.toSet)
     } yield out
 

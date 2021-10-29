@@ -29,9 +29,11 @@ trait TResource[T] extends MemResource[T] {
         .outE(key: _*)
         .filterNot(e => deletedEdges.contains(e.id))
         .groupBy(_.key)
-        .view.mapValues(
+        .view
+        .mapValues(
           _.map(_.to.asInstanceOf[graph.parent._Resource[Any]]).map(graph.wrapTR(_).map(_.value).value())
-        ).toMap //wrapTR brings nested resources (aka within collections) in transaction context
+        )
+        .toMap // wrapTR brings nested resources (aka within collections) in transaction context
     ).reduceLeft((r, m) =>
       m.foldLeft(r) { case (dict, (k, v)) =>
         dict.+(k -> (v ++ dict.getOrElse(k, List())))

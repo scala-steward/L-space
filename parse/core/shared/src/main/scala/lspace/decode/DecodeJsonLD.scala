@@ -20,17 +20,18 @@ object DecodeJsonLD {
   case class InvalidJsonLD(message: String)       extends DecodeException(message)
   case class NotAcceptableJsonLD(message: String) extends NotAcceptable(message)
 
-  /**
-    *
-    * @param label a label which is added to the resulting node
-    * @param allowedProperties a whitelist for properties which are accepted
+  /** @param label
+    *   a label which is added to the resulting node
+    * @param allowedProperties
+    *   a whitelist for properties which are accepted
     * @param decoder
     * @return
     */
   def jsonldToLabeledNode(
-      label: Ontology,
-      allowedProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: Decoder[_]): DecodeJsonLD[Node, Task] = {
+    label: Ontology,
+    allowedProperties: List[Property] = List(),
+    forbiddenProperties: List[Property] = List()
+  )(implicit decoder: Decoder[_]): DecodeJsonLD[Node, Task] = {
     val filter = {
       if (allowedProperties.nonEmpty) { (node: Node) =>
         val resultGraph = MemGraph.apply(UUID.randomUUID().toString)
@@ -43,7 +44,8 @@ object DecodeJsonLD {
         for {
           fNode <- resultGraph.nodes.create()
           _ <- Task.parSequenceUnordered(
-            node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to))
+            node.outE().filterNot(forbiddenProperties.contains).map(e => fNode --- e.key --> e.to)
+          )
         } yield fNode
       } else { (node: Node) =>
         Task.now(node)
@@ -58,20 +60,22 @@ object DecodeJsonLD {
     }
   }
 
-  /**
-    *
-    * @param label a label which is added to the resulting node
-    * @param nodeToT a function to transform the parsed result to object T
-    * @param allowedProperties a whitelist for properties which are accepted
+  /** @param label
+    *   a label which is added to the resulting node
+    * @param nodeToT
+    *   a function to transform the parsed result to object T
+    * @param allowedProperties
+    *   a whitelist for properties which are accepted
     * @param decoder
     * @tparam T
     * @return
     */
   def bodyJsonldTyped[T](
-      label: Ontology,
-      nodeToT: Node => T,
-      allowedProperties: List[Property] = List(),
-      forbiddenProperties: List[Property] = List())(implicit decoder: Decoder[_]): DecodeJsonLD[T, Task] = {
+    label: Ontology,
+    nodeToT: Node => T,
+    allowedProperties: List[Property] = List(),
+    forbiddenProperties: List[Property] = List()
+  )(implicit decoder: Decoder[_]): DecodeJsonLD[T, Task] = {
     val df = jsonldToLabeledNode(label, allowedProperties, forbiddenProperties)
     new DecodeJsonLD[T, Task] {
       def decode(implicit activeContext: ActiveContext) =
@@ -81,14 +85,14 @@ object DecodeJsonLD {
     }
   }
 
-  /**
-    *
-    * @param allowedProperties a whitelist for properties which are accepted
+  /** @param allowedProperties
+    *   a whitelist for properties which are accepted
     * @param decoder
     * @return
     */
-  def jsonldToNode(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(
-      implicit decoder: Decoder[_]): DecodeJsonLD[Node, Task] = {
+  def jsonldToNode(allowedProperties: List[Property] = List(), forbiddenProperties: List[Property] = List())(implicit
+    decoder: Decoder[_]
+  ): DecodeJsonLD[Node, Task] = {
 
     val validProperty = (property: Property) =>
       if (allowedProperties.nonEmpty) {
@@ -97,7 +101,7 @@ object DecodeJsonLD {
         !forbiddenProperties.contains(property)
       } else {
         true
-    }
+      }
 
     if (allowedProperties.nonEmpty || forbiddenProperties.nonEmpty) {
       new DecodeJsonLD[Node, Task] {
@@ -109,7 +113,8 @@ object DecodeJsonLD {
               for {
                 fNode <- resultGraph.nodes.create()
                 _ <- Task.parSequenceUnordered(
-                  node.outE().filter(e => validProperty(e.key)).map(e => fNode --- e.key --> e.to))
+                  node.outE().filter(e => validProperty(e.key)).map(e => fNode --- e.key --> e.to)
+                )
               } yield fNode
             }
         }
@@ -131,16 +136,18 @@ object DecodeJsonLD {
             .stringToEdge(json)
     }
 
-  implicit def jsonldToTraversal[A](
-      implicit decoder: Decoder[A]): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] =
+  implicit def jsonldToTraversal[A](implicit
+    decoder: Decoder[A]
+  ): DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] =
     new DecodeJsonLD[Traversal[ClassType[Any], ClassType[Any], _ <: HList], Task] {
-      def decode(implicit activeContext: ActiveContext)
-        : String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
+      def decode(implicit
+        activeContext: ActiveContext
+      ): String => Task[Traversal[ClassType[Any], ClassType[Any], _ <: HList]] =
         (string: String) =>
           decoder
             .stringToLabeledNode(string, Traversal.ontology)
             .flatMap { node =>
               Traversal.toTraversal(node)
-          }
+            }
     }
 }

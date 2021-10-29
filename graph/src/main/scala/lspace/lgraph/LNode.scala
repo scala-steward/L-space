@@ -10,11 +10,10 @@ object LNode {}
 trait LNode extends LResource[Node] with Node {
   private val types = mutable.HashSet[Ontology]()
 
-  /**
-    * add ontology, do not store
+  /** add ontology, do not store
     * @param ontology
     */
-  protected[lgraph] def _cacheLabel(ontology: Ontology): Unit = {
+  protected[lgraph] def _cacheLabel(ontology: Ontology): Unit =
     types.synchronized {
 
       //    val o = if (ontology.graph != graph) graph.getOntology(ontology.iri).getOrElse(graph.storeOntology(ontology)) else ontology
@@ -31,7 +30,6 @@ trait LNode extends LResource[Node] with Node {
         }
       }
     }
-  }
 
   def labels: List[Ontology] = types.toList
   def addLabel(ontology: Ontology): Task[Unit] = Task.defer {
@@ -41,14 +39,13 @@ trait LNode extends LResource[Node] with Node {
         _ = _cacheLabel(ontology)
         _ <- graph.storeNode(this.asInstanceOf[graph.GNode])
       } yield ()
-    //TODO: index
+    // TODO: index
     else Task.unit
   }
 
-  def removeLabel(classType: Ontology): Unit = {
-    //TODO: option to remove only specified class and keep extended class,
+  def removeLabel(classType: Ontology): Unit =
+    // TODO: option to remove only specified class and keep extended class,
     // or transform 'addLabel' to add each class explicitly, included redundancy by extending
 //    outE(Property.default.`@type`).find(_.to.iri == classType.iri).foreach(_.remove())
     types -= classType
-  }
 }

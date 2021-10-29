@@ -16,18 +16,21 @@ object ActiveProperty {
   lazy val `@type` = ActiveProperty(P.`@type`)()
 
 }
-case class ActiveProperty(property: Property,
-                          `@type`: List[ClassType[_]] = Nil,
-                          `@container`: List[`@container`] = Nil,
-                          `@reverse`: Boolean = false)(val `@context`: ActiveContext = ActiveContext()) {
+case class ActiveProperty(
+  property: Property,
+  `@type`: List[ClassType[_]] = Nil,
+  `@container`: List[`@container`] = Nil,
+  `@reverse`: Boolean = false
+)(val `@context`: ActiveContext = ActiveContext()) {
 
-  def copy(property: Property = this.property,
-           `@type`: List[ClassType[_]] = this.`@type`,
-           `@container`: List[`@container`] = this.`@container`,
-           `@reverse`: Boolean = this.`@reverse`)(`@context`: ActiveContext = this.`@context`): ActiveProperty = {
+  def copy(
+    property: Property = this.property,
+    `@type`: List[ClassType[_]] = this.`@type`,
+    `@container`: List[`@container`] = this.`@container`,
+    `@reverse`: Boolean = this.`@reverse`
+  )(`@context`: ActiveContext = this.`@context`): ActiveProperty =
     ActiveProperty(property, `@type`, `@container`, `@reverse`)(`@context`)
-  }
-  //TODO: throw exception when property.iri != activeProperty.property.iri ???
+  // TODO: throw exception when property.iri != activeProperty.property.iri ???
   def ++(activeProperty: ActiveProperty): ActiveProperty =
     this.copy(
       `@type` = `@type` ++ activeProperty.`@type`,

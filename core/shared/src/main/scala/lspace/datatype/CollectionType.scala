@@ -26,9 +26,9 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
           `@extends` = Property.default.`@range` :: Nil,
           `@range` = ListType(NodeURLType.datatype) :: Nil
         )
-    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange as ListType(NodeURLType.datatype)
+    lazy val valueRangeClassType: TypedProperty[List[Node]] = valueRange.as(ListType(NodeURLType.datatype))
   }
-  override lazy val properties: List[Property] = keys.valueRange :: Nil //StructuredValue.properties
+  override lazy val properties: List[Property] = keys.valueRange :: Nil // StructuredValue.properties
   trait Properties extends StructuredType.Properties {
     lazy val valueRange: Property                           = keys.valueRange
     lazy val valueRangeClassType: TypedProperty[List[Node]] = keys.valueRangeClassType
@@ -47,7 +47,7 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
 
   private val separators = Set('(', ')', '+')
 
-  private def getTypes(iri: String): (Option[ClassType[Any]], String) = {
+  private def getTypes(iri: String): (Option[ClassType[Any]], String) =
     iri.splitAt(iri.indexWhere(separators.contains)) match {
       case ("", iri) if iri.startsWith(")") => None                                    -> iri.drop(1)
       case ("", iri)                        => Some(ClassType.classtypes.get(iri).get) -> ""
@@ -93,25 +93,21 @@ object CollectionType extends DataTypeDef[CollectionType[Iterable[Any]]] {
         (get(iri).toList ++ tailTypes).reduceOption(_ + _) -> newTail
       case _ => throw new Exception(s"invalid collection type $iri")
     }
-  }
 
-  def get(iri: String): Option[DataType[Any]] = //TODO: .get (Task) instead of .cached
-    {
-      ClassType.classtypes
-        .get(iri)
-        .orElse(getTypes(iri) match {
-          case (Some(ct), "") =>
-            Some(ct)
-          case (Some(ct), tail) =>
-            scribe.warn(s"got type but tail is not empty, residu is: $tail")
-            Some(ct)
-          case (None, tail) =>
-            scribe.warn(s"no classtype construct build for $iri, residu is: $tail")
-            None
-        })
-        .asInstanceOf[Option[DataType[Any]]]
-    }
+  def get(iri: String): Option[DataType[Any]] = // TODO: .get (Task) instead of .cached
+    ClassType.classtypes
+      .get(iri)
+      .orElse(getTypes(iri) match {
+        case (Some(ct), "") =>
+          Some(ct)
+        case (Some(ct), tail) =>
+          scribe.warn(s"got type but tail is not empty, residu is: $tail")
+          Some(ct)
+        case (None, tail) =>
+          scribe.warn(s"no classtype construct build for $iri, residu is: $tail")
+          None
+      })
+      .asInstanceOf[Option[DataType[Any]]]
 }
 
-trait CollectionType[+T] extends StructuredType[T] {
-}
+trait CollectionType[+T] extends StructuredType[T] {}

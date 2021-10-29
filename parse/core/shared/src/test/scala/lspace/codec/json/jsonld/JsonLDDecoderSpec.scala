@@ -38,7 +38,7 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
             ontology
               .properties("https://schema.org/additionalName")
               .exists(_.range(`@string`.iri).isDefined) shouldBe true
-            ontology.properties("https://schema.org/colleagues").isDefined shouldBe false //superseded
+            ontology.properties("https://schema.org/colleagues").isDefined shouldBe false // superseded
           }
           .timeout(60.seconds)
           .runToFuture
@@ -125,8 +125,8 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
         )
         (for {
           node <- decoder.stringToNode(
-            """{"@context":{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/"},"@id":"DecoderSpec-sample/person/567","@ids":"DecoderSpec-sample/person/567","@type":"1:Person","rate":{"@value":4,"@type":"@int"},"1:birthDate":{"@value":"2002-06-13","@type":"@date"},"1:birthPlace":{"@id":"DecoderSpec-sample/place/123"},"balance":{"@value":300,"@type":"@int"},"1:knows":[{"@id":"DecoderSpec-sample/person/56789"},{"@id":"DecoderSpec-sample/person/34567"}],"naam":"Stan"}""")(
-            defaultContext)
+            """{"@context":{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/"},"@id":"DecoderSpec-sample/person/567","@ids":"DecoderSpec-sample/person/567","@type":"1:Person","rate":{"@value":4,"@type":"@int"},"1:birthDate":{"@value":"2002-06-13","@type":"@date"},"1:birthPlace":{"@id":"DecoderSpec-sample/place/123"},"balance":{"@value":300,"@type":"@int"},"1:knows":[{"@id":"DecoderSpec-sample/person/56789"},{"@id":"DecoderSpec-sample/person/34567"}],"naam":"Stan"}"""
+          )(defaultContext)
           _ = node.out(Property("name")).head shouldBe "Stan"
         } yield succeed).runToFuture
       }
@@ -142,8 +142,10 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
       }
       "exists of a remote context and a local context" in {
         val defaultContext =
-          ActiveContext(`@prefix` = ListMap("name" -> "https://example.com/name"),
-                        remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext())))
+          ActiveContext(
+            `@prefix` = ListMap("name" -> "https://example.com/name"),
+            remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext()))
+          )
 
         (for {
           json          <- decoder.parse("""["https://remote.example.org",{"name":"https://example.com/name"}]""")
@@ -154,13 +156,16 @@ abstract class JsonLDDecoderSpec[Json](val decoder: JsonLDDecoder[Json]) extends
         val defaultContext =
           ActiveContext(
             `@prefix` = ListMap("name" -> "https://example.com/name"),
-            remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext()),
-                           NamedActiveContext("https://remote2.example.org", ActiveContext()))
+            remotes = List(
+              NamedActiveContext("https://remote.example.org", ActiveContext()),
+              NamedActiveContext("https://remote2.example.org", ActiveContext())
+            )
           )
 
         (for {
           json <- decoder.parse(
-            """["https://remote.example.org", "https://remote2.example.org",{"name":"https://example.com/name"}]""")
+            """["https://remote.example.org", "https://remote2.example.org",{"name":"https://example.com/name"}]"""
+          )
           activeContext <- decoder.contextProcessing.apply(ActiveContext(), json)
         } yield activeContext shouldBe defaultContext).runToFuture
       }

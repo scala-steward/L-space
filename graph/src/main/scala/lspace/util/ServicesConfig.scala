@@ -13,23 +13,24 @@ object ServicesConfig {
     .forProduct2[FileGraphConfig, String, String]("name", "path")(FileGraphConfig)
     .orElse(ConfigReader.forProduct1[MemGraphConfig, String]("name")(MemGraphConfig))
 
-  /**
-    *
-    * @param env variable name
+  /** @param env
+    *   variable name
     * @return
     */
   def config(env: String): ServicesConfig =
     ConfigSource.default
       .load[ServicesConfig]
       .toOption
-      .orElse(Option(System.getenv(env))
-        .map { iri =>
-          scribe.info(s"using $env=$iri")
-          ConfigSource.default(ConfigSource.file(Paths.get(iri))).load[ServicesConfig] match {
-            case Right(r) => r
-            case Left(e)  => throw new Exception(e.toString)
+      .orElse(
+        Option(System.getenv(env))
+          .map { iri =>
+            scribe.info(s"using $env=$iri")
+            ConfigSource.default(ConfigSource.file(Paths.get(iri))).load[ServicesConfig] match {
+              case Right(r) => r
+              case Left(e)  => throw new Exception(e.toString)
+            }
           }
-        })
+      )
       .orElse(ConfigSource.default(ConfigSource.file(Paths.get("config/application.conf"))).load[ServicesConfig] match {
         case Right(r) =>
           scribe.info("using local file 'config/application.conf'")

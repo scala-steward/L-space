@@ -13,7 +13,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
   trait Properties extends OntologyDef.Properties
 //  implicit def nodeToP(node: Node): P[_] = P.toP(node)
 
-  //TODO: migrate to Task[P[_]], this way we can start building resolvers for remote nodes (reusing published predicates)
+  // TODO: migrate to Task[P[_]], this way we can start building resolvers for remote nodes (reusing published predicates)
   def toP(node: Node): P[_] = node match {
     case p: P[_] => p
     case _ =>
@@ -114,7 +114,7 @@ object P extends OntologyDef(lspace.NS.vocab.Lspace + "librarian/P", label = "P"
   def contains[T](value: T): Contains[T] =
     Contains(value)
   def contains[T, PR[Z] <: P[T]](value: PR[T]): Contains[PR[T]] =
-    Contains(value) //TODO ...
+    Contains(value) // TODO ...
   def prefix[T: ClassTypeable](value: T): Prefix[T] =
     Prefix(value)
   def startsWith[T: ClassTypeable](value: T): Prefix[T] =

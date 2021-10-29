@@ -26,10 +26,10 @@ object Edge {
   }
 }
 
-/**
-  *
-  * @tparam S outV-type, edge-start
-  * @tparam E inV-type, edge-end
+/** @tparam S
+  *   outV-type, edge-start
+  * @tparam E
+  *   inV-type, edge-end
   */
 trait Edge[+S, +E] extends Resource[Edge[S, E]] {
 
@@ -40,14 +40,16 @@ trait Edge[+S, +E] extends Resource[Edge[S, E]] {
   def inV: Resource[E] = to
 
   /** Destination of the edge
-    * @return [[Resource]]
+    * @return
+    *   [[Resource]]
     */
   def to: Resource[E]
 
   def outV: Resource[S] = from
 
   /** Origin of the edge
-    * @return [[Resource]]
+    * @return
+    *   [[Resource]]
     */
   def from: Resource[S]
 

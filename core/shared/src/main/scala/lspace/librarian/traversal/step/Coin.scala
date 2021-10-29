@@ -7,9 +7,11 @@ import lspace.structure._
 import monix.eval.Task
 
 object Coin
-    extends StepDef("Coin",
-                    "A coin-step flips a coin for each traverser to decide whether it is to live or die.",
-                    FilterStep.ontology :: Nil)
+    extends StepDef(
+      "Coin",
+      "A coin-step flips a coin for each traverser to decide whether it is to live or die.",
+      FilterStep.ontology :: Nil
+    )
     with StepWrapper[Coin] {
 
   def toStep(node: Node): Task[Coin] =
@@ -23,7 +25,7 @@ object Coin
           "The p-value thresshold to determine if the traverser keeps on existing",
           `@range` = Traversal.ontology :: Nil
         )
-    val pDouble: TypedProperty[Double] = p.property as DataType.default.`@double`
+    val pDouble: TypedProperty[Double] = p.property.as(DataType.default.`@double`)
 
     object seed
         extends PropertyDef(
@@ -32,7 +34,7 @@ object Coin
           "The seed for the random-number generator",
           `@range` = Traversal.ontology :: Nil
         )
-    val seedInt: TypedProperty[Int] = seed.property as DataType.default.`@int`
+    val seedInt: TypedProperty[Int] = seed.property.as(DataType.default.`@int`)
   }
   override lazy val properties: List[Property] = keys.p.property :: keys.seed.property :: FilterStep.properties
 

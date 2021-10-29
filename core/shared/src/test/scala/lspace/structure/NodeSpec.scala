@@ -77,9 +77,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut("unknownkeyisnotaproblem", 123)
-        } yield {
-          node.out("unknownkeyisnotaproblem").size shouldBe 1
-        }).runToFuture
+        } yield node.out("unknownkeyisnotaproblem").size shouldBe 1).runToFuture
       }
       "be removed by node-method" in {
         (for {
@@ -140,9 +138,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut(intVector, Vector(1, 2, 3, 4))
-        } yield {
-          node.out("some.vector") shouldBe List(Vector(1, 2, 3, 4))
-        }).runToFuture
+        } yield node.out("some.vector") shouldBe List(Vector(1, 2, 3, 4))).runToFuture
       }
       "be of type double" in {
         val number = Property("number")
@@ -151,9 +147,7 @@ trait NodeSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll with G
         (for {
           node <- graph.nodes.create()
           _    <- node.addOut(numberDouble, 0.0)
-        } yield {
-          node.out(numberDouble).head.getClass shouldBe 0.0.getClass
-        }).runToFuture
+        } yield node.out(numberDouble).head.getClass shouldBe 0.0.getClass).runToFuture
       }
     }
     "Properties" must {

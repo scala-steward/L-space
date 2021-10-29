@@ -9,9 +9,11 @@ import monix.eval.Task
 import shapeless.HList
 
 object Coalesce
-    extends StepDef("Coalesce",
-                    "A coalesce-steps continues on the first of n-traversals which has a non-empty result.",
-                    BranchStep.ontology :: Nil)
+    extends StepDef(
+      "Coalesce",
+      "A coalesce-steps continues on the first of n-traversals which has a non-empty result.",
+      BranchStep.ontology :: Nil
+    )
     with StepWrapper[Coalesce[_, _]] {
 
   def toStep(node: Node): Task[Coalesce[ClassType[Any], ClassType[Any]]] = node match {
@@ -22,10 +24,14 @@ object Coalesce
           node
             .out(keys.traversalTraversal)
             .map(
-              _.map(Traversal
-                .toTraversal(_)
-                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
-            .head)
+              _.map(
+                Traversal
+                  .toTraversal(_)
+                  .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+              )
+            )
+            .head
+        )
       } yield Coalesce[ClassType[Any], ClassType[Any]](traversals)
   }
 

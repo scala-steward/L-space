@@ -5,15 +5,14 @@ import lspace.structure.util.ClassTypeable
 
 trait IriResource {
 
-  /**
-    * An empty uri means that there is no URI assigned.
+  /** An empty uri means that there is no URI assigned.
     * @return
     */
   def iri: String
 
-  /**
-    * The @id is a IRI/URI identifier
-    * @return a String which is empty if no @id is assigned, TODO: should this be an Option[String]?
+  /** The @id is a IRI/URI identifier
+    * @return
+    *   a String which is empty if no @id is assigned, TODO: should this be an Option[String]?
     */
   def `@id` = iri
 

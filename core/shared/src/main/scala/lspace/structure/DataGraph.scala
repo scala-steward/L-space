@@ -7,18 +7,16 @@ import monix.reactive.Observable
 
 trait DataGraph extends Graph {
 
-  lazy val init: Task[Unit] = {
-    ns.init.flatMap(_ => index.init)
-  }.memoizeOnSuccess
+  lazy val init: Task[Unit] =
+    ns.init.flatMap(_ => index.init).memoizeOnSuccess
 
   def index: IndexGraph
 
-  override protected[lspace] def getOrCreateNode(id: Long): Task[GNode] = {
+  override protected[lspace] def getOrCreateNode(id: Long): Task[GNode] =
     for {
       node <- super.getOrCreateNode(id)
 //      e    <- _indexNode(node)
     } yield node
-  }
 
   override protected[lspace] def storeNode(node: GNode): Task[Unit] =
     for {
@@ -26,17 +24,14 @@ trait DataGraph extends Graph {
       _ <- indexNode(node)
     } yield ()
 
-  override protected[lspace] def deleteNode(node: _Node): Task[Unit] = {
+  override protected[lspace] def deleteNode(node: _Node): Task[Unit] =
 //        `@typeIndex`.delete()
     super.deleteNode(node)
-  }
 
-  protected[lspace] def indexNode(node: _Node): Task[Unit] = {
+  protected[lspace] def indexNode(node: _Node): Task[Unit] =
     index.indexes.`@typeIndex`.store(Shape(node))
-  }
 
-  /**
-    * creates, stores and indexes an edge
+  /** creates, stores and indexes an edge
     * @param from
     * @param key
     * @param to
@@ -44,10 +39,12 @@ trait DataGraph extends Graph {
     * @tparam E
     * @return
     */
-  abstract override protected[lspace] def createEdge[S, E](id: Long,
-                                                           from: _Resource[S],
-                                                           key: Property,
-                                                           to: _Resource[E]): Task[GEdge[S, E]] = {
+  abstract override protected[lspace] def createEdge[S, E](
+    id: Long,
+    from: _Resource[S],
+    key: Property,
+    to: _Resource[E]
+  ): Task[GEdge[S, E]] =
     for {
       edge <- super.createEdge(id, from, key, to)
       _    <- indexEdge(edge)
@@ -56,11 +53,9 @@ trait DataGraph extends Graph {
 //    if (ns.properties.get(key.iri).isEmpty) ns.properties.store(key)
 //    _indexEdge(edge)
 //    edge
-  }
 
-  override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] = {
+  override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] =
     super.deleteEdge(edge)
-  }
 
   protected def indexEdge[S, E](edge: _Edge[S, E]): Task[Unit] = {
 
@@ -80,7 +75,8 @@ trait DataGraph extends Graph {
             (if (from.labels.nonEmpty) {
                Observable
                  .fromTask(
-                   index.indexes.getOrCreate(lspace.__[Any, Any].has(Property.default.`@type`).has(key).untyped))
+                   index.indexes.getOrCreate(lspace.__[Any, Any].has(Property.default.`@type`).has(key).untyped)
+                 )
                  .mapEval { lkvIndex =>
                    lkvIndex.store(Shape(from, edge))
                  }

@@ -32,21 +32,29 @@ class UpsertHelper() {
   }
 
   def createEdge[S, E](id: Long, edgeTask: Task[Edge[S, E]]): Task[Edge[S, E]] = synchronized {
-    oldIdNewEdgeMap.get(id).map(Task.now).getOrElse {
-      edgeTask.map { edge =>
-        oldIdNewEdgeMap.update(id, edge)
-        edge
+    oldIdNewEdgeMap
+      .get(id)
+      .map(Task.now)
+      .getOrElse {
+        edgeTask.map { edge =>
+          oldIdNewEdgeMap.update(id, edge)
+          edge
+        }
       }
-    }.asInstanceOf[Task[Edge[S, E]]]
+      .asInstanceOf[Task[Edge[S, E]]]
   }
 
   def createValue[V](id: Long, valueTask: Task[Value[V]]): Task[Value[V]] = synchronized {
-    oldIdNewValueMap.get(id).map(Task.now).getOrElse {
-      valueTask.map { value =>
-        oldIdNewValueMap.update(id, value)
-        value
+    oldIdNewValueMap
+      .get(id)
+      .map(Task.now)
+      .getOrElse {
+        valueTask.map { value =>
+          oldIdNewValueMap.update(id, value)
+          value
+        }
       }
-    }.asInstanceOf[Task[Value[V]]]
+      .asInstanceOf[Task[Value[V]]]
   }
 
   def retryEdges(implicit graph: Graph): Task[Boolean] = Task.defer {
@@ -56,7 +64,7 @@ class UpsertHelper() {
         mergeEdge(edge)
           .doOnFinish {
             case None => Task(edgesToRetry -= edge.id)
-            case _ => Task.unit
+            case _    => Task.unit
           }
           .onErrorHandle(_ => ())
       }
@@ -85,13 +93,14 @@ class UpsertHelper() {
           oldIdNewValueMap(resource.id)
         case r => throw new Exception(s"unexpected type ${r.getClass.getSimpleName}")
       }).toOption
-    } yield {
-      createEdge(edge.id, graph.edges.create(
+    } yield createEdge(
+      edge.id,
+      graph.edges.create(
         from,
         edge.key,
         to
-      ))
-    }).getOrElse {
+      )
+    )).getOrElse {
       Task.raiseError {
         edgesToRetry += (edge.id -> edge)
         new Exception("could not merge yet")

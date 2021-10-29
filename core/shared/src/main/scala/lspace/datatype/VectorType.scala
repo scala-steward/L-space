@@ -38,8 +38,9 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
 //      implicit clsTpbl: ClassTypeable.Aux[VT, TOut, CTOut]): VectorType[TOut] =
 //    new VectorType[TOut](valueRange.asInstanceOf[List[ClassType[TOut]]]).asInstanceOf[VectorType[TOut]]
 
-  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit clsTpbl: ClassTypeable.Aux[T, TOut, CTOut])
-    : ClassTypeable.Aux[VectorType[Vector[T]], Vector[TOut], VectorType[Vector[TOut]]] =
+  implicit def defaultCls[T, TOut, CTOut <: ClassType[_]](implicit
+    clsTpbl: ClassTypeable.Aux[T, TOut, CTOut]
+  ): ClassTypeable.Aux[VectorType[Vector[T]], Vector[TOut], VectorType[Vector[TOut]]] =
     new ClassTypeable[VectorType[Vector[T]]] {
       type C  = Vector[TOut]
       type CT = VectorType[Vector[TOut]]
@@ -49,7 +50,7 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
     }
 
   def apply(): VectorType[Vector[Any]] = datatype
-  def apply[V](valueRange: ClassType[V]): VectorType[Vector[V]] = {
+  def apply[V](valueRange: ClassType[V]): VectorType[Vector[V]] =
     new VectorType[Vector[V]](Some(valueRange).filter(_.iri.nonEmpty)) {
       lazy val iri =
         List(NS.types.`@vector`, valueRange.map(_.iri).filter(_.nonEmpty).map("(" + _ + ")").getOrElse(""))
@@ -58,7 +59,6 @@ object VectorType extends DataTypeDef[VectorType[Any]] {
 
       override protected def _extendedClasses: List[ClassType[Any]] = List(datatype)
     }
-  }
 }
 
 abstract class VectorType[+V](val valueRange: Option[ClassType[Any]]) extends CollectionType[V] {
@@ -69,8 +69,8 @@ abstract class VectorType[+V](val valueRange: Option[ClassType[Any]]) extends Co
         case tpe: VectorType[_] =>
           (valueRange, tpe.valueRange) match {
             case (Some(thisRange), Some(thatRange)) => thisRange.`@extends`(thatRange)
-            case (None, Some(_))            => false
-            case (Some(_), None)            => true
+            case (None, Some(_))                    => false
+            case (Some(_), None)                    => true
             case (None, None)                       => true
           }
         case _ => super.`extends`(classType)

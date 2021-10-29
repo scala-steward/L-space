@@ -29,14 +29,13 @@ class AuthApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
         Input
           .post("/")
       (for {
-        cookiesAndIri <- {
+        cookiesAndIri <-
           Task
             .from(authApi.create(input).output.get)
             .map { output =>
               output.status shouldBe Status.Ok
               (output.cookies, output.value)
             }
-        }
         (cookies, iri) = cookiesAndIri._1 -> cookiesAndIri._2
         _ <- Task
           .deferFuture {

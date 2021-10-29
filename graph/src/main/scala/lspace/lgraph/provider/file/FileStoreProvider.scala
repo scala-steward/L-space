@@ -6,18 +6,21 @@ import lspace.lgraph.store.{StoreManager, StoreProvider}
 import lspace.lgraph.{GraphManager, LGraph}
 
 object FileStoreProvider {
-  def apply[T](iri: String, path: String)(implicit encoder: JsonEncoder[T],
-                                          decoder: JsonDecoder[T],
-                                          httpClient: HttpClient): FileStoreProvider[T] =
+  def apply[T](iri: String, path: String)(implicit
+    encoder: JsonEncoder[T],
+    decoder: JsonDecoder[T],
+    httpClient: HttpClient
+  ): FileStoreProvider[T] =
     new FileStoreProvider[T](
       iri,
       path
     )
 }
-class FileStoreProvider[T](val iri: String, path: String)(implicit encoder: JsonEncoder[T],
-                                                          decoder: JsonDecoder[T],
-                                                          httpClient: HttpClient)
-    extends StoreProvider {
+class FileStoreProvider[T](val iri: String, path: String)(implicit
+  encoder: JsonEncoder[T],
+  decoder: JsonDecoder[T],
+  httpClient: HttpClient
+) extends StoreProvider {
   import FileStoreProvider._
 
   override def stateManager[G <: LGraph](graph: G): GraphManager[G] = FileGraphManager(graph, path + "/graph")

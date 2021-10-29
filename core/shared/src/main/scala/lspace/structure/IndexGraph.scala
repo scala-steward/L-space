@@ -49,10 +49,12 @@ trait IndexGraph extends Graph {
     //    `@typeIndex`.delete()
     super.deleteNode(node)
 
-  abstract override protected[lspace] def createEdge[S, E](id: Long,
-                                                           from: _Resource[S],
-                                                           key: Property,
-                                                           to: _Resource[E]): Task[GEdge[S, E]] =
+  abstract override protected[lspace] def createEdge[S, E](
+    id: Long,
+    from: _Resource[S],
+    key: Property,
+    to: _Resource[E]
+  ): Task[GEdge[S, E]] =
     for {
       edge <- super.createEdge(id, from, key, to)
       _    <- storeEdge(edge)

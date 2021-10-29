@@ -9,10 +9,10 @@ import lspace.lgraph.index.IndexManager
 import lspace.lgraph.provider.file.{DecodeLDFS, EncodeLDFS}
 import monix.eval.Task
 
-class ESIndexManager[G <: LGraph, Json](override val graph: G, val client: ElasticClient)(
-    implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: Decoder.Aux[Json])
-    extends IndexManager(graph) {
+class ESIndexManager[G <: LGraph, Json](override val graph: G, val client: ElasticClient)(implicit
+  baseEncoder: NativeTypeEncoder.Aux[Json],
+  baseDecoder: Decoder.Aux[Json]
+) extends IndexManager(graph) {
 
   val encoder: EncodeLDFS[Json] = EncodeLDFS()
   val decoder: DecodeLDFS[Json] = DecodeLDFS(graph)

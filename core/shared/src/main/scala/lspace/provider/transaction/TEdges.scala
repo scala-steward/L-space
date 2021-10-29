@@ -40,20 +40,20 @@ abstract class TEdges[G <: Transaction](override val graph: G) extends Edges(gra
     } ++ fromParent.filter(n => idSet.contains(n.id))
   }
 
-  override def hasId(id: Long): Task[Option[Edge[_, _]]] = {
+  override def hasId(id: Long): Task[Option[Edge[_, _]]] =
     if (deleted.contains(id)) Task.now(None)
     else
       for {
         r <- super
           .hasId(id)
-        r1 <- if (r.nonEmpty) Task.now(r)
-        else
-          parent.edges
-            .hasId(id)
-            .flatMap {
-              case Some(edge) => _TEdge(edge.asInstanceOf[parent._Edge[Any, Any]]).to[Task].map(Some(_))
-              case None       => Task.now(None)
-            }
+        r1 <-
+          if (r.nonEmpty) Task.now(r)
+          else
+            parent.edges
+              .hasId(id)
+              .flatMap {
+                case Some(edge) => _TEdge(edge.asInstanceOf[parent._Edge[Any, Any]]).to[Task].map(Some(_))
+                case None       => Task.now(None)
+              }
       } yield r1
-  }
 }

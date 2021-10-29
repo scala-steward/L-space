@@ -5,9 +5,11 @@ import lspace.structure._
 import monix.eval.Task
 
 object OutE
-    extends StepDef("OutE",
-                    "An outE-step takes one or more property-labels and traverses to the valid incoming paths if any",
-                    MoveStep.ontology :: Nil)
+    extends StepDef(
+      "OutE",
+      "An outE-step takes one or more property-labels and traverses to the valid incoming paths if any",
+      MoveStep.ontology :: Nil
+    )
     with StepWrapper[OutE] {
 
   def toStep(node: Node): Task[OutE] =
@@ -17,7 +19,8 @@ object OutE
           .outE(MoveStep.keys.label)
           .map(_.to.iri)
           .filter(_.nonEmpty)
-          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))) //TODO: get from target graph(s) or download if not found?
+          .map(iri => node.graph.ns.properties.get(iri).map(_.getOrElse(Property(iri))))
+      ) // TODO: get from target graph(s) or download if not found?
       out = OutE(properties.toSet)
     } yield out
 

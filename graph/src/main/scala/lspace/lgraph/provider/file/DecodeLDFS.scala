@@ -9,11 +9,10 @@ import lspace.codec.json.jsonld.Decoder
 import lspace.structure._
 import monix.eval.Task
 
-case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps())(
-    implicit
-    override val baseDecoder: JsonDecoder[Json],
-    httpClient: HttpClient)
-    extends Decoder {
+case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps())(implicit
+  override val baseDecoder: JsonDecoder[Json],
+  httpClient: HttpClient
+) extends Decoder {
   import baseDecoder._
 
   override def apply(graph0: Lspace): lspace.codec.json.jsonld.Decoder[Json] =
@@ -29,7 +28,7 @@ case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps()
     }
   }
 
-  override def tryNodeRef(json: Json)(implicit activeContext: ActiveContext): Option[Task[Node]] = //need IdMaps here
+  override def tryNodeRef(json: Json)(implicit activeContext: ActiveContext): Option[Task[Node]] = // need IdMaps here
     json.long
       .orElse(json.int.map(_.toLong))
       .flatMap(idMaps.nodeIds.get)
@@ -39,28 +38,32 @@ case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps()
       .orElse(
         json.string
           .map(activeContext.expandIri)
-          .map(s => graph.nodes.upsert(s.iri)) //TODO: add label if missing?
+          .map(s => graph.nodes.upsert(s.iri)) // TODO: add label if missing?
       )
 
-  override def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(
-      implicit activeContext: ActiveContext): Task[Node] =
+  override def toNode(expandedJson: ExpandedMap[Json], label: Option[Ontology])(implicit
+    activeContext: ActiveContext
+  ): Task[Node] =
     expandedJson
       .get(types.`@id`)
       .flatMap(json =>
         json.long
-          .orElse(json.int.map(_.toLong)))
+          .orElse(json.int.map(_.toLong))
+      )
       .flatMap(idMaps.nodeIds.get)
 //        .getOrElse(_, throw FromJsonException("unknown node id ref")))
       .map { id =>
         expandedJson.extractOntologies.flatMap { ontologies =>
           for {
             node <- graph.getOrCreateNode(id)
-            _ <- Task.sequence(if (ontologies.isEmpty) label.toList.map(node.addLabel)
-            else ontologies.map(node.addLabel))
+            _ <- Task.sequence(
+              if (ontologies.isEmpty) label.toList.map(node.addLabel)
+              else ontologies.map(node.addLabel)
+            )
           } yield {
             if ((expandedJson - types.`@id` - types.`@type`).nonEmpty) {
               scribe.warn("node object has more properties that expected for ld+json+fs")
-            } //TODO: log/warn if more unexpected data is found
+            } // TODO: log/warn if more unexpected data is found
             node
           }
         }
@@ -68,8 +71,9 @@ case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps()
       .getOrElse(Task.raiseError(FromJsonException(s"@id is expected to be a long in ld+json+fs ${expandedJson
         .get(types.`@id`)}")))
 
-  override def tryEdgeRef(json: Json, label: Property)(
-      implicit activeContext: ActiveContext): Option[Task[Edge[_, _]]] =
+  override def tryEdgeRef(json: Json, label: Property)(implicit
+    activeContext: ActiveContext
+  ): Option[Task[Edge[_, _]]] =
     json.long
       .orElse(json.int.map(_.toLong))
       .flatMap(idMaps.edgeIds.get)
@@ -77,7 +81,7 @@ case class DecodeLDFS[Json](override val graph: Graph, idMaps: IdMaps = IdMaps()
       .map(graph.edges.hasId(_).map(_.getOrElse(throw FromJsonException("wrong edgeref"))))
       .orElse(
         json.string
-          .map(graph.edges.hasIri(_).headL) //TODO: check if label == edge.key and throw exception if !=
+          .map(graph.edges.hasIri(_).headL) // TODO: check if label == edge.key and throw exception if !=
       )
   //    override def toEdge(expandedJson: Map[String, Json], expectedTypes: List[Property])(
   //      implicit activeContext: ActiveContext): Option[Task[Edge[Any, Any]]] = {

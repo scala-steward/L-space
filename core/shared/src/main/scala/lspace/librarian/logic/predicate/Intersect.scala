@@ -17,12 +17,11 @@ object Intersect
   override lazy val properties: List[Property] = CollectionP.properties
   trait Properties extends CollectionP.Properties
 
-  implicit def toNode[T](p: Intersect[T]): Task[Node] = {
+  implicit def toNode[T](p: Intersect[T]): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
-  }
 }
 
 case class Intersect[+T](pvalue: T) extends CollectionP[T] {

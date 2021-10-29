@@ -17,24 +17,26 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
   import decoder._
   import decoder.baseDecoder._
 
-  def withJsonProperties(resource: lspace.Node, otherJson: ExpandedMap[Json])(
-      implicit activeContext: ActiveContext): Task[lspace.Node] =
+  def withJsonProperties(resource: lspace.Node, otherJson: ExpandedMap[Json])(implicit
+    activeContext: ActiveContext
+  ): Task[lspace.Node] =
     Task
-      .parSequenceUnordered(otherJson.obj.map {
-        case (key, value) =>
-          activeContext.definitions
-            .get(key)
-            .map(_ -> value)
-            .map(Task.now)
-            .getOrElse(
-              //              toProperty(key).map(
-              Task
-                .now(Property.properties.getOrCreate(key))
-                .map(property =>
-                  activeContext.definitions
-                    .get(key)
-                    .map(_ -> value)
-                    .getOrElse(ActiveProperty(property = property)() -> value)))
+      .parSequenceUnordered(otherJson.obj.map { case (key, value) =>
+        activeContext.definitions
+          .get(key)
+          .map(_ -> value)
+          .map(Task.now)
+          .getOrElse(
+            //              toProperty(key).map(
+            Task
+              .now(Property.properties.getOrCreate(key))
+              .map(property =>
+                activeContext.definitions
+                  .get(key)
+                  .map(_ -> value)
+                  .getOrElse(ActiveProperty(property = property)() -> value)
+              )
+          )
       })
       .map(_.map {
         //    Task
@@ -46,67 +48,73 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
             if (activeProperty.`@reverse`) (value: Resource[_]) => resource.addIn(property, value)
             else (value: Resource[_]) => resource.addOut(property, value)
           val addEdgeTypedF =
-            if (activeProperty.`@reverse`)(ct: ClassType[Any], value: Any) => resource.addIn(property, ct, value)
+            if (activeProperty.`@reverse`) (ct: ClassType[Any], value: Any) => resource.addIn(property, ct, value)
             else (ct: ClassType[Any], value: Any) => resource.addOut(property, ct, value)
           json.obj
-            .map {
-              obj =>
-                activeProperty.`@container` match {
-                  case Nil =>
-                    toResource(obj.expand, expectedType)
+            .map { obj =>
+              activeProperty.`@container` match {
+                case Nil =>
+                  toResource(obj.expand, expectedType)
+                    .onErrorHandleWith { case t => autodiscoverValue(json) }
+                    .flatMap(addEdgeF(_))
+                    .map(List(_))
+                case List(`@container`.`@index`) =>
+                  Task.parSequenceUnordered(obj.toList.map { // TODO: expand keys
+                    case (index, json) =>
+                      toResource(json, expectedType)
+                        .onErrorHandleWith { case t => autodiscoverValue(json) }
+                        .flatMap(addEdgeF(_))
+                        .flatMap(_.addOut(Label.P.`@index`, index))
+                  })
+                case List(`@container`.`@language`) =>
+                  Task.parSequenceUnordered(obj.toList.map { case (language, json) =>
+                    toResource(json, expectedType)
                       .onErrorHandleWith { case t => autodiscoverValue(json) }
                       .flatMap(addEdgeF(_))
-                      .map(List(_))
-                  case List(`@container`.`@index`) =>
-                    Task.parSequenceUnordered(obj.toList.map { //TODO: expand keys
-                      case (index, json) =>
-                        toResource(json, expectedType)
-                          .onErrorHandleWith { case t => autodiscoverValue(json) }
-                          .flatMap(addEdgeF(_))
-                          .flatMap(_.addOut(Label.P.`@index`, index))
-                    })
-                  case List(`@container`.`@language`) =>
-                    Task.parSequenceUnordered(obj.toList.map {
-                      case (language, json) =>
-                        toResource(json, expectedType)
-                          .onErrorHandleWith { case t => autodiscoverValue(json) }
-                          .flatMap(addEdgeF(_))
-                          .flatMap(_.addOut(Label.P.`@language`, language))
-                    })
-                  case containers =>
-                    Task.raiseError(
-                      FromJsonException(s"not yet supported => @container: [${containers.map(_.iri).mkString(",")}]"))
-                }
+                      .flatMap(_.addOut(Label.P.`@language`, language))
+                  })
+                case containers =>
+                  Task.raiseError(
+                    FromJsonException(s"not yet supported => @container: [${containers.map(_.iri).mkString(",")}]")
+                  )
+              }
             }
-            .orElse(json.list.map {
-              array =>
-                val edgesTask: Task[List[Edge[Any, Any]]] =
-                  activeProperty.`@container` match {
-                    case Nil =>
-                      expectedType
-                        .map {
-                          case collectionType: CollectionType[_] =>
-                            toCollection(array, collectionType)
-                              .flatMap(addEdgeTypedF(collectionType, _))
-                              .map(List(_))
-                          case et => //no container but expected type, try ListType(List(et))
+            .orElse(json.list.map { array =>
+              val edgesTask: Task[List[Edge[Any, Any]]] =
+                activeProperty.`@container` match {
+                  case Nil =>
+                    expectedType
+                      .map {
+                        case collectionType: CollectionType[_] =>
+                          toCollection(array, collectionType)
+                            .flatMap(addEdgeTypedF(collectionType, _))
+                            .map(List(_))
+                        case et => // no container but expected type, try ListType(List(et))
 //                            toCollection(array, ListType(et))
 //                              .flatMap(nodes => Task.parSequenceUnordered(nodes.map(node => addEdgeTypedF(et, node))))
-                            toResource(json, expectedType).flatMap(addEdgeF(_)).map(List(_))
-                        }
-                        .getOrElse {
-                          Task.parSequenceUnordered(array.map(toResource(_, expectedType)
-                            .onErrorHandleWith { case t => autodiscoverValue(json) }
-                            .flatMap(addEdgeF(_))))
-                        }
-                    case List(`@container`.`@list`) | List(`@container`.`@set`) =>
-                      //this processes an array as a list of edges
-                      Task.parSequenceUnordered(array.map(toResource(_, expectedType)
-                        .onErrorHandleWith { case t => autodiscoverValue(json) }
-                        .flatMap(addEdgeF(_))))
-                    case _ => throw new Exception("invalid")
-                  }
-                edgesTask
+                          toResource(json, expectedType).flatMap(addEdgeF(_)).map(List(_))
+                      }
+                      .getOrElse {
+                        Task.parSequenceUnordered(
+                          array.map(
+                            toResource(_, expectedType)
+                              .onErrorHandleWith { case t => autodiscoverValue(json) }
+                              .flatMap(addEdgeF(_))
+                          )
+                        )
+                      }
+                  case List(`@container`.`@list`) | List(`@container`.`@set`) =>
+                    // this processes an array as a list of edges
+                    Task.parSequenceUnordered(
+                      array.map(
+                        toResource(_, expectedType)
+                          .onErrorHandleWith { case t => autodiscoverValue(json) }
+                          .flatMap(addEdgeF(_))
+                      )
+                    )
+                  case _ => throw new Exception("invalid")
+                }
+              edgesTask
             })
             .getOrElse {
               toResource(json, expectedType)
@@ -142,14 +150,16 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
         .map(
           Task
             .now(_)
-            .flatMap(_.obj.map(decodeGeometry).getOrElse(Task.raiseError(new Exception("geometry not an object")))))
+            .flatMap(_.obj.map(decodeGeometry).getOrElse(Task.raiseError(new Exception("geometry not an object"))))
+        )
         .getOrElse(Task.raiseError(new Exception("no geometry")))
       properties <- map
         .get("properties")
         .map(
           _.obj
             .map(Task.now)
-            .getOrElse(Task.raiseError(new Exception("invalid properties"))))
+            .getOrElse(Task.raiseError(new Exception("invalid properties")))
+        )
         .getOrElse(Task.now(Map[String, Json]()))
       node <- DetachedGraph.nodes.create()
       //      geo  <- DetachedGraph.values.upsert(geometry, lspace.ClassType.detect(geometry))
@@ -169,20 +179,26 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
                   for {
                     features <- map
                       .get("features")
-                      .map(_.list
-                        .map(Task.now)
-                        .getOrElse(Task.raiseError(new Exception("features must be an array"))))
+                      .map(
+                        _.list
+                          .map(Task.now)
+                          .getOrElse(Task.raiseError(new Exception("features must be an array")))
+                      )
                       .getOrElse(Task.raiseError(new Exception("FeatureCollection without 'features' is weird")))
                     nodes <- Task.parSequence(
                       features
                         .map(
                           _.obj
-                            .map(Task
-                              .now(_)
-                              .flatMap(
-                                decodeFeatureOption(_).getOrElse(Task.raiseError(new Exception("invalid feature")))))
-                            .getOrElse(Task.raiseError(new Exception("feature must be an object")))): List[
-                        Task[lspace.Node]])
+                            .map(
+                              Task
+                                .now(_)
+                                .flatMap(
+                                  decodeFeatureOption(_).getOrElse(Task.raiseError(new Exception("invalid feature")))
+                                )
+                            )
+                            .getOrElse(Task.raiseError(new Exception("feature must be an object")))
+                        ): List[Task[lspace.Node]]
+                    )
                   } yield nodes
                 case "Feature" =>
                   decodeFeature(map).map(List(_))
@@ -226,7 +242,7 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
       case "MultiLineString" => graph.values.upsert(geoJsonDecoder.decodeMultiLine(coordinates), `@geomultiline`)
       case "Polygon"         => graph.values.upsert(geoJsonDecoder.decodePolygon(coordinates), `@geopolygon`)
       case "MultiPolygon"    => graph.values.upsert(geoJsonDecoder.decodeMultiPolygon(coordinates), `@geomultipolygon`)
-      case _                 => Task.raiseError { FromJsonException(s"not a valid geojson Geometry $iri") }
+      case _                 => Task.raiseError(FromJsonException(s"not a valid geojson Geometry $iri"))
     }
 
   def decodeGeometryCollection(map: Map[String, Json]): Task[lspace.Value[MultiGeometry]] =
@@ -235,10 +251,13 @@ class Decoder[Json](decoder: json.jsonld.JsonLDDecoder[Json], geoJsonDecoder: Ge
         Task {
           MultiGeometry(
             json.list
-              .map(_.map(_.obj.getOrElse(throw new Exception("invalid MultiGeometry Geometry")))
-                .map(geoJsonDecoder.decodeGeometry))
+              .map(
+                _.map(_.obj.getOrElse(throw new Exception("invalid MultiGeometry Geometry")))
+                  .map(geoJsonDecoder.decodeGeometry)
+              )
               .getOrElse(throw new Exception("invalid MultiGeometry, array expected for geometries"))
-              .toVector)
+              .toVector
+          )
         }.flatMap(graph.values.upsert(_, `@geomultigeo`))
       case None => Task.raiseError(FromJsonException("not a valid geojson MultiGeometry, geometries missing"))
     }

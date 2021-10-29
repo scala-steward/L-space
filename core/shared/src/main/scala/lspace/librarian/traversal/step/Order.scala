@@ -24,7 +24,8 @@ object Order extends StepDef("Order", "An order-step ..", GroupingBarrierStep.on
         .parSequence(
           node
             .out(Order.keys.byTraversal)
-            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]])))
+            .map(Traversal.toTraversal(_).map(_.asInstanceOf[Traversal[ClassType[Any], DataType[Any], HNil]]))
+        )
         .map(_.filter(_.et.isInstanceOf[DataType[_]]).head)
     } yield Order(by, node.out(Order.keys.increasingBoolean).take(1).headOption.getOrElse(true))
 
