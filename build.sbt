@@ -1,7 +1,7 @@
 import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 
-ThisBuild / scalaVersion := "3.0.1"
-ThisBuild / crossScalaVersions := Seq("2.13.6", "3.0.1")
+ThisBuild / scalaVersion := "3.1.0"
+// ThisBuild / crossScalaVersions := Seq("2.13.6", "3.0.2")
 ThisBuild / githubWorkflowJavaVersions  := Seq("graalvm-ce-java16@21.1.0", "adopt@1.11.0-11")
 
 inThisBuild(
@@ -65,8 +65,10 @@ lazy val lspace = project
   .in(file("."))
   .settings(skipInPublish)
   .aggregate(
-    core.jvm,
-    core.js
+    // core.jvm,
+    // core.js
+    model.jvm,
+    model.js
     // parse,
     // client.jvm,
     // client.js,
@@ -75,22 +77,34 @@ lazy val lspace = project
 //    services
   )
 
-lazy val core = (crossProject(JSPlatform, JVMPlatform)
+lazy val model = 
+  (crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full) in file("core"))
+  .crossType(CrossType.Full) in file("model"))
   .settings(commonSettings)
-//  .settings(crossVersionSharedSources)
   .settings(
-    name := "lspace-core",
-    libraryDependencies ++= Dependencies.core.value
+    name := "lspace-model",
+    libraryDependencies ++= Seq(
+      "eu.timepit" %% "refined" % Version.refined,
+      "org.typelevel"  %% "squants"  % Version.squants
+    )
   )
-  .jvmSettings(
-    libraryDependencies ++= Dependencies.coreJvm
-  )
-  .jsSettings(
-//    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-    libraryDependencies ++= Dependencies.coreJs.value
-  )
+
+// lazy val core = (crossProject(JSPlatform, JVMPlatform)
+//   .withoutSuffixFor(JVMPlatform)
+//   .crossType(CrossType.Full) in file("core"))
+//   .settings(commonSettings)
+//   .settings(
+//     name := "lspace-core",
+//     libraryDependencies ++= Dependencies.core.value
+//   )
+//   .jvmSettings(
+//     libraryDependencies ++= Dependencies.coreJvm
+//   )
+//   .jsSettings(
+// //    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
+//     libraryDependencies ++= Dependencies.coreJs.value
+//   )
 
 // lazy val parse = project
 //   .in(file("parse"))
