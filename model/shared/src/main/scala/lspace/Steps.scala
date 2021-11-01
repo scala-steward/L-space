@@ -10,6 +10,14 @@ object Has:
 end Has
 case class Has[P <: String] private (p: P) extends Step[Has[P]]
 
+object In:
+  def apply[p <: String](predicate: p): In[predicate.type] = In(predicate)
+
+  type EndType[ET, X] = X match
+    case _ => X
+end In
+case class In[predicate <: String] private (predicate: predicate) extends Step[predicate.type]
+
 object Out:
   def apply[p <: String](predicate: p): Out[predicate.type] = Out(predicate)
 

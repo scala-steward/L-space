@@ -10,7 +10,7 @@ opaque type Iri = String
 object Iri:
   def apply(iri: String): Iri = iri
 
-  extension (iri: Iri) def show: String = iri
+  extension (iri: Iri) def unapply: String = iri
 end Iri
 
 opaque type Name = String
@@ -18,8 +18,7 @@ opaque type Name = String
 object Name:
   def apply(value: String): Name = value
 
-  extension (name: Name) def show: String = name
-
+  extension (name: Name) def unapply: String = name
 end Name
 
 opaque type Comment = String
@@ -27,6 +26,5 @@ opaque type Comment = String
 object Comment:
   def apply(value: String): Comment = value
 
-  extension (comment: Comment) def show: String = comment
-
+  extension (comment: Comment) def unapply: String = comment
 end Comment
