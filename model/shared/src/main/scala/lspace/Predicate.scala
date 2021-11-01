@@ -1,9 +1,5 @@
 package lspace
 
-object Predicate:
-
-end Predicate
-
 object P:
   val eqv     = Eqv
   val neqv    = Neqv
@@ -17,6 +13,8 @@ object P:
   val within  = Within
   val and     = And
   val or      = Or
+  val prefix  = Prefix
+  val suffix  = Suffix
 
   infix def ![predicate <: P[_]](predicate: predicate): Not[Not.NotType[predicate]] = Not(predicate)
 end P
@@ -165,10 +163,18 @@ object Not:
 end Not
 final case class Not[V](value: V) extends P[Not.NotType[V]](Name("Not"), Comment("Predicate for .., !"))
 
-extension [predicate <: P[_]](predicate: predicate)
-  infix def &&[predicate2 <: P[_]](predicate2: predicate2): And[And.AndTuple[(predicate, predicate2)]] = And(
-    (predicate, predicate2)
-  )
-  infix def ||[predicate2 <: P[_]](predicate2: predicate2): Or[Or.OrTuple[(predicate, predicate2)]] = Or(
-    (predicate, predicate2)
-  )
+object Prefix:
+  type PrefixType[X] = X match
+    case String  => X
+    case Seq[_]  => X
+    case Product => X
+end Prefix
+final case class Prefix[V](value: V) extends P[Prefix.PrefixType[V]](Name("Prefix"), Comment("Predicate for .., !"))
+
+object Suffix:
+  type SuffixType[X] = X match
+    case String  => X
+    case Seq[_]  => X
+    case Product => X
+end Suffix
+final case class Suffix[V](value: V) extends P[Suffix.SuffixType[V]](Name("Suffix"), Comment("Predicate for .., !"))

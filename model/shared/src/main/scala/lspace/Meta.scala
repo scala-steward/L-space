@@ -1,11 +1,24 @@
 package lspace
 
+// opaque type Iri[iri <: String] = iri
+// object Iri:
+//   def apply[iri <: String](iri: iri): Iri[iri.type] = iri
+
+//   extension [iri <: String](iri: Iri[iri]) def show: iri = iri
+// end Iri
+opaque type Iri = String
+object Iri:
+  def apply(iri: String): Iri = iri
+
+  extension (iri: Iri) def show: String = iri
+end Iri
+
 opaque type Name = String
 
 object Name:
   def apply(value: String): Name = value
 
-  extension (name: Name) def toString: String = name
+  extension (name: Name) def show: String = name
 
 end Name
 
@@ -14,6 +27,6 @@ opaque type Comment = String
 object Comment:
   def apply(value: String): Comment = value
 
-  extension (comment: Comment) def toString: String = comment
+  extension (comment: Comment) def show: String = comment
 
 end Comment
