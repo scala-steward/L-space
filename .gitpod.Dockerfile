@@ -1,8 +1,6 @@
 FROM gitpod/workspace-full
 
-FROM gitpod/workspace-full
-
-RUN bash -c ". /home/gitpod/.sdkman/bin/sdkman-init.sh && sdk install java 21.2.0.r11-grl"
+RUN bash -c ". /home/gitpod/.sdkman/bin/sdkman-init.sh && sdk install java 21.3.0.r17-grl"
 
 RUN curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)" && \
     chmod +x cs && \
