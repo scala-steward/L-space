@@ -2,13 +2,13 @@ import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 
 ThisBuild / scalaVersion := "3.1.0"
 // ThisBuild / crossScalaVersions := Seq("2.13.6", "3.0.2")
-ThisBuild / githubWorkflowJavaVersions  := Seq("graalvm-ce-java16@21.1.0", "adopt@1.11.0-11")
+ThisBuild / githubWorkflowJavaVersions := Seq("graalvm-ce-java17@21.3.0")
 
 inThisBuild(
   List(
     organization := "eu.l-space",
-    homepage := Some(url("https://github.com/L-space/L-space")),
-    licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
+    homepage     := Some(url("https://github.com/L-space/L-space")),
+    licenses     := List("MIT" -> url("https://opensource.org/licenses/MIT")),
     developers := List(
       Developer(
         "thijsbroersen",
@@ -39,8 +39,8 @@ ThisBuild / githubWorkflowPublish := Seq(
   WorkflowStep.Sbt(
     List("ci-release"),
     env = Map(
-      "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
-      "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+      "PGP_PASSPHRASE"    -> "${{ secrets.PGP_PASSPHRASE }}",
+      "PGP_SECRET"        -> "${{ secrets.PGP_SECRET }}",
       "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
       "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
     )
@@ -50,7 +50,7 @@ ThisBuild / githubWorkflowPublish := Seq(
 lazy val commonSettings = commonSmlBuildSettings ++ Seq(
   Test / packageBin / publishArtifact := true,
   //  publishArtifact in (IntegrationTest, packageBin) := true,
-  updateOptions := updateOptions.value.withCachedResolution(true),
+  updateOptions        := updateOptions.value.withCachedResolution(true),
   Compile / run / fork := true
   //  Test / fork := true,
   //  Test / testForkedParallel := true
@@ -58,7 +58,7 @@ lazy val commonSettings = commonSmlBuildSettings ++ Seq(
 
 val skipInPublish = Seq(
   (publish / skip) := true,
-  publish := {}
+  publish          := {}
 )
 
 lazy val lspace = project
@@ -77,18 +77,18 @@ lazy val lspace = project
 //    services
   )
 
-lazy val model = 
+lazy val model =
   (crossProject(JSPlatform, JVMPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Full) in file("model"))
-  .settings(commonSettings)
-  .settings(
-    name := "lspace-model",
-    libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % Version.refined,
-      "org.typelevel"  %% "squants"  % Version.squants
+    .withoutSuffixFor(JVMPlatform)
+    .crossType(CrossType.Full) in file("model"))
+    .settings(commonSettings)
+    .settings(
+      name := "lspace-model",
+      libraryDependencies ++= Seq(
+        "eu.timepit"    %% "refined" % Version.refined,
+        "org.typelevel" %% "squants" % Version.squants
+      )
     )
-  )
 
 // lazy val core = (crossProject(JSPlatform, JVMPlatform)
 //   .withoutSuffixFor(JVMPlatform)
