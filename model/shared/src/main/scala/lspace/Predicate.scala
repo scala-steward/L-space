@@ -18,11 +18,20 @@ object P:
 
   infix def ![predicate <: P[_]](predicate: predicate): Not[Not.NotType[predicate]] = Not(predicate)
 end P
+
 sealed trait P[+V](label: Name, comment: Comment) extends Matchable derives CanEqual
 
 sealed trait EqP[+V]                extends P[V]
-final case class Eqv[+V](pvalue: V) extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")), EqP[V]
-final case class Neqv[+V](pvalue: V)
+object Eqv:
+  def apply[V](pvalue: V): Eqv[pvalue.type] = Eqv(pvalue)
+end Eqv
+final case class Eqv[+V] private(pvalue: V) extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")), EqP[V]
+
+
+object Neqv:
+  def apply[V](pvalue: V): Neqv[pvalue.type] = Neqv(pvalue)
+end Neqv
+final case class Neqv[+V] private(pvalue: V)
     extends P[V](Name("Neqv"), Comment("Predicate for logical nonequivalence, !==")),
       EqP[V]
 
@@ -31,14 +40,14 @@ object OrderP:
 
   type OrderableType[X] = X match
     case Int            => X
-    case Double         => Double
-    case Long           => Long
-    case Instant        => Instant
-    case ZonedDateTime  => ZonedDateTime
-    case OffsetDateTime => OffsetDateTime
-    case LocalDateTime  => LocalDateTime
-    case LocalDate      => LocalDate
-    case LocalTime      => LocalTime
+    case Double         => X
+    case Long           => X
+    case Instant        => X
+    case ZonedDateTime  => X
+    case OffsetDateTime => X
+    case LocalDateTime  => X
+    case LocalDate      => X
+    case LocalTime      => X
 end OrderP
 sealed trait OrderP[+V] extends EqP[V]
 
@@ -105,10 +114,11 @@ object And:
     case x *: xs    => Tuple.Concat[PType[x], AndTuple[xs]]
     case _          => PType[X]
 
-  def andTuple[X](x: X): AndTuple[X] = x match
-    case EmptyTuple => Tuple.apply().asInstanceOf[AndTuple[X]]
-    case x *: xs    => (ptype(x) ++ andTuple(xs)).asInstanceOf[AndTuple[X]]
-    case x          => ptype(x).asInstanceOf[AndTuple[X]]
+  def andTuple[X](x: X): AndTuple[X] = (x match
+    case EmptyTuple => Tuple.apply()
+    case x *: xs    => (ptype(x) ++ andTuple(xs))
+    case x          => ptype(x)
+  ).asInstanceOf[AndTuple[X]]
 
   type PType[X] <: Tuple = X match
     case And[predicates] => predicates
@@ -135,10 +145,11 @@ object Or:
     case x *: xs    => Tuple.Concat[PType[x], OrTuple[xs]]
     case _          => PType[X]
 
-  def orTuple[X](x: X): OrTuple[X] = x match
-    case EmptyTuple => Tuple.apply().asInstanceOf[OrTuple[X]]
-    case x *: xs    => (ptype(x) ++ orTuple(xs)).asInstanceOf[OrTuple[X]]
-    case x          => ptype(x).asInstanceOf[OrTuple[X]]
+  def orTuple[X](x: X): OrTuple[X] = (x match
+    case EmptyTuple => Tuple.apply()
+    case x *: xs    => (ptype(x) ++ orTuple(xs))
+    case x          => ptype(x)
+  ).asInstanceOf[OrTuple[X]]
 
   type PType[X] <: Tuple = X match
     case Or[predicates] => predicates
