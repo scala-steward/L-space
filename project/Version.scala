@@ -8,7 +8,7 @@ object Version {
   val minitest       = "2.9.6"
   val monix          = "3.4.0"
   val pureconfig     = "0.16.0"
-  val refined        = "0.9.27"
+  val refined        = "0.9.28"
   val scalaJavaTime  = "2.3.0"
   val scalaMock      = "5.1.0"
   val scalaTest      = "3.2.10"
