@@ -65,14 +65,14 @@ object Dependencies {
     "com.github.pureconfig" %% "pureconfig-generic" % Version.pureconfig
   )
 
-  lazy val storeCassandra = Seq(
-//    "com.outworkers" %% "phantom-dsl" % Version.phantom
-//    "ch.qos.logback"             % "logback-classic" % "1.2.3",
-//    "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
-  ) ++ Seq(
-    "com.dimafeng" %% "testcontainers-scala-scalatest" % Version.testContainers % "test",
-    "com.dimafeng" %% "testcontainers-scala-cassandra" % Version.testContainers % "test"
-  )
+//   lazy val storeCassandra = Seq(
+// //    "com.outworkers" %% "phantom-dsl" % Version.phantom
+// //    "ch.qos.logback"             % "logback-classic" % "1.2.3",
+// //    "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
+//   ) ++ Seq(
+//     "com.dimafeng" %% "testcontainers-scala-scalatest" % Version.testContainers % "test",
+//     "com.dimafeng" %% "testcontainers-scala-cassandra" % Version.testContainers % "test"
+//   )
 
   lazy val storeKafka = Seq(
     "io.monix" %% "monix-kafka-1x" % "1.0.0-RC7"
@@ -104,7 +104,7 @@ object Dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % Version.sttpTapir,
     "com.vmunier"                 %% "scalajs-scripts"          % "1.1.4",
     //    "com.github.t3hnar" %% "scala-bcrypt" % "3.1",
-    "com.lihaoyi" %% "scalatags" % "0.9.4" //TODO: replace with Laminar
+    "com.lihaoyi" %% "scalatags" % "0.9.4" // TODO: replace with Laminar
 //    "com.raquo" %% "domtypes"   % "0.9.5",
 //    "com.raquo" %% "dombuilder" % "0.9.2"
   )
@@ -115,11 +115,5 @@ object Dependencies {
 //    "com.github.finagle" %% "finchx-fs2"           % Version.finch,
 //    "com.github.finagle" %% "finchx-refined"       % Version.finch,
 //    "co.fs2" %% "fs2-reactive-streams" % "2.4.4"
-  )
-
-  lazy val test = Seq(
-    "org.scalatest" %% "scalatest"                      % Version.scalaTest      % "it,test",
-    "org.scalamock" %% "scalamock"                      % Version.scalaMock      % "test",
-    "com.dimafeng"  %% "testcontainers-scala-scalatest" % Version.testContainers % "it"
   )
 }

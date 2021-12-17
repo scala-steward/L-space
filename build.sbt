@@ -51,9 +51,13 @@ lazy val commonSettings = commonSmlBuildSettings ++ Seq(
   Test / packageBin / publishArtifact := true,
   //  publishArtifact in (IntegrationTest, packageBin) := true,
   updateOptions        := updateOptions.value.withCachedResolution(true),
-  Compile / run / fork := true
+  Compile / run / fork := true,
   //  Test / fork := true,
   //  Test / testForkedParallel := true
+  scalacOptions ++= Seq(
+    "-Yexplicit-nulls"
+    // "-language:strictEquality"
+  )
 )
 
 val skipInPublish = Seq(
@@ -88,6 +92,9 @@ lazy val model =
         "eu.timepit"    %% "refined" % Version.refined,
         "org.typelevel" %% "squants" % Version.squants
       )
+    )
+    .settings(
+      SharedSettings.test
     )
 
 // lazy val core = (crossProject(JSPlatform, JVMPlatform)

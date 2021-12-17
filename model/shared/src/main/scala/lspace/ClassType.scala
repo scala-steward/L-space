@@ -18,7 +18,20 @@ final case class Ontology(iri: Iri) extends ClassType[Node]
 final case class Property(iri: Iri) extends ClassType[Edge[Any, Any]]
 sealed trait DataType[+V](iri: Iri) extends ClassType[Value[V]]
 
-object IntType:
+object IntType                           extends IntType[Int](Iri("@int")) with DataType(Iri("@int"))
+sealed trait IntType[i <: Int](iri: Iri) extends DataType[i]
 
-end IntType
-sealed trait IntType[i <: Int] extends ClassType[Value[i]]
+object StringType                              extends StringType[String](Iri("@string")) with DataType(Iri("@string"))
+sealed trait StringType[s <: String](iri: Iri) extends DataType[s]
+
+sealed trait StructuredType[+T](iri: Iri) extends DataType[T]
+sealed trait CollectionType[+T](iri: Iri) extends StructuredType[T]
+
+type ClassTypeLeaf[X] = X match {
+  case ct *: EmptyTuple => ct
+  case ct *: othertypes => ct | ClassTypeLeaf[othertypes]
+}
+// object UnionType:
+//   def apply[T](types: ClassTypeLeaf[T]): UnionType[ClassTypeLeaf[T]] = new UnionType(types) { val iri: Iri = Iri("") }
+// end UnionType
+sealed trait UnionType[+T](types: T) extends DataType[T]

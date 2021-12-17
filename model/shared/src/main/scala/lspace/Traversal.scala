@@ -23,18 +23,52 @@ open class Edge[+S, +E] extends Resource[Edge[S, E]]
   */
 open class Value[+V](v: V) extends Resource[Value[V]]
 
-final case class Traversal[+ST <: ClassType[Any], +ET <: ClassType[Any], Steps](steps: Steps)(
-  val st: ST,
-  val et: ET
-)
+open class Graph extends Resource[Graph]
+
+final case class Traversal[+ST <: ClassType[?], +ET <: ClassType[?], Steps](steps: Steps)
+// (
+//   val st: ST,
+//   val et: ET
+// )
 
 object Traversal:
 
   def apply(): Traversal[ResourceType[Any], ResourceType[Any], EmptyTuple] =
-    Traversal(EmptyTuple)(ResourceType[Any](), ResourceType[Any]())
+    Traversal(EmptyTuple) // (ResourceType[Any](), ResourceType[Any]())
 
-  val t: Traversal[ResourceType[Any], ResourceType[Any], (Out["name"], Out["has:name"], Out["has"])] =
-    apply().out("name").out("has:name").out("has")
+  def empty[ST <: ClassType[?], ET <: ClassType[?]]: Traversal[ST, ET, EmptyTuple] =
+    Traversal(EmptyTuple)
 
+  type StartType[traversal] <: ClassType[?] = traversal match {
+    case Traversal[st, et, steps] => st
+  }
+  type EndType[traversal] <: ClassType[?] = traversal match {
+    case Traversal[st, et, steps] => et
+  }
 //NonEmptyTuple
 end Traversal
+
+type AnyTraversal[X] = X match {
+  case Traversal[s, e, steps] => Traversal[s, e, steps]
+}
+
+type Traversals[X] <: Tuple = X match {
+  case Traversal[s, e, steps] *: EmptyTuple => Traversal[s, e, steps] *: EmptyTuple
+  case Traversal[s, e, steps] *: traversals => Traversal[s, e, steps] *: Traversals[traversals]
+  case Traversal[s, e, steps]               => Traversal[s, e, steps] *: EmptyTuple
+}
+
+implicit def Traversals[X](traverals: X): Traversals[X] = traverals match {
+  case (traversal: Traversal[s, e, steps]) *: EmptyTuple => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+  case (traversal: Traversal[s, e, steps]) *: traversals =>
+    (traversal *: Traversals(traversals)).asInstanceOf[Traversals[X]]
+  case traversal: Traversal[s, e, steps] => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+}
+
+def TraversalsApply[ET <: ClassType[?], X](in: Traversal[ET, ET, EmptyTuple], traverals: X): Traversals[X] =
+  traverals match {
+    case (traversal: Traversal[s, e, steps]) *: EmptyTuple => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+    case (traversal: Traversal[s, e, steps]) *: traversals =>
+      (traversal *: Traversals(traversals)).asInstanceOf[Traversals[X]]
+    case traversal: Traversal[s, e, steps] => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+  }
