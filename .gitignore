@@ -13,3 +13,6 @@ project/project
 .metals
 
 *.303
+
+# gitpod
+.cache
