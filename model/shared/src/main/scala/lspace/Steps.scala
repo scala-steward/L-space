@@ -45,7 +45,18 @@ sealed trait BranchStep   extends Step
 //     case (key: Key[?])               => key *: EmptyTuple
 //     case _                           => EmptyTuple
 //   }).asInstanceOf[Label[X]]
-sealed trait MoveStep     extends BranchStep
+sealed trait MoveStep extends BranchStep
+object MoveEStep:
+  type EndType[InX <: ClassType[?], OutX <: ClassType[?]] <: ClassType[?] =
+    (InX, OutX) match {
+      case (ClassType[in], ClassType[out]) => EdgeType[in, out]
+    }
+  def EndType[InX, OutX](inX: InX, outX: OutX): EndType[InX, OutX] =
+    (inX, outX) match {
+      case (inX: ClassType[in], outX: ClassType[out]) => EdgeType(inX, outX)
+    }
+
+sealed trait MoveEStep    extends BranchStep
 sealed trait ClipStep     extends FilterStep
 sealed trait GroupingStep extends Step
 sealed trait BarrierStep  extends Step
@@ -162,7 +173,11 @@ object Group:
   type Value[X] = lspace.AnyTraversal[X]
   def Value[X](x: X) = lspace.AnyTraversal(x)
 
-  type EndType[by, value] = TupleType[(Traversal.EndType[By[by]], Traversal.EndType[Value[value]])]
+  type EndType[by, value] = Traversal.EndType[Value[value]] match {
+    case ClassType[t] => TupleType[(Traversal.EndType[By[by]], ListType[List[t]])]
+  }
+  def EndType[by, value](by: by, value: value): EndType[by, value] =
+    TupleType((Traversal.EndType(By(by)), ListType(Traversal.EndType(Value(by)))))
 
   def apply[by, value](by: by, value: value): Group[By[by], Value[value]] = new Group(By(by), Value(value))
 
@@ -187,6 +202,9 @@ case class HasIri(iri: Iri) extends FilterStep
 object HasLabel:
   type EndType[X <: ClassType[?]] <: ClassType[?] = X match {
     case ClassType[?] => X
+  }
+  def EndType[X](x: X): EndType[X] = x match {
+    case ct: ClassType[t] => ct
   }
 
 case class HasLabel[CT <: ClassType[?]](label: CT) extends FilterStep
@@ -213,9 +231,7 @@ case class In[keys] private (keys: keys) extends MoveStep
 // case class InKeyPredicate[key <: Key, predicate <: P[_]](key: key, predicate: predicate) extends In[key]
 
 object InE:
-  type EndType[InX, OutX] = (InX, OutX) match {
-    case (ClassType[in], ClassType[out]) => EdgeType[in, out]
-  }
+  type EndType[InX, OutX] = MoveEStep.EndType[InX, OutX]
   def apply[keys](keys: keys): InE[MapStep.KeyTuple[keys]] = new InE(MapStep.KeyTuple(keys))
 
 case class InE[keys] private (keys: keys) extends MoveStep
@@ -234,19 +250,48 @@ case class Is[predicate <: P[_]](predicate: predicate) extends FilterStep
 
 case class Label(label: Set[Key[?]]) extends MoveStep
 
-case object Last extends ReducingStep
+// object Last:
+case class Last() extends ReducingStep
 
 object Limit:
   type Max = Int with Singleton
 case class Limit[max <: Limit.Max](max: max) extends ClipStep
 
 object Local:
-  type Traversal[X] = lspace.AnyTraversal[X]
-case class Local[traversal](traversal: Local.Traversal[traversal]) extends BranchStep
+  type EndType[X] = Traversal.EndType[X]
+  def EndType[X](x: X): EndType[X] = Traversal.EndType[X](x)
 
-case class Max()
+  type TraversalType[X] = lspace.AnyTraversal[X]
+
+  def apply[traversal](traversal: traversal): Local[TraversalType[traversal]] = new Local(
+    lspace.AnyTraversal(traversal)
+  )
+
+case class Local[traversal] private (traversal: traversal) extends BranchStep
+
+object Max:
+  type StartType[X] = Traversal.StartType[X]
+  def StartType[X](x: X): StartType[X] = Traversal.StartType(x)
+  type EndType[X] = Traversal.EndType[X]
+  def EndType[X](x: X): EndType[X] = Traversal.EndType(x)
+
+  type Able[X] <: Traversal[?, ?, ?] = X match {
+    case Traversal[s, e, steps] => Traversal[s, OrderP.OrderableClassType[e], steps]
+  }
+  def Able[X](x: X): Able[X] = x match {
+    case traversal: Traversal[s, e, steps] =>
+      traversal.withEndType(OrderP.OrderableClassType(traversal.et))
+  }
+
+  def apply[traversal](
+    traversal: traversal
+  ): Max[Able[traversal]] =
+    new Max(Able(traversal))
+
+case class Max[traversal <: Traversal[?, ?, ?]] private (traversal: traversal) extends BranchStep
+
 case class Mean()
-case class Min()
+case class Min[traversal] private (traversal: traversal) extends BranchStep
 
 case class N()
 
@@ -270,10 +315,9 @@ case class Out[keys] private (keys: keys) extends MoveStep
 // case class OutKeyPredicate[key <: Key, predicate <: P[_]](key: key, predicate: predicate) extends Out[key]
 
 object OutE:
-  type EndType[X] = X match {
-    case ClassType[t] => EdgeType[t, Any]
-  }
-  def apply[keys](keys: keys): OutE[MapStep.KeyTuple[keys]] = new OutE(MapStep.KeyTuple(keys))
+  type EndType[InX, OutX] = MoveEStep.EndType[InX, OutX]
+  def EndType[InX, OutX](inX: InX, outX: OutX): EndType[InX, OutX] = MoveEStep.EndType(inX, outX)
+  def apply[keys](keys: keys): OutE[MapStep.KeyTuple[keys]]        = new OutE(MapStep.KeyTuple(keys))
 
 case class OutE[keys] private (keys: keys) extends MoveStep
 

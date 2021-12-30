@@ -21,17 +21,18 @@ end P
 
 sealed trait P[+V](label: Name, comment: Comment) extends Matchable derives CanEqual
 
-sealed trait EqP[+V]                extends P[V]
+sealed trait EqP[+V] extends P[V]
 object Eqv:
   def apply[V](pvalue: V): Eqv[pvalue.type] = Eqv(pvalue)
 end Eqv
-final case class Eqv[+V] private(pvalue: V) extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")), EqP[V]
-
+final case class Eqv[+V] private (pvalue: V)
+    extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")),
+      EqP[V]
 
 object Neqv:
   def apply[V](pvalue: V): Neqv[pvalue.type] = Neqv(pvalue)
 end Neqv
-final case class Neqv[+V] private(pvalue: V)
+final case class Neqv[+V] private (pvalue: V)
     extends P[V](Name("Neqv"), Comment("Predicate for logical nonequivalence, !==")),
       EqP[V]
 
@@ -48,6 +49,30 @@ object OrderP:
     case LocalDateTime  => X
     case LocalDate      => X
     case LocalTime      => X
+
+  def OrderableType[X](x: X): OrderableType[X] = x match {
+    case x: Int            => x
+    case x: Double         => x
+    case x: Long           => x
+    case x: Instant        => x
+    case x: ZonedDateTime  => x
+    case x: OffsetDateTime => x
+    case x: LocalDateTime  => x
+    case x: LocalDate      => x
+    case x: LocalTime      => x
+  }
+
+  type OrderableClassType[X <: ClassType[?]] <: ClassType[?] = X match {
+    case IntType[t]    => X
+    // case DoubleType[t] => X
+    case LongType[t]   => X
+  }
+  def OrderableClassType[X](x: X): OrderableClassType[X] = x match {
+    case ct: IntType[?]    => x
+    // case ct: DoubleType[?] => x
+    case ct: LongType[?]   => x
+  }
+
 end OrderP
 sealed trait OrderP[+V] extends EqP[V]
 
