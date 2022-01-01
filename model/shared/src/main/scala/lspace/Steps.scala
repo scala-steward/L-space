@@ -15,15 +15,21 @@ sealed trait ProjectionStep   extends Step
 object MapStep:
   import Key._
 
+  type KeyNameTuple[X] <: Tuple = KeyTuple[X] match {
+    case EmptyTuple        => EmptyTuple
+    case Key[name] *: keys => name *: KeyNameTuple[keys]
+    case Key[name] => name *: EmptyTuple
+  }
+
   type KeyTuple[X] <: Tuple = X match {
-    case key *: EmptyTuple => KeyLike[key] *: EmptyTuple
-    case key *: keys       => KeyLike[key] *: KeyTuple[keys]
-    case _                 => KeyLike[X] *: EmptyTuple
+    case EmptyTuple  => EmptyTuple
+    case key *: keys => KeyLike[key] *: KeyTuple[keys]
+    case _           => KeyLike[X] *: EmptyTuple
   }
   def KeyTuple[X](x: X): KeyTuple[X] = (x match {
-    case key *: EmptyTuple => (KeyLike(key) *: EmptyTuple)
-    case key *: keys       => (KeyLike(key) *: KeyTuple(keys))
-    case _                 => (KeyLike(x) *: EmptyTuple)
+    case EmptyTuple  => EmptyTuple
+    case key *: keys => (KeyLike(key) *: KeyTuple(keys))
+    case _           => (KeyLike(x) *: EmptyTuple)
   }).asInstanceOf[KeyTuple[X]]
 
 sealed trait MapStep extends ProjectionStep with GroupingStep
@@ -47,13 +53,13 @@ sealed trait BranchStep   extends Step
 //   }).asInstanceOf[Label[X]]
 sealed trait MoveStep extends BranchStep
 object MoveEStep:
-  type EndType[InX <: ClassType[?], OutX <: ClassType[?]] <: ClassType[?] =
+  type EndType[InX, OutX] <: ClassType[?] =
     (InX, OutX) match {
       case (ClassType[in], ClassType[out]) => EdgeType[in, out]
     }
   def EndType[InX, OutX](inX: InX, outX: OutX): EndType[InX, OutX] =
     (inX, outX) match {
-      case (inX: ClassType[in], outX: ClassType[out]) => EdgeType(inX, outX)
+      case (inX: ClassType[in], outX: ClassType[out]) => EdgeType(inX, outX).asInstanceOf[EndType[InX, OutX]]
     }
 
 sealed trait MoveEStep    extends BranchStep
@@ -79,7 +85,7 @@ case class And[traversals] private (traversals: traversals) extends FilterStep
 object As:
   type Label = String with Singleton
 
-case class As[label <: As.Label](label: label) extends LabelStep
+case class As[label <: As.Label, CT <: ClassType[?]](label: label, classType: CT) extends LabelStep
 
 object Choose:
   type By[X] = lspace.AnyTraversal[X]
@@ -91,7 +97,12 @@ object Choose:
   type Right[X] = lspace.AnyTraversal[X]
   def Right[X](x: X) = lspace.AnyTraversal(x)
 
-  type EndType[left, right] = Traversal.EndType[Left[left]] | Traversal.EndType[Right[right]]
+  type EndType[left, right] =
+    UnionType[UnionType.Able[(Traversal.EndType[Left[left]], Traversal.EndType[Right[right]])]]
+  def EndType[left, right](left: left, right: right): EndType[left, right] =
+    UnionType(
+      (Traversal.EndType(Left(left)), Traversal.EndType(Right(right)))
+    )
 
   def apply[by, left, right](
     by: by,
@@ -112,10 +123,16 @@ object Coalesce:
   //   case l | r => Traversal.EndType[l] | Traversal.EndType[r]
   // }
 
-  type EndType[X] <: ClassType[?] = Traversals[X] match {
-    case traversal *: EmptyTuple => Traversal.EndType[traversal]
-    case traversal *: traversals => Traversal.EndType[traversal] | EndType[traversals]
-  }
+  type EndType[X] = UnionType[UnionType.Able[Traversal.EndTypes[X]]]
+  def EndType[X](x: X): EndType[X] = UnionType(Traversal.EndTypes(x))//.asInstanceOf[EndType[X]]
+
+  //   {
+  //   def buildTypes[X](x: X): Set[? <: ClassType[?]] = x match {
+  //     case (traversal: Traversal[?, ?, ?]) *: EmptyTuple => Set(Traversal.EndType(traversal))
+  //     case (traversal: Traversal[?, ?, ?]) *: traversals => Set(Traversal.EndType(traversal)) ++ buildTypes(traversals)
+  //   }
+  //   UnionType[EndType[X]]
+  // }
 
   def apply[traversals](traversals: traversals): Coalesce[Coalesce.Traversals[traversals]] = new Coalesce(
     Traverals(traversals)
@@ -177,7 +194,7 @@ object Group:
     case ClassType[t] => TupleType[(Traversal.EndType[By[by]], ListType[List[t]])]
   }
   def EndType[by, value](by: by, value: value): EndType[by, value] =
-    TupleType((Traversal.EndType(By(by)), ListType(Traversal.EndType(Value(by)))))
+    TupleType((Traversal.EndType(By(by)), ListType(Traversal.EndType(Value(value))))).asInstanceOf[EndType[by, value]]
 
   def apply[by, value](by: by, value: value): Group[By[by], Value[value]] = new Group(By(by), Value(value))
 
@@ -201,9 +218,15 @@ case class HasIri(iri: Iri) extends FilterStep
 
 object HasLabel:
   type EndType[X <: ClassType[?]] <: ClassType[?] = X match {
+    case IntType[t] => IntType[t]
+    case LongType[t] => LongType[t]
+    case StringType[t] => StringType[t]
     case ClassType[?] => X
   }
-  def EndType[X](x: X): EndType[X] = x match {
+  def EndType[X <: ClassType[?]](x: X): EndType[X] = x match {
+    case ct: IntType[t] => ct
+    case ct: LongType[t] => ct
+    case ct: StringType[t] => ct
     case ct: ClassType[t] => ct
   }
 
@@ -213,8 +236,8 @@ case class HasLabel[CT <: ClassType[?]](label: CT) extends FilterStep
 
 case class HasValue() extends FilterStep
 
-case class Has[predicate <: P[_]](
-  key: Key[?],
+case class Has[name <: Key.Name, predicate <: P[_]](
+  key: Key[name],
   predicate: Option[predicate] = None
 ) extends FilterStep
 
@@ -225,26 +248,26 @@ case object Id   extends TraverseStep
 //   case In[key <: Key](key: key)                                                   extends InStep[key]
 // sealed trait In[key <: Key]                                                              extends MoveStep
 object In:
-  def apply[keys](keys: keys): In[MapStep.KeyTuple[keys]] = new In(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): In[MapStep.KeyNameTuple[keys]] = new In(MapStep.KeyTuple(keys))
 
-case class In[keys] private (keys: keys) extends MoveStep
+case class In[keys] private (keys: MapStep.KeyTuple[?]) extends MoveStep
 // case class InKeyPredicate[key <: Key, predicate <: P[_]](key: key, predicate: predicate) extends In[key]
 
 object InE:
   type EndType[InX, OutX] = MoveEStep.EndType[InX, OutX]
-  def apply[keys](keys: keys): InE[MapStep.KeyTuple[keys]] = new InE(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): InE[MapStep.KeyNameTuple[keys]] = new InE(MapStep.KeyTuple(keys))
 
-case class InE[keys] private (keys: keys) extends MoveStep
+case class InE[keys] private (keys: MapStep.KeyTuple[?]) extends MoveStep
 
 object InEMap:
-  def apply[keys](keys: keys): InEMap[MapStep.KeyTuple[keys]] = new InEMap(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): InEMap[MapStep.KeyNameTuple[keys]] = new InEMap(MapStep.KeyTuple(keys))
 
-case class InEMap[keys] private (keys: keys) extends MapStep
+case class InEMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
 
 object InMap:
-  def apply[keys](keys: keys): InMap[MapStep.KeyTuple[keys]] = new InMap(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): InMap[MapStep.KeyNameTuple[keys]] = new InMap(MapStep.KeyTuple(keys))
 
-case class InMap[keys] private (keys: keys) extends MapStep
+case class InMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
 
 case class Is[predicate <: P[_]](predicate: predicate) extends FilterStep
 
@@ -309,27 +332,28 @@ case class Or[traversals](traversals: Or.Traversals[traversals]) extends FilterS
 case class Order()
 
 object Out:
-  def apply[keys](keys: keys): Out[MapStep.KeyTuple[keys]] = new Out(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): Out[MapStep.KeyNameTuple[keys]] =
+    new Out(MapStep.KeyTuple(keys))
 
-case class Out[keys] private (keys: keys) extends MoveStep
+case class Out[keys] private (keys: MapStep.KeyTuple[?]) extends MoveStep
 // case class OutKeyPredicate[key <: Key, predicate <: P[_]](key: key, predicate: predicate) extends Out[key]
 
 object OutE:
   type EndType[InX, OutX] = MoveEStep.EndType[InX, OutX]
   def EndType[InX, OutX](inX: InX, outX: OutX): EndType[InX, OutX] = MoveEStep.EndType(inX, outX)
-  def apply[keys](keys: keys): OutE[MapStep.KeyTuple[keys]]        = new OutE(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): OutE[MapStep.KeyNameTuple[keys]]    = new OutE(MapStep.KeyTuple(keys))
 
-case class OutE[keys] private (keys: keys) extends MoveStep
+case class OutE[keys] private (keys: MapStep.KeyTuple[?]) extends MoveStep
 
 object OutEMap:
-  def apply[keys](keys: keys): OutEMap[MapStep.KeyTuple[keys]] = new OutEMap(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): OutEMap[MapStep.KeyNameTuple[keys]] = new OutEMap(MapStep.KeyTuple(keys))
 
-case class OutEMap[keys] private (keys: keys) extends MapStep
+case class OutEMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
 
 object OutMap:
-  def apply[keys](keys: keys): OutMap[MapStep.KeyTuple[keys]] = new OutMap(MapStep.KeyTuple(keys))
+  def apply[keys](keys: keys): OutMap[MapStep.KeyNameTuple[keys]] = new OutMap(MapStep.KeyTuple(keys))
 
-case class OutMap[keys] private (keys: keys) extends MapStep
+case class OutMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
 
 case class Path() extends ProjectionStep
 
@@ -345,8 +369,60 @@ case class Repeat() extends BranchStep
 
 object Select:
   type Label = String with Singleton
+  type LabelLike[X] = X match {
+    case String with Singleton => X
+  }
 
-case class Select[label <: Select.Label](label: label) extends LabelStep //TODO: tuple of labels
+  type Able[X] <: Tuple = X match {
+    case label *: EmptyTuple => LabelLike[label] *: EmptyTuple
+    case label *: labels     => LabelLike[label] *: Able[labels]
+    case _                   => LabelLike[X] *: EmptyTuple
+  }
+
+  def Able[X](x: X): Able[X] = x match {
+    case _ => ???
+  }
+
+  type TupleReverse[X <: Tuple] <: Tuple = X match {
+    case EmptyTuple   => EmptyTuple
+    case head *: tail => Tuple.Concat[TupleReverse[tail], head *: EmptyTuple]
+  }
+  def TupleReverse[X <: Tuple](x: X): TupleReverse[X] = (x match {
+    case EmptyTuple   => EmptyTuple
+    case head *: tail => TupleReverse(tail) ++ (head *: EmptyTuple)
+  }).asInstanceOf[TupleReverse[X]]
+
+  type SelectLabel[Steps <: Tuple, label] <: ClassType[?] = Steps match {
+    case As[label, ct] *: steps => ct
+    case step *: steps          => SelectLabel[steps, label]
+  }
+
+  def SelectLabel[Steps <: Tuple, label](steps: Steps, label: label): SelectLabel[Steps, label] =
+    (steps match {
+      case (as: As[?, ?]) *: steps if as.label == label => as.classType
+      case step *: steps                                => SelectLabel(steps, label)
+    }).asInstanceOf[SelectLabel[Steps, label]]
+
+  type SelectLabels[Steps <: Tuple, Labels] <: Tuple = (Steps, Labels) match {
+    // case (steps, labels) => Tuple.Fold[labels, EmptyTuple, SelectLabel]
+    case (steps, EmptyTuple)      => EmptyTuple
+    case (steps, label *: labels) => SelectLabel[steps, label] *: SelectLabels[steps, labels]
+  }
+
+  def SelectLabels[Steps <: Tuple, Labels](steps: Steps, labels: Labels): SelectLabels[Steps, Labels] =
+    ((steps, labels) match {
+      case (steps, label *: labels) => SelectLabel(steps, label) *: SelectLabels(steps, labels)
+    }).asInstanceOf[SelectLabels[Steps, Labels]]
+
+  type EndType[Steps <: Tuple, Labels] =
+    TupleType[TupleType.ClassTypesToTypes[SelectLabels[TupleReverse[Steps], Able[Labels]]]]
+
+  def EndType[Steps <: Tuple, Labels](steps: Steps, labels: Labels): EndType[Steps, Labels] =
+    TupleType(SelectLabels(TupleReverse(steps), Able(labels)))
+
+  def apply[labels](labels: labels): Select[Able[labels]] = new Select(Able(labels))
+
+case class Select[labels](labels: labels) extends LabelStep
 
 object Skip:
   type N = Long with Singleton

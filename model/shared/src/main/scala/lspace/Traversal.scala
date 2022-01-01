@@ -27,12 +27,10 @@ open class Value[+V](v: V) extends Resource[Value[V]]
 
 open class Graph extends Resource[Graph]
 
-final case class Traversal[ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple] private (steps: Steps)(
+final case class Traversal[+ST <: ClassType[?], +ET <: ClassType[?], Steps <: Tuple] private (steps: Steps)(
   val st: ST,
   val et: ET
 ) {
-  type StartType = ST
-  type EndType   = ET
 
   // given startType: ST = st
   // given endType: ET   = et
@@ -40,7 +38,7 @@ final case class Traversal[ST <: ClassType[?], ET <: ClassType[?], Steps <: Tupl
   // type AddableStep[X] = X match {
   //   case Max[Traversal[ET, e, steps]] => X
   // }
-  
+
   protected[lspace] def addStep[ST <: ClassType[?], ET <: ClassType[?], NewStep <: Step](
     newStep: NewStep,
     et: ET = this.et,
@@ -62,7 +60,7 @@ final case class Traversal[ST <: ClassType[?], ET <: ClassType[?], Steps <: Tupl
 
 object Traversal:
 
-  def apply(): Traversal[ResourceType[Any], ResourceType[Any], EmptyTuple] =
+  def apply(): Traversal[ResourceType, ResourceType, EmptyTuple] =
     new Traversal(EmptyTuple)(ResourceType, ResourceType)
 
   def empty[ST <: ClassType[?], ET <: ClassType[?]](
@@ -102,6 +100,17 @@ object Traversal:
     case Traversal[st, et, steps] => et
   }
 
+  type EndTypes[X] <: Tuple = X match {
+    case EmptyTuple                          => EmptyTuple
+    case Traversal[s, e, step] *: traversals => e *: EndTypes[traversals]
+    case Traversal[s, e, step]               => e *: EmptyTuple
+  }
+  def EndTypes[X](x: X): EndTypes[X] = (x match {
+    case EmptyTuple                                    => EmptyTuple
+    case (traversal: Traversal[?, ?, ?]) *: traversals => traversal.et *: EndTypes(traversals)
+    case traversal: Traversal[?, ?, ?]                 => traversal.et *: EmptyTuple
+  }).asInstanceOf[EndTypes[X]]
+
   type StepType[X <: Step] <: Step = X match {
     case Step => X
   }
@@ -126,29 +135,29 @@ object Traversal:
   def StepsConcat[Steps <: Tuple, Step](steps: Steps, step: Step): StepsConcat[Steps, Step] =
     StepsTuple(steps ++ StepsTuple(step)).asInstanceOf[StepsConcat[Steps, Step]]
 
-  // import lspace.librarian.step._
-  // type TraversalStepConcat[traversal <: Traversal[?, ?, ?], step <: Step] <: Traversal[?, ?, ?] =
-  //   traversal match {
-  //     case Traversal[s, e, steps] =>
-  //       step match {
-  //         case Max[Traversal[e, e0, steps0]] => Traversal[s, e, StepsConcat[steps, step]]
-  //       }
-  //   }
+// import lspace.librarian.step._
+// type TraversalStepConcat[traversal <: Traversal[?, ?, ?], step <: Step] <: Traversal[?, ?, ?] =
+//   traversal match {
+//     case Traversal[s, e, steps] =>
+//       step match {
+//         case Max[Traversal[e, e0, steps0]] => Traversal[s, e, StepsConcat[steps, step]]
+//       }
+//   }
 
-  // import compiletime.asMatchable      
+// import compiletime.asMatchable
 
-  // def TraversalStepConcat[traversal <: Traversal[?, ?, ?], step <: Step](
-  //   traversal: traversal,
-  //   step: step
-  // ): TraversalStepConcat[traversal, step] =
-  //   traversal.asMatchable match {
-  //     case traversal: Traversal[s, e, steps] =>
-  //       step match {
-  //         case max: Max[t] if max.traversal.et == traversal.et =>
-  //           // traversal.copy(StepsConcat(traversal.steps, max))()
-  //           new Traversal(StepsConcat(traversal.steps, max))(traversal.st, traversal.et)
-  //       }
-  //   }
+// def TraversalStepConcat[traversal <: Traversal[?, ?, ?], step <: Step](
+//   traversal: traversal,
+//   step: step
+// ): TraversalStepConcat[traversal, step] =
+//   traversal.asMatchable match {
+//     case traversal: Traversal[s, e, steps] =>
+//       step match {
+//         case max: Max[t] if max.traversal.et == traversal.et =>
+//           // traversal.copy(StepsConcat(traversal.steps, max))()
+//           new Traversal(StepsConcat(traversal.steps, max))(traversal.st, traversal.et)
+//       }
+//   }
 
 end Traversal
 
@@ -171,10 +180,10 @@ def Traversals[X](traverals: X): Traversals[X] = traverals match {
   case traversal: Traversal[s, e, steps] => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
 }
 
-def TraversalsApply[ET <: ClassType[?], X](in: Traversal[ET, ET, EmptyTuple], traverals: X): Traversals[X] =
-  traverals match {
-    case (traversal: Traversal[s, e, steps]) *: EmptyTuple => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
-    case (traversal: Traversal[s, e, steps]) *: traversals =>
-      (traversal *: Traversals(traversals)).asInstanceOf[Traversals[X]]
-    case traversal: Traversal[s, e, steps] => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
-  }
+// def TraversalsApply[ET <: ClassType[?], X](in: Traversal[ET, ET, EmptyTuple], traverals: X): Traversals[X] =
+//   traverals match {
+//     case (traversal: Traversal[s, e, steps]) *: EmptyTuple => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+//     case (traversal: Traversal[s, e, steps]) *: traversals =>
+//       (traversal *: Traversals(traversals)).asInstanceOf[Traversals[X]]
+//     case traversal: Traversal[s, e, steps] => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+//   }

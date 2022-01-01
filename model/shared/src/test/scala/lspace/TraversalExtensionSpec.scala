@@ -14,49 +14,49 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
     }
   }
 
-  def t: Traversal[ResourceType[Any], ResourceType[Any], Out *: Out *: Out *: EmptyTuple] =
-    Traversal().out("name").out("has:name").out("has")
+  def t: Traversal[ResourceType, ResourceType, Out["name" *: EmptyTuple] *: Out["has:name" *: EmptyTuple] *: Out["has" *: EmptyTuple] *: EmptyTuple] =
+    Traversal().out("name".key).out("has:name".key).out("has".key)
 
-  def t2: Traversal[ResourceType[Any], ResourceType[Any], (In, Out, Out)] =
-    Traversal().in("name").out("has:name").out("has")
+  def t2: Traversal[ResourceType, ResourceType, (In["name" *: EmptyTuple], Out["has:name" *: EmptyTuple], Out["has" *: EmptyTuple])] =
+    Traversal().in("name".key).out("has:name".key).out("has".key)
 
-  val x: Choose[Traversal[ResourceType[Any], ResourceType[Any], Has[Nothing] *: EmptyTuple], Traversal[ResourceType[
-    Any
-  ], ResourceType[
-    Any
-  ], (Has[Nothing], Has[Nothing])], Traversal[ResourceType[Any], ResourceType[Any], Out *: EmptyTuple]] =
-    Choose(Traversal().has("a"), Traversal().has("b").has("c"), Traversal().out("c"))
+  val x: Choose[Traversal[ResourceType, ResourceType, Has["a", Nothing] *: EmptyTuple], Traversal[
+    ResourceType,
+    ResourceType,
+    (Has["b", Nothing], Has["c", Nothing])
+  ], Traversal[ResourceType, ResourceType, Out["c" *: EmptyTuple] *: EmptyTuple]] =
+    Choose(Traversal().has("a"), Traversal().has("b").has("c"), Traversal().out("c".key))
 
-  val x2: Traversal[ResourceType[Any], ResourceType[Any], And[Traversal[
-    ResourceType[Any],
-    ResourceType[Any],
-    Has[Nothing] *: EmptyTuple
-  ] *: Traversal[ResourceType[Any], ResourceType[Any], Out *: EmptyTuple] *: EmptyTuple] *: EmptyTuple] =
-    Traversal().and(Traversal().has("a") -> Traversal().out("b"))
+  val x2: Traversal[ResourceType, ResourceType, And[Traversal[
+    ResourceType,
+    ResourceType,
+    Has["a", Nothing] *: EmptyTuple
+  ] *: Traversal[ResourceType, ResourceType, Out["b" *: EmptyTuple] *: EmptyTuple] *: EmptyTuple] *: EmptyTuple] =
+    Traversal().and(Traversal().has("a") -> Traversal().out("b".key))
 
   val x22 = Traversal().and((Traversal().has("a"), Traversal()))
 
   val x3 = Traversal().has("a", P.gt(3))
 
-  val x4: Traversal[ResourceType[Any], StringType.type | IntType.type, Coalesce[
+  val x4: Traversal[ResourceType, UnionType[String | Int], Coalesce[
     (
-      Traversal[ResourceType[Any], StringType.type, HasLabel[StringType.type] *: EmptyTuple],
-      Traversal[ResourceType[Any], IntType.type, HasLabel[IntType.type] *: EmptyTuple]
+      Traversal[ResourceType, StringTyped, HasLabel[StringTyped] *: EmptyTuple],
+      Traversal[ResourceType, IntTyped, HasLabel[IntTyped] *: EmptyTuple]
     )
-  ] *: EmptyTuple] = Traversal().coalesce((Traversal().hasLabel[StringType.type], Traversal().hasLabel[IntType.type]))
+  ] *: EmptyTuple] = Traversal().coalesce((Traversal().hasLabel[StringTyped](StringType), Traversal().hasLabel[IntTyped](IntType)))
 
-  val x44: Traversal[ResourceType[Any], StringType.type, Coalesce[
+  val x44: Traversal[ResourceType, UnionType[String], Coalesce[
     (
-      Traversal[ResourceType[Any], StringType.type, HasLabel[StringType.type] *: EmptyTuple],
-      Traversal[ResourceType[Any], StringType.type, HasLabel[StringType.type] *: EmptyTuple]
+      Traversal[ResourceType, StringTyped, HasLabel[StringTyped] *: EmptyTuple],
+      Traversal[ResourceType, StringTyped, HasLabel[StringTyped] *: EmptyTuple]
     )
   ] *: EmptyTuple] =
-    Traversal().coalesce((Traversal().hasLabel[StringType.type], Traversal().hasLabel[StringType.type]))
+    Traversal().coalesce((Traversal().hasLabel(StringType), Traversal().hasLabel(StringType)))
 
-  Traversal().coalesce((Traversal().hasLabel[StringType.type], Traversal()))
+  Traversal().coalesce((Traversal().hasLabel(StringType), Traversal()))
 
   val x5 =
-    Traversal().choose(Traversal().out("a"), Traversal().hasLabel[StringType.type], Traversal().hasLabel[IntType.type])
+    Traversal().choose(Traversal().out("a".key), Traversal().hasLabel(StringType), Traversal().hasLabel(IntType))
 
   Traversal().constant(3)
   Traversal().constant("a")

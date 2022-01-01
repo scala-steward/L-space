@@ -8,10 +8,10 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
   def and[traversals](
     traversals: traversals
   ): Traversal[ST, ET, Traversal.StepsConcat[Steps, And[And.Traversals[traversals]]]] =
-    _traversal.addStep(And(traversals)) // (traversal.st, traversal.et)
+    _traversal.addStep(And(traversals))
 
-  def as[label <: As.Label](label: label): Traversal[ST, ET, Traversal.StepsConcat[Steps, As[label]]] =
-    _traversal.addStep(As[label](label)) // (traversal.st, traversal.et)
+  def as[label <: As.Label](label: label): Traversal[ST, ET, Traversal.StepsConcat[Steps, As[label, ET]]] =
+    _traversal.addStep(As(label, _traversal.et))
 
   def choose[by, left, right](
     by: by,
@@ -21,7 +21,7 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
     Steps,
     Choose[Choose.By[by], Choose.Left[left], Choose.Right[right]]
   ]] =
-    _traversal.addStep(Choose(by, left, right), Choose.EndType(left, right)) // (traversal.st, traversal.et)
+    _traversal.addStep(Choose(by, left, right), Choose.EndType(left, right))
 
   def coalesce[traversals](
     traversals: traversals
@@ -53,15 +53,15 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
     Steps,
     Group[Group.By[by], Group.Value[value]]
   ]] =
-    _traversal.addStep(Group(by, value), Group.EndType(by, value)) // (traversal.st, traversal.et)
+    _traversal.addStep(Group(by, value), Group.EndType(by, value))
 
-  def has(label: Key[?]): Traversal[ST, ET, Traversal.StepsConcat[Steps, Has[Nothing]]] =
-    _traversal.addStep(Has(label)) // (traversal.st, traversal.et)
-  def has[predicate <: P[_]](
-    label: Key[?],
+  def has[name <: Key.Name](label: Key[name]): Traversal[ST, ET, Traversal.StepsConcat[Steps, Has[name, Nothing]]] =
+    _traversal.addStep(Has(label))
+  def has[name <: Key.Name, predicate <: P[_]](
+    label: Key[name],
     predicate: predicate
-  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, Has[predicate]]] =
-    _traversal.addStep(Has[predicate](label, Some(predicate)))
+  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, Has[name, predicate]]] =
+    _traversal.addStep(Has(label, Some(predicate)))
   // (
   //   traversal.st,
   //   traversal.et
@@ -75,8 +75,8 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
 
   def hasLabel[label <: ClassType[?]](
     label: label
-  ): Traversal[ST, HasLabel.EndType[label], Traversal.StepsConcat[Steps, HasLabel[label]]] =
-    _traversal.addStep(HasLabel(label), HasLabel.EndType(label))
+  ): Traversal[ST, HasLabel.EndType[label], Traversal.StepsConcat[Steps, HasLabel[HasLabel.EndType[label]]]] =
+    _traversal.addStep(HasLabel(HasLabel.EndType(label)), HasLabel.EndType(label))
 
   // def hasNot[]()
   // def hasValue
@@ -84,17 +84,17 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
   def head: Traversal[ST, ET, Traversal.StepsConcat[Steps, Head.type]] =
     _traversal.addStep(Head)
 
-  def id: Traversal[ST, LongType[Long], Traversal.StepsConcat[Steps, Id.type]] =
+  def id: Traversal[ST, LongTyped, Traversal.StepsConcat[Steps, Id.type]] =
     _traversal.addStep(Id, LongType)
 
   def in[keys](
     keys: keys
-  ): Traversal[ST, ResourceType[Any], Traversal.StepsConcat[Steps, In[MapStep.KeyTuple[keys]]]] =
-    _traversal.addStep(In(keys), ResourceType) // (traversal.st, ResourceType[Any]())
+  ): Traversal[ST, ResourceType, Traversal.StepsConcat[Steps, In[MapStep.KeyNameTuple[keys]]]] =
+    _traversal.addStep(In(keys), ResourceType)
 
   def inE[keys](
     keys: keys
-  ): Traversal[ST, InE.EndType[ClassType[Any], ET], Traversal.StepsConcat[Steps, InE[MapStep.KeyTuple[keys]]]] =
+  ): Traversal[ST, InE.EndType[ResourceType, ET], Traversal.StepsConcat[Steps, InE[MapStep.KeyNameTuple[keys]]]] =
     _traversal.addStep(InE(keys), OutE.EndType(ResourceType, _traversal.et))
 
   def is[predicate <: P[_]](
@@ -121,14 +121,17 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
   ]] =
     _traversal.addStep(Max(traversal), Max.EndType(traversal))
 
+  // def out[key <: Key.Name](key: key): Traversal[ST, ResourceType, Traversal.StepsConcat[Steps, Out[MapStep.KeyNameTuple[key *: EmptyTuple]]]] =
+  //     _traversal.addStep(Out(key), ResourceType)
+
   def out[keys](
     keys: keys
-  ): Traversal[ST, ResourceType[Any], Traversal.StepsConcat[Steps, Out[MapStep.KeyTuple[keys]]]] =
+  ): Traversal[ST, ResourceType, Traversal.StepsConcat[Steps, Out[MapStep.KeyNameTuple[keys]]]] =
     _traversal.addStep(Out(keys), ResourceType)
 
   def outE[keys](
     keys: keys
-  ): Traversal[ST, OutE.EndType[ET, ClassType[Any]], Traversal.StepsConcat[Steps, OutE[MapStep.KeyTuple[keys]]]] =
+  ): Traversal[ST, OutE.EndType[ET, ResourceType], Traversal.StepsConcat[Steps, OutE[MapStep.KeyNameTuple[keys]]]] =
     _traversal.addStep(OutE(keys), OutE.EndType(_traversal.et, ResourceType))
 
 // def out[key <: Key, predicate <: P[_]](
@@ -140,3 +143,8 @@ extension [ST <: ClassType[?], ET <: ClassType[?], Steps <: Tuple](_traversal: T
 //   traversal.st,
 //   ResourceType[Any]()
 // )
+
+  def select[labels](
+    labels: labels
+  ): Traversal[ST, Select.EndType[Steps, labels], Traversal.StepsConcat[Steps, Select[Select.Able[labels]]]] =
+    _traversal.addStep(Select(labels), Select.EndType(_traversal.steps, labels))

@@ -62,15 +62,15 @@ object OrderP:
     case x: LocalTime      => x
   }
 
-  type OrderableClassType[X <: ClassType[?]] <: ClassType[?] = X match {
-    case IntType[t]    => X
+  type OrderableClassType[X] <: ClassType[?] = X match {
+    case IntType[t]    => IntType[t]
     // case DoubleType[t] => X
-    case LongType[t]   => X
+    case LongType[t]   => LongType[t]
   }
   def OrderableClassType[X](x: X): OrderableClassType[X] = x match {
-    case ct: IntType[?]    => x
+    case ct: IntType[?]    => ct
     // case ct: DoubleType[?] => x
-    case ct: LongType[?]   => x
+    case ct: LongType[?]   => ct
   }
 
 end OrderP
