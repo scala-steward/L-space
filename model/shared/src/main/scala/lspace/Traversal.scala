@@ -27,9 +27,9 @@ open class Value[+V](v: V) extends Resource[Value[V]]
 
 open class Graph extends Resource[Graph]
 
-final case class Traversal[+ST <: ClassType[?], +ET <: ClassType[?], Steps <: Tuple] private (steps: Steps)(
-  val st: ST,
-  val et: ET
+final case class Traversal[ST, ET, Steps <: Tuple] private (steps: Steps)(
+  val st: ClassType[ST],
+  val et: ClassType[ET]
 ) {
 
   // given startType: ST = st
@@ -39,10 +39,21 @@ final case class Traversal[+ST <: ClassType[?], +ET <: ClassType[?], Steps <: Tu
   //   case Max[Traversal[ET, e, steps]] => X
   // }
 
-  protected[lspace] def addStep[ST <: ClassType[?], ET <: ClassType[?], NewStep <: Step](
+  protected[lspace] def addStep[NewStep <: Step](
+    newStep: NewStep
+  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, NewStep]] =
+    new Traversal[ST, ET, Traversal.StepsConcat[Steps, NewStep]](Traversal.StepsConcat(steps, newStep))(st, et)
+
+  protected[lspace] def addStep[ET, NewStep <: Step](
     newStep: NewStep,
-    et: ET = this.et,
-    st: ST = this.st
+    et: ClassType[ET]
+  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, NewStep]] =
+    new Traversal[ST, ET, Traversal.StepsConcat[Steps, NewStep]](Traversal.StepsConcat(steps, newStep))(st, et)
+
+  protected[lspace] def addStep[ST, ET, NewStep <: Step](
+    newStep: NewStep,
+    et: ClassType[ET],
+    st: ClassType[ST]
   ): Traversal[ST, ET, Traversal.StepsConcat[Steps, NewStep]] =
     new Traversal[ST, ET, Traversal.StepsConcat[Steps, NewStep]](Traversal.StepsConcat(steps, newStep))(st, et)
 
@@ -51,21 +62,26 @@ final case class Traversal[+ST <: ClassType[?], +ET <: ClassType[?], Steps <: Tu
   // ): Traversal[ST, ET, Traversal.StepsConcat[Steps, NewSteps]] =
   //   new Traversal[ST, ET, Traversal.StepsConcat[Steps, NewSteps]](Traversal.StepsConcat(steps, newSteps))(newSt, newEt)
 
-  protected[lspace] def withEndType[nET <: ClassType[?]](newEt: nET): Traversal[ST, nET, Steps] =
+  protected[lspace] def withEndType[nET](newEt: ClassType[nET]): Traversal[ST, nET, Steps] =
     new Traversal[ST, nET, Steps](steps)(st, newEt)
 
-  protected[lspace] def withStartType[nST <: ClassType[?]](newSt: nST): Traversal[nST, ET, Steps] =
+  protected[lspace] def withStartType[nST](newSt: ClassType[nST]): Traversal[nST, ET, Steps] =
     new Traversal[nST, ET, Steps](steps)(newSt, et)
 }
 
 object Traversal:
 
-  def apply(): Traversal[ResourceType, ResourceType, EmptyTuple] =
-    new Traversal(EmptyTuple)(ResourceType, ResourceType)
+  def apply(): Traversal[Any, Any, EmptyTuple] =
+    new Traversal(EmptyTuple)(AnyResource, AnyResource)
 
-  def empty[ST <: ClassType[?], ET <: ClassType[?]](
-    st: ST,
-    et: ET
+  def apply[T: ClassType.Enabled]: Traversal[T, T, EmptyTuple] = {
+    val ct = implicitly[ClassType.Enabled[T]].ct
+    new Traversal(EmptyTuple)(ct, ct)
+  }
+
+  def empty[ST, ET](
+    st: ClassType[ST],
+    et: ClassType[ET]
   ): Traversal[ST, ET, EmptyTuple] =
     new Traversal(EmptyTuple)(st, et)
 
@@ -90,20 +106,20 @@ object Traversal:
     case traversal: Traversal[s, e, steps] => traversal.st
   }
   type StartType[traversal] <: ClassType[?] = traversal match {
-    case Traversal[st, et, steps] => st
+    case Traversal[st, et, steps] => ClassType[st]
   }
 
   def EndType[traversal](traversal: traversal): EndType[traversal] = traversal match {
     case traversal: Traversal[s, e, steps] => traversal.et
   }
   type EndType[traversal] <: ClassType[?] = traversal match {
-    case Traversal[st, et, steps] => et
+    case Traversal[st, et, steps] => ClassType[et]
   }
 
   type EndTypes[X] <: Tuple = X match {
     case EmptyTuple                          => EmptyTuple
-    case Traversal[s, e, step] *: traversals => e *: EndTypes[traversals]
-    case Traversal[s, e, step]               => e *: EmptyTuple
+    case Traversal[s, e, step] *: traversals => ClassType[e] *: EndTypes[traversals]
+    case Traversal[s, e, step]               => ClassType[e] *: EmptyTuple
   }
   def EndTypes[X](x: X): EndTypes[X] = (x match {
     case EmptyTuple                                    => EmptyTuple
@@ -169,12 +185,12 @@ def AnyTraversal[X](traveral: X): AnyTraversal[X] = traveral match {
 }
 
 type Traversals[X] <: Tuple = X match {
-  case Traversal[s, e, steps] *: EmptyTuple => Traversal[s, e, steps] *: EmptyTuple
+  case EmptyTuple                           => EmptyTuple
   case Traversal[s, e, steps] *: traversals => Traversal[s, e, steps] *: Traversals[traversals]
   case Traversal[s, e, steps]               => Traversal[s, e, steps] *: EmptyTuple
 }
 def Traversals[X](traverals: X): Traversals[X] = traverals match {
-  case (traversal: Traversal[s, e, steps]) *: EmptyTuple => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]
+  case EmptyTuple => EmptyTuple.asInstanceOf[Traversals[X]]
   case (traversal: Traversal[s, e, steps]) *: traversals =>
     (traversal *: Traversals(traversals)).asInstanceOf[Traversals[X]]
   case traversal: Traversal[s, e, steps] => (traversal *: EmptyTuple).asInstanceOf[Traversals[X]]

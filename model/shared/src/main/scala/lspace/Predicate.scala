@@ -40,38 +40,40 @@ object OrderP:
   import java.time._
 
   type OrderableType[X] = X match
-    case Int            => X
-    case Double         => X
-    case Long           => X
-    case Instant        => X
-    case ZonedDateTime  => X
-    case OffsetDateTime => X
-    case LocalDateTime  => X
-    case LocalDate      => X
-    case LocalTime      => X
+    case Int | Double | Long     => X
+    case Instant | ZonedDateTime => X
+    case OffsetDateTime          => X
+    case LocalDateTime           => X
+    case LocalDate               => X
+    case LocalTime               => X
 
   def OrderableType[X](x: X): OrderableType[X] = x match {
-    case x: Int            => x
-    case x: Double         => x
-    case x: Long           => x
-    case x: Instant        => x
-    case x: ZonedDateTime  => x
-    case x: OffsetDateTime => x
-    case x: LocalDateTime  => x
-    case x: LocalDate      => x
-    case x: LocalTime      => x
+    case x: (Int | Double | Long)     => x
+    case x: (Instant | ZonedDateTime) => x
+    case x: OffsetDateTime            => x
+    case x: LocalDateTime             => x
+    case x: LocalDate                 => x
+    case x: LocalTime                 => x
   }
 
   type OrderableClassType[X] <: ClassType[?] = X match {
-    case IntType[t]    => IntType[t]
-    // case DoubleType[t] => X
-    case LongType[t]   => LongType[t]
+    case ClassType[t] => ClassType[OrderableType[t]]
   }
-  def OrderableClassType[X](x: X): OrderableClassType[X] = x match {
-    case ct: IntType[?]    => ct
+  def OrderableClassType[X](x: ClassType[X]): ClassType[X] = x match {
+    case ct: IntType[?] => ct
     // case ct: DoubleType[?] => x
-    case ct: LongType[?]   => ct
+    case ct: LongType[?] => ct
   }
+// type Sortable[X] = X match {
+//   case Int | Double | Long => X
+//   case String => X
+//   case java.time.Instant | java.time.ZonedDateTime => java.time.Instant | java.time.ZonedDateTime
+// }
+// implicitly[(Int | String) =:= (Sortable[Int | String])]
+// implicitly[(Int) =:= (Sortable[Int])]
+// implicitly[(Int | Double) =:= (Sortable[Int | Double])]
+// implicitly[(Int | Double | Long) =:= (Sortable[Int | Double | Long])]
+// implicitly[(Int | Double | Long | BigInt) =:= (Sortable[Int | Double | Long | BigInt])]
 
 end OrderP
 sealed trait OrderP[+V] extends EqP[V]

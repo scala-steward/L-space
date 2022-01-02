@@ -18,7 +18,7 @@ object MapStep:
   type KeyNameTuple[X] <: Tuple = KeyTuple[X] match {
     case EmptyTuple        => EmptyTuple
     case Key[name] *: keys => name *: KeyNameTuple[keys]
-    case Key[name] => name *: EmptyTuple
+    case Key[name]         => name *: EmptyTuple
   }
 
   type KeyTuple[X] <: Tuple = X match {
@@ -85,7 +85,7 @@ case class And[traversals] private (traversals: traversals) extends FilterStep
 object As:
   type Label = String with Singleton
 
-case class As[label <: As.Label, CT <: ClassType[?]](label: label, classType: CT) extends LabelStep
+case class As[label <: As.Label, CT](label: label, classType: ClassType[CT]) extends LabelStep
 
 object Choose:
   type By[X] = lspace.AnyTraversal[X]
@@ -124,7 +124,7 @@ object Coalesce:
   // }
 
   type EndType[X] = UnionType[UnionType.Able[Traversal.EndTypes[X]]]
-  def EndType[X](x: X): EndType[X] = UnionType(Traversal.EndTypes(x))//.asInstanceOf[EndType[X]]
+  def EndType[X](x: X): EndType[X] = UnionType(Traversal.EndTypes(x)) // .asInstanceOf[EndType[X]]
 
   //   {
   //   def buildTypes[X](x: X): Set[? <: ClassType[?]] = x match {
@@ -174,13 +174,21 @@ object Constant:
 
 case class Constant[T] private (value: T) extends TraverseStep
 
-case object Count extends BarrierStep
+case class Count() extends BarrierStep
 
-case object Dedup extends GlobalFilterStep
+case class Dedup() extends GlobalFilterStep
 
 // case class Drop()
 case class E(edges: List[Edge[?, ?]] = Nil) extends ResourceStep
-case object From                            extends TraverseStep
+
+object From:
+  type EndType[X] <: ClassType[?] = X match
+    case ClassType[Edge[in, out]] => ClassType[in]
+  def EndType[X](x: X): EndType[X] = x match {
+    case ct: EdgeType[?, ?] => ct.in.asInstanceOf[EndType[X]]
+  }
+case class From() extends TraverseStep
+
 case class G(graphs: List[Graph] = Nil)     extends GraphStep
 
 object Group:
@@ -190,11 +198,14 @@ object Group:
   type Value[X] = lspace.AnyTraversal[X]
   def Value[X](x: X) = lspace.AnyTraversal(x)
 
-  type EndType[by, value] = Traversal.EndType[Value[value]] match {
+  type EndType[by, value] <: ClassType[?] = Traversal.EndType[Value[value]] match {
     case ClassType[t] => TupleType[(Traversal.EndType[By[by]], ListType[List[t]])]
   }
   def EndType[by, value](by: by, value: value): EndType[by, value] =
-    TupleType((Traversal.EndType(By(by)), ListType(Traversal.EndType(Value(value))))).asInstanceOf[EndType[by, value]]
+    (Traversal.EndType(Value(value)) match {
+      case ct: ClassType[t] =>
+        TupleType((Traversal.EndType(By(by)), ListType(ct)))
+    }).asInstanceOf[EndType[by, value]]
 
   def apply[by, value](by: by, value: value): Group[By[by], Value[value]] = new Group(By(by), Value(value))
 
@@ -216,21 +227,9 @@ case class Group[by, value] private (by: by, value: value) extends GroupingBarri
 case class HasId(id: Long)  extends FilterStep
 case class HasIri(iri: Iri) extends FilterStep
 
-object HasLabel:
-  type EndType[X <: ClassType[?]] <: ClassType[?] = X match {
-    case IntType[t] => IntType[t]
-    case LongType[t] => LongType[t]
-    case StringType[t] => StringType[t]
-    case ClassType[?] => X
-  }
-  def EndType[X <: ClassType[?]](x: X): EndType[X] = x match {
-    case ct: IntType[t] => ct
-    case ct: LongType[t] => ct
-    case ct: StringType[t] => ct
-    case ct: ClassType[t] => ct
-  }
+// object HasLabel:
 
-case class HasLabel[CT <: ClassType[?]](label: CT) extends FilterStep
+case class HasLabel[t](label: ClassType[t]) extends FilterStep
 
 // case class HasNot() extends FilterStep // use Not(Has)
 
@@ -299,11 +298,11 @@ object Max:
   def EndType[X](x: X): EndType[X] = Traversal.EndType(x)
 
   type Able[X] <: Traversal[?, ?, ?] = X match {
-    case Traversal[s, e, steps] => Traversal[s, OrderP.OrderableClassType[e], steps]
+    case Traversal[s, ClassType[e], steps] => Traversal[s, OrderP.OrderableClassType[e], steps]
   }
   def Able[X](x: X): Able[X] = x match {
     case traversal: Traversal[s, e, steps] =>
-      traversal.withEndType(OrderP.OrderableClassType(traversal.et))
+      traversal.withEndType(OrderP.OrderableClassType(traversal.et)).asInstanceOf[Able[X]]
   }
 
   def apply[traversal](
@@ -316,7 +315,7 @@ case class Max[traversal <: Traversal[?, ?, ?]] private (traversal: traversal) e
 case class Mean()
 case class Min[traversal] private (traversal: traversal) extends BranchStep
 
-case class N()
+case class N() extends ResourceStep
 
 object Not:
   type Traversal[X] = lspace.AnyTraversal[X]
@@ -393,7 +392,7 @@ object Select:
   }).asInstanceOf[TupleReverse[X]]
 
   type SelectLabel[Steps <: Tuple, label] <: ClassType[?] = Steps match {
-    case As[label, ct] *: steps => ct
+    case As[label, ct] *: steps => ClassType[ct]
     case step *: steps          => SelectLabel[steps, label]
   }
 
@@ -434,23 +433,44 @@ case class Tail() extends ClipStep
 
 case class TimeLimit() extends EnvironmentStep
 
-case object To extends TraverseStep
+object To:
+  type EndType[X] <: ClassType[?] = X match
+    case ClassType[Edge[in, out]] => ClassType[out]
+  def EndType[X](x: X): EndType[X] = x match {
+    case ct: EdgeType[?, ?] => ct.out.asInstanceOf[EndType[X]]
+  }
+case class To() extends TraverseStep
 
 object Union:
   type Traversals[X] = lspace.Traversals[X]
-  // type EndType[X] <: ClassType[?] = X match {
-  //   case l | r => Traversal.EndType[l] | Traversal.EndType[r]
-  // }
+  def Traverals[X](x: X) = lspace.Traversals(x)
 
-  type EndType[X] <: ClassType[?] = Traversals[X] match {
-    case traversal *: EmptyTuple => Traversal.EndType[traversal]
-    case traversal *: traversals => Traversal.EndType[traversal] | EndType[traversals]
-  }
+  type EndType[X] = UnionType[UnionType.Able[Traversal.EndTypes[X]]]
+  def EndType[X](x: X): EndType[X] = UnionType(Traversal.EndTypes(x))
 
-case class Union[traversals](traversals: Union.Traversals[traversals]) extends BranchStep
+  def apply[traversals](traversals: traversals): Union[Union.Traversals[traversals]] = new Union(
+    Traverals(traversals)
+  )
 
+case class Union[traversals] private (traversals: traversals) extends BranchStep
+
+// object V:
+// type ValueTypes[X] = AnyValue//DataType.Types[X]
+// def ValueTypes[X](x: ClassType[X]): ValueTypes[X] = AnyValue
+//   x match {
+//   case ct: UnionType[t] if ct.types.filterNot {
+//     case _: NodeType => false
+//     case _: EdgeType[?, ?] => false
+//     case _: Ontology => false
+//     case _: Property => false
+//     case _ => true
+//   }
+// }
 case class V() extends ResourceStep
 
 object Where:
-  type Traversal[X] = lspace.AnyTraversal[X]
-case class Where[traversal](traversal: Where.Traversal[traversal]) extends FilterStep
+  def apply[traversal](traversal: traversal): Where[AnyTraversal[traversal]] = new Where(
+    AnyTraversal(traversal)
+  )
+
+case class Where[traversal] private (traversal: traversal) extends FilterStep
