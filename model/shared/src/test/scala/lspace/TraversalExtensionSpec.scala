@@ -50,7 +50,7 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
       Traversal[Any, Int, HasLabel[Int] *: EmptyTuple]
     )
   ] *: EmptyTuple] =
-    Traversal().coalesce((Traversal().hasLabel(StringType), Traversal().hasLabel(IntType)))
+    Traversal().coalesce((Traversal().hasLabel(StringType.s), Traversal().hasLabel(IntType)))
 
   val x44: Traversal[Any, String, Coalesce[
     (
@@ -58,12 +58,12 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
       Traversal[Any, String, HasLabel[String] *: EmptyTuple]
     )
   ] *: EmptyTuple] =
-    Traversal().coalesce((Traversal().hasLabel(StringType), Traversal().hasLabel(StringType)))
+    Traversal().coalesce((Traversal().hasLabel(StringType.s), Traversal().hasLabel(StringType.s)))
 
-  Traversal().coalesce((Traversal().hasLabel(StringType), Traversal()))
+  Traversal().coalesce((Traversal().hasLabel(StringType.s), Traversal()))
 
   val x5 =
-    Traversal().choose(Traversal().out("a".key), Traversal().hasLabel(StringType), Traversal().hasLabel(IntType))
+    Traversal().choose(Traversal().out("a".key), Traversal().hasLabel(StringType.s), Traversal().hasLabel(IntType))
 
   Traversal().constant(3)
   Traversal().constant("a")
@@ -73,7 +73,7 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
     Traversal().n().hasLabel(IntType).inE("has".key).to()
 
   val x7: Traversal[Any, String, N *: HasLabel[String] *: OutE["has" *: EmptyTuple] *: From *: EmptyTuple] =
-    Traversal().n().hasLabel(StringType).outE("has".key).from()
+    Traversal().n().hasLabel(StringType.s).outE("has".key).from()
 
   val union1: Traversal[Any, String | Long, HasLabel[Int] *: Union[Traversal[
     Int,
@@ -83,8 +83,8 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
     Traversal()
       .hasLabel(IntType)
       .union(
-        Traversal[Int].out("has".key).hasLabel(StringType),
-        Traversal[Int].out("has".key).hasLabel(LongType)
+        Traversal[Int].out("has".key).hasLabel(StringType.s),
+        Traversal[Int].out("has".key).hasLabel(LongType.long)
       )
 
   val coalesce1: Traversal[Any, String | Long, HasLabel[Int] *: Coalesce[Traversal[
@@ -95,8 +95,8 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
     Traversal()
       .hasLabel(IntType)
       .coalesce(
-        Traversal[Int].out("has".key).hasLabel(StringType),
-        Traversal[Int].out("has".key).hasLabel(LongType)
+        Traversal[Int].out("has".key).hasLabel(StringType.s),
+        Traversal[Int].out("has".key).hasLabel(LongType.long)
       )
 
 end TraversalExtensionSpec

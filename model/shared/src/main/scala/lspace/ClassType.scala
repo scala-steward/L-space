@@ -25,13 +25,13 @@ object ClassType:
   given intType: Enabled[Int] with
     def ct: ClassType[Int] = IntType
   given stringType: Enabled[String] with
-    def ct: ClassType[String] = StringType
+    def ct: ClassType[String] = StringType.string
 
   def Able[X](x: X): Able[X] = x match {
     case _: Int     => IntType
     case _: Double  => DoubleType
-    case _: Long    => LongType
-    case _: String  => StringType
+    case _: Long    => LongType.long
+    case _: String  => StringType.string
     case _: Boolean => BooleanType
     // case l: List[t] => ListType(l.map(Able).reduce(_ | _))
   }
@@ -83,8 +83,9 @@ case object DoubleType               extends DoubleType[Double] with DataType[Do
 sealed trait DoubleType[i <: Double] extends NumericType[i]
 
 type LongTyped = LongType[Long]
-case object LongType             extends LongType[Long] with DataType[Long](Iri("@long"))
-sealed trait LongType[i <: Long] extends NumericType[i]
+enum LongType[i <: Long](iri: Iri) extends NumericType[i] with DataType[i](iri):
+  case long extends LongType[Long](Iri("@long"))
+  case literal[ii <: Long](value: ii) extends LongType[ii](Iri(s"@long($value)"))
 
 // enum StringType[s <: String] extends DataType[s](Iri("@string")):
 //   case string extends StringType[String]
@@ -95,34 +96,53 @@ sealed trait LongType[i <: Long] extends NumericType[i]
 //   def apply = string
 
 type StringTyped = StringType[String]
-case object StringType                 extends StringType[String] with DataType[String](Iri("@string"))
-sealed trait StringType[s <: String]() extends DataType[s]
+// case object StringType                 extends StringType[String] with DataType[String](Iri("@string"))
+// sealed trait StringType[s <: String]() extends DataType[s]
+enum StringType[str <: String](iri: Iri) extends DataType[str](iri):
+  case string extends StringType[String](Iri("@string"))
+  case literal[s <: String](value: s) extends StringType[s](Iri(s"@string($value)"))
+
+object StringType:
+  type l[s <: String] = literal[s]
+  // def l[s <: String] = literal[s]
+  val s = string
 
 type BooleanTyped = BooleanType[Boolean]
 case object BooleanType                  extends BooleanType[Boolean] with DataType[Boolean](Iri("@boolean"))
-sealed trait BooleanType[s <: Boolean]() extends DataType[s]
+sealed trait BooleanType[b <: Boolean]() extends DataType[b]
 
 sealed trait StructuredType[T] extends DataType[T]
 sealed trait CollectionType[T] extends StructuredType[T]
 
+// object ListType:
+//   type Able[X] = List[X]
+//   def apply[T](ct: ClassType[T]): ListType[Able[T]] = new ListType[Able[T]](ct) {}
+// abstract case class ListType[T] private (ct: ClassType[?])
+//     extends CollectionType[T]
+//     with DataType[T](Iri(s"@list(${ct.iri})"))
+
+type ListTyped = ListType[Any]
+val AnyList: ListType[Any] = ListType.any
+enum ListType[T](iri: Iri) extends CollectionType[List[T]] with DataType[List[T]](iri):
+  case any extends ListType[Any](Iri(s"@list"))
+  case typed[T](ct: ClassType[T]) extends ListType[T](Iri(s"@list(${ct.iri})"))
+
 object ListType:
-  type Able[X] = List[X]
-  def apply[T](ct: ClassType[T]): ListType[Able[T]] = new ListType[Able[T]](ct) {}
-abstract case class ListType[T] private (ct: ClassType[?])
-    extends CollectionType[T]
-    with DataType[T](Iri(s"@list(${ct.iri})"))
+  def apply[T](ct: ClassType[T]): ListType[T] = ListType.typed(ct)
+
+type SetTyped = SetType[Any]
+val AnySet: SetType[Any] = SetType.any
+enum SetType[T](iri: Iri) extends CollectionType[Set[T]] with DataType[Set[T]](iri):
+  case any extends SetType[Any](Iri(s"@set"))
+  case typed[T](ct: ClassType[T]) extends SetType[T](Iri(s"@set(${ct.iri})"))
 
 object SetType:
-  type Able[X] = Set[X]
-  def apply[T](ct: ClassType[T]): SetType[Able[T]] = new SetType[Able[T]](ct) {}
-abstract case class SetType[T] private (ct: ClassType[?])
-    extends CollectionType[T]
-    with DataType[T](Iri(s"@list(${ct.iri})"))
+  def apply[T](ct: ClassType[T]): SetType[T] = SetType.typed(ct)
 
 object TupleType:
-  type ClassTypesToTypes[X] <: Tuple = X match {
+  type Types[X] <: Tuple = X match {
     case ClassType[c] *: EmptyTuple => c *: EmptyTuple
-    case ClassType[c] *: classtypes => c *: ClassTypesToTypes[classtypes]
+    case ClassType[c] *: classtypes => c *: Types[classtypes]
   }
 
   // type IsClassType[X] <: ClassType[?] = X match {
@@ -139,14 +159,16 @@ object TupleType:
     case (ct: ClassType[?]) *: cts => ct *: ClassTypes(cts)
   }).asInstanceOf[ClassTypes[X]]
 
-  def apply[typeTuple](typeTuple: typeTuple): TupleType[TupleType.ClassTypesToTypes[typeTuple]] =
-    new TupleType[TupleType.ClassTypesToTypes[typeTuple]](TupleType.ClassTypes(typeTuple)) {}
+  def apply[typeTuple](typeTuple: typeTuple): TupleType[TupleType.Types[typeTuple]] =
+    new TupleType[TupleType.Types[typeTuple]](TupleType.ClassTypes(typeTuple)) {}
 
 abstract case class TupleType[t <: Tuple](types: TupleType.ClassTypes[?])
     extends CollectionType[t]
-    with DataType[t](Iri(s"@${types.toList.map { case c: ClassType[_] =>
-      c.iri.unapply
-    }.mkString}"))
+    with DataType[t](Iri(s"@tuple(${types.toList
+      .map { case c: ClassType[_] =>
+        c.iri.unapply
+      }
+      .mkString(",")})"))
 
 object UnionType:
   type Able[X] = X match {
@@ -157,5 +179,9 @@ object UnionType:
   def apply[T <: Tuple](types: T): UnionType[Able[T]] = new UnionType[Able[T]](types.toList.map {
     case ct: ClassType[?] => ct
   }.toSet) {}
+  // def unsafe[T](types: Set[ClassType[?]]): UnionType[T] = 
+  //   new UnionType[T](types)
 
-abstract case class UnionType[+T](types: Set[ClassType[?]]) extends ClassType[T] { val iri: Iri = Iri("") }
+abstract case class UnionType[+T](types: Set[ClassType[?]]) extends ClassType[T] {
+  val iri: Iri = Iri(s"@union(${types.toList.map(_.iri.unapply).sorted.mkString("|")})")
+}
