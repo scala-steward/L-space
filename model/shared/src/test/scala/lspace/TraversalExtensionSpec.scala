@@ -99,4 +99,13 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
         Traversal[Int].out("has".key).hasLabel(LongType.long)
       )
 
+  val sum1 = Traversal().hasLabel(IntType).sum()
+
+  val sum2 = Traversal().hasLabel(DoubleType).sum()
+
+  val repeat1 = Traversal().repeat(Traversal().hasLabel(IntType))
+  val repeat2 = Traversal().repeat(Traversal().hasLabel(IntType), Traversal[Int])
+// val repeat3 = Traversal().repeat(Traversal().hasLabel(IntType), Traversal[String])
+// val repeat4 = Traversal().repeat(Traversal().hasLabel(IntType), Traversal())
+
 end TraversalExtensionSpec
