@@ -142,11 +142,23 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
 
   def max[traversal](
     traversal: traversal
-  )(using ET =:= Max.StartType[traversal]): Traversal[ST, CTtoT[Max.EndType[traversal]], Traversal.StepsConcat[
+  )(using
+    ET =:= Traversal.StartType[traversal]
+  ): Traversal[ST, CTtoT[Traversal.EndType[traversal]], Traversal.StepsConcat[
     Steps,
     Max[Max.Able[traversal]]
   ]] =
-    _traversal.addStep(Max(traversal), Max.EndType(traversal))
+    _traversal.addStep(Max(traversal), Traversal.EndType(traversal))
+
+  def min[traversal](
+    traversal: traversal
+  )(using
+    ET =:= Traversal.StartType[traversal]
+  ): Traversal[ST, CTtoT[Traversal.EndType[traversal]], Traversal.StepsConcat[
+    Steps,
+    Min[Min.Able[traversal]]
+  ]] =
+    _traversal.addStep(Min(traversal), Traversal.EndType(traversal))
 
   def n(): Traversal[ST, Node, Traversal.StepsConcat[
     Steps,
@@ -155,6 +167,20 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
 
   // def out[key <: Key.Name](key: key): Traversal[ST, ResourceType, Traversal.StepsConcat[Steps, Out[MapStep.KeyNameTuple[key *: EmptyTuple]]]] =
   //     _traversal.addStep(Out(key), ResourceType)
+
+  def not[traversal](
+    traversal: traversal
+  )(using
+    ET =:= CTtoT[Traversal.StartType[traversal]]
+  ): Traversal[ST, ET, Traversal.StepsConcat[
+    Steps,
+    Not[AnyTraversal[traversal]]
+  ]] = _traversal.addStep(Not(traversal))
+
+  def or[traversals](
+    traversals: traversals
+  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, Or[And.Traversals[traversals]]]] =
+    _traversal.addStep(Or(traversals))
 
   def out[keys](
     keys: keys
@@ -183,10 +209,38 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
 //   ResourceType[Any]()
 // )
 
+  def r(): Traversal[ST, Any, Traversal.StepsConcat[
+    Steps,
+    R
+  ]] = _traversal.addStep(R(), AnyResource)
+
+  def repeat[traversal, until, max, noloop <: Boolean](
+    traversal: traversal,
+    until: until = None,
+    max: max = None,
+    collect: Boolean = false,
+    noloop: noloop = false
+  )(using
+    ET =:= CTtoT[Traversal.StartType[traversal]],
+    Repeat.ValidUntil[traversal, until]
+  ): Traversal[ST, CTtoT[Traversal.EndType[traversal]], Traversal.StepsConcat[
+    Steps,
+    Repeat[AnyTraversal[traversal], Repeat.UntilTraversal[until], Repeat.MaxType[max], noloop]
+  ]] =
+    _traversal.addStep(Repeat(traversal, until, max, collect, noloop), Traversal.EndType(traversal))
+  // (traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],
+  // until: Option[Traversal[E0, _ <: ClassType[_], _ <: HList]],
+  // max: Option[Int] = None,
+  // collect: Boolean = false,
+  // noloop: Boolean = false)
+
   def select[labels](
     labels: labels
   ): Traversal[ST, CTtoT[Select.EndType[Steps, labels]], Traversal.StepsConcat[Steps, Select[Select.Able[labels]]]] =
     _traversal.addStep(Select(labels), Select.EndType(_traversal.steps, labels))
+
+  def skip[n <: Skip.N](n: n): Traversal[ST, ET, Traversal.StepsConcat[Steps, Skip[n]]] =
+    _traversal.addStep(Skip(n))
 
   def union[traversals](
     traversals: traversals
@@ -218,3 +272,7 @@ extension [ST, IN, OUT, ET <: Edge[IN, OUT], Steps <: Tuple](_traversal: Travers
 
   def to(): Traversal[ST, OUT, Traversal.StepsConcat[Steps, To]] =
     _traversal.addStep(To(), To.EndType(_traversal.et))
+
+extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])(using ET =:= Sum.Able[ET])
+  def sum(): Traversal[ST, ET, Traversal.StepsConcat[Steps, Sum]] =
+    _traversal.addStep(Sum())

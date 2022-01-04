@@ -177,7 +177,7 @@ object Traversal:
 
 end Traversal
 
-type AnyTraversal[X] = X match {
+type AnyTraversal[X] <: Traversal[?, ?, ?] = X match {
   case Traversal[s, e, steps] => Traversal[s, e, steps]
 }
 def AnyTraversal[X](traveral: X): AnyTraversal[X] = traveral match {

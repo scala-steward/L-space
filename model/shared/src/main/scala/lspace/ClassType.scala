@@ -179,8 +179,8 @@ object UnionType:
   def apply[T <: Tuple](types: T): UnionType[Able[T]] = new UnionType[Able[T]](types.toList.map {
     case ct: ClassType[?] => ct
   }.toSet) {}
-  // def unsafe[T](types: Set[ClassType[?]]): UnionType[T] = 
-  //   new UnionType[T](types)
+// def unsafe[T](types: Set[ClassType[?]]): UnionType[T] =
+//   new UnionType[T](types)
 
 abstract case class UnionType[+T](types: Set[ClassType[?]]) extends ClassType[T] {
   val iri: Iri = Iri(s"@union(${types.toList.map(_.iri.unapply).sorted.mkString("|")})")

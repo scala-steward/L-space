@@ -322,7 +322,7 @@ case class Is[predicate <: P[_]](predicate: predicate) extends FilterStep
 
 // object Label:
 //   type EndType[X] <: ClassType[?] = X match {
-//     case 
+//     case
 //   }
 case class Label() extends MoveStep
 
@@ -346,11 +346,6 @@ object Local:
 case class Local[traversal] private (traversal: traversal) extends BranchStep
 
 object Max:
-  type StartType[X] = Traversal.StartType[X]
-  def StartType[X](x: X): StartType[X] = Traversal.StartType(x)
-  type EndType[X] = Traversal.EndType[X]
-  def EndType[X](x: X): EndType[X] = Traversal.EndType(x)
-
   type Able[X] <: Traversal[?, ?, ?] = X match {
     case Traversal[s, ClassType[e], steps] => Traversal[s, OrderP.OrderableClassType[e], steps]
   }
@@ -364,23 +359,47 @@ object Max:
   ): Max[Able[traversal]] =
     new Max(Able(traversal))
 
-case class Max[traversal <: Traversal[?, ?, ?]] private (traversal: traversal) extends BranchStep
+case class Max[traversal <: Traversal[?, ?, ?]] private (traversal: traversal)
+    extends FilterBarrierStep
+    with ReducingStep
 
-case class Mean()
-case class Min[traversal] private (traversal: traversal) extends BranchStep
+case class Mean()   extends ReducingBarrierStep
+case class Median() extends ReducingBarrierStep
+
+object Min:
+  type Able[X] <: Traversal[?, ?, ?] = X match {
+    case Traversal[s, ClassType[e], steps] => Traversal[s, OrderP.OrderableClassType[e], steps]
+  }
+  def Able[X](x: X): Able[X] = x match {
+    case traversal: Traversal[s, e, steps] =>
+      traversal.withEndType(OrderP.OrderableClassType(traversal.et)).asInstanceOf[Able[X]]
+  }
+
+  def apply[traversal](
+    traversal: traversal
+  ): Min[Able[traversal]] =
+    new Min(Able(traversal))
+
+case class Min[traversal <: Traversal[?, ?, ?]] private (traversal: traversal)
+    extends FilterBarrierStep
+    with ReducingStep
 
 case class N() extends ResourceStep
 
 object Not:
-  type Traversal[X] = lspace.AnyTraversal[X]
-case class Not[traversal](traversal: Not.Traversal[traversal]) extends FilterStep
+  def apply[traversal](traversal: traversal): Not[AnyTraversal[traversal]] = new Not(
+    AnyTraversal(traversal)
+  )
+
+case class Not[traversal] private (traversal: traversal) extends FilterStep
 
 object Or:
   type Traversals[X] = lspace.Traversals[X]
   def Traversals[X](traversals: X): Traversals[X] = lspace.Traversals(traversals)
-  type Step[X] = Or[lspace.Traversals[X]]
 
-case class Or[traversals](traversals: Or.Traversals[traversals]) extends FilterStep
+  def apply[traversals](traversals: traversals): Or[Traversals[traversals]] = new Or(Traversals(traversals))
+
+case class Or[traversals] private (traversals: traversals) extends FilterStep
 
 case class Order()
 
@@ -390,6 +409,11 @@ object Out:
 
 case class Out[keys] private (keys: MoveStep.KeyTuple[?]) extends MoveStep
 // case class OutKeyPredicate[key <: Key, predicate <: P[_]](key: key, predicate: predicate) extends Out[key]
+
+object OutMap:
+  def apply[keys](keys: keys): OutMap[MapStep.KeyNameTuple[keys]] = new OutMap(MapStep.KeyTuple(keys))
+
+case class OutMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
 
 object OutE:
   type EndType[InX, OutX] = MoveEStep.EndType[InX, OutX]
@@ -403,22 +427,76 @@ object OutEMap:
 
 case class OutEMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
 
-object OutMap:
-  def apply[keys](keys: keys): OutMap[MapStep.KeyNameTuple[keys]] = new OutMap(MapStep.KeyTuple(keys))
+object Path:
+  // type EndType[X] = Traversal.EndType[X]
+  // def EndType[X](x: X): EndType[X] = Traversal.EndType[X](x)
 
-case class OutMap[keys] private (keys: MapStep.KeyTuple[?]) extends MapStep
+  type TraversalType[X] = lspace.AnyTraversal[X]
 
-case class Path() extends ProjectionStep
+  def apply[traversal](traversal: traversal): Path[TraversalType[traversal]] = new Path(
+    lspace.AnyTraversal(traversal)
+  )
+
+case class Path[traversal] private (traversal: traversal) extends ProjectionStep
 
 case class Project() extends ProjectionStep
 
 case class R() extends ResourceStep
 
-object Range:
-  type N = Long with Singleton
-case class Range[from <: Range.N, to <: Range.N](from: from, to: to) extends ClipStep
+object Repeat:
+  type UntilTraversal[X] <: Option[? <: Traversal[?, ?, ?]] = X match {
+    case Some[t]   => Some[AnyTraversal[t]]
+    case None.type => None.type
+    case _         => Some[AnyTraversal[X]]
+  }
+  def UntilTraversal[X](x: X): UntilTraversal[X] =
+    (x match {
+      case someT @ Some(t: Traversal[?, ?, ?]) => someT
+      case None                                => None
+      case t: Traversal[?, ?, ?]               => Some(t)
+    }).asInstanceOf[UntilTraversal[X]]
 
-case class Repeat() extends BranchStep
+  type MaxType[X] <: Option[? <: Int] = X match
+    case Int       => Some[X & Int]
+    case None.type => None.type
+  def MaxType[X](x: X): MaxType[X] =
+    (x match {
+      case Int  => Some(x)
+      case None => None
+    }).asInstanceOf[MaxType[X]]
+
+  type ValidUntil[traversal, until] <: =:=[?, ?] = until match {
+    case None.type => None.type =:= None.type
+    case _         => CTtoT[Traversal.EndType[traversal]] =:= CTtoT[Traversal.StartType[until]]
+  }
+
+  def apply[traversal, until, max, noloop <: Boolean](
+    traversal: traversal,
+    until: until = None,
+    max: max = None,
+    collect: Boolean = false,
+    noloop: noloop = false
+  ): Repeat[AnyTraversal[traversal], UntilTraversal[until], MaxType[max], noloop] =
+    new Repeat[AnyTraversal[traversal], UntilTraversal[until], MaxType[max], noloop](
+      AnyTraversal(traversal),
+      UntilTraversal(until),
+      MaxType(max),
+      collect,
+      noloop
+    )
+
+case class Repeat[
+  traversal <: Traversal[?, ?, ?],
+  until <: Option[? <: Traversal[?, ?, ?]],
+  max <: Option[? <: Int],
+  noloop <: Boolean
+] private (
+  traversal: traversal,
+  until: until,
+  max: max,
+  collect: Boolean,
+  noloop: noloop
+) extends BranchStep
 
 object Select:
   type Label = String with Singleton
@@ -441,17 +519,19 @@ object Select:
     case head *: tail => Tuple.Concat[TupleReverse[tail], head *: EmptyTuple]
   }
   def TupleReverse[X <: Tuple](x: X): TupleReverse[X] = (x match {
-    case EmptyTuple   => EmptyTuple
+    // case EmptyTuple   => EmptyTuple
     case head *: tail => TupleReverse(tail) ++ (head *: EmptyTuple)
   }).asInstanceOf[TupleReverse[X]]
 
   type SelectLabel[Steps <: Tuple, label] <: ClassType[?] = Steps match {
+    // case EmptyTuple => EmptyTuple
     case As[label, ct] *: steps => ClassType[ct]
     case step *: steps          => SelectLabel[steps, label]
   }
 
   def SelectLabel[Steps <: Tuple, label](steps: Steps, label: label): SelectLabel[Steps, label] =
     (steps match {
+      case EmptyTuple                                   =>
       case (as: As[?, ?]) *: steps if as.label == label => as.classType
       case step *: steps                                => SelectLabel(steps, label)
     }).asInstanceOf[SelectLabel[Steps, label]]
@@ -462,8 +542,9 @@ object Select:
     case (steps, label *: labels) => SelectLabel[steps, label] *: SelectLabels[steps, labels]
   }
 
-  def SelectLabels[Steps <: Tuple, Labels](steps: Steps, labels: Labels): SelectLabels[Steps, Labels] =
+  def SelectLabels[Steps <: Tuple, Labels <: Tuple](steps: Steps, labels: Labels): SelectLabels[Steps, Labels] =
     ((steps, labels) match {
+      case (steps, EmptyTuple)      => EmptyTuple
       case (steps, label *: labels) => SelectLabel(steps, label) *: SelectLabels(steps, labels)
     }).asInstanceOf[SelectLabels[Steps, Labels]]
 
@@ -480,6 +561,16 @@ case class Select[labels](labels: labels) extends LabelStep
 object Skip:
   type N = Long with Singleton
 case class Skip[n <: Skip.N](n: n) extends ClipStep
+
+object Sum:
+  import squants.Quantity
+
+  type Able[X] = X match {
+    case Int         => X
+    case Double      => X
+    case Long        => X
+    case Quantity[t] => X
+  }
 
 case class Sum() extends ReducingBarrierStep
 

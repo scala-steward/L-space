@@ -11,6 +11,7 @@ project/project
 .idea
 .vscode
 .metals
+*/sbt.json
 
 *.303
 
