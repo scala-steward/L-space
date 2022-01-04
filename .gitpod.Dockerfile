@@ -12,3 +12,7 @@ RUN curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)" && \
     rm cs
 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+ENV COURSIER_CACHE=.cache/coursier
+ENV SBT_CACHE_DIR=.cache/sbt
+ENV SBT_OPTS="-Dsbt.global.base=.cache/sbt/.sbtboot -Dsbt.boot.directory=.cache/sbt/boot -Dsbt.ivy.home=.cache/sbt/.ivy -Dsbt.coursier.home=.cache/sbt/.coursier"

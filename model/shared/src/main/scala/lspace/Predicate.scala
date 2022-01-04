@@ -21,17 +21,18 @@ end P
 
 sealed trait P[+V](label: Name, comment: Comment) extends Matchable derives CanEqual
 
-sealed trait EqP[+V]                extends P[V]
+sealed trait EqP[+V] extends P[V]
 object Eqv:
   def apply[V](pvalue: V): Eqv[pvalue.type] = Eqv(pvalue)
 end Eqv
-final case class Eqv[+V] private(pvalue: V) extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")), EqP[V]
-
+final case class Eqv[+V] private (pvalue: V)
+    extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")),
+      EqP[V]
 
 object Neqv:
   def apply[V](pvalue: V): Neqv[pvalue.type] = Neqv(pvalue)
 end Neqv
-final case class Neqv[+V] private(pvalue: V)
+final case class Neqv[+V] private (pvalue: V)
     extends P[V](Name("Neqv"), Comment("Predicate for logical nonequivalence, !==")),
       EqP[V]
 
@@ -39,15 +40,41 @@ object OrderP:
   import java.time._
 
   type OrderableType[X] = X match
-    case Int            => X
-    case Double         => X
-    case Long           => X
-    case Instant        => X
-    case ZonedDateTime  => X
-    case OffsetDateTime => X
-    case LocalDateTime  => X
-    case LocalDate      => X
-    case LocalTime      => X
+    case Int | Double | Long     => X
+    case Instant | ZonedDateTime => X
+    case OffsetDateTime          => X
+    case LocalDateTime           => X
+    case LocalDate               => X
+    case LocalTime               => X
+
+  def OrderableType[X](x: X): OrderableType[X] = x match {
+    case x: (Int | Double | Long)     => x
+    case x: (Instant | ZonedDateTime) => x
+    case x: OffsetDateTime            => x
+    case x: LocalDateTime             => x
+    case x: LocalDate                 => x
+    case x: LocalTime                 => x
+  }
+
+  type OrderableClassType[X] <: ClassType[?] = X match {
+    case ClassType[t] => ClassType[OrderableType[t]]
+  }
+  def OrderableClassType[X](x: ClassType[X]): ClassType[X] = x match {
+    case ct: IntType[?] => ct
+    // case ct: DoubleType[?] => x
+    case ct: LongType[?] => ct
+  }
+// type Sortable[X] = X match {
+//   case Int | Double | Long => X
+//   case String => X
+//   case java.time.Instant | java.time.ZonedDateTime => java.time.Instant | java.time.ZonedDateTime
+// }
+// implicitly[(Int | String) =:= (Sortable[Int | String])]
+// implicitly[(Int) =:= (Sortable[Int])]
+// implicitly[(Int | Double) =:= (Sortable[Int | Double])]
+// implicitly[(Int | Double | Long) =:= (Sortable[Int | Double | Long])]
+// implicitly[(Int | Double | Long | BigInt) =:= (Sortable[Int | Double | Long | BigInt])]
+
 end OrderP
 sealed trait OrderP[+V] extends EqP[V]
 

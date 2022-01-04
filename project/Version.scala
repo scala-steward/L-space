@@ -18,5 +18,5 @@ object Version {
   val sttpClient    = "3.3.13"
   val sttpShared    = "1.2.5"
   val sttpTapir     = "0.19.0-M11"
-  val zio           = "2.0.0-RC1"
+  val zio           = "2.0.0-M5"
 }
