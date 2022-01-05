@@ -1,7 +1,7 @@
 package lspace
+package classtypes
 
-// import eu.timepit.refined.api.Refined
-// import eu.timepit.refined.string.Uri
+import namespace._
 
 // enum ClassType[T]:
 //   case ResourceType[T]() extends ClassType[Resource[T]]
@@ -22,14 +22,22 @@ object ClassType:
   }
   trait Enabled[X]:
     def ct: ClassType[X]
+
   given intType: Enabled[Int] with
-    def ct: ClassType[Int] = IntType
+    def ct: ClassType[Int] = IntType.int
+
+  given doubleType: Enabled[Double] with
+    def ct: ClassType[Double] = DoubleType.double
+
+  given longType: Enabled[Long] with
+    def ct: ClassType[Long] = LongType.long
+
   given stringType: Enabled[String] with
     def ct: ClassType[String] = StringType.string
 
   def Able[X](x: X): Able[X] = x match {
-    case _: Int     => IntType
-    case _: Double  => DoubleType
+    case _: Int     => IntType.int
+    case _: Double  => DoubleType.double
     case _: Long    => LongType.long
     case _: String  => StringType.string
     case _: Boolean => BooleanType
@@ -75,17 +83,19 @@ sealed trait DataType[+V](val iri: Iri) extends ClassType[V]
 sealed trait NumericType[i] extends DataType[i]
 
 type IntTyped = IntType[Int]
-case object IntType            extends IntType[Int] with DataType[Int](Iri("@int"))
-sealed trait IntType[i <: Int] extends NumericType[i]
+enum IntType[i <: Int](iri: Iri) extends NumericType[i] with DataType[i](iri):
+  case int extends IntType[Int](`@int`)
+  case literal[ii <: Int](value: ii) extends IntType[ii](`@int` ++ s"($value)")
 
 type DoubleTyped = DoubleType[Double]
-case object DoubleType               extends DoubleType[Double] with DataType[Double](Iri("@double"))
-sealed trait DoubleType[i <: Double] extends NumericType[i]
+enum DoubleType[i <: Double](iri: Iri) extends NumericType[i] with DataType[i](iri):
+  case double extends DoubleType[Double](`@double`)
+  case literal[ii <: Double](value: ii) extends DoubleType[ii](`@double` ++ s"($value)")
 
 type LongTyped = LongType[Long]
 enum LongType[i <: Long](iri: Iri) extends NumericType[i] with DataType[i](iri):
-  case long extends LongType[Long](Iri("@long"))
-  case literal[ii <: Long](value: ii) extends LongType[ii](Iri(s"@long($value)"))
+  case long extends LongType[Long](`@long`)
+  case literal[ii <: Long](value: ii) extends LongType[ii](`@long` ++ s"($value)")
 
 // enum StringType[s <: String] extends DataType[s](Iri("@string")):
 //   case string extends StringType[String]
@@ -99,8 +109,8 @@ type StringTyped = StringType[String]
 // case object StringType                 extends StringType[String] with DataType[String](Iri("@string"))
 // sealed trait StringType[s <: String]() extends DataType[s]
 enum StringType[str <: String](iri: Iri) extends DataType[str](iri):
-  case string extends StringType[String](Iri("@string"))
-  case literal[s <: String](value: s) extends StringType[s](Iri(s"@string($value)"))
+  case string extends StringType[String](`@string`)
+  case literal[s <: String](value: s) extends StringType[s](`@string` ++ s"($value)")
 
 object StringType:
   type l[s <: String] = literal[s]

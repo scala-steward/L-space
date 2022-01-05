@@ -1,7 +1,9 @@
 package lspace
 
-import librarian.step._
-import scala.quoted.ToExpr.EmptyTupleToExpr
+import classtypes._
+import librarian.logic.P
+import librarian.steps._
+import types._
 
 extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
 
@@ -32,9 +34,9 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
     Coalesce[Coalesce.Traversals[traversals]]
   ]] = _traversal.addStep(Coalesce(traversals), Coalesce.EndType(traversals))
 
-  def coin[p <: Double with Singleton](
-    p: Coin.Probability[p]
-  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, Coin[p]]] =
+  def coin[p <: Probability.P](
+    p: p
+  )(using Probability.Able[p]): Traversal[ST, ET, Traversal.StepsConcat[Steps, Coin[p]]] =
     _traversal.addStep(Coin(p))
 
   def constant[V](
@@ -91,6 +93,11 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
   ): Traversal[ST, t, Traversal.StepsConcat[Steps, HasLabel[t]]] =
     _traversal.addStep(HasLabel(label), label)
 
+  def hasLabel[t: ClassType.Enabled](): Traversal[ST, t, Traversal.StepsConcat[Steps, HasLabel[t]]] = {
+    val label = implicitly[ClassType.Enabled[t]].ct
+    _traversal.addStep(HasLabel(label), label)
+  }
+
   // def hasNot[]()
   // def hasValue
 
@@ -128,7 +135,9 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
   def last: Traversal[ST, ET, Traversal.StepsConcat[Steps, Last]] =
     _traversal.addStep(Last())
 
-  def limit[max <: Limit.Max](max: max): Traversal[ST, ET, Traversal.StepsConcat[Steps, Limit[max]]] =
+  def limit[max <: Positive.N](max: max)(using
+    Positive.Able[max]
+  ): Traversal[ST, ET, Traversal.StepsConcat[Steps, Limit[max]]] =
     _traversal.addStep(Limit(max))
 
   def local[traversal](

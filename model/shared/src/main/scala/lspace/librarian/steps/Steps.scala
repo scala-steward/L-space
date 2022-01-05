@@ -1,6 +1,10 @@
 package lspace
 package librarian
-package step
+package steps
+
+import classtypes._
+import logic._
+import types._
 
 sealed trait Step
 // sealed trait Terminate        extends Step
@@ -39,8 +43,6 @@ object MapStep:
     case key *: keys => KeyToTupleType[key] *: KeyValueTuples[keys]
     // case Key[name]         => (name, List[Any]) *: EmptyTuple
   }
-
-  val x = ListType(IntType)
 
   def KeyValueTuples[X](x: X): KeyValueTuples[X] =
     (x match {
@@ -191,18 +193,10 @@ object Coalesce:
 case class Coalesce[traversals] private (traversals: traversals) extends BranchStep
 
 object Coin:
-  import eu.timepit.refined.api._
-  import eu.timepit.refined.numeric._
 
-  type Min                                     = 0.0
-  type Max                                     = 1.0
-  type Probability[d <: Double with Singleton] = d Refined Interval.Closed[Min, Max]
+  def apply[p <: Probability.P](p: p)(using Probability.Able[p]): Coin[p] = new Coin(p)
 
-// type Between[X] = X match {
-//   // case p if p > Min && p < Max => p
-//   case p => p
-// }
-case class Coin[p <: Double with Singleton](p: Coin.Probability[p]) extends FilterStep
+case class Coin[p] private (p: Probability) extends FilterStep
 
 object Constant:
   type Value[X] = X match {
@@ -330,8 +324,10 @@ case class Label() extends MoveStep
 case class Last() extends ReducingStep
 
 object Limit:
-  type Max = Int with Singleton
-case class Limit[max <: Limit.Max](max: max) extends ClipStep
+
+  def apply[max <: Positive.N](max: max)(using Positive.Able[max]): Limit[max] = new Limit(max)
+
+case class Limit[max] private (max: Positive) extends ClipStep
 
 object Local:
   type EndType[X] = Traversal.EndType[X]

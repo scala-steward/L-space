@@ -1,4 +1,5 @@
 package lspace
+package namespace
 
 val `@literal`: Iri = Iri("@literal")
 val `@string`: Iri  = Iri("@string")

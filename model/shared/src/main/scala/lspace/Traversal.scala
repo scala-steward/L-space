@@ -1,10 +1,7 @@
 package lspace
 
-import lspace.librarian.step.Step
-
-// import eu.timepit.refined._
-// import eu.timepit.refined.api.Refined
-// import eu.timepit.refined.string.Uri
+import classtypes._
+import lspace.librarian.steps.Step
 
 /** @tparam R
   *   resource self-type

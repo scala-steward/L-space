@@ -10,7 +10,10 @@ opaque type Iri = String
 object Iri:
   def apply(iri: String): Iri = iri
 
-  extension (iri: Iri) def unapply: String = iri
+  extension (iri: Iri)
+    def unapply: String = iri
+    def ++(string: String): Iri = iri + string
+
 end Iri
 
 opaque type Name = String

@@ -1,4 +1,6 @@
 package lspace
+package librarian
+package logic
 
 extension [predicate <: P[_]](predicate: predicate)
   infix def &&[predicate2 <: P[_]](predicate2: predicate2): And[And.AndTuple[(predicate, predicate2)]] = And(
