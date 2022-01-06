@@ -24,6 +24,7 @@ object P:
   val not     = Not
   val prefix  = Prefix
   val suffix  = Suffix
+  val matches = Matches
 
   infix def ![p <: P[?]](p: p): Not[p] = Not(p)
 end P
@@ -135,7 +136,10 @@ object Between:
     new Between(OrderP.OrderableType(lower), OrderP.OrderableType(upper))
 end Between
 final case class Between[L, U] private (lower: L, upper: U)
-    extends P[(L, U)](Name("Between"), Comment("Predicate for greater than equal and less than equal comparison, >= && <=")),
+    extends P[(L, U)](
+      Name("Between"),
+      Comment("Predicate for greater than equal and less than equal comparison, >= && <=")
+    ),
       OrderP[(L, U)]
 
 sealed trait CollectionP[+V] extends P[V]
@@ -146,30 +150,38 @@ final case class Within[+V] private (value: V*)
 
 object OneOf:
   type TupleType[X] <: Tuple = X match
-    case EmptyTuple => EmptyTuple
+    case EmptyTuple      => EmptyTuple
     case value *: values => Able[value] *: TupleType[values]
   def TupleType[X](x: X): TupleType[X] = (x match
-    case EmptyTuple => EmptyTuple
+    case EmptyTuple      => EmptyTuple
     case value *: values => Able(value) *: TupleType(values)
   ).asInstanceOf[TupleType[X]]
 
   type Able[X] = X match {
-    case Int => X & Int
+    case Int    => X & Int
     case Double => X & Double
-    case Long => X & Long
+    case Long   => X & Long
   }
-  def Able[X](x: X): Able[X] = ( x match {
-    case _: Int => x
+  def Able[X](x: X): Able[X] = (x match {
+    case _: Int    => x
     case _: Double => x
-    case _: Long => x
+    case _: Long   => x
   }).asInstanceOf[Able[X]]
 
   def apply[values](values: values): OneOf[TupleType[values]] = new OneOf(TupleType(values))
 
-final case class OneOf[values] private (value: values) extends P[values](Name("OneOf"), Comment("Predicate for .., oneOf")), CollectionP[values]
-final case class AnyOf[values] private (value: values) extends P[values](Name("AnyOf"), Comment("Predicate for .., oneOf")), CollectionP[values]
-final case class AllOf[values] private (value: values) extends P[values](Name("AllOf"), Comment("Predicate for .., oneOf")), CollectionP[values]
-final case class NoneOf[values] private (value: values) extends P[values](Name("AllOf"), Comment("Predicate for .., oneOf")), CollectionP[values]
+final case class OneOf[values] private (value: values)
+    extends P[values](Name("OneOf"), Comment("Predicate for .., oneOf")),
+      CollectionP[values]
+final case class AnyOf[values] private (value: values)
+    extends P[values](Name("AnyOf"), Comment("Predicate for .., oneOf")),
+      CollectionP[values]
+final case class AllOf[values] private (value: values)
+    extends P[values](Name("AllOf"), Comment("Predicate for .., oneOf")),
+      CollectionP[values]
+final case class NoneOf[values] private (value: values)
+    extends P[values](Name("AllOf"), Comment("Predicate for .., oneOf")),
+      CollectionP[values]
 
 object And:
   def apply[predicates <: Tuple](predicates: predicates): And[AndTuple[predicates]] = new And(AndTuple(predicates))
@@ -256,3 +268,9 @@ object Suffix:
     case Product => X
 end Suffix
 final case class Suffix[V](value: V) extends P[Suffix.SuffixType[V]](Name("Suffix"), Comment("Predicate for .., !"))
+
+object Matches:
+
+  def apply[regex <: String](value: regex): Matches[value.type] = new Matches[value.type](value)
+final case class Matches[V] private (value: V)
+    extends P[String](Name("Matches"), Comment("Predicate for matching against a regular expression."))
