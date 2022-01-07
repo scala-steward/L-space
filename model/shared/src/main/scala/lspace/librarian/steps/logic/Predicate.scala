@@ -51,27 +51,29 @@ object OrderP:
 
   type OrderableType[X] = X match
     case Int | Double | Long     => X
-    case Instant | ZonedDateTime => X
-    case OffsetDateTime          => X
-    case LocalDateTime           => X
-    case LocalDate               => X
-    case LocalTime               => X
+    // case Instant | ZonedDateTime => X
+    // case OffsetDateTime          => X
+    // case LocalDateTime           => X
+    // case LocalDate               => X
+    // case LocalTime               => X
 
   def OrderableType[X](x: X): OrderableType[X] = x match {
     case x: (Int | Double | Long)     => x
-    case x: (Instant | ZonedDateTime) => x
-    case x: OffsetDateTime            => x
-    case x: LocalDateTime             => x
-    case x: LocalDate                 => x
-    case x: LocalTime                 => x
+    // case x: (Instant | ZonedDateTime) => x
+    // case x: OffsetDateTime            => x
+    // case x: LocalDateTime             => x
+    // case x: LocalDate                 => x
+    // case x: LocalTime                 => x
   }
 
   type OrderableClassType[X] <: ClassType[?] = X match {
-    case ClassType[t] => ClassType[OrderableType[t]]
+    case IntType[t] => IntType[t]
+    case DoubleType[t] => DoubleType[t]
+    case LongType[t] => LongType[t]
   }
-  def OrderableClassType[X](x: ClassType[X]): ClassType[X] = x match {
+  def OrderableClassType[X](x: X): OrderableClassType[X] = x match {
     case ct: IntType[?] => ct
-    // case ct: DoubleType[?] => x
+    case ct: DoubleType[?] => ct
     case ct: LongType[?] => ct
   }
 // type Sortable[X] = X match {

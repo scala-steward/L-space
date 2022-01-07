@@ -1,6 +1,6 @@
 import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 
-ThisBuild / scalaVersion := "3.1.2-RC1-bin-20220104-ab125eb-NIGHTLY"
+ThisBuild / scalaVersion := "3.1.2-RC1-bin-20220106-0b4c6e7-NIGHTLY"
 // ThisBuild / crossScalaVersions := Seq("2.13.6", "3.0.2")
 ThisBuild / githubWorkflowJavaVersions := Seq("graalvm-ce-java17@21.3.0")
 

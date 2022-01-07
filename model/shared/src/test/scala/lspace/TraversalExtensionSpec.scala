@@ -126,5 +126,9 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
   // val p11: Probability = 1.1
   val up1 = Probability.apply(0.1: Double)
   val up2 = Probability.apply(1.1: 1.1)
+  val ptest: Probability = (1.1).asInstanceOf[Probability]
+  
+  val coin1 = Traversal().coin(0.1)
+  // val coin2 = Traversal().coin(1.1)
 
 end TraversalExtensionSpec

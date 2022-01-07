@@ -194,6 +194,7 @@ case class Coalesce[traversals] private (traversals: traversals) extends BranchS
 
 object Coin:
 
+
   def apply[p <: Probability.P](p: p)(using Probability.Able[p]): Coin[p] = new Coin(p)
 
 case class Coin[p] private (p: Probability) extends FilterStep
@@ -515,7 +516,7 @@ object Select:
     case head *: tail => Tuple.Concat[TupleReverse[tail], head *: EmptyTuple]
   }
   def TupleReverse[X <: Tuple](x: X): TupleReverse[X] = (x match {
-    // case EmptyTuple   => EmptyTuple
+    case EmptyTuple   => EmptyTuple
     case head *: tail => TupleReverse(tail) ++ (head *: EmptyTuple)
   }).asInstanceOf[TupleReverse[X]]
 
