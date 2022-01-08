@@ -89,7 +89,6 @@ lazy val model =
     .settings(
       name := "lspace-model",
       libraryDependencies ++= Seq(
-        "eu.timepit"    %% "refined" % Version.refined,
         "org.typelevel" %% "squants" % Version.squants
       )
     )

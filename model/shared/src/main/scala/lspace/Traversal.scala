@@ -3,27 +3,6 @@ package lspace
 import classtypes._
 import lspace.librarian.steps.Step
 
-/** @tparam R
-  *   resource self-type
-  */
-sealed trait Resource[+R] extends Matchable derives CanEqual
-
-open class Node extends Resource[Node]
-
-/** @tparam S
-  *   outV-type, edge-start
-  * @tparam E
-  *   inV-type, edge-end
-  */
-open class Edge[+S, +E] extends Resource[Edge[S, E]]
-
-/** @tparam V
-  *   value-type
-  */
-open class Value[+V](v: V) extends Resource[Value[V]]
-
-open class Graph extends Resource[Graph]
-
 final case class Traversal[ST, ET, Steps <: Tuple] private (steps: Steps)(
   val st: ClassType[ST],
   val et: ClassType[ET]
