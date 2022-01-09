@@ -36,7 +36,7 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
 
   def coin[p <: Probability.P](
     p: p
-  )(using Probability.Able[p]): Traversal[ST, ET, Traversal.StepsConcat[Steps, Coin[p]]] =
+  )(using Conversion[p, Probability]): Traversal[ST, ET, Traversal.StepsConcat[Steps, Coin[p]]] =
     _traversal.addStep(Coin(p))
 
   def constant[V](
@@ -135,8 +135,8 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
   def last: Traversal[ST, ET, Traversal.StepsConcat[Steps, Last]] =
     _traversal.addStep(Last())
 
-  def limit[max <: Positive.N](max: max)(using
-    Positive.Able[max]
+  def limit[max <: Singleton](max: max)(using
+    Conversion[max, Positive[Int]]
   ): Traversal[ST, ET, Traversal.StepsConcat[Steps, Limit[max]]] =
     _traversal.addStep(Limit(max))
 
@@ -223,7 +223,7 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
     R
   ]] = _traversal.addStep(R(), AnyResource)
 
-  def repeat[traversal, until, max, noloop <: Boolean](
+  def repeat[traversal, until, max <: (Int with Singleton | Option[Nothing]), noloop <: Boolean](
     traversal: traversal,
     until: until = None,
     max: max = None,
@@ -231,10 +231,11 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
     noloop: noloop = false
   )(using
     ET =:= CTtoT[Traversal.StartType[traversal]],
-    Repeat.ValidUntil[traversal, until]
+    Repeat.ValidUntil[traversal, until],
+    Conversion[Repeat.MaxType[max], Option[Positive[Int]]]
   ): Traversal[ST, CTtoT[Traversal.EndType[traversal]], Traversal.StepsConcat[
     Steps,
-    Repeat[AnyTraversal[traversal], Repeat.UntilTraversal[until], Repeat.MaxType[max], noloop]
+    Repeat[AnyTraversal[traversal], Repeat.UntilTraversal[until], max, noloop]
   ]] =
     _traversal.addStep(Repeat(traversal, until, max, collect, noloop), Traversal.EndType(traversal))
   // (traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],

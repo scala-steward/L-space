@@ -194,8 +194,7 @@ case class Coalesce[traversals] private (traversals: traversals) extends BranchS
 
 object Coin:
 
-
-  def apply[p <: Probability.P](p: p)(using Probability.Able[p]): Coin[p] = new Coin(p)
+  def apply[p <: Probability.P](p: p)(using Conversion[p, Probability]): Coin[p] = new Coin(p)
 
 case class Coin[p] private (p: Probability) extends FilterStep
 
@@ -326,9 +325,9 @@ case class Last() extends ReducingStep
 
 object Limit:
 
-  def apply[max <: Positive.N](max: max)(using Positive.Able[max]): Limit[max] = new Limit(max)
+  def apply[max <: Singleton](max: max)(using Conversion[max, Positive[Int]]): Limit[max] = new Limit(max)
 
-case class Limit[max] private (max: Positive) extends ClipStep
+case class Limit[max] private (max: Positive[Int]) extends ClipStep
 
 object Local:
   type EndType[X] = Traversal.EndType[X]
@@ -467,14 +466,16 @@ object Repeat:
     case _         => CTtoT[Traversal.EndType[traversal]] =:= CTtoT[Traversal.StartType[until]]
   }
 
-  def apply[traversal, until, max, noloop <: Boolean](
+  def apply[traversal, until, max <: (Int with Singleton | Option[Nothing]), noloop <: Boolean](
     traversal: traversal,
     until: until = None,
     max: max = None,
     collect: Boolean = false,
     noloop: noloop = false
-  ): Repeat[AnyTraversal[traversal], UntilTraversal[until], MaxType[max], noloop] =
-    new Repeat[AnyTraversal[traversal], UntilTraversal[until], MaxType[max], noloop](
+  )(using
+    Conversion[MaxType[max], Option[Positive[Int]]]
+  ): Repeat[AnyTraversal[traversal], UntilTraversal[until], max, noloop] =
+    new Repeat[AnyTraversal[traversal], UntilTraversal[until], max, noloop](
       AnyTraversal(traversal),
       UntilTraversal(until),
       MaxType(max),
@@ -485,12 +486,12 @@ object Repeat:
 case class Repeat[
   traversal <: Traversal[?, ?, ?],
   until <: Option[? <: Traversal[?, ?, ?]],
-  max <: Option[? <: Int],
+  max,
   noloop <: Boolean
 ] private (
   traversal: traversal,
   until: until,
-  max: max,
+  max: Option[Positive[Int]],
   collect: Boolean,
   noloop: noloop
 ) extends BranchStep

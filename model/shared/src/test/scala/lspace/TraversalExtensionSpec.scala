@@ -116,6 +116,8 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
   val sum2 = Traversal().hasLabel[Double]().sum()
 
   val repeat1 = Traversal().repeat(Traversal().hasLabel[Int]())
+  val repeat1max = Traversal().repeat(Traversal().hasLabel[Int](), max = 2)
+  // val repeat2max = Traversal().repeat(Traversal().hasLabel[Int](), max = -2)
   val repeat2 = Traversal().repeat(Traversal().hasLabel[Int](), Traversal[Int])
 // val repeat3 = Traversal().repeat(Traversal().hasLabel[Int](), Traversal[String])
 // val repeat4 = Traversal().repeat(Traversal().hasLabel[Int](), Traversal())
@@ -124,11 +126,23 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
   val p01: Probability = 0.1
   val p1: Probability = 1.0
   // val p11: Probability = 1.1
-  val up1 = Probability.apply(0.1: Double)
-  val up2 = Probability.apply(1.1: 1.1)
-  val ptest: Probability = (1.1).asInstanceOf[Probability]
+  val sp1 = Probability.safeApply(0.1: Double)
+  val sp2 = Probability.safeApply(1.1: 1.1)
+  val p10 = Probability(1.0)
+  // val p11 = Probability(1.1)
+  // val ptest: Probability[1.1] = 1.1
   
   val coin1 = Traversal().coin(0.1)
   // val coin2 = Traversal().coin(1.1)
+
+  val between1: Between[0, 2] = Between(1)
+  val between2: Between[1, 2] = Between(1)
+  // val between3: Between[1, 2] = Between(0)
+
+  val inside1: Inside[0, 2] = Inside(1)
+  // val inside2: Inside[1, 2] = Inside(1)
+  // val inside3: Inside[1, 2] = Inside(0)
+
+  // val inside: Inside[0, 2] = Between(1)
 
 end TraversalExtensionSpec
