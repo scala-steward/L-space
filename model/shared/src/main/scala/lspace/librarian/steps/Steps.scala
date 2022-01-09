@@ -457,7 +457,7 @@ object Repeat:
     case None.type => None.type
   def MaxType[X](x: X): MaxType[X] =
     (x match {
-      case Int  => Some(x)
+      case x: Int  => Some(x)
       case None => None
     }).asInstanceOf[MaxType[X]]
 
