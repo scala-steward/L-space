@@ -58,7 +58,7 @@ class IntervalSpec extends AnyWordSpec with Matchers:
       "2: Inside[0L,2L]" shouldNot compile
     }
   }
-  (-1: Outside[0,1])
+
   "Outside[min, max]" when {
     "bounds of type Int" in {
       "-1: Outside[0,0]" should compile
