@@ -24,4 +24,4 @@ addSbtPlugin("com.codecommit" % "sbt-github-actions" % "0.14.2")
 
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-parser-combinators" % "always"
 
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.9.0")
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.9.3")
