@@ -18,7 +18,7 @@ addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-publish" % 
 //sbt-updates, sbt-dependency-check
 addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-extra" % "2.0.9")
 
-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.31")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.34")
 
 addSbtPlugin("com.codecommit" % "sbt-github-actions" % "0.14.2")
 
