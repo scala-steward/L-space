@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [3.1.2-RC1-bin-20220106-0b4c6e7-NIGHTLY]
+        scala: [3.1.2-RC1-bin-20220112-0a834ff-NIGHTLY]
         java: [graal_21.3.0@17]
     runs-on: ${{ matrix.os }}
     steps:
@@ -74,7 +74,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [3.1.2-RC1-bin-20220106-0b4c6e7-NIGHTLY]
+        scala: [3.1.2-RC1-bin-20220112-0a834ff-NIGHTLY]
         java: [graal_21.3.0@17]
     runs-on: ${{ matrix.os }}
     steps:
