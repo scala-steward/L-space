@@ -12,8 +12,8 @@ ports:
   # - port: 9411
 
 tasks:
-- name: init metals and bloop
-  init: sbt bloopInstall
-  command: zsh
+- name: Install and build
+  init: sbtn bloopInstall
+  command: bloop projects | xargs bloop compile --watch
 # - before: cd ~/zipkin
 #   command: java -jar zipkin.jar

@@ -135,8 +135,8 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
   val coin1 = Traversal().coin(0.1)
   // val coin2 = Traversal().coin(1.1)
 
-  val between1: Between[0, 2] = Between(1)
-  val between2: Between[1, 2] = Between(1)
+  val between1: Between[0, 2] = 1
+  val between2: Between[1, 2] = 1
   // val between3: Between[1, 2] = Between(0)
 
   val inside1: Inside[0, 2] = Inside(1)
