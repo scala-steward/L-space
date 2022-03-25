@@ -10,7 +10,7 @@ ports:
 
 tasks:
 - name: Install and build
-  init: sbtn bloopInstall
+  init: sbt -Dbloop.export-jar-classifiers=sources bloopInstall
   command: bloop projects | xargs bloop compile --watch
 # - before: cd ~/zipkin
 #   command: java -jar zipkin.jar
