@@ -242,13 +242,13 @@ object Group:
   type Value[X] = lspace.AnyTraversal[X]
   def Value[X](x: X) = lspace.AnyTraversal(x)
 
-  type EndType[by, value] <: ClassType[?] = Traversal.EndType[Value[value]] match {
-    case ClassType[t] => TupleType[(Traversal.EndType[By[by]], ListType[List[t]])]
+  type EndType[by, value] <: ClassType[?] = (Traversal.EndType[By[by]], Traversal.EndType[Value[value]]) match {
+    case (ClassType[by], ClassType[value]) => TupleType[(by, List[value])]
   }
   def EndType[by, value](by: by, value: value): EndType[by, value] =
-    (Traversal.EndType(Value(value)) match {
-      case ct: ClassType[t] =>
-        TupleType((Traversal.EndType(By(by)), ListType(ct)))
+    ((Traversal.EndType(By(by)), Traversal.EndType(Value(value))) match {
+      case (byCT: ClassType[by], valueCT: ClassType[value]) =>
+        TupleType((byCT, ListType(valueCT)))
     }).asInstanceOf[EndType[by, value]]
 
   def apply[by, value](by: by, value: value): Group[By[by], Value[value]] = new Group(By(by), Value(value))
