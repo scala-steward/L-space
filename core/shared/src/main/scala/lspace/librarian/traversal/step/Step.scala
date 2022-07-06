@@ -335,7 +335,7 @@ object HasStep extends StepDef(label = "HasStep", comment = "HasStep", FilterSte
     implicit object IsString extends PropertyLabel[String] {
       def getProperty(label: String): Property = Property.properties
         .get(label)
-        .getOrElse(Property(label)) //throw new Exception("unknown key"))
+        .getOrElse(Property(label)) // throw new Exception("unknown key"))
     }
   }
 

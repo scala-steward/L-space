@@ -8,9 +8,11 @@ import monix.eval.Task
 import shapeless.HList
 
 object Select
-    extends StepDef("Select",
-                    "A select-step selects the preliminary result from marked steps in the traversal path.",
-                    `@extends` = ProjectionStep.ontology :: Nil)
+    extends StepDef(
+      "Select",
+      "A select-step selects the preliminary result from marked steps in the traversal path.",
+      `@extends` = ProjectionStep.ontology :: Nil
+    )
     with StepWrapper[Select[Any]] {
 
   case class Selection[SelectedLabels <: HList, TypesTuple](labels: SelectedLabels)
@@ -50,7 +52,7 @@ object Select
           container = types.`@listset` :: Nil,
           `@range` = DataType.default.`@string` :: Nil
         )
-    val nameString: TypedProperty[List[String]] = name.property as ListType(DataType.default.`@string`)
+    val nameString: TypedProperty[List[String]] = name.property.as(ListType(DataType.default.`@string`))
   }
   override lazy val properties: List[Property] = keys.name :: Nil
 

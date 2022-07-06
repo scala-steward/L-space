@@ -32,14 +32,17 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
         steps.tail.span(!_.isInstanceOf[Out]) match {
           case (l1, Vector()) =>
             patterns :+ l1.collect {
-              case step: Has      => step.key
+              case step: Has   => step.key
               case _: HasLabel => Property.default.`@type`
             }.toSet
           case (l1, l2) =>
-            splitByOut(patterns :+ l1.collect {
-              case step: Has      => step.key
-              case _: HasLabel => Property.default.`@type`
-            }.toSet, l2)
+            splitByOut(
+              patterns :+ l1.collect {
+                case step: Has   => step.key
+                case _: HasLabel => Property.default.`@type`
+              }.toSet,
+              l2
+            )
         }
     }
 
@@ -58,15 +61,20 @@ class MemIndex(val traversal: UntypedTraversal) extends Index {
     })
 
   def find(values: Vector[Map[Property, List[P[_]]]]): Observable[Shape] =
-    Observable.fromIterable(data.to(LazyList).filter { shape =>
-      (shape.origin :: shape.edges.map(_.to).toList).zipAll(values, null, null).forall {
-        case (null, mpp) if mpp != null => false
-        case (e, null) if e != null     => false
+    Observable.fromIterable(
+      data
+        .to(LazyList)
+        .filter { shape =>
+          (shape.origin :: shape.edges.map(_.to).toList).zipAll(values, null, null).forall {
+            case (null, mpp) if mpp != null => false
+            case (e, null) if e != null     => false
 //        case (_, List())                => true
 //        case (e, mpp)    => mpp.forall(mpp => e.out(mpp._1).exists(v => mpp._2.forall(p => p.assert(v))))
-        case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
-      }
-    }.toList)
+            case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
+          }
+        }
+        .toList
+    )
 
   def delete(shape: Shape): Task[Unit] = Task.now(data -= shape)
 }

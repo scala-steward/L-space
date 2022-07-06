@@ -32,9 +32,11 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
     lazy val `lspace:User/manager@User`: TypedProperty[Node] = `lspace:User/manager`.as(User.ontology)
 
     object `lspace:name`
-        extends PropertyDef(lspace.NS.vocab.Lspace + "name",
-                            "name",
-                            `@extends` = Property(lspace.NS.vocab.schema + "name") :: Nil)
+        extends PropertyDef(
+          lspace.NS.vocab.Lspace + "name",
+          "name",
+          `@extends` = Property(lspace.NS.vocab.schema + "name") :: Nil
+        )
     lazy val `lspace:name@String`: TypedProperty[String] = `lspace:name`.as(DataType.default.`@string`)
 
     object `sioc:last_activity_date`
@@ -87,15 +89,18 @@ object User extends OntologyDef(lspace.NS.vocab.Lspace + "User", Set(), "User", 
         user
           .role()
           .map(role =>
-            DetachedGraph.nodes.upsert(role.iri).flatMap(role => node.addOut(keys.`lspace:User/role@Role`, role))))
+            DetachedGraph.nodes.upsert(role.iri).flatMap(role => node.addOut(keys.`lspace:User/role@Role`, role))
+          )
+      )
       _ <- Task.parSequenceUnordered(
         user
           .manager()
-          .map(
-            manager =>
-              DetachedGraph.nodes
-                .upsert(manager.iri)
-                .flatMap(manager => node.addOut(keys.`lspace:User/manager@User`, manager))))
+          .map(manager =>
+            DetachedGraph.nodes
+              .upsert(manager.iri)
+              .flatMap(manager => node.addOut(keys.`lspace:User/manager@User`, manager))
+          )
+      )
     } yield node
   def toUser(node: Node): Task[User] =
     for {

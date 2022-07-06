@@ -33,8 +33,10 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
             node
               .map { node =>
                 Coeval
-                  .now(Ontology.ontologies
-                    .getAndUpdate(node))
+                  .now(
+                    Ontology.ontologies
+                      .getAndUpdate(node)
+                  )
                   .map { ontology =>
                     byId += node.id   -> ontology
                     byIri += node.iri -> node
@@ -63,8 +65,10 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
               .find(_.hasLabel(DataType.ontology).isEmpty)
               .map { node =>
                 Coeval
-                  .now(Ontology.ontologies
-                    .getAndUpdate(node))
+                  .now(
+                    Ontology.ontologies
+                      .getAndUpdate(node)
+                  )
                   .map { ontology =>
                     byId += node.id   -> ontology
                     byIri += node.iri -> node
@@ -76,7 +80,9 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                   .map(Some(_))
               }
               .map(_.to[Task])
-              .getOrElse(Task.now(None))))
+              .getOrElse(Task.now(None))
+          )
+      )
 
   def all: List[Ontology] = byId.values.toList
 
@@ -119,34 +125,32 @@ abstract class Ontologies(val graph: NameSpaceGraph) {
                 .map { id =>
                   for {
                     node <- getOrCreateNode(id)
-                    _ <- {
+                    _ <-
                       node.addLabel(Ontology.ontology)
-                    }
                   } yield node
                 }
                 .getOrElse {
                   //                  Ontology.ontologies.cache(ontology)
                   nodes.create(Ontology.ontology)
                 }
-              _    <- node.addOut(default.typed.iriUrlString, ontology.iri)
+              _ <- node.addOut(default.typed.iriUrlString, ontology.iri)
               _ <- Task.parSequence(ontology.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
 
               //                properties      <- Task.parSequence(ontology.properties.map(ns.properties.store))
-              extendedClasses <- Task.parSequence(ontology.extendedClasses().collect { case o: Ontology => o }.map(ns.ontologies.store))
-              _        <- node.addOut(Label.P.`@extends`, extendedClasses)
-              _ <- Task.parSequence(ontology.label().map {
-                case (language, label) =>
-                  for {
-                    label <- node.addOut(Property.default.`@label`, label)
-                    _  <- label.addOut(Property.default.`@language`, language)
-                  } yield label
+              extendedClasses <- Task
+                .parSequence(ontology.extendedClasses().collect { case o: Ontology => o }.map(ns.ontologies.store))
+              _ <- node.addOut(Label.P.`@extends`, extendedClasses)
+              _ <- Task.parSequence(ontology.label().map { case (language, label) =>
+                for {
+                  label <- node.addOut(Property.default.`@label`, label)
+                  _     <- label.addOut(Property.default.`@language`, language)
+                } yield label
               })
-              _ <- Task.parSequence(ontology.comment().map {
-                case (language, comment) =>
-                  for {
-                    comment <- node.addOut(Property.default.`@comment`, comment)
-                    _    <- comment.addOut(Property.default.`@language`, language)
-                  } yield comment
+              _ <- Task.parSequence(ontology.comment().map { case (language, comment) =>
+                for {
+                  comment <- node.addOut(Property.default.`@comment`, comment)
+                  _       <- comment.addOut(Property.default.`@language`, language)
+                } yield comment
               })
             } yield {
               byId += node.id   -> ontology

@@ -88,8 +88,9 @@ object Property {
       }
     }
 
-    /** This method is thread-safe and guarantees to return any existing property (if any) or it creates one.
-      * TODO: add implicit resolver, default to offline resolver (not downloading linked data definition, no benefits of inheritance)
+    /** This method is thread-safe and guarantees to return any existing property (if any) or it creates one. TODO: add
+      * implicit resolver, default to offline resolver (not downloading linked data definition, no benefits of
+      * inheritance)
       * @param iri
       * @param iris
       * @return
@@ -116,7 +117,7 @@ object Property {
         .flatMap { edge =>
           val l = edge.out(Property.default.typed.languageString)
           if (l.nonEmpty) l.map(_ -> edge.to.value)
-          else List("en"          -> edge.to.value)
+          else List("en" -> edge.to.value)
         }
         .toMap
       property.comment ++ node
@@ -124,7 +125,7 @@ object Property {
         .flatMap { edge =>
           val l = edge.out(Property.default.typed.commentString)
           if (l.nonEmpty) l.map(_ -> edge.to.value)
-          else List("en"          -> edge.to.value)
+          else List("en" -> edge.to.value)
         }
         .toMap
 //      println(
@@ -186,7 +187,7 @@ object Property {
                   .get(node.iri, node.iris)
                   .getOrElse {
                     Property.properties.getAndUpdate(node)
-                  } //orElse???
+                  } // orElse???
               case iri: String =>
                 Property.properties
                   .get(iri)
@@ -209,7 +210,7 @@ object Property {
                   .get(node.iri, node.iris)
                   .getOrElse {
                     Property.properties.getAndUpdate(node)
-                  } //orElse???
+                  } // orElse???
               case iri: String =>
                 Property.properties
                   .get(iri)
@@ -291,19 +292,19 @@ object Property {
       lazy val rangeDataType: TypedProperty[Node] = `@range`.as(DataType.ontology)
 //      lazy val rangeListClassType: TypedProperty[Node] = `@range` as ListType()
 
-      lazy val typeOntology: TypedProperty[Node] = `@type`.as(Ontology.ontology) //Ontology.classType
+      lazy val typeOntology: TypedProperty[Node] = `@type`.as(Ontology.ontology) // Ontology.classType
       //  TYPE.addRange(ontology)
-      lazy val typeProperty: TypedProperty[Node] = `@type`.as(Property.ontology) //Property.classType
+      lazy val typeProperty: TypedProperty[Node] = `@type`.as(Property.ontology) // Property.classType
       //  TYPE.addRange(property)
-      lazy val typeDatatype: TypedProperty[Node] = `@type`.as(DataType.ontology) //as DataType.classType
+      lazy val typeDatatype: TypedProperty[Node] = `@type`.as(DataType.ontology) // as DataType.classType
       //  TYPE.addRange(datatype)
       lazy val extendsOntology: TypedProperty[List[Node]] =
-        `@extends`.as(ListType(Ontology.ontology)) //as Ontology.classType
+        `@extends`.as(ListType(Ontology.ontology)) // as Ontology.classType
       lazy val extendsProperty: TypedProperty[List[Node]] =
-        `@extends`.as(ListType(Property.ontology)) //as Property.classType
+        `@extends`.as(ListType(Property.ontology)) // as Property.classType
       lazy val extendsDataType: TypedProperty[List[Node]] =
-        `@extends`.as(ListType(DataType.ontology)) //as DataType.classType
-      lazy val propertyProperty: TypedProperty[Node] = `@properties`.as(Property.ontology) //as Property.classType
+        `@extends`.as(ListType(DataType.ontology)) // as DataType.classType
+      lazy val propertyProperty: TypedProperty[Node] = `@properties`.as(Property.ontology) // as Property.classType
       lazy val languageString: TypedProperty[String] = `@language`.as(`@string`)
       lazy val indexString: TypedProperty[String]    = `@index`.as(`@string`)
       lazy val labelString: TypedProperty[String]    = `@label`.as(`@string`)
@@ -429,13 +430,13 @@ object Property {
   */
 class Property(
   val iri: String,
-  val iris: Set[String] = Set() //TODO: make updateable
+  val iris: Set[String] = Set() // TODO: make updateable
 ) extends ClassType[Edge[Any, Any]] { self =>
 
   def as[T](range: ClassType[T]): TypedProperty[T] = TypedProperty(this, range)
 //  def +[T](range: ClassType[T]): TypedProperty[T]  = as(range)
 
-  protected var inverseOfOption: Option[Property] = None //_extendedClasses().filterNot(_.`extends`(this))
+  protected var inverseOfOption: Option[Property] = None // _extendedClasses().filterNot(_.`extends`(this))
 
   object inverseOf {
     def apply(): Option[Property] = inverseOfOption

@@ -10,7 +10,8 @@ object As
     extends StepDef(
       "As",
       "An as-step marks the preliminary result so it can be referred to (gathered) further down the traversal.",
-      LabelStep.ontology :: Nil)
+      LabelStep.ontology :: Nil
+    )
     with StepWrapper[As[_ <: Any, String]] {
 
   /*  import shapeless._
@@ -36,7 +37,7 @@ object As
           "A named step-label which can be referred to further in the traversal",
           `@range` = DataType.default.`@string` :: Nil
         )
-    val nameString: TypedProperty[String] = name.property as DataType.default.`@string`
+    val nameString: TypedProperty[String] = name.property.as(DataType.default.`@string`)
   }
   override lazy val properties: List[Property] = keys.name :: LabelStep.properties
   trait Properties extends LabelStep.Properties {

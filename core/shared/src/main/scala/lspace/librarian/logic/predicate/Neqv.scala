@@ -15,12 +15,11 @@ object Neqv extends PredicateDef("Neqv", `@extends` = EqP.ontology :: Nil) with 
   override lazy val properties: List[Property] = EqP.properties
   trait Properties extends EqP.Properties
 
-  implicit def toNode[T](p: Neqv[T]): Task[Node] = {
+  implicit def toNode[T](p: Neqv[T]): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
-  }
 }
 
 case class Neqv[+T](pvalue: T) extends EqP[T] {

@@ -14,7 +14,7 @@ case class Projection(
   reverse: Boolean = false,
   limit: Option[Int] = None,
   offset: Option[Int] = None,
-  parameters: ListMap[Property, Any] = ListMap(), //add direction to parameter property (in/out)
+  parameters: ListMap[Property, Any] = ListMap(), // add direction to parameter property (in/out)
   projections: List[Projection] = List()
 ) {
 

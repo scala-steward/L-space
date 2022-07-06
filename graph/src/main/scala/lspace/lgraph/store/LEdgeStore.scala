@@ -139,7 +139,7 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
             toId match {
               case None =>
 //                val keyId = graph.ns.nodes.hasIri(key.iri).head.id
-                Observable() //graph.storeManager.edgesByKey(key)
+                Observable() // graph.storeManager.edgesByKey(key)
               case Some(toId) => graph.storeManager.edgesByToIdAndKey(toId, key)
             }
         }
@@ -158,7 +158,8 @@ class LEdgeStore[G <: LGraph](val iri: String, val graph: G) extends LStore[G] w
         }
     }
 
-  def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): LazyList[T] = ???
+  def byIri(fromIri: Option[String] = None, key: Option[Property] = None, toIri: Option[String] = None): LazyList[T] =
+    ???
 
   override def delete(edge: T): Task[Unit] = Task.defer {
     _deleted += edge.id -> Instant.now()

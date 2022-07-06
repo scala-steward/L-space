@@ -17,20 +17,21 @@ class SessionBroker(val baseIri: String) {
     new ConcurrentHashMap[String, Session]().asScala
 
   def get(iri: String): Option[Session] = sessionCache.get(iri)
-  def getOpenSseSession(iri: String): Option[OpenSseSession] = get(iri) collect {
-    case session: OpenSseSession => session
+  def getOpenSseSession(iri: String): Option[OpenSseSession] = get(iri).collect { case session: OpenSseSession =>
+    session
   }
-  def getClientSseSession(iri: String): Option[ClientSseSession] = get(iri) collect {
-    case session: ClientSseSession => session
+  def getClientSseSession(iri: String): Option[ClientSseSession] = get(iri).collect { case session: ClientSseSession =>
+    session
   }
-  def getUserSseSession(iri: String): Option[UserSseSession] = get(iri) collect {
-    case session: UserSseSession => session
+  def getUserSseSession(iri: String): Option[UserSseSession] = get(iri).collect { case session: UserSseSession =>
+    session
   }
 
   def create(): Task[OpenSseSession] =
     for {
       session <- OpenSseSession(
-        baseIri + "/session/" + java.util.UUID.randomUUID().toString + "-" + scala.math.random())
+        baseIri + "/session/" + java.util.UUID.randomUUID().toString + "-" + scala.math.random()
+      )
       _ = sessionCache.put(session.iri, session)
     } yield session
   def drop(iri: String): Unit = sessionCache.remove(iri)

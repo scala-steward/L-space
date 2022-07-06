@@ -649,7 +649,8 @@ trait AsyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           .runToFuture
       }
       "N.hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri).group(_.label())" in {
-        g.N.hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri)
+        g.N
+          .hasLabel(SampleGraph.Person.ontology.iri, SampleGraph.Place.ontology.iri)
           .group(_.label())
           .withGraph(sampleGraph)
           .toListF

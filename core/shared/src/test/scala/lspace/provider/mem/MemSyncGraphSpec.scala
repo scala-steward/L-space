@@ -16,11 +16,10 @@ class MemSyncGraphSpec extends SyncGuideSpec {
     _ <- sampleGraph.load
   } yield ()).memoizeOnSuccess
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { _ =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { _ =>
       super.withFixture(test).toFuture
     })
-  }
 
 //  "ab" should {
 //    "de" in Future { succeed }

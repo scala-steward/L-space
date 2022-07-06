@@ -6,12 +6,14 @@ import lspace.types.string.{Blank, Identifier, Iri}
 import scala.collection.immutable.ListMap
 
 object ActiveContext {
-  def apply(`@prefix`: ListMap[String, String] = ListMap[String, String](),
-            `@vocab`: List[String] = List(),
-            `@language`: List[String] = List(),
-            `@base`: Option[Option[String]] = None,
-            definitions: Map[String, ActiveProperty] = Map[String, ActiveProperty](),
-            remotes: List[NamedActiveContext] = List()): ActiveContext =
+  def apply(
+    `@prefix`: ListMap[String, String] = ListMap[String, String](),
+    `@vocab`: List[String] = List(),
+    `@language`: List[String] = List(),
+    `@base`: Option[Option[String]] = None,
+    definitions: Map[String, ActiveProperty] = Map[String, ActiveProperty](),
+    remotes: List[NamedActiveContext] = List()
+  ): ActiveContext =
     new ActiveContext(`@prefix`, `@vocab`, `@language`, `@base`, definitions, remotes)
 
   implicit class WithIriString(iri: String)(implicit activeContext: ActiveContext) {
@@ -19,12 +21,14 @@ object ActiveContext {
   }
 }
 
-class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String](),
-                    `@vocab0`: List[String] = List(),
-                    `@language0`: List[String] = List(),
-                    val `@base`: Option[Option[String]] = None,
-                    definitions0: Map[String, ActiveProperty] = Map[String, ActiveProperty](),
-                    val remotes: List[NamedActiveContext]) {
+class ActiveContext(
+  `@prefix0`: ListMap[String, String] = ListMap[String, String](),
+  `@vocab0`: List[String] = List(),
+  `@language0`: List[String] = List(),
+  val `@base`: Option[Option[String]] = None,
+  definitions0: Map[String, ActiveProperty] = Map[String, ActiveProperty](),
+  val remotes: List[NamedActiveContext]
+) {
 
   override def equals(o: Any): Boolean = o match {
     case activeContext: NamedActiveContext => false
@@ -62,20 +66,21 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
       definitions0.get(iri).orElse(remotes.reverse.flatMap(_.definitions.get(iri)).headOption)
   }
 
-  //TODO: map of expanded prefix map values (values can be compacted with leading prefixes)
+  // TODO: map of expanded prefix map values (values can be compacted with leading prefixes)
 
-  def copy(`@prefix`: ListMap[String, String] = this.`@prefix`(),
-           `@vocab`: List[String] = this.`@vocab`(),
-           `@language`: List[String] = this.`@language`(),
-           `@base`: Option[Option[String]] = `@base`,
-           definitions: Map[String, ActiveProperty] = this.definitions(),
-           remotes: List[NamedActiveContext] = remotes): ActiveContext =
+  def copy(
+    `@prefix`: ListMap[String, String] = this.`@prefix`(),
+    `@vocab`: List[String] = this.`@vocab`(),
+    `@language`: List[String] = this.`@language`(),
+    `@base`: Option[Option[String]] = `@base`,
+    definitions: Map[String, ActiveProperty] = this.definitions(),
+    remotes: List[NamedActiveContext] = remotes
+  ): ActiveContext =
     ActiveContext(`@prefix`, `@vocab`, `@language`, `@base`, definitions, remotes)
 
-  /**
-    *
-    * @param key
-    * @return the compacted iri and a new context with possible additional prefixes
+  /** @param key
+    * @return
+    *   the compacted iri and a new context with possible additional prefixes
     */
   def compactIri(key: ClassType[_], language: String = "en"): (String, ActiveContext) = {
     val validPrefixes = `@prefix`.prefixOptions(key.iri)
@@ -118,12 +123,11 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
     } else iri
   }
 
-  /**
-    * compacts by outgoing property definition
+  /** compacts by outgoing property definition
     * @param property
     * @return
     */
-  def compactOut(property: Property): (String, ActiveContext) = {
+  def compactOut(property: Property): (String, ActiveContext) =
     definitions.all
       .find(_._2.property == property)
       .filterNot(_._2.`@reverse`)
@@ -133,14 +137,12 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
       .getOrElse {
         property.iri -> this
       }
-  }
 
-  /**
-    * compacts by incoming (reverse) property definition
+  /** compacts by incoming (reverse) property definition
     * @param property
     * @return
     */
-  def compactIn(property: Property): (String, ActiveContext) = {
+  def compactIn(property: Property): (String, ActiveContext) =
     definitions.all
       .find(_._2.property == property)
       .filter(_._2.`@reverse`)
@@ -149,14 +151,12 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
       .map(_ -> this)
       .getOrElse {
         s"@reverse:${property.iri}" -> this.copy(
-          definitions = this.definitions.all + (s"@reverse:${property.iri}" -> ActiveProperty(property,
-                                                                                              `@reverse` = true)()))
+          definitions =
+            this.definitions.all + (s"@reverse:${property.iri}" -> ActiveProperty(property, `@reverse` = true)())
+        )
       }
-  }
 
-  /**
-    *
-    * @param term
+  /** @param term
     * @return
     */
   def expandIri(term: String): Identifier = {
@@ -173,13 +173,16 @@ class ActiveContext(`@prefix0`: ListMap[String, String] = ListMap[String, String
           `@prefix`.get(prefix)
             .map(_ + suffix)
             .orElse(`@prefix`.get(term))
-            .getOrElse(term) //throw FromJsonException(s"prefix not found ${prefix}"))
+            .getOrElse(term) // throw FromJsonException(s"prefix not found ${prefix}"))
         } else
           `@prefix`.get(term)
             .orElse(
-              `@vocab`.all.to(LazyList)
+              `@vocab`.all
+                .to(LazyList)
                 .map(_ + term)
-                .flatMap(ClassType.classtypes.get) //search vocabularies for matching terms, requires pre-fetching vocabularies or try assembled iri's (@vocab-iri + term)
+                .flatMap(
+                  ClassType.classtypes.get
+                ) // search vocabularies for matching terms, requires pre-fetching vocabularies or try assembled iri's (@vocab-iri + term)
                 .headOption
                 .map(_.iri)
             )

@@ -84,17 +84,17 @@ sealed trait NumericType[i] extends DataType[i]
 
 type IntTyped = IntType[Int]
 enum IntType[i <: Int](iri: Iri) extends NumericType[i] with DataType[i](iri):
-  case int extends IntType[Int](`@int`)
+  case int                           extends IntType[Int](`@int`)
   case literal[ii <: Int](value: ii) extends IntType[ii](`@int` ++ s"($value)")
 
 type DoubleTyped = DoubleType[Double]
 enum DoubleType[i <: Double](iri: Iri) extends NumericType[i] with DataType[i](iri):
-  case double extends DoubleType[Double](`@double`)
+  case double                           extends DoubleType[Double](`@double`)
   case literal[ii <: Double](value: ii) extends DoubleType[ii](`@double` ++ s"($value)")
 
 type LongTyped = LongType[Long]
 enum LongType[i <: Long](iri: Iri) extends NumericType[i] with DataType[i](iri):
-  case long extends LongType[Long](`@long`)
+  case long                           extends LongType[Long](`@long`)
   case literal[ii <: Long](value: ii) extends LongType[ii](`@long` ++ s"($value)")
 
 // enum StringType[s <: String] extends DataType[s](Iri("@string")):
@@ -109,7 +109,7 @@ type StringTyped = StringType[String]
 // case object StringType                 extends StringType[String] with DataType[String](Iri("@string"))
 // sealed trait StringType[s <: String]() extends DataType[s]
 enum StringType[str <: String](iri: Iri) extends DataType[str](iri):
-  case string extends StringType[String](`@string`)
+  case string                         extends StringType[String](`@string`)
   case literal[s <: String](value: s) extends StringType[s](`@string` ++ s"($value)")
 
 object StringType:
@@ -134,7 +134,7 @@ sealed trait CollectionType[T] extends StructuredType[T]
 type ListTyped = ListType[Any]
 val AnyList: ListType[Any] = ListType.any
 enum ListType[T](iri: Iri) extends CollectionType[List[T]] with DataType[List[T]](iri):
-  case any extends ListType[Any](Iri(s"@list"))
+  case any                        extends ListType[Any](Iri(s"@list"))
   case typed[T](ct: ClassType[T]) extends ListType[T](Iri(s"@list(${ct.iri})"))
 
 object ListType:
@@ -143,7 +143,7 @@ object ListType:
 type SetTyped = SetType[Any]
 val AnySet: SetType[Any] = SetType.any
 enum SetType[T](iri: Iri) extends CollectionType[Set[T]] with DataType[Set[T]](iri):
-  case any extends SetType[Any](Iri(s"@set"))
+  case any                        extends SetType[Any](Iri(s"@set"))
   case typed[T](ct: ClassType[T]) extends SetType[T](Iri(s"@set(${ct.iri})"))
 
 object SetType:
@@ -175,10 +175,10 @@ object TupleType:
 abstract case class TupleType[t <: Tuple](types: TupleType.ClassTypes[?])
     extends CollectionType[t]
     with DataType[t](Iri(s"@tuple(${types.toList
-      .map { case c: ClassType[_] =>
-        c.iri.unapply
-      }
-      .mkString(",")})"))
+        .map { case c: ClassType[_] =>
+          c.iri.unapply
+        }
+        .mkString(",")})"))
 
 object UnionType:
   type Able[X] = X match {

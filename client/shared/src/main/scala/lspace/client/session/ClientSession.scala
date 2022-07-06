@@ -28,8 +28,8 @@ object ClientSession
           "The client (device) the session is bound to.",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:ClientSession/client@Client`
-      : TypedProperty[Node] = `lspace:ClientSession/client` as Client.ontology
+    lazy val `lspace:ClientSession/client@Client`: TypedProperty[Node] =
+      `lspace:ClientSession/client`.as(Client.ontology)
   }
   override lazy val properties: List[Property] = keys.`lspace:ClientSession/client` :: OpenSession.properties
   trait Properties extends OpenSession.Properties {
@@ -37,11 +37,13 @@ object ClientSession
     val `lspace:ClientSession/client@Client` = keys.`lspace:ClientSession/client@Client`
   }
 
-  def apply(iri: String,
-            expiration: Instant,
-            startTime: Instant,
-            client: Client,
-            endTime: Option[Instant] = None): ClientSession = {
+  def apply(
+    iri: String,
+    expiration: Instant,
+    startTime: Instant,
+    client: Client,
+    endTime: Option[Instant] = None
+  ): ClientSession = {
     val iri0        = iri
     val expiration0 = expiration
     val startTime0  = startTime
@@ -85,14 +87,13 @@ object ClientSession
         .headOption
         .map(Client.toClient)
         .getOrElse(Task.raiseError(new Exception("no client")))
-    } yield
-      new ClientSession {
-        val iri        = node.iri
-        def expiration = expiration0
-        def startTime  = startTime0
-        def endTime    = endTime0
-        def client     = client0
-      }
+    } yield new ClientSession {
+      val iri        = node.iri
+      def expiration = expiration0
+      def startTime  = startTime0
+      def endTime    = endTime0
+      def client     = client0
+    }
   }
 }
 

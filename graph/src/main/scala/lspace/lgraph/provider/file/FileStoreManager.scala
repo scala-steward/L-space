@@ -31,8 +31,8 @@ object FileStoreManager {
   implicit val ec = monix.execution.Scheduler.io("filestore-io")
 }
 
-/** This manager stores all resources to a filesystem. It builds a the complete graph in memory on initialization
-  * and persists (async) on any commits to the graph.
+/** This manager stores all resources to a filesystem. It builds a the complete graph in memory on initialization and
+  * persists (async) on any commits to the graph.
   * @param graph
   * @tparam G
   */
@@ -63,7 +63,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
             new BufferedSource(new InputStream {
               override def read(): Int =
                 -1 // end of stream
-            })     //from java 11 this can be replaced with InputStream.nullInputStream()
+            })     // from java 11 this can be replaced with InputStream.nullInputStream()
         }
       )
     } { in =>
@@ -191,11 +191,11 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
 
   override val values: Observable[graph._Value[Any] with LValue[Any]] = Observable()
 
-  override def nodeCount(): Task[Long] = Task.delay(graph.nodeStore.cached.count) //.nodes().countL
+  override def nodeCount(): Task[Long] = Task.delay(graph.nodeStore.cached.count) // .nodes().countL
 
-  override def edgeCount(): Task[Long] = Task.delay(graph.edgeStore.cached.count) //.edges().countL
+  override def edgeCount(): Task[Long] = Task.delay(graph.edgeStore.cached.count) // .edges().countL
 
-  override def valueCount(): Task[Long] = Task.delay(graph.valueStore.cached.count) //.values().countL
+  override def valueCount(): Task[Long] = Task.delay(graph.valueStore.cached.count) // .values().countL
 
 //  import argonaut._
 //  import Argonaut._
@@ -223,7 +223,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
           baseEncoder.jNull
         }
         .flatMap(decoder.contextProcessing.apply(ActiveContext(), _))
-    } //TODO: parse remote context? List of contexts?
+    } // TODO: parse remote context? List of contexts?
     else Task(ActiveContext())
   }
 
@@ -362,7 +362,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
                   }
                   .getOrElse(Task.raiseError(FromJsonException("nodes-line should be an [[label-ref*][id*]]")))
               }
-              .append(List()) //TEMP-FIX: https://github.com/monix/monix/issues/832 reducing on an observable with only one item results in an empty stream
+              .append(List()) // TEMP-FIX: https://github.com/monix/monix/issues/832 reducing on an observable with only one item results in an empty stream
               .reduce(_ ++ _)
               .map(_.toMap)
               .map(idmap => IdMaps(HashMap[Long, Long]() ++ idmap))).toListL
@@ -380,7 +380,7 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
         graphfiles.read.literalEdges
           .use { buf =>
             parse(buf)
-              .flatMap { json => //line of complete json
+              .flatMap { json => // line of complete json
                 json.list
                   .map {
                     case List(keyJson, fromLabelsJson, toLabelsJson, value) =>
@@ -1045,5 +1045,5 @@ class FileStoreManager[G <: LGraph, Json](override val graph: G, path: String)(i
 
   /** finishes write-queue(s) and closes connection
     */
-  override def close(): Task[Unit] = Task.unit //CancelableFuture.unit //persist
+  override def close(): Task[Unit] = Task.unit // CancelableFuture.unit //persist
 }

@@ -65,6 +65,6 @@ trait Assistent {
       case p: Fuzzy[_]       => fuzzy(p)
       case p: And            => and(p)
       case p: Or             => or(p)
-      case p => throw new Exception(s"unexpected type ${p.getClass.getSimpleName}")
+      case p                 => throw new Exception(s"unexpected type ${p.getClass.getSimpleName}")
     }).asInstanceOf[Helper[T]]
 }

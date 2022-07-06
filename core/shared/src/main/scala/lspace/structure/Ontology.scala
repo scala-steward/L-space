@@ -46,7 +46,7 @@ object Ontology {
 
   object ontologies {
     object default {
-      val ontologies = List(ontology, Property.ontology, DataType.ontology) //::: Step.steps.map(_.ontology)
+      val ontologies = List(ontology, Property.ontology, DataType.ontology) // ::: Step.steps.map(_.ontology)
       if (ontologies.size > 99) throw new Exception("extend default-ontology-id range!")
       val byId    = (200L to 200L + ontologies.size - 1).toList.zip(ontologies).toMap
       val byIri   = byId.toList.flatMap { case (_, p) => (p.iri :: p.iris.toList).map(_ -> p) }.toMap
@@ -90,7 +90,7 @@ object Ontology {
         .flatMap { edge =>
           val l = edge.out(Property.default.typed.languageString)
           if (l.nonEmpty) l.map(_ -> edge.to.value)
-          else List("en"          -> edge.to.value)
+          else List("en" -> edge.to.value)
         }
         .toMap
       ontology.comment ++ node
@@ -98,7 +98,7 @@ object Ontology {
         .flatMap { edge =>
           val l = edge.out(Property.default.typed.commentString)
           if (l.nonEmpty) l.map(_ -> edge.to.value)
-          else List("en"          -> edge.to.value)
+          else List("en" -> edge.to.value)
         }
         .toMap
 
@@ -130,7 +130,7 @@ object Ontology {
                     .getOrElse {
                       Ontology.ontologies.getAndUpdate(node)
                     }
-                ) //orElse???
+                ) // orElse???
               case iri: String =>
                 Some(
                   Ontology.ontologies

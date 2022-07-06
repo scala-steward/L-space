@@ -15,15 +15,13 @@ abstract class Values extends Table[Values, Value] {
   object context0  extends StringColumn
   object value     extends StringColumn
 
-  def findById(id: Long) = {
-    select.where(_.id eqs id).fetchRecord()
-  }
+  def findById(id: Long) =
+    select.where(_.id.eqs(id)).fetchRecord()
 
-  def findByIds(ids: List[Long], pagingState: Option[PagingState] = None) = {
+  def findByIds(ids: List[Long], pagingState: Option[PagingState] = None) =
     select.where(_.id in ids).paginateRecord(pagingState)
-  }
 
-  def delete(id: Long) = super.delete.where(_.id eqs id)
+  def delete(id: Long) = super.delete.where(_.id.eqs(id))
 //  def delete(ids: List[Long]) = delete.where(_.id in ids)
 }
 
@@ -37,15 +35,13 @@ abstract class ValuesByValue extends Table[ValuesByValue, Value] {
   object context0  extends StringColumn
   object value     extends StringColumn with PartitionKey
 
-  def findByValue(value: String, pagingState: Option[PagingState] = None) = {
-    select.where(_.value eqs value).paginateRecord(pagingState)
-  }
+  def findByValue(value: String, pagingState: Option[PagingState] = None) =
+    select.where(_.value.eqs(value)).paginateRecord(pagingState)
 
-  def findByValues(values: List[String], pagingState: Option[PagingState] = None) = {
+  def findByValues(values: List[String], pagingState: Option[PagingState] = None) =
     select.where(_.value in values).paginateRecord(pagingState)
-  }
 
-  def delete(id: Long, value: String) = super.delete.where(_.id eqs id).and(_.value eqs value)
+  def delete(id: Long, value: String) = super.delete.where(_.id.eqs(id)).and(_.value.eqs(value))
 //  def delete(values: List[String]) = delete.where(_.value in values)
 }
 //

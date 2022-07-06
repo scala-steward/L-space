@@ -58,8 +58,8 @@ object MapStep:
   }
   def KeyTuple[X](x: X): KeyTuple[X] = (x match {
     case EmptyTuple  => EmptyTuple
-    case key *: keys => (KeyLike(key) *: KeyTuple(keys))
-    case _           => (KeyLike(x) *: EmptyTuple)
+    case key *: keys => KeyLike(key) *: KeyTuple(keys)
+    case _           => KeyLike(x) *: EmptyTuple
   }).asInstanceOf[KeyTuple[X]]
 
   type EndType[X] = TupleType[Tuple.Map[KeyTuple[X], KeyToTuple]]
@@ -86,8 +86,8 @@ object MoveStep:
   }
   def KeyTuple[X](x: X): KeyTuple[X] = (x match {
     case EmptyTuple  => EmptyTuple
-    case key *: keys => (KeyLike(key) *: KeyTuple(keys))
-    case _           => (KeyLike(x) *: EmptyTuple)
+    case key *: keys => KeyLike(key) *: KeyTuple(keys)
+    case _           => KeyLike(x) *: EmptyTuple
   }).asInstanceOf[KeyTuple[X]]
 //   type Label[X] <: Tuple = X match {
 //     case Key[n] *: EmptyTuple => n *: EmptyTuple
@@ -114,14 +114,14 @@ object MoveEStep:
       case (inX: ClassType[in], outX: ClassType[out]) => EdgeType(inX, outX).asInstanceOf[EndType[InX, OutX]]
     }
 
-sealed trait MoveEStep    extends BranchStep
-sealed trait ClipStep     extends FilterStep
-sealed trait GroupingStep extends Step
-sealed trait BarrierStep  extends Step
-sealed trait GroupingBarrierStep extends BarrierStep with GroupingStep //with TraverseStep
-sealed trait ReducingStep extends Step
-sealed trait ReducingBarrierStep extends BarrierStep with ReducingStep //with TraverseStep
-sealed trait FilterBarrierStep extends BarrierStep with FilterStep     //with ReducingStep
+sealed trait MoveEStep            extends BranchStep
+sealed trait ClipStep             extends FilterStep
+sealed trait GroupingStep         extends Step
+sealed trait BarrierStep          extends Step
+sealed trait GroupingBarrierStep  extends BarrierStep with GroupingStep //with TraverseStep
+sealed trait ReducingStep         extends Step
+sealed trait ReducingBarrierStep  extends BarrierStep with ReducingStep //with TraverseStep
+sealed trait FilterBarrierStep    extends BarrierStep with FilterStep   //with ReducingStep
 sealed trait RearrangeStep        extends Step
 sealed trait RearrangeBarrierStep extends RearrangeStep with BarrierStep
 
@@ -457,8 +457,8 @@ object Repeat:
     case None.type => None.type
   def MaxType[X](x: X): MaxType[X] =
     (x match {
-      case x: Int  => Some(x)
-      case None => None
+      case x: Int => Some(x)
+      case None   => None
     }).asInstanceOf[MaxType[X]]
 
   type ValidUntil[traversal, until] <: =:=[?, ?] = until match {

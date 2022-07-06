@@ -18,13 +18,12 @@ object Inside extends PredicateDef("Inside", `@extends` = List(RangeP.ontology))
   override lazy val properties: List[Property] = RangeP.properties
   trait Properties extends RangeP.Properties
 
-  implicit def toNode[T](p: Inside[T]): Task[Node] = {
+  implicit def toNode[T](p: Inside[T]): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.lower, ClassType.detect(p.lower), p.lower)
       _    <- node.addOut(keys.upper, ClassType.detect(p.upper), p.upper)
     } yield node
-  }
 }
 
 case class Inside[+T](lower: T, upper: T) extends RangeP[T] {

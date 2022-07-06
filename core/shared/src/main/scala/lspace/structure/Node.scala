@@ -38,8 +38,8 @@ trait Node extends Resource[Node] {
 
   def labels: List[Ontology]
 
-  protected[lspace] def _addLabel(ontology: Ontology): Task[Unit] = {
-    graph.ns.ontologies.store(ontology).startAndForget //.runToFuture(monix.execution.Scheduler.global)
+  protected[lspace] def _addLabel(ontology: Ontology): Task[Unit] =
+    graph.ns.ontologies.store(ontology).startAndForget // .runToFuture(monix.execution.Scheduler.global)
 //    graph.ns.ontologies
 //      .get(ontology.iri)
 //      .flatMap { ontologyOption =>
@@ -48,7 +48,6 @@ trait Node extends Resource[Node] {
 //        else Task.unit
 //      }
 //      .runToFuture(monix.execution.Scheduler.global)
-  }
   def addLabel(ontology: Ontology): Task[Unit]
 
   def remove(): Task[Unit] = graph.nodes.delete(this)

@@ -38,18 +38,16 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
     _ <- SampleGraph.loadSocial(graph)
   } yield ()).memoizeOnSuccess
 
-  override def afterAll(): Unit = {
+  override def afterAll(): Unit =
     (for {
       _ <- graph.close()
 //      _ <- Task.fromFuture(Main.close())
     } yield ()).timeout(5.seconds).runToFuture
-  }
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
   "a librarian-api" should {
     "execute a traversal only on a POST request" in {
@@ -65,7 +63,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
           .withBody[LApplication.JsonLD](node)
           .withHeaders("Accept" -> "application/ld+json")
 //        _ = println(input.request.contentString)
-        _ <- {
+        _ <-
           Task
             .from(graphService.stream(input).output.get)
             .flatMap { output =>
@@ -74,7 +72,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
               val collection = output.value.compile.toList
               Task.from(output.value.compile.toList).map(_.head.t.item shouldBe List(2))
             }
-        }
       } yield succeed).runToFuture
     }
     "as service" in {
@@ -91,8 +88,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
           .withBody[LApplication.JsonLD](node)
           .withHeaders("Accept" -> "application/ld+json")
 //        _ = println(input.request.contentString)
-        _ <- {
-
+        _ <-
           Task
             .fromFuture(service(input.request))
             .map { output =>
@@ -102,7 +98,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
               output.status shouldBe Status.Ok
 //              contentString shouldBe """"""
             }
-        }
       } yield succeed).runToFuture
     }
     "as service for a projection-result-like traversal" in {
@@ -122,8 +117,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
           .withBody[LApplication.JsonLD](node)
           .withHeaders("Accept" -> "application/ld+json")
         //        _ = println(input.request.contentString)
-        _ <- {
-
+        _ <-
           Task
             .fromFuture(service(input.request))
             .map { output =>
@@ -133,7 +127,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
               output.status shouldBe Status.Ok
               //              contentString shouldBe """"""
             }
-        }
       } yield succeed).runToFuture
     }
     "as service for a projection-result-like traversal return json" in {
@@ -154,8 +147,7 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
           .withBody[LApplication.JsonLD](node)
           .withHeaders("Accept" -> "application/json")
         //        _ = println(input.request.contentString)
-        _ <- {
-
+        _ <-
           Task
             .fromFuture(service(input.request))
             .map { output =>
@@ -165,7 +157,6 @@ class LibrarianApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAl
               output.status shouldBe Status.Ok
               //              contentString shouldBe """"""
             }
-        }
       } yield succeed).runToFuture
     }
   }

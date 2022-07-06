@@ -40,8 +40,8 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
     lazy val `lspace:Client/session@ClientSession`: TypedProperty[Node] =
       `lspace:Client/session`.as(ClientSession.ontology)
   }
-  override lazy val properties
-    : List[Property] = keys.`lspace:Client/role`.property :: keys.`lspace:Client/manager`.property :: keys.`lspace:Client/session`.property :: Nil
+  override lazy val properties: List[Property] =
+    keys.`lspace:Client/role`.property :: keys.`lspace:Client/manager`.property :: keys.`lspace:Client/session`.property :: Nil
   trait Properties {
     val `lspace:Client/role`: Property        = keys.`lspace:Client/role`
     val `lspace:Client/role@Role`             = keys.`lspace:Client/role@Role`
@@ -51,10 +51,12 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
     val `lspace:Client/session@ClientSession` = keys.`lspace:Client/session@ClientSession`
   }
 
-  def apply(iri: String,
-            role: Set[Role] = Set(),
-            manager: Set[User] = Set(),
-            session: Set[ClientSession] = Set()): Client = {
+  def apply(
+    iri: String,
+    role: Set[Role] = Set(),
+    manager: Set[User] = Set(),
+    session: Set[ClientSession] = Set()
+  ): Client = {
     val iri0     = iri
     val role0    = role
     val manager0 = manager
@@ -75,23 +77,27 @@ object Client extends OntologyDef(lspace.NS.vocab.Lspace + "Client", Set(), "Cli
         client
           .role()
           .map(role =>
-            DetachedGraph.nodes.upsert(role.iri).flatMap(role => node.addOut(keys.`lspace:Client/role@Role`, role))))
+            DetachedGraph.nodes.upsert(role.iri).flatMap(role => node.addOut(keys.`lspace:Client/role@Role`, role))
+          )
+      )
       _ <- Task.parSequenceUnordered(
         client
           .manager()
-          .map(
-            manager =>
-              DetachedGraph.nodes
-                .upsert(manager.iri)
-                .flatMap(manager => node.addOut(keys.`lspace:Client/manager@User`, manager))))
+          .map(manager =>
+            DetachedGraph.nodes
+              .upsert(manager.iri)
+              .flatMap(manager => node.addOut(keys.`lspace:Client/manager@User`, manager))
+          )
+      )
       _ <- Task.parSequenceUnordered(
         client
           .session()
-          .map(
-            session =>
-              DetachedGraph.nodes
-                .upsert(session.iri)
-                .flatMap(session => node.addOut(keys.`lspace:Client/session@ClientSession`, session))))
+          .map(session =>
+            DetachedGraph.nodes
+              .upsert(session.iri)
+              .flatMap(session => node.addOut(keys.`lspace:Client/session@ClientSession`, session))
+          )
+      )
     } yield node
 
   def toClient(node: Node): Task[Client] =

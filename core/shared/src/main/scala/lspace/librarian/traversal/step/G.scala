@@ -19,7 +19,7 @@ object G
           "A graph to apply the upcoming traversal on",
           `@range` = ListType(GraphType.datatype) :: Nil
         )
-    val graphGraph: TypedProperty[List[Graph]] = graph.property as ListType(GraphType.datatype)
+    val graphGraph: TypedProperty[List[Graph]] = graph.property.as(ListType(GraphType.datatype))
   }
   override lazy val properties: List[Property] = keys.graph :: GraphStep.properties
   trait Properties extends GraphStep.Properties {

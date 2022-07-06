@@ -43,11 +43,10 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
 //    } yield ()).timeout(5.seconds).runToFuture
 //  }
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
   val person     = SampleGraph.Person
   val personKeys = SampleGraph.Person.keys
@@ -73,7 +72,7 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
   lazy val personApiService: LabeledNodeApi[_] = LabeledNodeApi(sampleGraph, person)
 
   val toCC = { node: Node =>
-    Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id` as D.`@string`).headOption)
+    Person(node.out(person.keys.nameString).headOption.getOrElse(""), node.out(`@id`.as(D.`@string`)).headOption)
   }
   val toNode = { cc: Person =>
     for {
@@ -128,7 +127,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .list(
             Input
               .get("/123/naam")
-              .withHeaders("Accept" -> "application/ld+json"))
+              .withHeaders("Accept" -> "application/ld+json")
+          )
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -139,8 +139,10 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           }
           .getOrElse(fail("endpoint does not match"))
         personApiService
-          .byId(Input
-            .get("/0000"))
+          .byId(
+            Input
+              .get("/0000")
+          )
           .awaitOutput()
           .map { output =>
             output.isRight shouldBe true
@@ -158,50 +160,50 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
           .post("/")
           .withBody[LApplication.JsonLD](alice)
           .withHeaders("Accept" -> "application/ld+json")
-      } yield {
-        personApiService
-          .create(input)
-          .awaitOutput()
-          .map { output =>
-            output.isRight shouldBe true
-            val response = output.right.get
-            response.status shouldBe Status.Created
-            val createdNode = response.value.t
-            createdNode.labels should contain only person.ontology
-            createdNode.out(person.keys.nameString).head shouldBe "Alice"
+      } yield personApiService
+        .create(input)
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value.t
+          createdNode.labels should contain only person.ontology
+          createdNode.out(person.keys.nameString).head shouldBe "Alice"
 
-            personApiService
-              .create(
-                Input
-                  .post("/")
-                  .withBody[LApplication.JsonLD](ali)
-                  .withHeaders("Accept" -> "application/ld+json"))
-              .awaitOutput()
-              .map { output =>
-                output.isRight shouldBe true
-                val response = output.right.get
-                response.status shouldBe Status.Created
-                val node = response.value.t
-                createdNode.iri should not be node.iri
-                node.out(person.keys.nameString).head shouldBe "Ali"
-              }
-              .getOrElse(fail("endpoint does not match"))
-          }
-          .getOrElse(fail("endpoint does not match"))
-      }).runToFuture
+          personApiService
+            .create(
+              Input
+                .post("/")
+                .withBody[LApplication.JsonLD](ali)
+                .withHeaders("Accept" -> "application/ld+json")
+            )
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.Created
+              val node = response.value.t
+              createdNode.iri should not be node.iri
+              node.out(person.keys.nameString).head shouldBe "Ali"
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))).runToFuture
     }
     "support PUT with application/ld+json" in {
       (for {
         alice       <- toNode(Person("Alice"))
         ali         <- toNode(Person("Ali"))
         countBefore <- lspace.g.N.hasLabel(person).count().withGraph(sampleGraph).headF
-        response = {
+        response =
           personApiService
             .create(
               Input
                 .post("/")
                 .withBody[LApplication.JsonLD](alice)
-                .withHeaders("Accept" -> "application/ld+json"))
+                .withHeaders("Accept" -> "application/ld+json")
+            )
             .awaitOutput()
             .map { output =>
               output.isRight shouldBe true
@@ -214,7 +216,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                   Input
                     .put(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
                     .withBody[LApplication.JsonLD](ali)
-                    .withHeaders("Accept" -> "application/ld+json"))
+                    .withHeaders("Accept" -> "application/ld+json")
+                )
                 .awaitOutput()
                 .map { output =>
                   output.isRight shouldBe true
@@ -229,7 +232,6 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 .getOrElse(fail("endpoint does not match"))
             }
             .getOrElse(fail("endpoint does not match"))
-        }
         countAfter <- lspace.g.N.hasLabel(person).count().withGraph(sampleGraph).headF
       } yield {
         response
@@ -241,70 +243,71 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       (for {
         alice <- toNode(Person("Alice"))
         ali   <- toNode(Person("Ali"))
-      } yield {
-        personApiService
-          .create(
-            Input
-              .post("/")
-              .withBody[LApplication.JsonLD](alice)
-              .withHeaders("Accept" -> "application/ld+json"))
-          .awaitOutput()
-          .map { output =>
-            output.isRight shouldBe true
-            val response = output.right.get
-            response.status shouldBe Status.Created
-            val createdNode = response.value.t
+      } yield personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[LApplication.JsonLD](alice)
+            .withHeaders("Accept" -> "application/ld+json")
+        )
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value.t
 
-            personApiService
-              .updateById(
-                Input
-                  .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-                  .withBody[LApplication.JsonLD](ali)
-                  .withHeaders("Accept" -> "application/ld+json"))
-              .awaitOutput()
-              .map { output =>
-                output.isRight shouldBe true
-                val response = output.right.get
-                response.status shouldBe Status.Ok
-                val node = response.value.t
-                createdNode.iri shouldBe node.iri
-                createdNode.out(person.keys.nameString).head shouldBe "Ali"
-              }
-              .getOrElse(fail("endpoint does not match"))
-          }
-          .getOrElse(fail("endpoint does not match"))
-      }).runToFuture
+          personApiService
+            .updateById(
+              Input
+                .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+                .withBody[LApplication.JsonLD](ali)
+                .withHeaders("Accept" -> "application/ld+json")
+            )
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.Ok
+              val node = response.value.t
+              createdNode.iri shouldBe node.iri
+              createdNode.out(person.keys.nameString).head shouldBe "Ali"
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))).runToFuture
     }
     "support DELETE with application/ld+json" in {
       (for {
         alice <- toNode(Person("Alice"))
-      } yield {
-        personApiService
-          .create(
-            Input
-              .post("/")
-              .withBody[LApplication.JsonLD](alice)
-              .withHeaders("Accept" -> "application/ld+json"))
-          .awaitOutput()
-          .map { output =>
-            output.isRight shouldBe true
-            val response = output.right.get
-            response.status shouldBe Status.Created
-            val createdNode = response.value.t
+      } yield personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[LApplication.JsonLD](alice)
+            .withHeaders("Accept" -> "application/ld+json")
+        )
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value.t
 
-            personApiService
-              .removeById(Input
-                .delete(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}"))
-              .awaitOutput()
-              .map { output =>
-                output.isRight shouldBe true
-                val response = output.right.get
-                response.status shouldBe Status.NoContent
-              }
-              .getOrElse(fail("endpoint does not match"))
-          }
-          .getOrElse(fail("endpoint does not match"))
-      }).runToFuture
+          personApiService
+            .removeById(
+              Input
+                .delete(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+            )
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.NoContent
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))).runToFuture
     }
     "support PUT with application/json" in {
       (for {
@@ -329,7 +332,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
                 Input
                   .put(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
                   .withBody[LApplication.JsonLD](ali)
-                  .withHeaders("Accept" -> "application/json"))
+                  .withHeaders("Accept" -> "application/json")
+              )
               .awaitOutput()
               .map { output =>
                 output.isRight shouldBe true
@@ -350,70 +354,71 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
       (for {
         alice <- toNode(Person("Alice"))
         ali   <- toNode(Person("Ali"))
-      } yield {
-        personApiService
-          .create(
-            Input
-              .post("/")
-              .withBody[LApplication.JsonLD](alice)
-              .withHeaders("Accept" -> "application/ld+json"))
-          .awaitOutput()
-          .map { output =>
-            output.isRight shouldBe true
-            val response = output.right.get
-            response.status shouldBe Status.Created
-            val createdNode = response.value.t
+      } yield personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[LApplication.JsonLD](alice)
+            .withHeaders("Accept" -> "application/ld+json")
+        )
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value.t
 
-            personApiService
-              .updateById(
-                Input
-                  .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
-                  .withBody[LApplication.JsonLD](ali)
-                  .withHeaders("Accept" -> "application/ld+json"))
-              .awaitOutput()
-              .map { output =>
-                output.isRight shouldBe true
-                val response = output.right.get
-                response.status shouldBe Status.Ok
-                val node = response.value.t
-                createdNode.iri shouldBe node.iri
-                createdNode.out(person.keys.nameString).head shouldBe "Ali"
-              }
-              .getOrElse(fail("endpoint does not match"))
-          }
-          .getOrElse(fail("endpoint does not match"))
-      }).runToFuture
+          personApiService
+            .updateById(
+              Input
+                .patch(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+                .withBody[LApplication.JsonLD](ali)
+                .withHeaders("Accept" -> "application/ld+json")
+            )
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.Ok
+              val node = response.value.t
+              createdNode.iri shouldBe node.iri
+              createdNode.out(person.keys.nameString).head shouldBe "Ali"
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))).runToFuture
     }
     "support DELETE with application/json" in {
       (for {
         alice <- toNode(Person("Alice"))
-      } yield {
-        personApiService
-          .create(
-            Input
-              .post("/")
-              .withBody[LApplication.JsonLD](alice)
-              .withHeaders("Accept" -> "application/ld+json"))
-          .awaitOutput()
-          .map { output =>
-            output.isRight shouldBe true
-            val response = output.right.get
-            response.status shouldBe Status.Created
-            val createdNode = response.value.t
+      } yield personApiService
+        .create(
+          Input
+            .post("/")
+            .withBody[LApplication.JsonLD](alice)
+            .withHeaders("Accept" -> "application/ld+json")
+        )
+        .awaitOutput()
+        .map { output =>
+          output.isRight shouldBe true
+          val response = output.right.get
+          response.status shouldBe Status.Created
+          val createdNode = response.value.t
 
-            personApiService
-              .removeById(Input
-                .delete(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}"))
-              .awaitOutput()
-              .map { output =>
-                output.isRight shouldBe true
-                val response = output.right.get
-                response.status shouldBe Status.NoContent
-              }
-              .getOrElse(fail("endpoint does not match"))
-          }
-          .getOrElse(fail("endpoint does not match"))
-      }).runToFuture
+          personApiService
+            .removeById(
+              Input
+                .delete(s"/${createdNode.iri.reverse.takeWhile(_ != '/').reverse}")
+            )
+            .awaitOutput()
+            .map { output =>
+              output.isRight shouldBe true
+              val response = output.right.get
+              response.status shouldBe Status.NoContent
+            }
+            .getOrElse(fail("endpoint does not match"))
+        }
+        .getOrElse(fail("endpoint does not match"))).runToFuture
     }
   }
 
@@ -464,7 +469,8 @@ class LabeledNodeApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfter
         Input
           .get("/123/naam_naam")
           .withHeaders("Accept" -> "application/json")
-          .request)
+          .request
+      )
         .map { output =>
           output.status shouldBe Status.Ok
           output.contentString shouldBe """[{"@value":"Yoshio","@type":"@string"}]"""

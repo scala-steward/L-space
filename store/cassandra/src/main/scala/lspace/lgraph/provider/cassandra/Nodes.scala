@@ -13,15 +13,13 @@ abstract class Nodes extends Table[Nodes, Node] {
   object irisEdges extends ListColumn[(Long, Long)]
   object labels    extends ListColumn[String]
 
-  def findById(id: Long) = {
-    select.where(_.id eqs id).fetchRecord()
-  }
+  def findById(id: Long) =
+    select.where(_.id.eqs(id)).fetchRecord()
 
-  def findByIds(ids: List[Long], pagingState: Option[PagingState] = None) = {
+  def findByIds(ids: List[Long], pagingState: Option[PagingState] = None) =
     select.where(_.id in ids).paginateRecord(pagingState)
-  }
 
-  def delete(id: Long) = super.delete.where(_.id eqs id)
+  def delete(id: Long) = super.delete.where(_.id.eqs(id))
 //  def delete(ids: List[Long]) = delete.where(_.id in ids)
 }
 

@@ -47,7 +47,7 @@ object ListSetType extends DataTypeDef[ListSetType[Any]] {
     new ClassTypeable[ListSetType[ListSet[T]]] {
       type C  = ListSet[TOut]
       type CT = ListSetType[ListSet[TOut]]
-      def ct: CT = //ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
+      def ct: CT = // ListSetType(List(clsTpbl.ct)).asInstanceOf[ListSetType[TOut]]
         if (clsTpbl.ct.iri.nonEmpty)
           ListSetType(clsTpbl.ct.asInstanceOf[ClassType[TOut]])
         else ListSetType.datatype.asInstanceOf[ListSetType[ListSet[TOut]]]

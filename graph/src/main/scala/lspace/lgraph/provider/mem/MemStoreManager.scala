@@ -12,8 +12,7 @@ object MemStoreManager {
   def apply[G <: LGraph](graph: G): MemStoreManager[G] = new MemStoreManager[G](graph)
 }
 
-/**
-  * This manager does not store or retrieve any resources. It is a stub to storageless LGraphs
+/** This manager does not store or retrieve any resources. It is a stub to storageless LGraphs
   * @param graph
   * @tparam G
   */
@@ -33,8 +32,10 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   override def edgesByFromId(fromId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
 
-  override def edgesByFromIdAndKey(fromId: Long,
-                                   key: Property): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
+  override def edgesByFromIdAndKey(
+    fromId: Long,
+    key: Property
+  ): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
     Observable()
 
   override def edgesByToId(toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
@@ -45,9 +46,11 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
   override def edgesByFromIdAndToId(fromId: Long, toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
     Observable()
 
-  override def edgesByFromIdAndKeyAndToId(fromId: Long,
-                                          key: Property,
-                                          toId: Long): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
+  override def edgesByFromIdAndKeyAndToId(
+    fromId: Long,
+    key: Property,
+    toId: Long
+  ): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] =
     Observable()
 
 //  override def edgeByIri(iri: String): Observable[graph._Edge[Any, Any] with LEdge[Any, Any]] = Observable()
@@ -102,8 +105,7 @@ class MemStoreManager[G <: LGraph](override val graph: G) extends StoreManager(g
 
   def purge: Task[Unit] = Task.unit
 
-  /**
-    * finishes write-queue(s) and closes connection
+  /** finishes write-queue(s) and closes connection
     */
   override def close(): Task[Unit] = Task.unit
 }

@@ -11,10 +11,12 @@ trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
   def assistent: Assistent
 
   import shapeless.=:!=
-  def pTests[T, T2, X, P0[Z] <: P[Z]](ah: Assistent#Helper[P[T]],
-                                      validValues: List[T2],
-                                      invalidValues: List[T2],
-                                      incomparableValues: List[X])(implicit /*ev1: T2 <:< T, */ @unused ev2: T =:!= X) =
+  def pTests[T, T2, X, P0[Z] <: P[Z]](
+    ah: Assistent#Helper[P[T]],
+    validValues: List[T2],
+    invalidValues: List[T2],
+    incomparableValues: List[X]
+  )(implicit /*ev1: T2 <:< T, */ @unused ev2: T =:!= X) =
     s"test ${ah.p.toString} ${ah.p._pvalue.getClass}".which {
       s"is comparable and asserts true to ${validValues.mkString(" and ")}" in {
         validValues.foreach { t =>
@@ -48,89 +50,119 @@ trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
   }
 
   "an numeric assistent".can {
-    //Numeric type tests
+    // Numeric type tests
     pTests(assistent.eqv(Eqv(1)), 1 :: 1.0 :: 1L :: Nil, 2 :: 3L :: 3.3 :: Nil, List[Any]())
     pTests(assistent.eqv(Eqv(2.0)), 2 :: 2.0 :: 2L :: Nil, 1 :: 3L :: 3.3 :: Nil, List[Any]())
     pTests(assistent.eqv(Eqv(3L)), 3 :: 3.0 :: 3L :: Nil, 2 :: 4L :: 3.3 :: Nil, List[Any]())
     pTests(assistent.neqv(Neqv(1)), 2 :: 3L :: 3.3 :: Nil, 1 :: 1.0 :: 1L :: Nil, List[Any]())
-    pTests(assistent.lt(Lt(5)), 2 :: 3L :: 3.3 :: Nil, 5 :: 7.0 :: 8L :: Nil, "a" :: new                   {} :: Nil)
-    pTests(assistent.lte(Lte(5)), 5 :: 3L :: 3.3 :: Nil, 6 :: 7.0 :: 8L :: Nil, "a" :: new                 {} :: Nil)
-    pTests(assistent.gt(Gt(5)), 6 :: 7.0 :: 8L :: Nil, 5 :: 5.0 :: 3L :: 3.3 :: Nil, "a" :: new            {} :: Nil)
-    pTests(assistent.gte(Gte(5)), 5 :: 5.0 :: 8L :: Nil, 4 :: 3L :: 3.3 :: Nil, "a" :: new                 {} :: Nil)
-    pTests(assistent.between(Between(4, 6)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
+    pTests(assistent.lt(Lt(5)), 2 :: 3L :: 3.3 :: Nil, 5 :: 7.0 :: 8L :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.lte(Lte(5)), 5 :: 3L :: 3.3 :: Nil, 6 :: 7.0 :: 8L :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.gt(Gt(5)), 6 :: 7.0 :: 8L :: Nil, 5 :: 5.0 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.gte(Gte(5)), 5 :: 5.0 :: 8L :: Nil, 4 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.between(Between(4, 6)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
     pTests(assistent.between(Between(4.1, 6.0)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
-    pTests(assistent.between(Between(3.9, 6L)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new  {} :: Nil)
-    pTests(assistent.outside(Outside(4, 6)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new     {} :: Nil)
+    pTests(assistent.between(Between(3.9, 6L)), 5 :: 5.4 :: 6L :: Nil, 11 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.outside(Outside(4, 6)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new {} :: Nil)
     pTests(assistent.outside(Outside(4.1, 6.0)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new {} :: Nil)
-    pTests(assistent.outside(Outside(3.9, 6L)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new  {} :: Nil)
-    pTests(assistent.inside(Inside(4, 6)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new        {} :: Nil)
-    pTests(assistent.inside(Inside(4.1, 6.0)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new    {} :: Nil)
-    pTests(assistent.inside(Inside(3.9, 6L)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new     {} :: Nil)
-    pTests(assistent.contains(Contains(3)),
-           List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
-           List("a", 2) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.contains(Contains(List(2, 3.0))),
-           Set(2, 3) :: List(4, 2, 3.0, 5) :: Nil,
-           List("a", 2) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.disjoint(Disjoint(6)),
-           List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
-           List("a", 6) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.disjoint(Disjoint(Set(6, 7))),
-           List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
-           List("a", 6) :: Vector(7, 6) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.intersect(Intersect(3)),
-           List(3) :: Set("a", 3) :: List(3.0, 4, 5) :: Nil,
-           List("a", 6) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.intersect(Intersect(Vector(5, 6))),
-           List(3.0, 4, 5) :: Nil,
-           List(3, 4) :: Nil,
-           "a" :: 3 :: new                                                                   {} :: Nil)
+    pTests(assistent.outside(Outside(3.9, 6L)), 11 :: 3L :: 3.3 :: Nil, 5 :: 5.4 :: 6L :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.inside(Inside(4, 6)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.inside(Inside(4.1, 6.0)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(assistent.inside(Inside(3.9, 6L)), 5 :: 5.4 :: Nil, 11 :: 6 :: 3L :: 3.3 :: Nil, "a" :: new {} :: Nil)
+    pTests(
+      assistent.contains(Contains(3)),
+      List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
+      List("a", 2) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.contains(Contains(List(2, 3.0))),
+      Set(2, 3) :: List(4, 2, 3.0, 5) :: Nil,
+      List("a", 2) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.disjoint(Disjoint(6)),
+      List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
+      List("a", 6) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.disjoint(Disjoint(Set(6, 7))),
+      List(3) :: Set(2, 3) :: List(3.0, 4, 5) :: Nil,
+      List("a", 6) :: Vector(7, 6) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.intersect(Intersect(3)),
+      List(3) :: Set("a", 3) :: List(3.0, 4, 5) :: Nil,
+      List("a", 6) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.intersect(Intersect(Vector(5, 6))),
+      List(3.0, 4, 5) :: Nil,
+      List(3, 4) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
     pTests(assistent.within(Within(6)), List(6) :: Nil, List("a", 6) :: Nil, "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.within(Within(List(6, 3, 4, 5))),
-           List(6) :: Set(4, 3) :: List(3.0, 4, 5) :: Nil,
-           List("a", 6) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.startsWith(Prefix(6)),
-           List(6) :: Vector(6, "a") :: Nil,
-           List("a", 6) :: Nil,
-           Set(6) :: "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.startsWith(Prefix(List(3.0, 4))),
-           List(3.0, 4, 5) :: Nil,
-           List(6) :: Vector(4, 3) :: List("a", 6) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.endsWith(Suffix(6)),
-           List("a", 6) :: Nil,
-           Vector(6, "a") :: List("5") :: Nil,
-           Set(6) :: "a" :: 3 :: new {} :: Nil)
-    pTests(assistent.endsWith(Suffix(List(4, 5))),
-           List(3.0, 4, 5) :: Nil,
-           List(6, "a") :: List(6, "a", 5) :: List(6, "a", 6) :: Nil,
-           "a" :: 3 :: new {} :: Nil)
+    pTests(
+      assistent.within(Within(List(6, 3, 4, 5))),
+      List(6) :: Set(4, 3) :: List(3.0, 4, 5) :: Nil,
+      List("a", 6) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.startsWith(Prefix(6)),
+      List(6) :: Vector(6, "a") :: Nil,
+      List("a", 6) :: Nil,
+      Set(6) :: "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.startsWith(Prefix(List(3.0, 4))),
+      List(3.0, 4, 5) :: Nil,
+      List(6) :: Vector(4, 3) :: List("a", 6) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.endsWith(Suffix(6)),
+      List("a", 6) :: Nil,
+      Vector(6, "a") :: List("5") :: Nil,
+      Set(6) :: "a" :: 3 :: new {} :: Nil
+    )
+    pTests(
+      assistent.endsWith(Suffix(List(4, 5))),
+      List(3.0, 4, 5) :: Nil,
+      List(6, "a") :: List(6, "a", 5) :: List(6, "a", 6) :: Nil,
+      "a" :: 3 :: new {} :: Nil
+    )
   }
 
   "a date assistent".can {
     import lspace.datatype.util.Implicits._
-    pTests(assistent.eqv(Eqv("1996-08-18".toDate.get)),
-           "1996-08-18".toDate.get :: Nil,
-           "1996-08-17".toDate.get :: "14:12:00".toTime.get :: 1 :: Nil,
-           List[Any]())
-    pTests(assistent.neqv(Neqv("1996-08-18".toDate.get)),
-           "1996-08-17".toDate.get :: "14:12:00".toTime.get :: Nil,
-           "1996-08-18".toDate.get :: Nil,
-           List[Any]())
-    pTests(assistent.gt(Gt("1996-08-18".toDate.get)),
-           "1996-08-19".toDate.get :: Nil,
-           "1996-08-17".toDate.get :: Nil,
-           "14:12:00".toTime.get :: Nil)
-    pTests(assistent.gte(Gte("1996-08-18".toDate.get)),
-           "1996-08-18".toDate.get :: Nil,
-           "1996-08-16".toDate.get :: Nil,
-           "14:12:00".toTime.get :: Nil)
+    pTests(
+      assistent.eqv(Eqv("1996-08-18".toDate.get)),
+      "1996-08-18".toDate.get :: Nil,
+      "1996-08-17".toDate.get :: "14:12:00".toTime.get :: 1 :: Nil,
+      List[Any]()
+    )
+    pTests(
+      assistent.neqv(Neqv("1996-08-18".toDate.get)),
+      "1996-08-17".toDate.get :: "14:12:00".toTime.get :: Nil,
+      "1996-08-18".toDate.get :: Nil,
+      List[Any]()
+    )
+    pTests(
+      assistent.gt(Gt("1996-08-18".toDate.get)),
+      "1996-08-19".toDate.get :: Nil,
+      "1996-08-17".toDate.get :: Nil,
+      "14:12:00".toTime.get :: Nil
+    )
+    pTests(
+      assistent.gte(Gte("1996-08-18".toDate.get)),
+      "1996-08-18".toDate.get :: Nil,
+      "1996-08-16".toDate.get :: Nil,
+      "14:12:00".toTime.get :: Nil
+    )
     pTests(
       assistent.lt(Lt("1996-08-18".toDate.get)),
       "1996-08-17".toDate.get :: Nil,
@@ -165,22 +197,30 @@ trait AssistentSpec extends AnyWordSpec with Matchers with AppendedClues {
 
   "a time assistent".can {
     import lspace.datatype.util.Implicits._
-    pTests(assistent.eqv(Eqv("11:13:49".toTime.get)),
-           "11:13:49".toTime.get :: Nil,
-           "1996-08-17".toDate.get :: "15:15:11".toTime.get :: 1 :: Nil,
-           List[Any]())
-    pTests(assistent.neqv(Neqv("11:13:49".toTime.get)),
-           "1996-08-17".toDate.get :: "14:12:00".toTime.get :: Nil,
-           "11:13:49".toTime.get :: Nil,
-           List[Any]())
-    pTests(assistent.gt(Gt("11:13:49".toTime.get)),
-           "11:16:49".toTime.get :: Nil,
-           "11:13:49".toTime.get :: "11:11:49".toTime.get :: Nil,
-           "1996-08-17".toDate.get :: Nil)
-    pTests(assistent.gte(Gte("11:13:49".toTime.get)),
-           "11:13:49".toTime.get :: "13:16:49".toTime.get :: Nil,
-           "08:13:49".toTime.get :: Nil,
-           "1996-08-17".toDate.get :: Nil)
+    pTests(
+      assistent.eqv(Eqv("11:13:49".toTime.get)),
+      "11:13:49".toTime.get :: Nil,
+      "1996-08-17".toDate.get :: "15:15:11".toTime.get :: 1 :: Nil,
+      List[Any]()
+    )
+    pTests(
+      assistent.neqv(Neqv("11:13:49".toTime.get)),
+      "1996-08-17".toDate.get :: "14:12:00".toTime.get :: Nil,
+      "11:13:49".toTime.get :: Nil,
+      List[Any]()
+    )
+    pTests(
+      assistent.gt(Gt("11:13:49".toTime.get)),
+      "11:16:49".toTime.get :: Nil,
+      "11:13:49".toTime.get :: "11:11:49".toTime.get :: Nil,
+      "1996-08-17".toDate.get :: Nil
+    )
+    pTests(
+      assistent.gte(Gte("11:13:49".toTime.get)),
+      "11:13:49".toTime.get :: "13:16:49".toTime.get :: Nil,
+      "08:13:49".toTime.get :: Nil,
+      "1996-08-17".toDate.get :: Nil
+    )
     pTests(
       assistent.lt(Lt("11:13:49".toTime.get)),
       "11:11:49".toTime.get :: Nil,

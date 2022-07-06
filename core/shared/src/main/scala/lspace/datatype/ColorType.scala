@@ -4,7 +4,7 @@ import lspace.{ClassType, NS}
 import lspace.structure.util.ClassTypeable
 import lspace.structure.Property
 
-object ColorType extends DataTypeDef[ColorType[Any]] { //TODO RgbType, CMYK, PMS, NamedColor
+object ColorType extends DataTypeDef[ColorType[Any]] { // TODO RgbType, CMYK, PMS, NamedColor
 
   val datatype: ColorType[Any] = new ColorType[Any] {
     val iri: String                = NS.types.`@color`

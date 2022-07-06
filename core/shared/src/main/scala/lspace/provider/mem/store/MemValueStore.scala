@@ -25,7 +25,8 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
         _.in(`@id`, `@ids`)
           .filter(_.isInstanceOf[Value[_]])
           .asInstanceOf[List[T2]]
-          .distinct)
+          .distinct
+      )
       .flatMap(Observable.fromIterable(_))
 
   def hasIri(iri: Set[String]): Observable[T2] =
@@ -33,11 +34,16 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
       .fromTask(
         Observable
           .fromIterable(iri)
-          .mergeMap(graph.`@idStore`.byValue(_, DataType.default.`@string`).map(_.in(`@id`, `@ids`)
-            .filter(_.isInstanceOf[Value[_]])))
+          .mergeMap(
+            graph.`@idStore`.byValue(_, DataType.default.`@string`).map(
+              _.in(`@id`, `@ids`)
+                .filter(_.isInstanceOf[Value[_]])
+            )
+          )
           .flatMap(Observable.fromIterable)
           .toListL
-          .map(_.asInstanceOf[List[T2]].distinct))
+          .map(_.asInstanceOf[List[T2]].distinct)
+      )
       .flatMap(Observable.fromIterable(_))
 
   trait Cache {
@@ -54,7 +60,8 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
       Observable.fromIterable(cache.get(value).to(LazyList).flatMap(_.toList).map(_.asInstanceOf[graph.GValue[V]]))
     def byValue[V](value: V, dt: DataType[V]): Observable[graph.GValue[V]] =
       Observable.fromIterable(
-        cache.get(value).to(LazyList).flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]]))
+        cache.get(value).to(LazyList).flatMap(_.toList).filter(_.label == dt).map(_.asInstanceOf[graph.GValue[V]])
+      )
     def delete(value: T): Unit = cacheLock.synchronized[Unit] {
       val values = cache.getOrElse(value.value, Set())
       if (values.contains(value)) cache -= value.value
@@ -75,14 +82,11 @@ class MemValueStore[G <: MemGraph](val iri: String, val graph: G) extends MemSto
     vcache(value)
   }
 
-  override def store(resources: List[T]): Task[Unit] = {
+  override def store(resources: List[T]): Task[Unit] =
     Observable.fromIterable(resources).mapEval(store).completedL
-  }
 
   override def delete(value: T): Task[Unit] =
-    for { _ <- super.delete(value) } yield {
-      vcache.delete(value)
-    }
+    for { _ <- super.delete(value) } yield vcache.delete(value)
 
   override def purge: Task[Unit] =
     for {

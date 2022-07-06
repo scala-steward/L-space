@@ -45,7 +45,7 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
         newNodes <- Task.parSequence {
           nodes.added.toList.map(_._2).map { node =>
             for {
-              newNode <- Task { parent.newNode(node.id) }
+              newNode <- Task(parent.newNode(node.id))
               _ = node.labels.foreach(newNode._cacheLabel)
             } yield newNode
           }
@@ -63,16 +63,18 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
             case (v1, v2, v3, v4) =>
               (dereferenceValue(v1), dereferenceValue(v2), dereferenceValue(v3), dereferenceValue(v4))
             case (v1, v2, v3, v4, v5) =>
-              (dereferenceValue(v1),
-               dereferenceValue(v2),
-               dereferenceValue(v3),
-               dereferenceValue(v4),
-               dereferenceValue(v5))
+              (
+                dereferenceValue(v1),
+                dereferenceValue(v2),
+                dereferenceValue(v3),
+                dereferenceValue(v4),
+                dereferenceValue(v5)
+              )
             //        case v: Ontology     => nodes.upsert(parent.ns.ontologies.store(v)) //irrelevant, value is already dereferenced
             //        case v: Property     => nodes.upsert(parent.ns.properties.store(v))
             //        case v: DataType[_]  => nodes.upsert(parent.ns.datatypes.store(v))
-            case v: _TNode       => v.self
-            case v: Node         => newNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
+            case v: _TNode => v.self
+            case v: Node   => newNodes.find(_.id == v.id).getOrElse(throw new Exception("dereferencing node failed"))
             case v: _TEdge[_, _] => v.self
             case v: Edge[_, _]   => throw new Exception("dereferencing edge failed")
             case v: _TValue[_]   => v.self
@@ -108,7 +110,8 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
                   .get
                   .asInstanceOf[parent._Resource[Any]]
             }
-        ))
+          )
+        )
         _             = parent.edgeStore.cache(newEdges.asInstanceOf[List[parent.edgeStore.T]])
         removedEdges  = edges.deleted.values.toList
         removedNodes  = nodes.deleted.values.toList
@@ -127,29 +130,29 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
               parent.storeManager.storeValues(newValues),
               parent.storeManager.storeNodes(newNodes),
               parent.storeManager.storeEdges(newEdges)
-            ))
+            )
+          )
       } yield {
         val iEnd = java.time.Instant.now().toEpochMilli
         scribe.info(
-          s"update cache took ${iEnd - start} millis, added #${newNodes.size} nodes - #${newEdges.size} edges - #${newValues.size}")
+          s"update cache took ${iEnd - start} millis, added #${newNodes.size} nodes - #${newEdges.size} edges - #${newValues.size}"
+        )
       }).onErrorHandleWith {
-          case _: TimeoutException => Task.now("recovered")
-          case other               => Task.raiseError(other)
-        }
-        .doOnFinish {
-          case None =>
-            val iEnd = java.time.Instant.now().toEpochMilli
-            scribe.info(s"update graph took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
-            close()
-            Task.unit
-          case Some(ex) =>
-            val iEnd = java.time.Instant.now().toEpochMilli
-            scribe.error(ex.getMessage)
-            scribe.info(s"update graph failed and took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
-            close()
-            Task.unit
-        }
-        .map(f => ())
+        case _: TimeoutException => Task.now("recovered")
+        case other               => Task.raiseError(other)
+      }.doOnFinish {
+        case None =>
+          val iEnd = java.time.Instant.now().toEpochMilli
+          scribe.info(s"update graph took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
+          close()
+          Task.unit
+        case Some(ex) =>
+          val iEnd = java.time.Instant.now().toEpochMilli
+          scribe.error(ex.getMessage)
+          scribe.info(s"update graph failed and took ${java.time.Instant.now().toEpochMilli - iEnd} millis")
+          close()
+          Task.unit
+      }.map(f => ())
 //      addedValues.asInstanceOf[List[parent._Value[_]]].foreach(parent.valueStore.cache)
 //      addedNodes.foreach(parent.nodeStore.cache)
 //      addedEdges.asInstanceOf[List[parent._Edge[_, _]]].foreach(parent.edgeStore.cache)
@@ -167,13 +170,12 @@ class LTransaction(override val parent: LGraph) extends Transaction(parent) {
 //    edges.added.map(edge => parent.edges.create(edge.id, edge.from.id, edge.key, edge.to.id))
   }
 
-  /**
-    * clears the transaction's MemGraph
+  /** clears the transaction's MemGraph
     */
-  override def rollback(): Task[Unit] = Task.now { open = false } //return claimed id's?
+  override def rollback(): Task[Unit] = Task.now { open = false } // return claimed id's?
 
   override protected[lspace] def deleteNode(node: _Node): Task[Unit] =
-    //1st prepare statements to remove objects from store/index (or remove first and then cache?)
+    // 1st prepare statements to remove objects from store/index (or remove first and then cache?)
     super.deleteNode(node)
   override protected[lspace] def deleteEdge(edge: _Edge[_, _]): Task[Unit] = super.deleteEdge(edge)
   override protected[lspace] def deleteValue(value: _Value[_]): Task[Unit] = super.deleteValue(value)

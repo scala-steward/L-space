@@ -32,6 +32,6 @@ trait WrappedResource[T] extends Resource[T] {
   def removeIn(key: Property): Task[Unit]             = self.removeIn(key)
   def removeOut(key: Property): Task[Unit]            = self.removeOut(key)
 
-  protected def _remove(): Unit     = ??? //should never be hit
+  protected def _remove(): Unit     = ??? // should never be hit
   override def remove(): Task[Unit] = self.remove()
 }

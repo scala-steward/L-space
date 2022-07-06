@@ -19,7 +19,7 @@ object V
           "A value",
           `@range` = ListType(DataType.default.`@datatype`) :: Nil
         )
-    val valueUrl: TypedProperty[List[Any]] = value.property as ListType(DataType.default.`@datatype`)
+    val valueUrl: TypedProperty[List[Any]] = value.property.as(ListType(DataType.default.`@datatype`))
   }
   override lazy val properties: List[Property] = keys.value :: ResourceStep.properties
   trait Properties extends ResourceStep.Properties {

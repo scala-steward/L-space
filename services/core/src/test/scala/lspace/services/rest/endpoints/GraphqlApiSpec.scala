@@ -40,8 +40,10 @@ class GraphqlApiSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   lazy val graphqlService = GraphqlApi(Graph("GraphqlApiSpec"))
   lazy val service: com.twitter.finagle.Service[Request, Response] = Bootstrap
     .configure(enableMethodNotAllowed = true, enableUnsupportedMediaType = true)
-    .serve[Application.Json :+: CNil](graphqlService
-      .list(Ontology("Person")))
+    .serve[Application.Json :+: CNil](
+      graphqlService
+        .list(Ontology("Person"))
+    )
     .toService
 
   "support GET with application/graphql" in {

@@ -39,12 +39,19 @@ trait AppApi[Req, Res] extends Api[Req, Res] {
     import lspace.services.util.twFutureToScala
     Ok(
       _root_.fs2.Stream.eval(
-        IO.fromFuture(IO(Reader
-          .readAll(Reader.fromStream(getClass.getResourceAsStream(s"/public/$path")))
-          .map { buf =>
-            buf
-          }: Future[Buf])))).withHeader(getContentType(path))
+        IO.fromFuture(
+          IO(
+            Reader
+              .readAll(Reader.fromStream(getClass.getResourceAsStream(s"/public/$path")))
+              .map { buf =>
+                buf
+              }: Future[Buf]
+          )
+        )
+      )
+    ).withHeader(getContentType(path))
   }
 
-  val api = (MatchHeaderContains[IO]("Accept", "text/html") :: get(pathEmpty) { Ok(htmlResponse(app.rendered)) }) :+: static
+  val api =
+    (MatchHeaderContains[IO]("Accept", "text/html") :: get(pathEmpty)(Ok(htmlResponse(app.rendered)))) :+: static
 }

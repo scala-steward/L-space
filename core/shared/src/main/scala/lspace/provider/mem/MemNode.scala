@@ -11,8 +11,7 @@ trait MemNode extends MemResource[Node] with Node {
 
   private val types = mutable.HashSet[Ontology]()
 
-  /**
-    * add ontology, do not store
+  /** add ontology, do not store
     * @param ontology
     */
   protected[lspace] def _cacheLabel(ontology: Ontology): Unit =
@@ -34,8 +33,7 @@ trait MemNode extends MemResource[Node] with Node {
 
   def labels: List[Ontology] = types.toList
 
-  /**
-    * adds and stores ontology
+  /** adds and stores ontology
     * @param ontology
     */
   def addLabel(ontology: Ontology): Task[Unit] = Task.defer {
@@ -44,9 +42,9 @@ trait MemNode extends MemResource[Node] with Node {
         for {
           _ <- super._addLabel(ontology)
           _ = _cacheLabel(ontology)
-          _ <- graph.storeNode(this.asInstanceOf[graph.GNode]) //TODO: validate, probably not needed for MemGraph
+          _ <- graph.storeNode(this.asInstanceOf[graph.GNode]) // TODO: validate, probably not needed for MemGraph
         } yield ()
-      //TODO: index
+      // TODO: index
       else Task.unit
     }
   }

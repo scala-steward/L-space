@@ -48,14 +48,14 @@ class ESIndexSpec extends LGraphIndexSpec {
           _ <- graphToPersist.graph.close()
           _ <- samplePersistedGraph.graph.init
         } yield ()
-      ))
+      )
+    )
   } yield ()).memoize
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
   "ESIndexManager" when {
     "new" should {

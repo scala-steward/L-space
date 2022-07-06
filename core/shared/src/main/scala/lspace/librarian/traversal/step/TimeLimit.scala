@@ -6,9 +6,11 @@ import lspace.structure._
 import monix.eval.Task
 
 object TimeLimit
-    extends StepDef("TimeLimit",
-                    "A timeLimit-step restricts the amount of time a traversal may run.",
-                    EnvironmentStep.ontology :: Nil)
+    extends StepDef(
+      "TimeLimit",
+      "A timeLimit-step restricts the amount of time a traversal may run.",
+      EnvironmentStep.ontology :: Nil
+    )
     with StepWrapper[TimeLimit] {
 
   def toStep(node: Node): Task[TimeLimit] =
@@ -22,7 +24,7 @@ object TimeLimit
           "The maximum time the underlaying traversal may take"
 //          `@range` = () => DataType.default.`@duration` :: Nil
         )
-    val durationTime: TypedProperty[Long] = duration.property as DataType.default.`@long`
+    val durationTime: TypedProperty[Long] = duration.property.as(DataType.default.`@long`)
   }
   override lazy val properties: List[Property] = keys.duration :: EnvironmentStep.properties
   trait Properties extends EnvironmentStep.Properties {
@@ -38,9 +40,8 @@ object TimeLimit
   }.memoizeOnSuccess
 }
 
-/**
-  *
-  * @param time in millis
+/** @param time
+  *   in millis
   */
 case class TimeLimit(time: Option[Long] = None) extends EnvironmentStep {
 

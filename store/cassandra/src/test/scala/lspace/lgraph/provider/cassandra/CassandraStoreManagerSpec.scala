@@ -8,7 +8,12 @@ import lspace.structure.{Graph, GraphSpec, NameSpaceGraphSpec, NodeSpec, Sampled
 import monix.eval.Task
 import org.scalatest.FutureOutcome
 
-class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec with NameSpaceGraphSpec with ForAllTestContainer {
+class CassandraStoreManagerSpec
+    extends GraphSpec
+    with NodeSpec
+    with AsyncGuideSpec
+    with NameSpaceGraphSpec
+    with ForAllTestContainer {
 
   val container = CassandraContainer()
 
@@ -30,8 +35,9 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
     LGraph(storage, new MemIndexProvider, noinit = true)
   }
 
-  val store       = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", container.mappedPort(9042))
-  val sampleStore = LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", container.mappedPort(9042))
+  val store = LCassandraStoreProvider("CassandraStorageManagerSpec", "localhost", container.mappedPort(9042))
+  val sampleStore =
+    LCassandraStoreProvider("CassandraStorageManagerSpec-sample", "localhost", container.mappedPort(9042))
 
   lazy val initTask = (for {
     _ <- Task.parSequenceUnordered(
@@ -54,8 +60,9 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
           _ = Thread.sleep(10000)
           _ <- samplePersistedGraph.graph.init
         } yield ()
-      ))
-  } yield ()).memoize //OnSuccess
+      )
+    )
+  } yield ()).memoize // OnSuccess
 
   lazy val graph: LGraph =
     LGraph(store, new MemIndexProvider, noinit = true)
@@ -63,11 +70,10 @@ class CassandraStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideS
   lazy val graphToPersist       = SampledGraph(createGraph("CassandraStorageManagerSpec-persisted-sample"))
   lazy val samplePersistedGraph = SampledGraph(createGraph("CassandraStorageManagerSpec-persisted-sample"))
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
   "CassandraStoreManagerSpec" when {
     "new" should {

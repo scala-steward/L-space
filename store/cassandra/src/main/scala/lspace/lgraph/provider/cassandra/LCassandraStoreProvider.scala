@@ -15,17 +15,19 @@ import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 object LCassandraStoreProvider {
-  def apply[Json](iri: String, host: String, port: Int)(implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-                                                        baseDecoder: Decoder.Aux[Json]): LCassandraStoreProvider[Json] =
+  def apply[Json](iri: String, host: String, port: Int)(implicit
+    baseEncoder: NativeTypeEncoder.Aux[Json],
+    baseDecoder: Decoder.Aux[Json]
+  ): LCassandraStoreProvider[Json] =
     new LCassandraStoreProvider(iri, host, port)
 
   val keySpaceBuilders: concurrent.Map[StoragePoint, KeySpaceBuilder] =
     new ConcurrentHashMap[StoragePoint, KeySpaceBuilder]().asScala
 }
-class LCassandraStoreProvider[Json](val iri: String, host: String, port: Int)(
-    implicit baseEncoder: NativeTypeEncoder.Aux[Json],
-    baseDecoder: Decoder.Aux[Json])
-    extends StoreProvider {
+class LCassandraStoreProvider[Json](val iri: String, host: String, port: Int)(implicit
+  baseEncoder: NativeTypeEncoder.Aux[Json],
+  baseDecoder: Decoder.Aux[Json]
+) extends StoreProvider {
 
   private def createBuilder =
     ContactPoint(host, port)
@@ -34,7 +36,8 @@ class LCassandraStoreProvider[Json](val iri: String, host: String, port: Int)(
           new SocketOptions()
             .setConnectTimeoutMillis(200000)
             .setReadTimeoutMillis(200000)
-        ))
+        )
+      )
       .noHeartbeat()
   val keyspaceBuilder =
     LCassandraStoreProvider.keySpaceBuilders.getOrElseUpdate(StoragePoint(host, port), createBuilder)
@@ -45,7 +48,7 @@ class LCassandraStoreProvider[Json](val iri: String, host: String, port: Int)(
     KeySpace(iri.replace('.', '_').replace('-', '_'))
       .ifNotExists()
       .`with`(
-        replication eqs SimpleStrategy.replication_factor(1)
+        replication.eqs(SimpleStrategy.replication_factor(1))
       )
 
   object graph              extends CassandraGraph(keyspaceBuilder.keySpace(getOrCreateKeySpace(space.graph)))
@@ -58,11 +61,11 @@ class LCassandraStoreProvider[Json](val iri: String, host: String, port: Int)(
 
   def purge(): Task[Unit] =
     for {
-      _ <- Task.deferFuture { graph.truncateAsync() }
-      _ <- Task.deferFuture { dataGraphTables.truncateAsync() }
-      _ <- Task.deferFuture { nsGraphTables.truncateAsync() }
-      _ <- Task.deferFuture { nsIndexGraphTables.truncateAsync() }
-      _ <- Task.deferFuture { indexGraphTables.truncateAsync() }
+      _ <- Task.deferFuture(graph.truncateAsync())
+      _ <- Task.deferFuture(dataGraphTables.truncateAsync())
+      _ <- Task.deferFuture(nsGraphTables.truncateAsync())
+      _ <- Task.deferFuture(nsIndexGraphTables.truncateAsync())
+      _ <- Task.deferFuture(indexGraphTables.truncateAsync())
 //      _ <- Task.deferFuture { indexIndexGraphTables.truncateAsync() }
     } yield ()
 

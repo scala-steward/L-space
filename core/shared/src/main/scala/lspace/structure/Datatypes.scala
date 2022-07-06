@@ -112,7 +112,7 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                         //                  DataType.datatypes.cache(datatype)
                         nodes.create(DataType.ontology)
                       }
-                    _  <- node.addOut(default.typed.iriUrlString, datatype.iri)
+                    _ <- node.addOut(default.typed.iriUrlString, datatype.iri)
                     _ <- Task.parSequence(datatype.iris.map(iri => node.addOut(default.typed.irisUrlString, iri)))
                   } yield {
                     byId += node.id   -> datatype
@@ -183,7 +183,9 @@ abstract class Datatypes(val graph: NameSpaceGraph) {
                       _       <- comment.addOut(Property.default.`@language`, language)
                     } yield comment
                   })
-                  _ <- Task.parSequence(datatype.extendedClasses().collect { case d: DataType[Any] => d }.map(ns.datatypes.store))
+                  _ <- Task.parSequence(
+                    datatype.extendedClasses().collect { case d: DataType[Any] => d }.map(ns.datatypes.store)
+                  )
                   _ <- node.addOut(Label.P.`@extends`, datatype.extendedClasses())
                 } yield node
                 //              datatype.properties.foreach(_createEdge(node, Property.default.`@properties`, _))

@@ -61,8 +61,7 @@ abstract class StoreManager[G <: LGraph](val graph: G) {
 
   def purge: Task[Unit]
 
-  /**
-    * finishes write-queue(s) and closes connection
+  /** finishes write-queue(s) and closes connection
     */
   def close(): Task[Unit]
 

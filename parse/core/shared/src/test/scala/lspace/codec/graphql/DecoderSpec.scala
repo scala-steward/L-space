@@ -23,9 +23,11 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
 //      "name" -> "https://schema.org/name"
 //    ),
     definitions = Map(
-      "names" -> ActiveProperty(schemaName,
-                                `@type` = Label.D.`@string` :: Nil,
-                                `@container` = List(lspace.codec.`@container`.`@list`))(),
+      "names" -> ActiveProperty(
+        schemaName,
+        `@type` = Label.D.`@string` :: Nil,
+        `@container` = List(lspace.codec.`@container`.`@list`)
+      )(),
       "name"         -> ActiveProperty(schemaName, `@type` = Label.D.`@string` :: Nil)(),
       "name2"        -> ActiveProperty(schemaName2, `@type` = Label.D.`@string` :: Nil)(),
       "description"  -> ActiveProperty(schemaDescription, `@type` = Label.D.`@string` :: Nil)(),
@@ -146,7 +148,8 @@ class DecoderSpec extends AsyncWordSpec with Matchers {
         decoder.findQuery(""" { name(name2: "abc") { description2 name2 } description }""".stripMargin)(activeContext)
       val expectedTraversal = g
         .project(
-          _.has(schemaName2, P.eqv("abc")).out(schemaName).project(_.out(schemaDescription2)).by(_.out(schemaName2)))
+          _.has(schemaName2, P.eqv("abc")).out(schemaName).project(_.out(schemaDescription2)).by(_.out(schemaName2))
+        )
         .by(_.out(schemaDescription))
       Future {
         query.toTraversal.stepsList shouldBe expectedTraversal.untyped.steps

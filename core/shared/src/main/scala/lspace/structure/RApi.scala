@@ -9,9 +9,8 @@ trait RApi[T <: Resource[Any]] {
 
   def hasIri(iri: String, iris: String*): Observable[T] = hasIri(iri :: iris.toList)
 
-  /**
-    *
-    * @param iris a set of uri's to get T for
+  /** @param iris
+    *   a set of uri's to get T for
     * @return
     */
   def hasIri(iris: List[String]): Observable[T]

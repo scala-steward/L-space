@@ -8,9 +8,11 @@ import monix.eval.Task
 import shapeless.HList
 
 object Choose
-    extends StepDef("Choose",
-                    "A choose-steps continues on the first of n-traversals which has a non-empty result.",
-                    BranchStep.ontology :: Nil)
+    extends StepDef(
+      "Choose",
+      "A choose-steps continues on the first of n-traversals which has a non-empty result.",
+      BranchStep.ontology :: Nil
+    )
     with StepWrapper[Choose[_, _]] {
 
   def toStep(node: Node): Task[Choose[ClassType[Any], ClassType[Any]]] = node match {
@@ -23,7 +25,8 @@ object Choose
           .map(
             Traversal
               .toTraversal(_)
-              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+          )
           .get
         right <- node
           .out(keys.rightTraversal)
@@ -31,7 +34,8 @@ object Choose
           .map(
             Traversal
               .toTraversal(_)
-              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+          )
           .get
         left <- node
           .out(keys.leftTraversal)
@@ -39,7 +43,8 @@ object Choose
           .map(
             Traversal
               .toTraversal(_)
-              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+          )
           .get
       } yield Choose[ClassType[Any], ClassType[Any]](by, right, left)
   }
@@ -53,7 +58,7 @@ object Choose
           container = types.`@list` :: Nil,
           `@range` = Traversal.ontology :: Nil
         )
-    val byTraversal: TypedProperty[Node] = by.property as Traversal.ontology
+    val byTraversal: TypedProperty[Node] = by.property.as(Traversal.ontology)
 
     object right
         extends PropertyDef(
@@ -63,7 +68,7 @@ object Choose
           container = types.`@list` :: Nil,
           `@range` = Traversal.ontology :: Nil
         )
-    val rightTraversal: TypedProperty[Node] = right.property as Traversal.ontology
+    val rightTraversal: TypedProperty[Node] = right.property.as(Traversal.ontology)
 
     object left
         extends PropertyDef(
@@ -73,10 +78,10 @@ object Choose
           container = types.`@list` :: Nil,
           `@range` = Traversal.ontology :: Nil
         )
-    val leftTraversal: TypedProperty[Node] = left.property as Traversal.ontology
+    val leftTraversal: TypedProperty[Node] = left.property.as(Traversal.ontology)
   }
-  override lazy val properties
-    : List[Property] = keys.by.property :: keys.right.property :: keys.left.property :: BranchStep.properties
+  override lazy val properties: List[Property] =
+    keys.by.property :: keys.right.property :: keys.left.property :: BranchStep.properties
 
   trait Properties extends BranchStep.Properties {
     lazy val `ns.l-space.eu/librarian/step/Choose/by`: Property = Choose.keys.by
@@ -103,10 +108,11 @@ object Choose
   }.memoizeOnSuccess
 }
 
-case class Choose[S <: ClassType[_], E <: ClassType[_]](by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],
-                                                        right: Traversal[S, E, _ <: HList],
-                                                        left: Traversal[S, E, _ <: HList])
-    extends BranchStep {
+case class Choose[S <: ClassType[_], E <: ClassType[_]](
+  by: Traversal[_ <: ClassType[_], _ <: ClassType[_], _ <: HList],
+  right: Traversal[S, E, _ <: HList],
+  left: Traversal[S, E, _ <: HList]
+) extends BranchStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =

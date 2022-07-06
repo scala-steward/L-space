@@ -155,7 +155,7 @@ object NS {
     val `@modifiedon`    = "@modifiedon"
     val `@transcendedon` = "@transcendedon"
 
-    //custom
+    // custom
     val min = "min"
     val max = "max"
 

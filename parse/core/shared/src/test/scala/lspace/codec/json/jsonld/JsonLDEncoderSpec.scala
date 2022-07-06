@@ -70,7 +70,8 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
           json = joip.json
           ac   = joip.activeContext
           _ = encoder.fromActiveContext(ac).map(_.noSpaces) shouldBe Some(
-            """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/","nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}""")
+            """{"naam":{"@id":"name","@type":"@string"},"1":"https://example.org/","nameFor":{"@reverse":"name","@type":"https://example.org/Person"}}"""
+          )
           //        _ = println(joip.withContext.noSpaces)
         } yield succeed).runToFuture
       }
@@ -89,8 +90,10 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
       }
       "exists of a remote context and a local context" in {
         val defaultContext =
-          ActiveContext(`@prefix` = ListMap("name" -> "https://example.com/name"),
-                        remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext())))
+          ActiveContext(
+            `@prefix` = ListMap("name" -> "https://example.com/name"),
+            remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext()))
+          )
         Future {
           encoder
             .fromActiveContext(defaultContext)
@@ -103,14 +106,18 @@ abstract class JsonLDEncoderSpec[Json](encoder: JsonLDEncoder[Json]) extends Asy
         val defaultContext =
           ActiveContext(
             `@prefix` = ListMap("name" -> "https://example.com/name"),
-            remotes = List(NamedActiveContext("https://remote.example.org", ActiveContext()),
-                           NamedActiveContext("https://remote2.example.org", ActiveContext()))
+            remotes = List(
+              NamedActiveContext("https://remote.example.org", ActiveContext()),
+              NamedActiveContext("https://remote2.example.org", ActiveContext())
+            )
           )
         Future {
           encoder
             .fromActiveContext(defaultContext)
             .map(_.noSpaces)
-            .map(_ shouldBe """["https://remote.example.org","https://remote2.example.org",{"name":"https://example.com/name"}]""")
+            .map(
+              _ shouldBe """["https://remote.example.org","https://remote2.example.org",{"name":"https://example.com/name"}]"""
+            )
             .getOrElse(fail())
         }
       }

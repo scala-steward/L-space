@@ -64,7 +64,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .outMap()
         .withGraph(sampleGraph)
         .headF
-        .map(_.keySet should contain (Property("address")))
+        .map(_.keySet should contain(Property("address")))
         .to[Task]
         .runToFuture
     }
@@ -160,9 +160,13 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .path(_.out("name").head)
         .withGraph(sampleGraph)
         .toListF
-        .map(_.toSet shouldBe Set(List(Some("Levi"), Some("Gray"), Some("Kevin")),
-                                  List(Some("Levi"), Some("Gray"), Some("Levi")),
-                                  List(Some("Levi"), Some("Yoshio"), Some("Levi"))))
+        .map(
+          _.toSet shouldBe Set(
+            List(Some("Levi"), Some("Gray"), Some("Kevin")),
+            List(Some("Levi"), Some("Gray"), Some("Levi")),
+            List(Some("Levi"), Some("Yoshio"), Some("Levi"))
+          )
+        )
         .to[Task]
         .runToFuture
     }
@@ -174,9 +178,13 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .path(_.out("name"))
         .withGraph(sampleGraph)
         .toListF
-        .map(_.toSet shouldBe Set(List(List("Levi"), List("Gray"), List("Kevin")),
-                                  List(List("Levi"), List("Gray"), List("Levi")),
-                                  List(List("Levi"), List("Yoshio"), List("Levi"))))
+        .map(
+          _.toSet shouldBe Set(
+            List(List("Levi"), List("Gray"), List("Kevin")),
+            List(List("Levi"), List("Gray"), List("Levi")),
+            List(List("Levi"), List("Yoshio"), List("Levi"))
+          )
+        )
         .to[Task]
         .runToFuture
     }
@@ -310,7 +318,7 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .withGraph(sampleGraph)
         .toMap
 
-      Task(x shouldBe Map((List(ontologies.person) -> List((List("Levi"), List()))))).runToFuture
+      Task(x shouldBe Map(List(ontologies.person) -> List((List("Levi"), List())))).runToFuture
 
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)))""" in {
@@ -320,7 +328,8 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
           .group(_.out(properties.knows).count())
           .mapValues(_.project(_.out(properties.name)).by(_.out(properties.balance).hasLabel[Double].is(P.gt(200.0))))
           .withGraph(sampleGraph)
-          .head shouldBe ((2, List((List("Levi"), List()))))).runToFuture
+          .head shouldBe ((2, List((List("Levi"), List()))))
+      ).runToFuture
     }
 //    """N.hasIri(sampleGraph.iri + "/person/12345").group(_.out(properties.knows).count()).project(_.out(properties.name), _.out(properties.balance).hasLabel[Double].is(P.gt(200.0)).head)""" in {
 //      g.N
@@ -351,9 +360,8 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
         .by(_.out(properties.knows).count())
         .withGraph(sampleGraph)
         .headF
-        .map {
-          case (_: Node, count: Long) =>
-            count shouldBe 2
+        .map { case (_: Node, count: Long) =>
+          count shouldBe 2
         }
         .to[Task]
         .runToFuture
@@ -667,33 +675,34 @@ trait SyncGuideSpec extends AsyncWordSpec with Matchers with BeforeAndAfterAll w
     }
     """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://example.org/knows")), 3)""" +
       """(_.hasIri(sampleGraph.iri + "/person/345")).out("name")""" in {
-      g.N
-        .hasIri(sampleGraph.iri + "/person/12345")
-        .repeat(_.out(Property("https://example.org/knows")), 3)(
-          _.out(Property("https://example.org/knows")).hasIri(sampleGraph.iri + "/person/345"))
-        .dedup()
-        .out("name")
-        .withGraph(sampleGraph)
-        .toListF
-        .map(_.toSet shouldBe Set("Levi", "Kevin"))
-        .to[Task]
-        .runToFuture
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .repeat(_.out(Property("https://example.org/knows")), 3)(
+            _.out(Property("https://example.org/knows")).hasIri(sampleGraph.iri + "/person/345")
+          )
+          .dedup()
+          .out("name")
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.toSet shouldBe Set("Levi", "Kevin"))
+          .to[Task]
+          .runToFuture
 
-    }
+      }
     """N.hasIri(sampleGraph.iri + "/person/12345").repeat(_.out(Property("https://example.org/knows"), 3, true)""" +
       """(_.hasIri(sampleGraph.iri + "/person/345")).dedup().out("name")""".stripMargin in {
-      g.N
-        .hasIri(sampleGraph.iri + "/person/12345")
-        .repeat(_.out(Property("https://example.org/knows")), 3, true)(_.hasIri(sampleGraph.iri + "/person/345"))
-        .dedup()
-        .out("name")
-        .withGraph(sampleGraph)
-        .toListF
-        .map(_.toSet shouldBe Set("Gray", "Yoshio", "Levi"))
-        .to[Task]
-        .runToFuture
+        g.N
+          .hasIri(sampleGraph.iri + "/person/12345")
+          .repeat(_.out(Property("https://example.org/knows")), 3, true)(_.hasIri(sampleGraph.iri + "/person/345"))
+          .dedup()
+          .out("name")
+          .withGraph(sampleGraph)
+          .toListF
+          .map(_.toSet shouldBe Set("Gray", "Yoshio", "Levi"))
+          .to[Task]
+          .runToFuture
 
-    }
+      }
     "g.N.limit(1).local(_.repeat(_.out(), max = 20, collect = true)).timeLimit(20l).count()" in {
       g.N
         .limit(1)

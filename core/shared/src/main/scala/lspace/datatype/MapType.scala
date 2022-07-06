@@ -49,7 +49,7 @@ object MapType extends DataTypeDef[MapType[Map[Any, Any]]] {
     new ClassTypeable[MapType[Map[K, V]]] {
       type C  = Map[KOut, VOut]
       type CT = MapType[Map[KOut, VOut]]
-      def ct: CT = //MapType(List(clsTpblK.ct), List(clsTpblV.ct))
+      def ct: CT = // MapType(List(clsTpblK.ct), List(clsTpblV.ct))
         if (clsTpblK.ct.iri.nonEmpty || clsTpblV.ct.iri.nonEmpty) MapType(clsTpblK.ct, clsTpblV.ct)
         else MapType.datatype.asInstanceOf[MapType[Map[KOut, VOut]]]
     }

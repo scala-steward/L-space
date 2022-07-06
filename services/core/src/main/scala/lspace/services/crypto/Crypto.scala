@@ -42,10 +42,10 @@ object Crypto {
   }
 
   def generateSecretKey(algorithm: String, size: Int): String =
-    Base64.getEncoder.encodeToString({
+    Base64.getEncoder.encodeToString {
       val generator = KeyGenerator.getInstance(algorithm)
       generator.init(size)
       generator.generateKey().getEncoded
-    })
+    }
 
 }

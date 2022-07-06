@@ -15,8 +15,9 @@ object Value {
     def ct: CT = ValueURLType.apply[T]
   }
 
-  implicit class WithValue[T, OutC, Out <: ClassType[OutC]](value: Value[T])(
-      implicit cls: ClassTypeable.Aux[T, OutC, Out]) {
+  implicit class WithValue[T, OutC, Out <: ClassType[OutC]](value: Value[T])(implicit
+    cls: ClassTypeable.Aux[T, OutC, Out]
+  ) {
     def g: Traversal[ClassType[Any], Out, step.V :: HNil] = lspace.g.V(value.value)
   }
 }
@@ -28,9 +29,8 @@ trait Value[+T] extends Resource[T] {
   def label: DataType[T] // = labels.collect { case tpe: DataType[T] => tpe }.head
   def labels: List[DataType[T]] = List(label)
 
-  override def hasLabel[L](label: ClassType[L]*): Option[Value[L]] = {
+  override def hasLabel[L](label: ClassType[L]*): Option[Value[L]] =
     super.hasLabel(label: _*).asInstanceOf[Option[Value[L]]]
-  }
 
   def remove(): Task[Unit] = graph.values.delete(this)
 

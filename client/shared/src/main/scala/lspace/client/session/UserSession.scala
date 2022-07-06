@@ -28,7 +28,7 @@ object UserSession
           "The user the session belongs to",
           `@range` = DataType.default.`@datetime` :: Nil
         ) {}
-    lazy val `lspace:UserSession/user@User`: TypedProperty[Node] = `lspace:UserSession/user` as Client.ontology
+    lazy val `lspace:UserSession/user@User`: TypedProperty[Node] = `lspace:UserSession/user`.as(Client.ontology)
   }
   override lazy val properties: List[Property] = keys.`lspace:UserSession/user` :: ClientSession.properties
   trait Properties extends ClientSession.Properties {
@@ -36,12 +36,14 @@ object UserSession
     val `lspace:UserSession/user@User` = keys.`lspace:UserSession/user@User`
   }
 
-  def apply(iri: String,
-            expiration: Instant,
-            startTime: Instant,
-            client: Client,
-            user: User,
-            endTime: Option[Instant] = None): UserSession = {
+  def apply(
+    iri: String,
+    expiration: Instant,
+    startTime: Instant,
+    client: Client,
+    user: User,
+    endTime: Option[Instant] = None
+  ): UserSession = {
     val iri0        = iri
     val expiration0 = expiration
     val startTime0  = startTime
@@ -94,15 +96,14 @@ object UserSession
         .headOption
         .map(User.toUser)
         .getOrElse(Task.raiseError(new Exception("no user")))
-    } yield
-      new UserSession {
-        val iri        = node.iri
-        def expiration = expiration0
-        def startTime  = startTime0
-        def endTime    = endTime0
-        def client     = client0
-        def user       = user0
-      }
+    } yield new UserSession {
+      val iri        = node.iri
+      def expiration = expiration0
+      def startTime  = startTime0
+      def endTime    = endTime0
+      def client     = client0
+      def user       = user0
+    }
   }
 }
 

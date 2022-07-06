@@ -5,10 +5,8 @@ import cats.effect.IO
 import io.finch._
 import shapeless.HNil
 
-class MatchHeader[F[_]](key: String, value: String)(implicit
-                                                    F: Applicative[F])
-    extends Endpoint[F, HNil] {
-  final def apply(input: Input): EndpointResult[F, HNil] = {
+class MatchHeader[F[_]](key: String, value: String)(implicit F: Applicative[F]) extends Endpoint[F, HNil] {
+  final def apply(input: Input): EndpointResult[F, HNil] =
     input.request.headerMap.get(key) match {
       case Some(v) if v == value =>
         EndpointResult.Matched(
@@ -18,14 +16,13 @@ class MatchHeader[F[_]](key: String, value: String)(implicit
         )
       case _ => EndpointResult.NotMatched[F]
     }
-  }
 
   final override def toString: String = s"$key: $value"
 }
 
 object MatchHeader {
-  def apply[F[_]](key: String, value: String)(implicit
-                                              F: Applicative[F]): MatchHeader[F] = new MatchHeader[F](key, value)
+  def apply[F[_]](key: String, value: String)(implicit F: Applicative[F]): MatchHeader[F] =
+    new MatchHeader[F](key, value)
 
   val beGraphQL = new MatchHeader[IO]("Content-Type", "application/graphql")
 }

@@ -394,7 +394,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
       case step: Coin =>
         (obs: LazyList[Librarian[Any]]) =>
           obs.filter { _ =>
-            Math.random() < step.p //get next seeded random value
+            Math.random() < step.p // get next seeded random value
           }
       case step: Is =>
         val helper = assistent.pToHelper(step.predicate)
@@ -555,7 +555,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
           obs.flatMap { librarian =>
             traveralObservable(librarian)
           }
-      case step: Repeat[_] => //TODO: modify to take noloop-parameter into account
+      case step: Repeat[_] => // TODO: modify to take noloop-parameter into account
         val repeatObs = traversalToF(step.traversal)
         if (step.collect) {
           step.max match {
@@ -616,7 +616,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                         )
                       } else obs
                     }
-                    obs.flatMap(l => repeat(LazyList(l), 100)) //make configurable (fail-safe max-depth)
+                    obs.flatMap(l => repeat(LazyList(l), 100)) // make configurable (fail-safe max-depth)
                 case None =>
                   (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
@@ -631,7 +631,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                         )
                       } else obs
                     }
-                    obs.flatMap(l => repeat(LazyList(l), 100)) //make configurable (fail-safe max-depth)
+                    obs.flatMap(l => repeat(LazyList(l), 100)) // make configurable (fail-safe max-depth)
               }
           }
         } else {
@@ -689,7 +689,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                         finished #::: repeat(notFinished.asInstanceOf[LazyList[Librarian[Any]]], maxMinOne)
                       } else obs
                     }
-                    obs.flatMap(l => repeat(LazyList(l), 100)) //make configurable (fail-safe max-depth)
+                    obs.flatMap(l => repeat(LazyList(l), 100)) // make configurable (fail-safe max-depth)
                 case None =>
                   (obs: LazyList[Librarian[Any]]) =>
                     def repeat(librarians: LazyList[Librarian[Any]], max: Int): LazyList[Any] = {
@@ -704,7 +704,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
                         )
                       } else obs
                     }
-                    obs.flatMap(l => repeat(LazyList(l), 100)) //make configurable (fail-safe max-depth)
+                    obs.flatMap(l => repeat(LazyList(l), 100)) // make configurable (fail-safe max-depth)
               }
           }
         }
@@ -723,11 +723,12 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     graph: Lspace
   ): LazyList[Librarian[Any]] => LazyList[Librarian[Any]] = {
 
-    val nextStep = //buildNextStep(steps)
+    val nextStep = // buildNextStep(steps)
       steps match {
         case List(step: ClipStep) => clipStep[Any](step)
         case _ :: _ =>
-          (_: LazyList[Librarian[Any]]) => throw new Exception("GroupStep can only be followed by a ClipStep (currently)")
+          (_: LazyList[Librarian[Any]]) =>
+            throw new Exception("GroupStep can only be followed by a ClipStep (currently)")
         case Nil =>
           (obs: LazyList[Librarian[Any]]) => obs
       }
@@ -1097,9 +1098,9 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
     val pObs = step.by.runtimeList.reverse.map {
       case traversal: Traversal[ClassType[Any], ClassType[Any], HList] @unchecked =>
         traversalToF(traversal) -> {
-          (if (traversal.stepsList.isEmpty) { (observable: LazyList[Librarian[Any]]) =>
-             head(observable)
-           } else endMapper(traversal))
+          if (traversal.stepsList.isEmpty) { (observable: LazyList[Librarian[Any]]) =>
+            head(observable)
+          } else endMapper(traversal)
 //          traversal.stepsList.lastOption
         }
       case t => throw new Exception(s"unexpected type ${t.getClass.getSimpleName}")
@@ -1121,7 +1122,7 @@ abstract class SyncGuide extends LocalGuide[LazyList] {
             case List(v1, v2, v3, v4, v5)     => (v1, v2, v3, v4, v5)
             case List(v1, v2, v3, v4, v5, v6) => (v1, v2, v3, v4, v5, v6)
             case Nil                          => throw new Exception("cannot not project with zero projections")
-            case _                            => throw new Exception(s"cannot not project ${tuple.size} projections, max is 6 currently")
+            case _ => throw new Exception(s"cannot not project ${tuple.size} projections, max is 6 currently")
           })
         }
 

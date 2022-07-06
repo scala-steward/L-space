@@ -12,8 +12,7 @@ object CacheReaper {
   def apply(graph: LGraph): CacheReaper = new CacheReaper(graph)
 }
 
-/**
-  * WIP: the CacheReaper must manage the amount of cache w.r.t. the maximum allowed memory-usage or store-config
+/** WIP: the CacheReaper must manage the amount of cache w.r.t. the maximum allowed memory-usage or store-config
   * @param graph
   */
 class CacheReaper(graph: LGraph) {
@@ -25,7 +24,7 @@ class CacheReaper(graph: LGraph) {
     3,
     TimeUnit.SECONDS,
     new Runnable {
-      def run(): Unit = {
+      def run(): Unit =
         reapingLock.synchronized {
           if (runtime.freeMemory() / runtime.maxMemory().toDouble < 0.15) {
 //            println(s"free memory ${runtime.freeMemory()} :: ${runtime.maxMemory()} :: ${runtime.totalMemory()}")
@@ -35,7 +34,7 @@ class CacheReaper(graph: LGraph) {
 //
 //            val totalCacheSizeBefore = edgesCacheSize + nodesCacheSize + valuesCacheSize
 
-            //create cache of expiring resources (for smaller iterations and larger ones less ofter)
+            // create cache of expiring resources (for smaller iterations and larger ones less ofter)
 
             val reaptime = Instant.now().getEpochSecond
 
@@ -76,7 +75,6 @@ class CacheReaper(graph: LGraph) {
             if (runtime.freeMemory() / runtime.maxMemory().toDouble > 0.40) reapAfter = 240.min(reapAfter + 15)
           }
         }
-      }
     }
   )
 

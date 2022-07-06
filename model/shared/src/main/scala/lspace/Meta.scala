@@ -11,7 +11,7 @@ object Iri:
   def apply(iri: String): Iri = iri
 
   extension (iri: Iri)
-    def unapply: String = iri
+    def unapply: String         = iri
     def ++(string: String): Iri = iri + string
 
 end Iri

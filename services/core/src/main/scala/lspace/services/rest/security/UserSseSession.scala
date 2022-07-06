@@ -9,11 +9,12 @@ import lspace.provider.detached.DetachedGraph
 import monix.eval.Task
 
 object UserSseSession {
-  def apply(iri: String,
-            client: Client,
-            user: User,
-            expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant)
-    : Task[UserSseSession] =
+  def apply(
+    iri: String,
+    client: Client,
+    user: User,
+    expiration: Instant = LocalDateTime.now.plusHours(4).atZone(ZoneId.systemDefault).toInstant
+  ): Task[UserSseSession] =
     for {
       node        <- DetachedGraph.nodes.create(UserSession.ontology)
       _           <- node.addOut(Label.P.typed.iriUrlString, iri)

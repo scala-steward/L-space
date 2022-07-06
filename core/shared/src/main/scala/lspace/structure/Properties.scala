@@ -136,9 +136,10 @@ abstract class Properties(val graph: NameSpaceGraph) {
                   }
 //                  range <- Task.parSequence(property.range().map(classtypes.store))
                   //                properties      <- Task.parSequence(property.properties.map(ns.properties.store))
-                  extendedClasses <- Task.parSequence(property.extendedClasses().collect { case p: Property => p }.map(ns.properties.store))
+                  extendedClasses <- Task
+                    .parSequence(property.extendedClasses().collect { case p: Property => p }.map(ns.properties.store))
 //                  _               <- node.addOut(Property.default.`@range`, range)
-                  _               <- node.addOut(Label.P.`@extends`, extendedClasses)
+                  _ <- node.addOut(Label.P.`@extends`, extendedClasses)
                   _ <- Task.parSequence(property.label().map { case (language, label) =>
                     for {
                       label <- node.addOut(Property.default.`@label`, label)
@@ -152,7 +153,6 @@ abstract class Properties(val graph: NameSpaceGraph) {
                     } yield comment
                   })
                 } yield
-
                 //                properties.foreach(edges.create(node, Property.default.`@properties`, _))
                 //                properties.foreach(node.addOut(Label.P.`@properties`, _))
                 //                property.properties.foreach(_createEdge(node, Property.default.`@properties`, _))

@@ -109,7 +109,7 @@ abstract class LocalGuide[F[_]: Functor] extends Guide[F] {
   def environmentStep(step: EnvironmentStep, steps: List[Step])(implicit
     graph: Graph
   ): F[Librarian[Any]] => F[Librarian[Any]] = step match {
-    case step: TimeLimit => //todo, scan for other TimeLimit steps with time == None (cancels the nearest preceding time limit step)
+    case step: TimeLimit => // todo, scan for other TimeLimit steps with time == None (cancels the nearest preceding time limit step)
       val nextStep = buildNextStep(steps)
       import scala.concurrent.duration._
       val f = (obs: F[Librarian[Any]]) =>

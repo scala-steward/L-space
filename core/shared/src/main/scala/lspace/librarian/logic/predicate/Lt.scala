@@ -15,12 +15,11 @@ object Lt extends PredicateDef("Lt", `@extends` = List(OrderP.ontology)) with Pr
   override lazy val properties: List[Property] = OrderP.properties
   trait Properties extends OrderP.Properties
 
-  implicit def toNode[T](p: Lt[T]): Task[Node] = {
+  implicit def toNode[T](p: Lt[T]): Task[Node] =
     for {
       node <- DetachedGraph.nodes.create(ontology)
       _    <- node.addOut(keys.value, ClassType.detect(p.pvalue), p.pvalue)
     } yield node
-  }
 }
 
 case class Lt[+T](pvalue: T) extends OrderP[T] {

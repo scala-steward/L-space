@@ -10,9 +10,9 @@ object DataTypeDef {
 trait DataTypeDef[T <: DataType[Any]] {
 
   def datatype: T
-  def iri: String   = datatype.iri
-  def iris: Set[String]  = datatype.iris
-  def label = datatype.label
+  def iri: String       = datatype.iri
+  def iris: Set[String] = datatype.iris
+  def label             = datatype.label
 
   def keys: Object
   def properties: List[Property] = List()

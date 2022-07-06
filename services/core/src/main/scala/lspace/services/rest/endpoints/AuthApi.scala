@@ -27,13 +27,14 @@ class AuthApi(sessionBroker: SessionBroker, crypto: Crypto, cookieId: String)(im
 
   val path = "session"
 
-  def authenticatedFilter[F[_]](
-      implicit
-      F: Applicative[F]) =
-    ValidateCookie(cookieId, (coded: String) => {
-      val iri = crypto.decryptBase64ToUTF8String(coded)
-      sessionBroker.getOpenSseSession(iri).isDefined
-    })
+  def authenticatedFilter[F[_]](implicit F: Applicative[F]) =
+    ValidateCookie(
+      cookieId,
+      (coded: String) => {
+        val iri = crypto.decryptBase64ToUTF8String(coded)
+        sessionBroker.getOpenSseSession(iri).isDefined
+      }
+    )
   def authenticated: Endpoint[IO, OpenSseSession] =
     cookie(cookieId)
       .mapOutput { encryptedCookie =>
@@ -43,17 +44,18 @@ class AuthApi(sessionBroker: SessionBroker, crypto: Crypto, cookieId: String)(im
           case None          => Unauthorized(new Exception(s"No valid session"))
         }
       }
-      .handle {
-        case e: Error.NotPresent => Unauthorized(e)
+      .handle { case e: Error.NotPresent =>
+        Unauthorized(e)
       }
 
-  def authenticatedClientFilter[F[_]](
-      implicit
-      F: Applicative[F]) =
-    ValidateCookie(cookieId, (coded: String) => {
-      val iri = crypto.decryptBase64ToUTF8String(coded)
-      sessionBroker.getClientSseSession(iri).isDefined
-    })
+  def authenticatedClientFilter[F[_]](implicit F: Applicative[F]) =
+    ValidateCookie(
+      cookieId,
+      (coded: String) => {
+        val iri = crypto.decryptBase64ToUTF8String(coded)
+        sessionBroker.getClientSseSession(iri).isDefined
+      }
+    )
   def authenticatedClient: Endpoint[IO, ClientSseSession] =
     cookie(cookieId)
       .mapOutput { encryptedCookie =>
@@ -63,16 +65,17 @@ class AuthApi(sessionBroker: SessionBroker, crypto: Crypto, cookieId: String)(im
           case None          => Unauthorized(new Exception(s"No valid session"))
         }
       }
-      .handle {
-        case e: Error.NotPresent => Unauthorized(e)
+      .handle { case e: Error.NotPresent =>
+        Unauthorized(e)
       }
-  def authenticatedUserFilter[F[_]](
-      implicit
-      F: Applicative[F]) =
-    ValidateCookie(cookieId, (coded: String) => {
-      val iri = crypto.decryptBase64ToUTF8String(coded)
-      sessionBroker.getUserSseSession(iri).isDefined
-    })
+  def authenticatedUserFilter[F[_]](implicit F: Applicative[F]) =
+    ValidateCookie(
+      cookieId,
+      (coded: String) => {
+        val iri = crypto.decryptBase64ToUTF8String(coded)
+        sessionBroker.getUserSseSession(iri).isDefined
+      }
+    )
   def authenticatedUser: Endpoint[IO, UserSseSession] =
     cookie(cookieId)
       .mapOutput { encryptedCookie =>
@@ -82,59 +85,53 @@ class AuthApi(sessionBroker: SessionBroker, crypto: Crypto, cookieId: String)(im
           case None          => Unauthorized(new Exception(s"No valid session"))
         }
       }
-      .handle {
-        case e: Error.NotPresent => Unauthorized(e)
+      .handle { case e: Error.NotPresent =>
+        Unauthorized(e)
       }
 
-  /**
-    * Create a new session
+  /** Create a new session
     * @return
     */
-  def create: Endpoint[IO, String] = post(pathEmpty).mapOutputAsync {
-    case u =>
-      (for {
-        session <- sessionBroker.create()
-      } yield
-        Ok(session.session.iri)
-          .withCookie(
-            new Cookie(cookieId,
-                       crypto.encryptToBase64(session.session.iri),
-                       maxAge = Some(Duration.fromSeconds(14400)),
-                       httpOnly = true))
-          .withHeader("Location" -> session.session.iri)).to[IO]
+  def create: Endpoint[IO, String] = post(pathEmpty).mapOutputAsync { case u =>
+    (for {
+      session <- sessionBroker.create()
+    } yield Ok(session.session.iri)
+      .withCookie(
+        new Cookie(
+          cookieId,
+          crypto.encryptToBase64(session.session.iri),
+          maxAge = Some(Duration.fromSeconds(14400)),
+          httpOnly = true
+        )
+      )
+      .withHeader("Location" -> session.session.iri)).to[IO]
   }
 
-  /**
-    * View session info
+  /** View session info
     * @return
     */
-  def info: Endpoint[IO, String] = get(path[String] :: authenticated).mapOutput {
-    case iri :: session :: HNil =>
-      if (session.iri == sessionBroker.baseIri + "/session/" + iri) Ok(iri)
-      else Unauthorized(new Exception("Can only view own resources"))
+  def info: Endpoint[IO, String] = get(path[String] :: authenticated).mapOutput { case iri :: session :: HNil =>
+    if (session.iri == sessionBroker.baseIri + "/session/" + iri) Ok(iri)
+    else Unauthorized(new Exception("Can only view own resources"))
   }
 
-  /**
-    * Drop session
+  /** Drop session
     * @return
     */
   def drop: Endpoint[IO, Unit :+: Unit :+: CNil] =
-    delete(pathEmpty :: authenticated).mapOutput {
-      case session =>
-        sessionBroker.drop(session.iri)
-        NoContent[Unit]
-    } :+: delete(path[String] :: authenticated).mapOutput {
-      case iri :: session :: HNil =>
-        //TODO: validate if drop action is allowed
-        sessionBroker.drop(sessionBroker.baseIri + "/session/" + iri)
-        NoContent[Unit]
+    delete(pathEmpty :: authenticated).mapOutput { case session =>
+      sessionBroker.drop(session.iri)
+      NoContent[Unit]
+    } :+: delete(path[String] :: authenticated).mapOutput { case iri :: session :: HNil =>
+      // TODO: validate if drop action is allowed
+      sessionBroker.drop(sessionBroker.baseIri + "/session/" + iri)
+      NoContent[Unit]
     }
 
-  /**
-    * path for identity provider to confirm user identity for some session
+  /** path for identity provider to confirm user identity for some session
     */
-  def vouch = post(path[String] :: path("vouch")).map {
-    case id: String => Ok(s"$id ${sessionBroker.get(id).map(_.toString).getOrElse("NO SESSION")}")
+  def vouch = post(path[String] :: path("vouch")).map { case id: String =>
+    Ok(s"$id ${sessionBroker.get(id).map(_.toString).getOrElse("NO SESSION")}")
   }
 
   def api = path :: (create :+: drop :+: vouch)

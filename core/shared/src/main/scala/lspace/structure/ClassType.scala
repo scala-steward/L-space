@@ -67,7 +67,7 @@ object ClassType {
         Property.properties.getAndUpdate(node)
       } else {
         throw new Exception(s"${node.iri} does not look like a classtype ${node.labels
-          .map(_.iri)} ${node.outE().map(e => e.key.iri + " " + e.to.prettyPrint)}")
+            .map(_.iri)} ${node.outE().map(e => e.key.iri + " " + e.to.prettyPrint)}")
       }
 
 //    def cached(iri: String): Option[ClassType[_]] =
@@ -91,11 +91,11 @@ object ClassType {
 
     override def toString: String = s"classtype:$iri"
   }
-  //helper, empty iri is used to recognize and filter out this classtype
+  // helper, empty iri is used to recognize and filter out this classtype
   lazy val stubAny: ClassType[Any] = makeT[Any]
   lazy val empty: ClassType[Any]   = stubAny
 
-  //helper, empty iri is used to recognize and filter out this classtype
+  // helper, empty iri is used to recognize and filter out this classtype
   lazy val stubNothing: ClassType[Nothing] = makeT[Nothing]
 
 //  implicit def clsClasstype[T]: ClassTypeable.Aux[ClassType[T], T, ClassType[T]] = new ClassTypeable[ClassType[T]] {
@@ -110,8 +110,8 @@ object ClassType {
 
       def apply(): List[ClassType[Any]] = ct.extendedClassesList
 
-      /** @param exclude a classtype set to prevent circular recursion
-        *                recursively fetches all extended classes (parent of parents)
+      /** @param exclude
+        *   a classtype set to prevent circular recursion recursively fetches all extended classes (parent of parents)
         * @return
         */
       def all(exclude: Set[ClassType[Any]] = Set.empty[ClassType[Any]]): Set[ClassType[Any]] = {
@@ -202,10 +202,10 @@ object ClassType {
   */
 trait ClassType[+T] extends IriResource { self =>
 
-  def iris: Set[String] //TODO var iriList: Set[String]
+  def iris: Set[String] // TODO var iriList: Set[String]
   def `@ids` = iris
 
-  //TODO: improve, explore union-types
+  // TODO: improve, explore union-types
   def +[T1](ct: ClassType[T1]): ClassType[Any] = (this, ct) match {
     case (ct1: DataType[_], ct2: DataType[_]) =>
       if (ct1.`@extends`(ct2)) ct2
@@ -233,7 +233,7 @@ trait ClassType[+T] extends IriResource { self =>
               case (ct1: BoolType[_], _: BoolType[_]) => ct1
               case _                                  => LiteralType.datatype
             }
-          case (ct1: StructuredType[_], ct2: StructuredType[_]) => //TODO: improve
+          case (ct1: StructuredType[_], ct2: StructuredType[_]) => // TODO: improve
             (ct1, ct2) match {
               case (ct1: CollectionType[_], ct2: CollectionType[_]) =>
                 (ct1, ct2) match {
@@ -262,7 +262,7 @@ trait ClassType[+T] extends IriResource { self =>
                   case (ct1: GeoPolygonType[_], _: GeoPolygonType[_])             => ct1
                   case (ct1: GeoMultiPolygonType[_], _: GeoMultiPolygonType[_])   => ct1
                   case (ct1: GeoMultiGeometryType[_], _: GeoMultiGeometryType[_]) => ct1
-                  //TODO: other geo-types
+                  // TODO: other geo-types
                   case _ => GeometricType.datatype
                 }
               case (ct1: QuantityType[_], ct2: QuantityType[_]) =>
@@ -277,7 +277,7 @@ trait ClassType[+T] extends IriResource { self =>
                     case (_, _)                 => None
                   })
                 } else TupleType.datatype
-              case (ct1: ColorType[_], _: ColorType[_]) => ct1 //TODO: wrong
+              case (ct1: ColorType[_], _: ColorType[_]) => ct1 // TODO: wrong
               case _                                    => StructuredType.datatype
             }
           case (ct1: IriType[_], ct2: IriType[_]) =>

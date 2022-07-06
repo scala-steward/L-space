@@ -23,11 +23,10 @@ class MemStoreManagerSpec extends GraphSpec with NodeSpec with AsyncGuideSpec {
     u <- sampleGraph.load
   } yield ()).memoizeOnSuccess
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
   graphTests(graph)
   sampledGraphTests(sampleGraph)

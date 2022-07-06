@@ -60,10 +60,9 @@ trait LStore[G <: LGraph] extends Store[G] {
     _cache += resource.id -> resource.asInstanceOf[T2]
     if (_cache.get(resource.id).isEmpty) throw new Exception(s"id ${resource.id} cached but not retrievable?")
   }
-  def cacheById(resources: List[T]): Unit = {
+  def cacheById(resources: List[T]): Unit =
     //    resource.status = CacheStatus.CACHED
     _cache ++= resources.map(resource => resource.id -> resource.asInstanceOf[T2])
-  }
 
   private[this] val byIriLock = new Object
 
@@ -75,11 +74,12 @@ trait LStore[G <: LGraph] extends Store[G] {
 
   def cacheByIri(resources: List[T]): Unit = byIriLock.synchronized {
     _cacheByIri ++= resources.map(resource =>
-      resource.iri -> (_cacheByIri.getOrElse(resource.iri, Set()) + resource.asInstanceOf[T2]))
-    _cacheByIri ++= resources.foldLeft(Map[String, Set[T2]]()) {
-      case (result, resource) =>
-        result ++ resource.iris.map(iri =>
-          iri -> (_cacheByIri.getOrElse(iri, Set()) ++ result.getOrElse(iri, Set()) + resource.asInstanceOf[T2]))
+      resource.iri -> (_cacheByIri.getOrElse(resource.iri, Set()) + resource.asInstanceOf[T2])
+    )
+    _cacheByIri ++= resources.foldLeft(Map[String, Set[T2]]()) { case (result, resource) =>
+      result ++ resource.iris.map(iri =>
+        iri -> (_cacheByIri.getOrElse(iri, Set()) ++ result.getOrElse(iri, Set()) + resource.asInstanceOf[T2])
+      )
     }
   }
 
@@ -89,9 +89,8 @@ trait LStore[G <: LGraph] extends Store[G] {
     resource.outE().foreach(e => graph.edgeStore.uncache(e.asInstanceOf[graph.edgeStore.T]))
     resource.inE().foreach(e => graph.edgeStore.uncache(e.asInstanceOf[graph.edgeStore.T]))
   }
-  def uncacheById(resource: T): Unit = {
+  def uncacheById(resource: T): Unit =
     _cache -= resource.id
-  }
   def uncacheByIri(resource: T): Unit = {
     if (resource.iri.nonEmpty) _cacheByIri.getOrElse(resource.iri, Set()) - resource.asInstanceOf[T2] match {
       case set if set.isEmpty => _cacheByIri -= resource.iri
@@ -101,10 +100,11 @@ trait LStore[G <: LGraph] extends Store[G] {
       _cacheByIri.getOrElse(iri, Set()) - resource.asInstanceOf[T2] match {
         case set if set.isEmpty => _cacheByIri -= iri
         case set                => _cacheByIri += iri -> set
-    })
+      }
+    )
   }
 
-  def hasId(id: Long): Task[Option[T2]]   = Task { cachedById(id) }
+  def hasId(id: Long): Task[Option[T2]]   = Task(cachedById(id))
   def hasIri(iri: String): Observable[T2] = Observable.fromIterable(cachedByIri(iri))
 
   def delete(resource: T): Task[Unit] = Task {
@@ -120,7 +120,7 @@ trait LStore[G <: LGraph] extends Store[G] {
   def all(): Observable[T2]
 
   def cached: Cached = new Cached {
-    def all(): LazyList[T2]           = _cache.values.to(LazyList)
+    def all(): LazyList[T2]         = _cache.values.to(LazyList)
     def hasId(id: Long): Option[T2] = _cache.get(id)
     def count: Long                 = _cache.size
   }

@@ -56,7 +56,7 @@ trait Decoder {
           activeContext.expandIri(nodeLike.stripLtGt) match {
             case Iri(iri)   => graph.nodes.upsert(iri)
             case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
-            case _ => throw new Exception("invalid")
+            case _          => throw new Exception("invalid")
           }
         case intLike if intLike.endsWith("^^xsd:integer") =>
           graph.values.upsert(intLike.stripSuffix("^^xsd:integer").stripPrefix("\"").stripSuffix("\"").toInt)
@@ -80,7 +80,7 @@ trait Decoder {
             subject <- statement.subject match {
               case Iri(iri)   => graph.nodes.upsert(iri)
               case Blank(iri) => blankNodes.getOrElseUpdate(iri, graph.nodes.create())
-              case _ => throw new Exception("invalid")
+              case _          => throw new Exception("invalid")
             }
             p <- statement.predicates.process
             _ <- Task.parSequence(p.map { case (property, resource) => subject --- property --> resource })
@@ -102,8 +102,8 @@ trait Decoder {
                 for {
                   node <- graph.nodes.create()
                   p    <- predicates.process
-                  _ <- Task.parSequence(p.map {
-                    case (property, resource) => node --- property --> resource
+                  _ <- Task.parSequence(p.map { case (property, resource) =>
+                    node --- property --> resource
                   })
                 } yield property -> node
               case Multi(os) => Task.raiseError(new Exception("unexpected nested multi"))
@@ -112,8 +112,8 @@ trait Decoder {
             for {
               node <- graph.nodes.create()
               p2   <- predicates.process
-              _ <- Task.parSequence(p2.map {
-                case (property, resource) => node --- property --> resource
+              _ <- Task.parSequence(p2.map { case (property, resource) =>
+                node --- property --> resource
               })
             } yield List(Property.properties.getOrCreate(p.iri, Set()) -> node)
         })
@@ -128,7 +128,7 @@ trait Decoder {
           prefix.split("\n", 1).toList match {
             case List(prefix, tail) => spanPrefix(tail, prefixes :+ prefix)
             case List(tail)         => prefixes -> tail
-            case _ => throw new Exception("invalid")
+            case _                  => throw new Exception("invalid")
           }
         case _ => throw new Exception("invalid")
       }
@@ -137,13 +137,13 @@ trait Decoder {
     val (headers, contents) = string.linesIterator.toList
       .map(_.trim)
       .filter(_.nonEmpty)
-      .span(
-        l =>
-          l.startsWith("@prefix") || l
-            .startsWith("@base") || l.take(7).toLowerCase.startsWith("prefix") || l
-            .take(5)
-            .toLowerCase
-            .startsWith("base"))
+      .span(l =>
+        l.startsWith("@prefix") || l
+          .startsWith("@base") || l.take(7).toLowerCase.startsWith("prefix") || l
+          .take(5)
+          .toLowerCase
+          .startsWith("base")
+      )
 
     val activeContext = headers.foldLeft(ActiveContext()) {
       case (activeContext, header) if header.startsWith("@prefix") =>
@@ -151,7 +151,8 @@ trait Decoder {
           case List(key, prefix, iri, ".") =>
             activeContext.copy(
               `@prefix` = activeContext.`@prefix`() + (prefix
-                .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri))
+                .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri)
+            )
           case other => throw new Exception(s"unexpected @prefix header ${other.mkString(" ")}")
         }
       case (activeContext, header) if header.startsWith("@base") =>
@@ -165,7 +166,8 @@ trait Decoder {
           case List(key, prefix, iri) if key.toLowerCase == "prefix" =>
             activeContext.copy(
               `@prefix` = activeContext.`@prefix`() + (prefix
-                .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri))
+                .stripSuffix(":") -> activeContext.expandIri(iri.stripLtGt).iri)
+            )
           case List(key, iri) if key.toLowerCase == "base" =>
             activeContext.copy(`@base` = Some(Some(activeContext.expandIri(iri.stripLtGt).iri)))
           case other => throw new Exception(s"unexpected header ${other.mkString(" ")}")
@@ -254,13 +256,12 @@ trait Decoder {
           words
             .foldLeft(List[List[String]]() -> List[String]()) {
               case ((lines, segments), line) if line.endsWith(".") => ((line :: segments).reverse :: lines) -> Nil
-              case ((lines, segments), line)                       => lines                                 -> (line :: segments)
+              case ((lines, segments), line) => lines -> (line :: segments)
             }
             ._1
-            .foldLeft(List[Statement]()) {
-              case (statements, words) =>
+            .foldLeft(List[Statement]()) { case (statements, words) =>
 //                println(s"wordsToStatement: $words")
-                wordsToStatement(words) :: statements
+              wordsToStatement(words) :: statements
             }
         }
       )

@@ -17,23 +17,26 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
         .map(
           Traversal
             .toTraversal(_)
-            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]]))
+            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+        )
         .head
       until <- Task.parSequence(
         node
           .out(keys.untilTraversal)
           .take(1)
-          .map(Traversal
-            .toTraversal(_)
-            .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
-    } yield
-      Repeat(
-        by,
-        until.headOption,
-        node.out(keys.maxInt).headOption,
-        node.out(keys.collectBoolean).headOption.getOrElse(false),
-        node.out(keys.noloopBoolean).headOption.getOrElse(false)
+          .map(
+            Traversal
+              .toTraversal(_)
+              .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+          )
       )
+    } yield Repeat(
+      by,
+      until.headOption,
+      node.out(keys.maxInt).headOption,
+      node.out(keys.collectBoolean).headOption.getOrElse(false),
+      node.out(keys.noloopBoolean).headOption.getOrElse(false)
+    )
 
   object keys {
     object traversal
@@ -81,8 +84,8 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
         )
     val noloopBoolean: TypedProperty[Boolean] = collect.property.as(DataType.default.`@boolean`)
   }
-  override lazy val properties
-    : List[Property] = keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
+  override lazy val properties: List[Property] =
+    keys.traversal.property :: keys.until.property :: keys.max.property :: keys.collect.property :: Nil
 
   implicit def toNode[CT0 <: ClassType[_]](step: Repeat[CT0]): Task[Node] = {
     for {
@@ -97,12 +100,13 @@ object Repeat extends StepDef("Repeat") with StepWrapper[Repeat[ClassType[Any]]]
   }.memoizeOnSuccess
 }
 
-case class Repeat[E0 <: ClassType[_]](traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],
-                                      until: Option[Traversal[E0, _ <: ClassType[_], _ <: HList]],
-                                      max: Option[Int] = None,
-                                      collect: Boolean = false,
-                                      noloop: Boolean = false)
-    extends BranchStep {
+case class Repeat[E0 <: ClassType[_]](
+  traversal: Traversal[_ <: ClassType[_], E0, _ <: HList],
+  until: Option[Traversal[E0, _ <: ClassType[_], _ <: HList]],
+  max: Option[Int] = None,
+  collect: Boolean = false,
+  noloop: Boolean = false
+) extends BranchStep {
 
   lazy val toNode: Task[Node] = this
   override def prettyPrint: String =

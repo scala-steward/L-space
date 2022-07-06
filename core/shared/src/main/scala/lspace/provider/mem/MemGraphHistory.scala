@@ -24,7 +24,7 @@ object MemGraphHistory {
         lazy val index: MemIndexGraph = new MemIndexGraph {
           def iri: String = _iri + ".ns" + ".index"
 
-          lazy val graph: MemGraph      = _thisgraph
+          lazy val graph: MemGraph = _thisgraph
 //          lazy val index: MemIndexGraph = this
         }
       }

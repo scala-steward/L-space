@@ -7,7 +7,7 @@ import lspace.structure.util.IdProvider
 
 object LHistory {
   def apply(iri: String, storeProvider: StoreProvider, indexProvider: IndexProvider): LGraph = {
-    val _iri           = iri
+    val _iri = iri
 
     val graph = new LHistory {
       val iri: String  = _iri
@@ -24,7 +24,7 @@ object LHistory {
         lazy val index: LIndexGraph = new LIndexGraph {
           def iri: String = _iri + ".ns" + ".index"
 
-          lazy val graph: LGraph      = _thisgraph
+          lazy val graph: LGraph = _thisgraph
 
           lazy val storeManager: StoreManager[this.type] = storeProvider.nsIndexManager(this)
           lazy val indexManager: IndexManager[this.type] = indexProvider.nsManager(this)

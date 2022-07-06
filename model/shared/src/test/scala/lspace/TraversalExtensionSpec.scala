@@ -17,9 +17,14 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
     }
   }
 
-  val t: Traversal[Any, Any, Out["name" *: EmptyTuple] *: Out["has:name" *: EmptyTuple] *: Out[
-    "has" *: EmptyTuple
-  ] *: EmptyTuple] =
+  val t: Traversal[
+    Any,
+    Any,
+    Out["name" *: EmptyTuple] *: Out["has:name" *: EmptyTuple] *:
+      Out[
+        "has" *: EmptyTuple
+      ] *: EmptyTuple
+  ] =
     Traversal().out("name".key).out("has:name".key).out("has".key)
 
   val t2: Traversal[
@@ -45,8 +50,8 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
 
   val x22 = Traversal().and((Traversal().has("a"), Traversal()))
 
-  val pgt: logic.Gt[Int]              = P.gt(3)
-  val pgt3: logic.Gt[3]               = P.gt(3)
+  val pgt: logic.Gt[Int]             = P.gt(3)
+  val pgt3: logic.Gt[3]              = P.gt(3)
   val pnot: logic.Not[logic.Gt[Int]] = P.not(P.gt(3))
   // val pnot3: lspace.Not[Gt[Int]] = P.not(3)
 
@@ -83,11 +88,16 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
   val x7: Traversal[Any, String, N *: HasLabel[String] *: OutE["has" *: EmptyTuple] *: From *: EmptyTuple] =
     Traversal().n().hasLabel[String]().outE("has".key).from()
 
-  val union1: Traversal[Any, String | Long, HasLabel[Int] *: Union[Traversal[
-    Int,
-    String,
-    Out["has" *: EmptyTuple] *: HasLabel[String] *: EmptyTuple
-  ] *: Traversal[Int, Long, Out["has" *: EmptyTuple] *: HasLabel[Long] *: EmptyTuple] *: EmptyTuple] *: EmptyTuple] =
+  val union1: Traversal[
+    Any,
+    String | Long,
+    HasLabel[Int] *:
+      Union[Traversal[
+        Int,
+        String,
+        Out["has" *: EmptyTuple] *: HasLabel[String] *: EmptyTuple
+      ] *: Traversal[Int, Long, Out["has" *: EmptyTuple] *: HasLabel[Long] *: EmptyTuple] *: EmptyTuple] *: EmptyTuple
+  ] =
     Traversal()
       .hasLabel[Int]()
       .union(
@@ -95,11 +105,16 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
         Traversal[Int].out("has".key).hasLabel[Long]()
       )
 
-  val coalesce1: Traversal[Any, String | Long, HasLabel[Int] *: Coalesce[Traversal[
-    Int,
-    String,
-    Out["has" *: EmptyTuple] *: HasLabel[String] *: EmptyTuple
-  ] *: Traversal[Int, Long, Out["has" *: EmptyTuple] *: HasLabel[Long] *: EmptyTuple] *: EmptyTuple] *: EmptyTuple] =
+  val coalesce1: Traversal[
+    Any,
+    String | Long,
+    HasLabel[Int] *:
+      Coalesce[Traversal[
+        Int,
+        String,
+        Out["has" *: EmptyTuple] *: HasLabel[String] *: EmptyTuple
+      ] *: Traversal[Int, Long, Out["has" *: EmptyTuple] *: HasLabel[Long] *: EmptyTuple] *: EmptyTuple] *: EmptyTuple
+  ] =
     Traversal()
       .hasLabel[Int]()
       .coalesce(
@@ -115,23 +130,23 @@ class TraversalExtensionSpec extends AnyWordSpec with Matchers:
   val sum1 = Traversal().hasLabel[Int]().sum()
   val sum2 = Traversal().hasLabel[Double]().sum()
 
-  val repeat1 = Traversal().repeat(Traversal().hasLabel[Int]())
+  val repeat1    = Traversal().repeat(Traversal().hasLabel[Int]())
   val repeat1max = Traversal().repeat(Traversal().hasLabel[Int](), max = 2)
   // val repeat2max = Traversal().repeat(Traversal().hasLabel[Int](), max = -2)
   val repeat2 = Traversal().repeat(Traversal().hasLabel[Int](), Traversal[Int])
 // val repeat3 = Traversal().repeat(Traversal().hasLabel[Int](), Traversal[String])
 // val repeat4 = Traversal().repeat(Traversal().hasLabel[Int](), Traversal())
 
-  val p0: Probability = 0.0
+  val p0: Probability  = 0.0
   val p01: Probability = 0.1
-  val p1: Probability = 1.0
+  val p1: Probability  = 1.0
   // val p11: Probability = 1.1
   val sp1 = Probability.safeApply(0.1: Double)
   val sp2 = Probability.safeApply(1.1: 1.1)
   val p10 = Probability(1.0)
   // val p11 = Probability(1.1)
   // val ptest: Probability[1.1] = 1.1
-  
+
   val coin1 = Traversal().coin(0.1)
   // val coin2 = Traversal().coin(1.1)
 

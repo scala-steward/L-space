@@ -28,7 +28,7 @@ trait Decoder extends lspace.codec.Decoder {
 //    }
     findQuery(graphql) match {
       case (query, "")      => query
-      case (query, graphql) => query //TODO: log nonempty graphql-tail
+      case (query, graphql) => query // TODO: log nonempty graphql-tail
     }
 
   def findQuery(graphql: String)(implicit activeContext: ActiveContext): (Query, String) =
@@ -106,7 +106,7 @@ trait Decoder extends lspace.codec.Decoder {
           case graphql if graphql.startsWith("\"\"\"") =>
             graphql.drop(3).split("\"\"\"", 2).toList match {
               case List(value, graphql) => (key0, value, graphql)
-              case _ => throw new Exception("invalid")
+              case _                    => throw new Exception("invalid")
             }
           case graphql if graphql.startsWith("\"") =>
             graphql.tail.split("\"", 2).toList match {
@@ -198,12 +198,12 @@ trait Decoder extends lspace.codec.Decoder {
           case graphql if graphql.startsWith("\"\"\"") =>
             graphql.drop(3).split("\"\"\"", 2).toList match {
               case List(value, graphql) => (key0, value, graphql)
-              case _ => throw new Exception("invalid")
+              case _                    => throw new Exception("invalid")
             }
           case graphql if graphql.startsWith("\"") =>
             graphql.tail.split("\"", 2).toList match {
               case List(value, graphql) => (key0, value, graphql)
-              case _ => throw new Exception("invalid")
+              case _                    => throw new Exception("invalid")
             }
           case graphql =>
             graphql.span(!argumentEnds.contains(_)) match {

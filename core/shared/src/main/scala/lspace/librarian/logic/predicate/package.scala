@@ -9,5 +9,5 @@ package object predicate {
   }
 
   abstract class PredicateDef(label: String, comment: String = "", `@extends`: => List[Ontology] = List(P.ontology))
-      extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/p/${label}", Set(), label, comment, `@extends`)
+      extends OntologyDef(lspace.NS.vocab.Lspace + s"librarian/p/$label", Set(), label, comment, `@extends`)
 }

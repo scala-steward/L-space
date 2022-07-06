@@ -18,8 +18,8 @@ object NumericType extends DataTypeDef[NumericType[AnyVal]] {
   trait Properties extends LiteralType.Properties
 
   def numType[T]: NumericType[T] = new NumericType[T] {
-    val iri: String                                            = NS.types.`@number`
-    override val iris: Set[String]                             = Set(NS.types.schemaNumber)
+    val iri: String                                               = NS.types.`@number`
+    override val iris: Set[String]                                = Set(NS.types.schemaNumber)
     override protected def _extendedClasses: List[ClassType[Any]] = List(LiteralType.datatype)
   }
 

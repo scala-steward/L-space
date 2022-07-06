@@ -42,13 +42,12 @@ class NameSpaceServiceSpec extends AsyncWordSpec with Matchers with BeforeAndAft
 //    } yield ()).timeout(5.seconds).runToFuture
 //  }
 
-  override def withFixture(test: NoArgAsyncTest): FutureOutcome = {
-    new FutureOutcome(initTask.runToFuture flatMap { result =>
+  override def withFixture(test: NoArgAsyncTest): FutureOutcome =
+    new FutureOutcome(initTask.runToFuture.flatMap { result =>
       super.withFixture(test).toFuture
     })
-  }
 
-  "The nsService" can {
+  "The nsService".can {
     "return namespace-resources in applicication/ld+json" in {
       Future {
         val input = Input

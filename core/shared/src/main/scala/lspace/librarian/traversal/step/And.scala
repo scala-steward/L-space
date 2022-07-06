@@ -8,9 +8,11 @@ import monix.eval.Task
 import shapeless.HList
 
 object And
-    extends StepDef("And",
-                    "An and-step traverser only survives if all n-traversals have a non-empty result.",
-                    FilterStep.ontology :: Nil)
+    extends StepDef(
+      "And",
+      "An and-step traverser only survives if all n-traversals have a non-empty result.",
+      FilterStep.ontology :: Nil
+    )
     with StepWrapper[And] {
 
   def toStep(node: Node): Task[And] = node match {
@@ -21,10 +23,14 @@ object And
           node
             .out(keys.traversalTraversal)
             .map(
-              _.map(Traversal
-                .toTraversal(_)
-                .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])))
-            .head)
+              _.map(
+                Traversal
+                  .toTraversal(_)
+                  .map(_.asInstanceOf[Traversal[ClassType[Any], ClassType[Any], HList]])
+              )
+            )
+            .head
+        )
       } yield And(traversals)
   }
 
