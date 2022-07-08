@@ -1,8 +1,7 @@
 import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 
-ThisBuild / scalaVersion := "3.1.3-RC1-bin-20220324-d26a860-NIGHTLY"
+ThisBuild / scalaVersion := "3.2.1-RC1-bin-20220707-ae83f76-NIGHTLY"
 // ThisBuild / crossScalaVersions := Seq("2.13.7", "3.1.0")
-ThisBuild / githubWorkflowJavaVersions := Seq(sbtghactions.JavaSpec.graalvm("21.3.0","17"))
 
 inThisBuild(
   List(
@@ -26,24 +25,8 @@ inThisBuild(
     // scalacOptions ++= Seq(
     //   "-Ywarn-unused"
     // ),
-    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0"
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
     // scalafixScalaBinaryVersion := CrossVersion.binaryScalaVersion(scalaVersion.value)
-  )
-)
-
-ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
-ThisBuild / githubWorkflowPublishTargetBranches :=
-  Seq(RefPredicate.StartsWith(Ref.Tag("v")))
-
-ThisBuild / githubWorkflowPublish := Seq(
-  WorkflowStep.Sbt(
-    List("ci-release"),
-    env = Map(
-      "PGP_PASSPHRASE"    -> "${{ secrets.PGP_PASSPHRASE }}",
-      "PGP_SECRET"        -> "${{ secrets.PGP_SECRET }}",
-      "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-      "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
-    )
   )
 )
 
@@ -55,7 +38,8 @@ lazy val commonSettings = commonSmlBuildSettings ++ Seq(
   //  Test / fork := true,
   //  Test / testForkedParallel := true
   scalacOptions ++= Seq(
-    "-Yexplicit-nulls"
+    "-Yexplicit-nulls",
+    "-language:experimental.genericNumberLiterals"
     // "-language:strictEquality"
   )
 )
@@ -72,7 +56,8 @@ lazy val lspace = project
     // core.jvm,
     // core.js
     model.jvm,
-    model.js
+    model.js,
+    model.native
     // parse,
     // client.jvm,
     // client.js,
@@ -82,7 +67,7 @@ lazy val lspace = project
   )
 
 lazy val model =
-  (crossProject(JSPlatform, JVMPlatform)
+  (crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .withoutSuffixFor(JVMPlatform)
     .crossType(CrossType.Full) in file("model"))
     .settings(commonSettings)

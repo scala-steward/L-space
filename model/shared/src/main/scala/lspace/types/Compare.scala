@@ -1,5 +1,7 @@
 package lspace.types
 
+import scala.annotation.experimental
+
 trait Compare:
   type C[t] <: NonLit[t]
   type Able[x, y] = Validate[x, y] =:= true

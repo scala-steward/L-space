@@ -275,7 +275,7 @@ extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
     Where[AnyTraversal[traversal]]
   ]] = _traversal.addStep(Where(traversal))
 
-extension [ST, IN, OUT, ET <: Edge[IN, OUT], Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])
+extension [ST, IN, OUT, ET[in, out] <: Edge[in, out], Steps <: Tuple](_traversal: Traversal[ST, ET[IN, OUT], Steps])
 
   def from(): Traversal[ST, IN, Traversal.StepsConcat[Steps, From]] =
     _traversal.addStep(From(), From.EndType(_traversal.et))
