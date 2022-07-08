@@ -7,3 +7,4 @@ RUN bash -c ". /home/gitpod/.sdkman/bin/sdkman-init.sh && \
     sdk default java 17.0.3-tem"
 
 RUN brew install sbt
+RUN brew install scalacenter/bloop/bloop
