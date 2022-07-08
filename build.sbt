@@ -56,8 +56,7 @@ lazy val lspace = project
     // core.jvm,
     // core.js
     model.jvm,
-    model.js,
-    model.native
+    model.js
     // parse,
     // client.jvm,
     // client.js,
@@ -67,7 +66,7 @@ lazy val lspace = project
   )
 
 lazy val model =
-  (crossProject(JVMPlatform, JSPlatform, NativePlatform)
+  (crossProject(JVMPlatform, JSPlatform)
     .withoutSuffixFor(JVMPlatform)
     .crossType(CrossType.Full) in file("model"))
     .settings(commonSettings)

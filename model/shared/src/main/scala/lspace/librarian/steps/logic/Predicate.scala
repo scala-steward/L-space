@@ -33,14 +33,14 @@ sealed trait P[+V](label: Name, comment: Comment) extends Matchable derives CanE
 
 sealed trait EqP[+V] extends P[V]
 object Eqv:
-  def apply[V](pvalue: V): Eqv[pvalue.type] = Eqv(pvalue)
+  def apply[V](pvalue: V): Eqv[pvalue.type] = new Eqv(pvalue)
 end Eqv
 final case class Eqv[+V] private (pvalue: V)
     extends P[V](Name("Eqv"), Comment("Predicate for logical equivalence, ===")),
       EqP[V]
 
 object Neqv:
-  def apply[V](pvalue: V): Neqv[pvalue.type] = Neqv(pvalue)
+  def apply[V](pvalue: V): Neqv[pvalue.type] = new Neqv(pvalue)
 end Neqv
 final case class Neqv[+V] private (pvalue: V)
     extends P[V](Name("Neqv"), Comment("Predicate for logical nonequivalence, !==")),
