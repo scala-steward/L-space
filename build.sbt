@@ -1,6 +1,6 @@
 import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 
-ThisBuild / scalaVersion := "3.2.1-RC1-bin-20220707-ae83f76-NIGHTLY"
+ThisBuild / scalaVersion := "3.2.1-RC1-bin-20220708-18f2c0e-NIGHTLY"
 // ThisBuild / crossScalaVersions := Seq("2.13.7", "3.1.0")
 
 inThisBuild(
