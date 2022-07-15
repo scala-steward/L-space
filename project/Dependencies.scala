@@ -5,7 +5,7 @@ object Dependencies {
 
   lazy val core = Def.setting(
     Seq(
-      "eu.l-space"   %%% "types"          % Version.lspaceTypes,
+      "eu.l-space" %%% "types" % Version.lspaceTypes,
 //      "eu.timepit"   %%% "refined"        % Version.refined,
 //      "org.typelevel" %%% "squants"        % "1.5.0",
 //      "org.typelevel" %%% "spire"          % "0.16.0",

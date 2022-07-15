@@ -1,8 +1,10 @@
 package lspace
+package librarian
+package traversal
 
 import classtypes._
 import librarian.logic.P
-import librarian.steps._
+import librarian.step._
 import types._
 
 extension [ST, ET, Steps <: Tuple](_traversal: Traversal[ST, ET, Steps])

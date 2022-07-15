@@ -1,9 +1,10 @@
 package lspace
 package librarian
-package steps
+package step
 
 import classtypes._
 import logic._
+import traversal._
 import types._
 
 sealed trait Step
@@ -58,8 +59,8 @@ object MapStep:
   }
   def KeyTuple[X](x: X): KeyTuple[X] = (x match {
     case EmptyTuple  => EmptyTuple
-    case key *: keys => (KeyLike(key) *: KeyTuple(keys))
-    case _           => (KeyLike(x) *: EmptyTuple)
+    case key *: keys => KeyLike(key) *: KeyTuple(keys)
+    case _           => KeyLike(x) *: EmptyTuple
   }).asInstanceOf[KeyTuple[X]]
 
   type EndType[X] = TupleType[Tuple.Map[KeyTuple[X], KeyToTuple]]
@@ -86,8 +87,8 @@ object MoveStep:
   }
   def KeyTuple[X](x: X): KeyTuple[X] = (x match {
     case EmptyTuple  => EmptyTuple
-    case key *: keys => (KeyLike(key) *: KeyTuple(keys))
-    case _           => (KeyLike(x) *: EmptyTuple)
+    case key *: keys => KeyLike(key) *: KeyTuple(keys)
+    case _           => KeyLike(x) *: EmptyTuple
   }).asInstanceOf[KeyTuple[X]]
 //   type Label[X] <: Tuple = X match {
 //     case Key[n] *: EmptyTuple => n *: EmptyTuple
@@ -114,21 +115,21 @@ object MoveEStep:
       case (inX: ClassType[in], outX: ClassType[out]) => EdgeType(inX, outX).asInstanceOf[EndType[InX, OutX]]
     }
 
-sealed trait MoveEStep    extends BranchStep
-sealed trait ClipStep     extends FilterStep
-sealed trait GroupingStep extends Step
-sealed trait BarrierStep  extends Step
-sealed trait GroupingBarrierStep extends BarrierStep with GroupingStep //with TraverseStep
-sealed trait ReducingStep extends Step
-sealed trait ReducingBarrierStep extends BarrierStep with ReducingStep //with TraverseStep
-sealed trait FilterBarrierStep extends BarrierStep with FilterStep     //with ReducingStep
+sealed trait MoveEStep            extends BranchStep
+sealed trait ClipStep             extends FilterStep
+sealed trait GroupingStep         extends Step
+sealed trait BarrierStep          extends Step
+sealed trait GroupingBarrierStep  extends BarrierStep with GroupingStep //with TraverseStep
+sealed trait ReducingStep         extends Step
+sealed trait ReducingBarrierStep  extends BarrierStep with ReducingStep //with TraverseStep
+sealed trait FilterBarrierStep    extends BarrierStep with FilterStep   //with ReducingStep
 sealed trait RearrangeStep        extends Step
 sealed trait RearrangeBarrierStep extends RearrangeStep with BarrierStep
 
 object And:
-  type Traversals[X] = lspace.Traversals[X]
-  def Traversals[X](traversals: X): Traversals[X] = lspace.Traversals(traversals)
-  type Step[X] = And[lspace.Traversals[X]]
+  type Traversals[X] = lspace.librarian.traversal.Traversals[X]
+  def Traversals[X](traversals: X): Traversals[X] = lspace.librarian.traversal.Traversals(traversals)
+  type Step[X] = And[lspace.librarian.traversal.Traversals[X]]
 
   def apply[traversals](traversals: traversals): And[Traversals[traversals]] = new And(Traversals(traversals))
 
@@ -140,14 +141,14 @@ object As:
 case class As[label <: As.Label, CT](label: label, classType: ClassType[CT]) extends LabelStep
 
 object Choose:
-  type By[X] = lspace.AnyTraversal[X]
-  def By[X](x: X) = lspace.AnyTraversal(x)
+  type By[X] = lspace.librarian.traversal.AnyTraversal[X]
+  def By[X](x: X) = lspace.librarian.traversal.AnyTraversal(x)
 
-  type Left[X] = lspace.AnyTraversal[X]
-  def Left[X](x: X) = lspace.AnyTraversal(x)
+  type Left[X] = lspace.librarian.traversal.AnyTraversal[X]
+  def Left[X](x: X) = lspace.librarian.traversal.AnyTraversal(x)
 
-  type Right[X] = lspace.AnyTraversal[X]
-  def Right[X](x: X) = lspace.AnyTraversal(x)
+  type Right[X] = lspace.librarian.traversal.AnyTraversal[X]
+  def Right[X](x: X) = lspace.librarian.traversal.AnyTraversal(x)
 
   type EndType[left, right] =
     UnionType[UnionType.Able[(Traversal.EndType[Left[left]], Traversal.EndType[Right[right]])]]
@@ -169,8 +170,8 @@ case class Choose[by, left, right] private (
 ) extends BranchStep
 
 object Coalesce:
-  type Traversals[X] = lspace.Traversals[X]
-  def Traverals[X](x: X) = lspace.Traversals(x)
+  type Traversals[X] = lspace.librarian.traversal.Traversals[X]
+  def Traverals[X](x: X) = lspace.librarian.traversal.Traversals(x)
   // type EndType[X] <: ClassType[?] = X match {
   //   case l | r => Traversal.EndType[l] | Traversal.EndType[r]
   // }
@@ -236,11 +237,11 @@ case class From() extends TraverseStep
 case class G(graphs: List[Graph] = Nil) extends GraphStep
 
 object Group:
-  type By[X] = lspace.AnyTraversal[X]
-  def By[X](x: X) = lspace.AnyTraversal(x)
+  type By[X] = lspace.librarian.traversal.AnyTraversal[X]
+  def By[X](x: X) = lspace.librarian.traversal.AnyTraversal(x)
 
-  type Value[X] = lspace.AnyTraversal[X]
-  def Value[X](x: X) = lspace.AnyTraversal(x)
+  type Value[X] = lspace.librarian.traversal.AnyTraversal[X]
+  def Value[X](x: X) = lspace.librarian.traversal.AnyTraversal(x)
 
   type EndType[by, value] <: ClassType[?] = (Traversal.EndType[By[by]], Traversal.EndType[Value[value]]) match {
     case (ClassType[by], ClassType[value]) => TupleType[(by, List[value])]
@@ -333,10 +334,10 @@ object Local:
   type EndType[X] = Traversal.EndType[X]
   def EndType[X](x: X): EndType[X] = Traversal.EndType[X](x)
 
-  type TraversalType[X] = lspace.AnyTraversal[X]
+  type TraversalType[X] = lspace.librarian.traversal.AnyTraversal[X]
 
   def apply[traversal](traversal: traversal): Local[TraversalType[traversal]] = new Local(
-    lspace.AnyTraversal(traversal)
+    lspace.librarian.traversal.AnyTraversal(traversal)
   )
 
 case class Local[traversal] private (traversal: traversal) extends BranchStep
@@ -390,8 +391,8 @@ object Not:
 case class Not[traversal] private (traversal: traversal) extends FilterStep
 
 object Or:
-  type Traversals[X] = lspace.Traversals[X]
-  def Traversals[X](traversals: X): Traversals[X] = lspace.Traversals(traversals)
+  type Traversals[X] = lspace.librarian.traversal.Traversals[X]
+  def Traversals[X](traversals: X): Traversals[X] = lspace.librarian.traversal.Traversals(traversals)
 
   def apply[traversals](traversals: traversals): Or[Traversals[traversals]] = new Or(Traversals(traversals))
 
@@ -427,10 +428,10 @@ object Path:
   // type EndType[X] = Traversal.EndType[X]
   // def EndType[X](x: X): EndType[X] = Traversal.EndType[X](x)
 
-  type TraversalType[X] = lspace.AnyTraversal[X]
+  type TraversalType[X] = lspace.librarian.traversal.AnyTraversal[X]
 
   def apply[traversal](traversal: traversal): Path[TraversalType[traversal]] = new Path(
-    lspace.AnyTraversal(traversal)
+    lspace.librarian.traversal.AnyTraversal(traversal)
   )
 
 case class Path[traversal] private (traversal: traversal) extends ProjectionStep
@@ -457,8 +458,8 @@ object Repeat:
     case None.type => None.type
   def MaxType[X](x: X): MaxType[X] =
     (x match {
-      case x: Int  => Some(x)
-      case None => None
+      case x: Int => Some(x)
+      case None   => None
     }).asInstanceOf[MaxType[X]]
 
   type ValidUntil[traversal, until] <: =:=[?, ?] = until match {
@@ -585,8 +586,8 @@ object To:
 case class To() extends TraverseStep
 
 object Union:
-  type Traversals[X] = lspace.Traversals[X]
-  def Traverals[X](x: X) = lspace.Traversals(x)
+  type Traversals[X] = lspace.librarian.traversal.Traversals[X]
+  def Traverals[X](x: X) = lspace.librarian.traversal.Traversals(x)
 
   type EndType[X] = UnionType[UnionType.Able[Traversal.EndTypes[X]]]
   def EndType[X](x: X): EndType[X] = UnionType(Traversal.EndTypes(x))

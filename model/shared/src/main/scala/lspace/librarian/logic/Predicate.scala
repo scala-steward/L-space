@@ -50,7 +50,7 @@ object OrderP:
   import java.time._
 
   type OrderableType[X] = X match
-    case Int | Double | Long     => X
+    case Int | Double | Long => X
     // case Instant | ZonedDateTime => X
     // case OffsetDateTime          => X
     // case LocalDateTime           => X
@@ -58,7 +58,7 @@ object OrderP:
     // case LocalTime               => X
 
   def OrderableType[X](x: X): OrderableType[X] = x match {
-    case x: (Int | Double | Long)     => x
+    case x: (Int | Double | Long) => x
     // case x: (Instant | ZonedDateTime) => x
     // case x: OffsetDateTime            => x
     // case x: LocalDateTime             => x
@@ -67,14 +67,14 @@ object OrderP:
   }
 
   type OrderableClassType[X] <: ClassType[?] = X match {
-    case IntType[t] => IntType[t]
+    case IntType[t]    => IntType[t]
     case DoubleType[t] => DoubleType[t]
-    case LongType[t] => LongType[t]
+    case LongType[t]   => LongType[t]
   }
   def OrderableClassType[X](x: X): OrderableClassType[X] = x match {
-    case ct: IntType[?] => ct
+    case ct: IntType[?]    => ct
     case ct: DoubleType[?] => ct
-    case ct: LongType[?] => ct
+    case ct: LongType[?]   => ct
   }
 // type Sortable[X] = X match {
 //   case Int | Double | Long => X
@@ -195,7 +195,7 @@ object And:
 
   def AndTuple[X](x: X): AndTuple[X] = (x match
     case EmptyTuple => Tuple.apply()
-    case x *: xs    => (ptype(x) ++ AndTuple(xs))
+    case x *: xs    => ptype(x) ++ AndTuple(xs)
     case x          => ptype(x)
   ).asInstanceOf[AndTuple[X]]
 
@@ -226,7 +226,7 @@ object Or:
 
   def OrTuple[X](x: X): OrTuple[X] = (x match
     case EmptyTuple => Tuple.apply()
-    case x *: xs    => (ptype(x) ++ OrTuple(xs))
+    case x *: xs    => ptype(x) ++ OrTuple(xs)
     case x          => ptype(x)
   ).asInstanceOf[OrTuple[X]]
 

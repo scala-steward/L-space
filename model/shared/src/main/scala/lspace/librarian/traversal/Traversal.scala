@@ -1,7 +1,9 @@
 package lspace
+package librarian
+package traversal
 
 import classtypes._
-import lspace.librarian.steps.Step
+import lspace.librarian.step.Step
 
 final case class Traversal[ST, ET, Steps <: Tuple] private (steps: Steps)(
   val st: ClassType[ST],

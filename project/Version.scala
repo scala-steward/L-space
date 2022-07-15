@@ -1,7 +1,7 @@
 object Version {
-  val argonaut  = "6.3.8"
-  val circe     = "0.15.0-M1"
-  val elastic4s = "8.2.1"
+  val argonaut      = "6.3.8"
+  val circe         = "0.15.0-M1"
+  val elastic4s     = "8.2.1"
   val lspaceTypes   = "0.2.1"
   val minitest      = "2.9.6"
   val monix         = "3.4.0"
