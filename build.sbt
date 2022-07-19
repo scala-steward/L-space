@@ -56,7 +56,9 @@ lazy val lspace = project
     // core.jvm,
     // core.js
     model.jvm,
-    model.js
+    model.js,
+    graphZio.jvm,
+    graphZio.js
     // parse,
     // client.jvm,
     // client.js,
@@ -77,8 +79,24 @@ lazy val model =
       )
     )
     .settings(
-      SharedSettings.test
+      SharedSettings.test()
     )
+
+lazy val graphZio =
+  (crossProject(JVMPlatform, JSPlatform)
+    .withoutSuffixFor(JVMPlatform)
+    .crossType(CrossType.Full) in file("graph-zio"))
+    .settings(commonSettings)
+    .settings(
+      name := "lspace-graph-zio",
+      libraryDependencies ++= Seq(
+        "dev.zio" %%% "zio" % Version.zio
+      )
+    )
+    .settings(
+      SharedSettings.test()
+    )
+    .dependsOn(model)
 
 // lazy val core = (crossProject(JSPlatform, JVMPlatform)
 //   .withoutSuffixFor(JVMPlatform)

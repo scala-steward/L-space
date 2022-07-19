@@ -4,13 +4,12 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object SharedSettings {
 
-  lazy val test = Seq(
+  def test(scope: String = "test") = Seq(
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % Version.scalaTest % "it,test",
-      // "org.scalamock" %% "scalamock"                      % Version.scalaMock      % "test",
-      // "com.dimafeng"  %% "testcontainers-scala-scalatest" % Version.testContainers % "it",
+      "org.scalatest" %%% "scalatest" % Version.scalaTest % scope,
+      // "org.scalamock" %% "scalamock"                      % Version.scalaMock      % scope,
       "dev.zio" %%% "zio-test"     % Version.zio,
-      "dev.zio"  %% "zio-test-sbt" % Version.zio % "test"
+      "dev.zio"  %%% "zio-test-sbt" % Version.zio % scope
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   )
